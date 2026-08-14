@@ -12,8 +12,10 @@ create extension if not exists pgcrypto;
 -- ============================================================
 
 create table if not exists users (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
+  id uuid default gen_random_uuid(),
+  email text not null,
+  constraint pk_users_id primary key (id),
+  constraint uq_users_email unique (email),
   status text not null default 'active' check (status in ('active','disabled','deleted')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -21,9 +23,12 @@ create table if not exists users (
 );
 
 create table if not exists profiles (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null unique references users(id) on delete cascade,
+  id uuid default gen_random_uuid(),
+  user_id uuid not null,
   display_name text not null,
+  constraint pk_profiles_id primary key (id),
+  constraint uq_profiles_user_id unique (user_id),
+  constraint fk_profiles_user_id foreign key (user_id) references users(id) on delete cascade,
   avatar_url text,
   bio text,
   created_at timestamptz not null default now(),
@@ -31,16 +36,19 @@ create table if not exists profiles (
 );
 
 create table if not exists settings (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null unique references users(id) on delete cascade,
+  id uuid default gen_random_uuid(),
+  user_id uuid not null,
   ui_preferences jsonb not null default '{}'::jsonb,
+  constraint pk_settings_id primary key (id),
+  constraint uq_settings_user_id unique (user_id),
+  constraint fk_settings_user_id foreign key (user_id) references users(id) on delete cascade,
   notification_preferences jsonb not null default '{}'::jsonb,
   gameplay_preferences jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table if not exists authorization_roles (
+create table if not exists roles (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   description text,
@@ -57,7 +65,7 @@ create table if not exists permissions (
 );
 
 create table if not exists role_permissions (
-  role_id uuid not null references authorization_roles(id) on delete cascade,
+  role_id uuid not null references roles(id) on delete cascade,
   permission_id uuid not null references permissions(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (role_id, permission_id)
@@ -65,7 +73,7 @@ create table if not exists role_permissions (
 
 create table if not exists user_roles (
   user_id uuid not null references users(id) on delete cascade,
-  role_id uuid not null references authorization_roles(id) on delete cascade,
+  role_id uuid not null references roles(id) on delete cascade,
   assigned_at timestamptz not null default now(),
   expires_at timestamptz,
   assigned_by uuid references users(id) on delete set null,
@@ -823,7 +831,7 @@ declare
   t text;
 begin
   foreach t in array array[
-    'users','profiles','settings','authorization_roles','permissions','devices','sessions',
+    'users','profiles','settings','roles','permissions','devices','sessions',
     'worlds','continents','regions','locations','settlements','buildings','services','resources',
     'households','family_groups','lives','life_attributes','communities','organizations',
     'organization_roles','occupations','simulation_clock','calendar_definitions','time_events',
@@ -876,6 +884,40 @@ with check (user_id = auth.uid());
 
 -- Sessions are not exposed for client mutation.
 -- Auth credentials/tokens remain outside these tables.
+
+-- ============================================================
+-- FOUNDATION FK INDEXES
+-- ============================================================
+
+create index if not exists idx_profiles_user_id
+  on profiles(user_id);
+
+create index if not exists idx_settings_user_id
+  on settings(user_id);
+
+create index if not exists idx_role_permissions_role_id
+  on role_permissions(role_id);
+
+create index if not exists idx_role_permissions_permission_id
+  on role_permissions(permission_id);
+
+create index if not exists idx_user_roles_user_id
+  on user_roles(user_id);
+
+create index if not exists idx_user_roles_role_id
+  on user_roles(role_id);
+
+create index if not exists idx_devices_user_id
+  on devices(user_id);
+
+create index if not exists idx_sessions_user_id
+  on sessions(user_id);
+
+create index if not exists idx_notifications_user_id
+  on notifications(user_id);
+
+create index if not exists idx_audit_logs_user_id
+  on audit_logs(user_id);
 
 -- ============================================================
 -- END
