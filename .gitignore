@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary extraction
+_extract_d48/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies / build
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
