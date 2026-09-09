@@ -1,0 +1,7 @@
+"use client";
+import { useState } from "react";
+const tools=["Select","Paint","Erase","Stamp","Collision"];
+export function EditorShell(){
+ const [activeTool,setActiveTool]=useState("Select");
+ return <main className="editor"><header className="toolbar"><div className="brand">Vandrith Map Editor</div>{tools.map(tool=><button key={tool} onClick={()=>setActiveTool(tool)} aria-pressed={activeTool===tool}>{tool}</button>)}<div className="spacer"/><button>Save</button><button>Preview</button></header><section className="workspace"><aside className="sidebar"><div className="section-title">Project</div><p>Starter Map</p><div className="section-title">Layers</div><p>Ground</p><p>Objects</p><p>Collision</p><div className="section-title">Assets</div><p>Tilesets</p><p>Objects</p></aside><section className="canvas" aria-label="Map canvas"><div className="canvas-card">PixiJS canvas mount point</div></section><aside className="inspector"><div className="section-title">Inspector</div><p>Tool: {activeTool}</p><p>Selection: none</p><div className="section-title">Map</div><p>Grid: 32 × 32</p><p>Mode: Edit</p></aside></section><footer className="status">Local editor shell · Database integration intentionally not enabled yet</footer></main>;
+}
