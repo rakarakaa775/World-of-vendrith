@@ -1,13 +1,19 @@
-import type { MapDocument, MapObject } from './map-document';
+import type { MapDocument, MapObject, BuildingCategory, BuildingFootprint } from './map-document';
 import type { GridPoint } from './grid';
 
-export function placeObject(document: MapDocument, layerId: string, point: GridPoint, object: Omit<MapObject,'id'|'x'|'y'>): MapDocument {
-  const layer=document.layers.find(l=>l.id===layerId);
-  if(!layer||layer.kind!=='objects'||layer.locked||!layer.visible)return document;
-  const placed:MapObject={...object,id:`object-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,x:point.x,y:point.y};
-  return {...document,layers:document.layers.map(l=>l.id===layerId?{...l,objects:[...l.objects,placed]}:l)};
-}
-
+export type BuildingDefinition={id:string;label:string;category:BuildingCategory;footprint:BuildingFootprint;assetId:string;width:number;height:number;collision:boolean};
+export const BUILDINGS:BuildingDefinition[]=[
+ {id:'cottage',label:'Cottage',category:'house',footprint:'2x2',assetId:'building-cottage-placeholder',width:2,height:2,collision:true},
+ {id:'shop',label:'Shop',category:'shop',footprint:'2x2',assetId:'building-shop-placeholder',width:2,height:2,collision:true},
+ {id:'workshop',label:'Workshop',category:'workshop',footprint:'3x3',assetId:'building-workshop-placeholder',width:3,height:3,collision:true},
+ {id:'farm',label:'Farm',category:'farm',footprint:'3x4',assetId:'building-farm-placeholder',width:3,height:4,collision:true},
+ {id:'warehouse',label:'Warehouse',category:'warehouse',footprint:'3x3',assetId:'building-warehouse-placeholder',width:3,height:3,collision:true},
+ {id:'tower',label:'Tower',category:'tower',footprint:'2x3',assetId:'building-tower-placeholder',width:2,height:3,collision:true},
+ {id:'wall',label:'Wall',category:'wall',footprint:'1x1',assetId:'building-wall-placeholder',width:1,height:1,collision:true},
+ {id:'gate',label:'Gate',category:'gate',footprint:'1x1',assetId:'building-gate-placeholder',width:1,height:1,collision:true},
+];
+export function canPlaceBuilding(document:MapDocument,layerId:string,point:GridPoint,width:number,height:number):boolean{if(point.x<0||point.y<0||point.x+width>document.width||point.y+height>document.height)return false;const layer=document.layers.find(l=>l.id===layerId);if(!layer||layer.kind!=='objects'||layer.locked||!layer.visible)return false;return !layer.objects.some(o=>point.x<o.x+o.width&&point.x+width>o.x&&point.y<o.y+o.height&&point.y+height>o.y);}
+export function placeBuilding(document:MapDocument,layerId:string,point:GridPoint,building:BuildingDefinition):MapDocument{if(!canPlaceBuilding(document,layerId,point,building.width,building.height))return document;const placed:MapObject={id:`building-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,kind:'building',category:building.category,x:point.x,y:point.y,width:building.width,height:building.height,assetId:building.assetId,rotation:0,zIndex:0,collision:building.collision};return{...document,layers:document.layers.map(l=>l.id===layerId?{...l,objects:[...l.objects,placed]}:l)}}
 export function objectAt(document:MapDocument,layerId:string,point:GridPoint):MapObject|null{const layer=document.layers.find(l=>l.id===layerId);if(!layer||!layer.visible)return null;for(let i=layer.objects.length-1;i>=0;i--){const o=layer.objects[i];if(point.x>=o.x&&point.y>=o.y&&point.x<o.x+o.width&&point.y<o.y+o.height)return o;}return null;}
-export function moveObject(document:MapDocument,layerId:string,objectId:string,point:GridPoint):MapDocument{return {...document,layers:document.layers.map(l=>l.id===layerId&&!l.locked?{...l,objects:l.objects.map(o=>o.id===objectId?{...o,x:point.x,y:point.y}:o)}:l)}}
-export function deleteObject(document:MapDocument,layerId:string,objectId:string):MapDocument{return {...document,layers:document.layers.map(l=>l.id===layerId&&!l.locked?{...l,objects:l.objects.filter(o=>o.id!==objectId)}:l)}}
+export function moveObject(document:MapDocument,layerId:string,objectId:string,point:GridPoint):MapDocument{const layer=document.layers.find(l=>l.id===layerId);const o=layer?.objects.find(x=>x.id===objectId);if(!o||!layer||layer.locked||!canPlaceBuilding(document,layerId,point,o.width,o.height))return document;return{...document,layers:document.layers.map(l=>l.id===layerId?{...l,objects:l.objects.map(x=>x.id===objectId?{...x,x:point.x,y:point.y}:x)}:l)}}
+export function deleteObject(document:MapDocument,layerId:string,objectId:string):MapDocument{return{...document,layers:document.layers.map(l=>l.id===layerId&&!l.locked?{...l,objects:l.objects.filter(o=>o.id!==objectId)}:l)}}
