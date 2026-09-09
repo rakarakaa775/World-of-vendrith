@@ -1,9 +1,12 @@
+export type MapType = 'world' | 'region' | 'playable';
 export type MapLayerKind = 'ground' | 'objects' | 'collision';
 export type TileCell = { tileId: string | null };
 export type BuildingFootprint = '1x1'|'2x2'|'2x3'|'3x3'|'3x4';
 export type BuildingCategory = 'house'|'shop'|'workshop'|'farm'|'warehouse'|'tower'|'wall'|'gate';
 export type MapObject = { id:string; kind:'building'|'decoration'; category:string; x:number; y:number; width:number; height:number; assetId:string; rotation:number; zIndex:number; collision:boolean };
 export type MapLayer = { id:string; name:string; kind:MapLayerKind; visible:boolean; locked:boolean; active:boolean; cells:TileCell[]; objects:MapObject[] };
-export type MapDocument = { version:1; id:string; name:string; width:number; height:number; tileSize:number; layers:MapLayer[] };
+export type MapDocument = { version:1; id:string; name:string; mapType:MapType; parentMapId:string|null; width:number; height:number; tileSize:number; layers:MapLayer[] };
 const layer=(id:string,name:string,kind:MapLayerKind,active=false):MapLayer=>({id,name,kind,visible:true,locked:false,active,cells:[],objects:[]});
-export const createStarterMap=():MapDocument=>({version:1,id:'starter-map',name:'Starter Map',width:20,height:12,tileSize:32,layers:[layer('ground','Ground','ground',true),layer('objects','Objects','objects'),layer('collision','Collision','collision')]});
+export const MAP_CAPABILITIES={world:{buildings:false,collision:false,terrainDetail:false,regions:true},region:{buildings:true,collision:false,terrainDetail:true,regions:false},playable:{buildings:true,collision:true,terrainDetail:true,regions:false}} as const;
+export const createMap=(mapType:MapType='playable',parentMapId:string|null=null):MapDocument=>({version:1,id:`${mapType}-map`,name:`${mapType[0].toUpperCase()+mapType.slice(1)} Map`,mapType,parentMapId,width:20,height:12,tileSize:32,layers:[layer('ground','Ground','ground',true),layer('objects','Objects','objects'),layer('collision','Collision','collision')]});
+export const createStarterMap=()=>createMap('playable');
