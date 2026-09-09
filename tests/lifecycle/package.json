@@ -1,0 +1,11 @@
+{
+  "name": "vandrith-lifecycle-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:a": "node test-a.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0"
+  }
+}
