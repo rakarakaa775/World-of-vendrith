@@ -1,2 +1,2 @@
-import { EditorShell } from "../components/editor-shell";
-export default function Page() { return <EditorShell />; }
+import { MapEditorApp } from "../components/map-editor-app";
+export default function Page() { return <MapEditorApp />; }
