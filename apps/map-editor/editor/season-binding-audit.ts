@@ -1,0 +1,4 @@
+import type { SeasonKey } from './season-system';
+export type SeasonBindingAuditStatus='verified'|'pending_provenance'|'missing_variant'|'unmatched_license';
+export type SeasonBindingCandidate={assetExternalKey:string;season:SeasonKey;assetPath:string|null;assetStatus:string;licenseStatus:string|null;commercialUseAllowed:boolean|null;modificationAllowed:boolean|null;status:SeasonBindingAuditStatus;reason:string};
+export function classifySeasonBinding(asset:{externalKey:string;assetPath:string|null;status:string},license:{verificationStatus:string;commercialUseAllowed:boolean;modificationAllowed:boolean}|null,hasVariant:boolean):SeasonBindingAuditStatus{if(!license)return'unmatched_license';if(license.verificationStatus!=='verified'||asset.status!=='approved')return'pending_provenance';if(!hasVariant)return'missing_variant';return'verified'}
