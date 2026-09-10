@@ -55,7 +55,7 @@ export function MapEditorApp(){
   },[]);
   return <div style={{display:'grid',gridTemplateRows:'auto 1fr',height:'100vh'}}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={setActiveMapId}/>
-    <EditorShell key={active.id} initialDocument={active} onDocumentChange={update} terrainBindings={terrainBindings} terrainStatus={`${terrainStatus} · ${environmentStatus}`} environmentCatalog={environmentCatalog} environmentReadiness={environmentReadiness}/>
+    <EditorShell key={active.id} initialDocument={active} onDocumentChange={update} terrainBindings={terrainBindings} terrainStatus={`${terrainStatus} · ${environmentStatus}`} environmentCatalog={environmentCatalog} environmentReadiness={environmentReadiness} environmentRuntime={environmentRuntime}/>
     <EnvironmentRuntimeBadge worldId={runtimeWorldId} state={environmentRuntime} error={environmentRuntimeError}/>
   </div>
 }
