@@ -18,6 +18,7 @@ export type EnvironmentReadiness = {
   weatherTransitionPolicies: number | null;
   terrainSeasonalBindings: number | null;
   runtimeReady: boolean;
+  source: 'engine' | 'unavailable';
 };
 
 export type EnvironmentLoadResult = {
@@ -38,6 +39,7 @@ const EMPTY_READINESS: EnvironmentReadiness = {
   weatherTransitionPolicies: null,
   terrainSeasonalBindings: null,
   runtimeReady: false,
+  source: 'unavailable',
 };
 
 const EMPTY: EnvironmentLoadResult = {
@@ -58,15 +60,10 @@ function keys(rows: unknown, field: 'season_key' | 'weather_key'): string[] {
   }))];
 }
 
-async function tableCount(client: SupabaseClient, table: string): Promise<number | null> {
-  const response = await client.from(table).select('*', { count: 'exact', head: true });
-  if (response.error) throw new Error(`${table}: ${response.error.message}`);
-  return typeof response.count === 'number' ? response.count : 0;
-}
-
 /**
- * Loads canonical definitions plus non-mutating readiness diagnostics.
- * It never derives the active season/weather and never enables runtime state.
+ * Browser-safe catalog loader only. Simulation-owned tables are deliberately
+ * not queried here: their security boundary marks them engine-read only.
+ * Readiness for those tables must arrive through a trusted engine/server path.
  */
 export async function loadEnvironmentCatalogFromSupabase(
   client: SupabaseClient,
@@ -82,38 +79,14 @@ export async function loadEnvironmentCatalogFromSupabase(
 
     const seasons = keys(seasonResponse.data as SeasonRow[], 'season_key');
     const weathers = keys(weatherResponse.data as WeatherRow[], 'weather_key');
-    const [seasonRules, seasonCycleRules, seasonWeatherRules, weatherTransitionPolicies, terrainSeasonalBindings] =
-      await Promise.all([
-        tableCount(client, 'season_rules'),
-        tableCount(client, 'season_cycle_rules'),
-        tableCount(client, 'season_weather_rules'),
-        tableCount(client, 'weather_transition_policies'),
-        tableCount(client, 'terrain_seasonal_bindings'),
-      ]);
-
-    const readiness: EnvironmentReadiness = {
-      seasonDefinitions: seasons.length,
-      weatherDefinitions: weathers.length,
-      seasonRules,
-      seasonCycleRules,
-      seasonWeatherRules,
-      weatherTransitionPolicies,
-      terrainSeasonalBindings,
-      runtimeReady:
-        seasons.length === 4 &&
-        weathers.length === 7 &&
-        seasonRules === 8 &&
-        seasonCycleRules === 4 &&
-        seasonWeatherRules === 28 &&
-        weatherTransitionPolicies === 7 &&
-        terrainSeasonalBindings !== null &&
-        terrainSeasonalBindings > 0,
-    };
-
     return {
       context: { seasonKey: null, weatherKey: null },
       catalog: { seasons, weathers },
-      readiness,
+      readiness: {
+        ...EMPTY_READINESS,
+        seasonDefinitions: seasons.length,
+        weatherDefinitions: weathers.length,
+      },
       source: 'supabase',
       ready: seasons.length > 0 && weathers.length > 0,
       error: null,
@@ -132,6 +105,7 @@ export function environmentCatalogSummary(result: EnvironmentLoadResult): string
 }
 
 export function environmentReadinessSummary(readiness: EnvironmentReadiness): string {
+  if (readiness.source === 'unavailable') return 'Runtime Environment BLOCKED · engine diagnostics unavailable to browser';
   if (readiness.runtimeReady) return 'Runtime Environment READY';
   return 'Runtime Environment BLOCKED · cycle/transition/seasonal bindings incomplete';
 }
