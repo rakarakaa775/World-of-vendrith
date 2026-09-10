@@ -4,16 +4,23 @@ import { paintCell } from './map-state';
 import { affectedTerrainCells, terrainFromTileId, terrainVariantKey, neighborMask } from './terrain-engine';
 import { applyTerrainAutotile, type TerrainCellVariant } from './terrain-autotile-apply';
 import type { TerrainAssetBindingMap } from './terrain-asset-binding';
+import {
+  validateTerrainCell,
+  validateTerrainPaint,
+  type TerrainValidationResult,
+} from './terrain-validation';
 
 export type TerrainPaintResult = {
   document: MapDocument;
   affected: GridPoint[];
   variants: TerrainCellVariant[];
+  validation: TerrainValidationResult[];
 };
 
 /**
- * Paints logical terrain first, then re-evaluates the changed perimeter.
- * The logical tile remains canonical when no verified render binding exists.
+ * Validates the requested terrain edit before mutation, then paints logical
+ * terrain and re-evaluates the changed perimeter. Missing render bindings are
+ * valid fallback states; they never make logical terrain invalid.
  */
 export function applyTerrainPaint(
   document: MapDocument,
@@ -22,15 +29,29 @@ export function applyTerrainPaint(
   tileId: string | null,
   bindings: TerrainAssetBindingMap = {},
 ): TerrainPaintResult {
-  let next = document;
-  for (const point of points) next = paintCell(next, layerId, point, tileId);
+  const requestValidation = validateTerrainPaint(document, layerId, points, tileId, bindings);
+  if (!requestValidation.valid) {
+    return {
+      document,
+      affected: [],
+      variants: [],
+      validation: requestValidation.points.map(point =>
+        validateTerrainCell(document, layerId, point, bindings),
+      ),
+    };
+  }
 
-  const affected = affectedTerrainCells(next, points);
+  let next = document;
+  for (const point of requestValidation.points) next = paintCell(next, layerId, point, tileId);
+
+  const affected = affectedTerrainCells(next, requestValidation.points);
   const result = applyTerrainAutotile(next, layerId, affected, bindings);
+  const validation = affected.map(point => validateTerrainCell(result.document, layerId, point, bindings));
   return {
     document: result.document,
     affected,
     variants: result.variants,
+    validation,
   };
 }
 
