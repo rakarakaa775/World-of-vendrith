@@ -8,7 +8,7 @@ import { normalizeSelection, type Selection } from '../editor/selection';
 import { pointsInLine, pointsInRectangle, pointsInSquare } from '../editor/paint-tools';
 import { resolveTerrainCellWithAssets } from '../editor/terrain-resolver';
 import { terrainTextureSourceFor } from '../editor/terrain-texture-registry';
-import { createTerrainRuntime, explicitTerrainTextureUrl } from '../editor/terrain-runtime';
+import { createTerrainRuntime } from '../editor/terrain-runtime';
 import type { TerrainAssetBindingMap } from '../editor/terrain-asset-binding';
 
 type Props={document:MapDocument;activeTool:string;selectedTileId:string|null;brushSize:number;selection:Selection|null;onPaint:(points:GridPoint[],tileId:string|null)=>void;onSelectionChange:(selection:Selection|null)=>void;onStamp:(point:GridPoint)=>void;onObjectPlace:(point:GridPoint)=>void;onObjectMove:(objectId:string,point:GridPoint)=>void;selectedObjectId:string|null;terrainBindings?:TerrainAssetBindingMap};
@@ -22,7 +22,7 @@ export function PixiMapCanvas({document,activeTool,selectedTileId,brushSize,sele
     let disposed=false;
     const host=hostRef.current;
     if(!host)return;
-    const runtime=createTerrainRuntime(terrainBindings,explicitTerrainTextureUrl);
+    const runtime=createTerrainRuntime(terrainBindings);
     const app=new Application();
     void app.init({resizeTo:host,background:'#0f1318',antialias:true}).then(()=>{
       if(disposed){app.destroy(true,{children:true});runtime.dispose();return;}
@@ -32,57 +32,8 @@ export function PixiMapCanvas({document,activeTool,selectedTileId,brushSize,sele
       grid.rect(0,0,width,height).stroke({width:1,color:0x3a424d});
       for(let x=1;x<document.width;x++)grid.moveTo(x*document.tileSize,0).lineTo(x*document.tileSize,height);
       for(let y=1;y<document.height;y++)grid.moveTo(0,y*document.tileSize).lineTo(width,y*document.tileSize);
-      grid.stroke({width:1,color:0x242b33});
-      world.addChild(grid);
+      grid.stroke({width:1,color:0x242b33});world.addChild(grid);
       const textureJobs:Array<Promise<void>>=[];
-      for(const layer of document.layers){
-        if(!layer.visible)continue;
-        for(let i=0;i<layer.cells.length;i++){
-          const id=layer.cells[i]?.tileId;
-          if(!id)continue;
-          const x=i%document.width,y=Math.floor(i/document.width),t=document.tileSize;
-          const tile=new Graphics();
-          tile.rect(x*t+2,y*t+2,t-4,t-4).fill({color:tileColor(id,layer.kind),alpha:layer.kind==='collision'?.32:1});
-          if(layer.kind==='ground'){
-            const resolved=resolveTerrainCellWithAssets(document,layer.id,{x,y},terrainBindings);
-            const source=resolved?terrainTextureSourceFor(runtime.registry,resolved.assetId):null;
-            if(source){
-              const sprite=new Sprite(Texture.WHITE);
-              sprite.position.set(x*t+2,y*t+2);sprite.width=t-4;sprite.height=t-4;sprite.alpha=0;
-              world.addChild(tile);world.addChild(sprite);
-              textureJobs.push(runtime.cache.load(source).then(texture=>{
-                if(disposed||!texture)return;
-                sprite.texture=texture;sprite.tint=0xffffff;sprite.alpha=1;
-              }));
-            }else world.addChild(tile);
-            if(resolved){
-              const c=edgeColor(resolved.terrain);
-              const west=(resolved.mask&8)!==0,east=(resolved.mask&2)!==0,north=(resolved.mask&1)!==0,south=(resolved.mask&4)!==0;
-              if(!west)tile.moveTo(2,2).lineTo(2,t-2);if(!east)tile.moveTo(t-2,2).lineTo(t-2,t-2);if(!north)tile.moveTo(2,2).lineTo(t-2,2);if(!south)tile.moveTo(2,t-2).lineTo(t-2,t-2);
-              tile.stroke({width:2,color:c,alpha:.75});
-            }
-          }else world.addChild(tile);
-        }
-        if(layer.kind==='objects')for(const o of layer.objects){const g=new Graphics();g.rect(o.x*document.tileSize+3,o.y*document.tileSize+3,o.width*document.tileSize-6,o.height*document.tileSize-6).fill({color:o.kind==='house'?0x8b5e3c:o.kind==='tree'?0x3f7d45:0x777777,alpha:.9}).stroke({width:2,color:selectedObjectId===o.id?0xf8fafc:0x111827});world.addChild(g);const label=new Text({text:o.kind[0].toUpperCase(),style:{fontSize:14,fill:0xffffff}});label.position.set(o.x*document.tileSize+10,o.y*document.tileSize+8);world.addChild(label);}
-      }
-      world.addChild(overlay);app.stage.addChild(world);
-      const apply=()=>{const v=viewportRef.current;world.position.set(v.x+12,v.y+12);world.scale.set(v.zoom);};
-      if(!viewportRef.current.x&&!viewportRef.current.y)viewportRef.current={x:Math.max((host.clientWidth-width)/2,12),y:Math.max((host.clientHeight-height)/2,12),zoom:1};
-      apply();overlay.clear();if(selection)overlay.rect(selection.x*document.tileSize,selection.y*document.tileSize,selection.width*document.tileSize,selection.height*document.tileSize).fill({color:0x7dd3fc,alpha:.12}).stroke({width:2,color:0x7dd3fc});
-      let selecting=false,panning=false,moving=false,lastX=0,lastY=0,start:GridPoint|null=null,moveId:string|null=null;
-      const pointAt=(e:any)=>{const p=e.getLocalPosition(world);return{x:Math.floor(p.x/document.tileSize),y:Math.floor(p.y/document.tileSize)}};
-      const valid=(p:GridPoint)=>p.x>=0&&p.y>=0&&p.x<document.width&&p.y<document.height;
-      const hitObject=(p:GridPoint)=>{const layer=document.layers.find(l=>l.id==='objects');if(!layer)return null;for(let i=layer.objects.length-1;i>=0;i--){const o=layer.objects[i];if(p.x>=o.x&&p.y>=o.y&&p.x<o.x+o.width&&p.y<o.y+o.height)return o;}return null;};
-      const paint=(points:GridPoint[])=>onPaint(points.filter(valid),activeTool==='Erase'?null:selectedTileId);
-      const down=(e:any)=>{const p=pointAt(e);if(activeTool==='Paint'||activeTool==='Erase'){paint(pointsInSquare(p,brushSize));return;}if(activeTool==='Line'||activeTool==='Rectangle'){start=p;return;}if(activeTool==='Select'){const hit=hitObject(p);if(hit){moveId=hit.id;moving=true;onSelectionChange(null);}else if(valid(p)){selecting=true;start=p;onSelectionChange(normalizeSelection(p,p));}return;}if(activeTool==='Stamp'){if(valid(p))onStamp(p);return;}if(activeTool==='Building'){if(valid(p))onObjectPlace(p);return;}panning=true;lastX=e.global.x;lastY=e.global.y;};
-      const move=(e:any)=>{if(moving&&moveId){const p=pointAt(e);if(valid(p))onObjectMove(moveId,p);return;}if(selecting&&start){const p=pointAt(e);if(valid(p))onSelectionChange(normalizeSelection(start,p));return;}if(!panning)return;viewportRef.current={...viewportRef.current,x:viewportRef.current.x+e.global.x-lastX,y:viewportRef.current.y+e.global.y-lastY};lastX=e.global.x;lastY=e.global.y;apply();};
-      const up=(e:any)=>{if(start&&(activeTool==='Line'||activeTool==='Rectangle')){const end=pointAt(e);if(valid(end))paint(activeTool==='Line'?pointsInLine(start,end):pointsInRectangle(start,end));start=null;}selecting=false;moving=false;moveId=null;panning=false};
-      const wheel=(e:WheelEvent)=>{const r=host.getBoundingClientRect();viewportRef.current=zoomAt(viewportRef.current,e.deltaY<0?1.1:.9,e.clientX-r.left,e.clientY-r.top);apply();};
-      app.stage.eventMode='static';app.stage.hitArea=app.screen;app.stage.on('pointerdown',down).on('pointermove',move).on('pointerup',up).on('pointerupoutside',up);host.addEventListener('wheel',wheel,{passive:true});
-      void Promise.all(textureJobs);
-      return()=>host.removeEventListener('wheel',wheel);
-    });
-    return()=>{disposed=true;runtime.dispose();app.destroy(true,{children:true});};
-  },[document,activeTool,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings]);
-  return <div ref={hostRef} style={{width:'100%',height:'100%',minHeight:320,overflow:'hidden'}}/>;
+      for(const layer of document.layers){if(!layer.visible)continue;for(let i=0;i<layer.cells.length;i++){const id=layer.cells[i]?.tileId;if(!id)continue;const x=i%document.width,y=Math.floor(i/document.width),t=document.tileSize;const tile=new Graphics();tile.rect(x*t+2,y*t+2,t-4,t-4).fill({color:tileColor(id,layer.kind),alpha:layer.kind==='collision'?.32:1});if(layer.kind==='ground'){const resolved=resolveTerrainCellWithAssets(document,layer.id,{x,y},terrainBindings);const source=resolved?terrainTextureSourceFor(runtime.registry,resolved.assetId):null;world.addChild(tile);if(source){const sprite=new Sprite(Texture.WHITE);sprite.position.set(x*t+2,y*t+2);sprite.width=t-4;sprite.height=t-4;sprite.alpha=0;world.addChild(sprite);textureJobs.push(runtime.cache.load(source).then(texture=>{if(disposed||!texture)return;sprite.texture=texture;sprite.tint=0xffffff;sprite.alpha=1;}));}if(resolved){const c=edgeColor(resolved.terrain);const west=(resolved.mask&8)!==0,east=(resolved.mask&2)!==0,north=(resolved.mask&1)!==0,south=(resolved.mask&4)!==0;if(!west)tile.moveTo(2,2).lineTo(2,t-2);if(!east)tile.moveTo(t-2,2).lineTo(t-2,t-2);if(!north)tile.moveTo(2,2).lineTo(t-2,2);if(!south)tile.moveTo(2,t-2).lineTo(t-2,t-2);tile.stroke({width:2,color:c,alpha:.75});}}else world.addChild(tile);}if(layer.kind==='objects')for(const o of layer.objects){const g=new Graphics();g.rect(o.x*document.tileSize+3,o.y*document.tileSize+3,o.width*document.tileSize-6,o.height*document.tileSize-6).fill({color:o.kind==='house'?0x8b5e3c:o.kind==='tree'?0x3f7d45:0x777777,alpha:.9}).stroke({width:2,color:selectedObjectId===o.id?0xf8fafc:0x111827});world.addChild(g);const label=new Text({text:o.kind[0].toUpperCase(),style:{fontSize:14,fill:0xffffff}});label.position.set(o.x*document.tileSize+10,o.y*document.tileSize+8);world.addChild(label);}}
+      world.addChild(overlay);app.stage.addChild(world);const apply=()=>{const v=viewportRef.current;world.position.set(v.x+12,v.y+12);world.scale.set(v.zoom);};if(!viewportRef.current.x&&!viewportRef.current.y)viewportRef.current={x:Math.max((host.clientWidth-width)/2,12),y:Math.max((host.clientHeight-height)/2,12),zoom:1};apply();overlay.clear();if(selection)overlay.rect(selection.x*document.tileSize,selection.y*document.tileSize,selection.width*document.tileSize,selection.height*document.tileSize).fill({color:0x7dd3fc,alpha:.12}).stroke({width:2,color:0x7dd3fc});let selecting=false,panning=false,moving=false,lastX=0,lastY=0,start:GridPoint|null=null,moveId:string|null=null;const pointAt=(e:any)=>{const p=e.getLocalPosition(world);return{x:Math.floor(p.x/document.tileSize),y:Math.floor(p.y/document.tileSize)}};const valid=(p:GridPoint)=>p.x>=0&&p.y>=0&&p.x<document.width&&p.y<document.height;const hitObject=(p:GridPoint)=>{const layer=document.layers.find(l=>l.id==='objects');if(!layer)return null;for(let i=layer.objects.length-1;i>=0;i--){const o=layer.objects[i];if(p.x>=o.x&&p.y>=o.y&&p.x<o.x+o.width&&p.y<o.y+o.height)return o;}return null;};const paint=(points:GridPoint[])=>onPaint(points.filter(valid),activeTool==='Erase'?null:selectedTileId);const down=(e:any)=>{const p=pointAt(e);if(activeTool==='Paint'||activeTool==='Erase'){paint(pointsInSquare(p,brushSize));return;}if(activeTool==='Line'||activeTool==='Rectangle'){start=p;return;}if(activeTool==='Select'){const hit=hitObject(p);if(hit){moveId=hit.id;moving=true;onSelectionChange(null);}else if(valid(p)){selecting=true;start=p;onSelectionChange(normalizeSelection(p,p));}return;}if(activeTool==='Stamp'){if(valid(p))onStamp(p);return;}if(activeTool==='Building'){if(valid(p))onObjectPlace(p);return;}panning=true;lastX=e.global.x;lastY=e.global.y;};const move=(e:any)=>{if(moving&&moveId){const p=pointAt(e);if(valid(p))onObjectMove(moveId,p);return;}if(selecting&&start){const p=pointAt(e);if(valid(p))onSelectionChange(normalizeSelection(start,p));return;}if(!panning)return;viewportRef.current={...viewportRef.current,x:viewportRef.current.x+e.global.x-lastX,y:viewportRef.current.y+e.global.y-lastY};lastX=e.global.x;lastY=e.global.y;apply();};const up=(e:any)=>{if(start&&(activeTool==='Line'||activeTool==='Rectangle')){const end=pointAt(e);if(valid(end))paint(activeTool==='Line'?pointsInLine(start,end):pointsInRectangle(start,end));start=null;}selecting=false;moving=false;moveId=null;panning=false};const wheel=(e:WheelEvent)=>{const r=host.getBoundingClientRect();viewportRef.current=zoomAt(viewportRef.current,e.deltaY<0?1.1:.9,e.clientX-r.left,e.clientY-r.top);apply();};app.stage.eventMode='static';app.stage.hitArea=app.screen;app.stage.on('pointerdown',down).on('pointermove',move).on('pointerup',up).on('pointerupoutside',up);host.addEventListener('wheel',wheel,{passive:true});void Promise.all(textureJobs);return()=>host.removeEventListener('wheel',wheel);});return()=>{disposed=true;runtime.dispose();app.destroy(true,{children:true});};},[document,activeTool,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings]);return <div ref={hostRef} style={{width:'100%',height:'100%',minHeight:320,overflow:'hidden'}}/>;
 }
