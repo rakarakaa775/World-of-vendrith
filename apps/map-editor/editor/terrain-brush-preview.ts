@@ -2,9 +2,9 @@ import type { GridPoint } from './grid';
 import type { MapDocument } from './map-document';
 import { paintCell } from './map-state';
 import { pointsInFloodFill } from './paint-tools';
-import { affectedTerrainCells, terrainAt, terrainFromTileId, neighborMask, terrainVariantKey, type TerrainKey } from './terrain-engine';
+import { affectedTerrainCells, terrainFromTileId, type TerrainKey } from './terrain-engine';
 import { resolveTerrainJunction } from './terrain-junction-resolver';
-import { createTerrainAssetResolver, resolveTerrainCell, resolveTerrainCellWithAssets, tileIdForTerrain } from './terrain-resolver';
+import { createTerrainAssetResolver, resolveTerrainCell, tileIdForTerrain } from './terrain-resolver';
 import type { TerrainAssetBindingMap } from './terrain-asset-binding';
 
 export type TerrainBrushPreviewCell = {
@@ -26,8 +26,17 @@ export type TerrainBrushPreview = {
   junctionCounts: Record<'none' | 'single' | 'dual' | 'triple' | 'quad', number>;
 };
 
+const TERRAIN_INPUTS: Record<TerrainKey, string> = {
+  grass: tileIdForTerrain('grass'),
+  sand: tileIdForTerrain('sand'),
+  dirt: tileIdForTerrain('dirt'),
+  pavement: tileIdForTerrain('pavement'),
+  water: tileIdForTerrain('water'),
+};
+
 function normalizePaintedTileId(value: string | null): string | null {
   if (!value) return null;
+  if (value in TERRAIN_INPUTS) return TERRAIN_INPUTS[value as TerrainKey];
   const terrain = terrainFromTileId(value);
   return terrain ? tileIdForTerrain(terrain) : value;
 }
