@@ -1,11 +1,13 @@
 import type { MapDocument } from './map-document';
 import type { GridPoint } from './grid';
 import { neighborMask, terrainAt, terrainFromTileId, terrainVariantKey, type TerrainKey, type TerrainMask } from './terrain-engine';
+import { terrainRuleKey } from './terrain-rule-catalog';
 
 export type TerrainVariant = {
   terrain: TerrainKey;
   mask: TerrainMask;
   variantKey: string;
+  ruleKey: string | null;
   tileId: string | null;
 };
 
@@ -20,7 +22,13 @@ const FALLBACK_TILE: Record<TerrainKey, string> = {
 };
 
 export function resolveTerrainVariant(terrain: TerrainKey, mask: TerrainMask, resolver?: TerrainResolver): TerrainVariant {
-  return { terrain, mask, variantKey: terrainVariantKey(mask), tileId: resolver?.(terrain, mask) ?? FALLBACK_TILE[terrain] ?? null };
+  return {
+    terrain,
+    mask,
+    variantKey: terrainVariantKey(mask),
+    ruleKey: terrainRuleKey(terrain),
+    tileId: resolver?.(terrain, mask) ?? FALLBACK_TILE[terrain] ?? null,
+  };
 }
 
 export function resolveTerrainCell(document: MapDocument, layerId: string, point: GridPoint, resolver?: TerrainResolver): TerrainVariant | null {
