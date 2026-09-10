@@ -7,10 +7,6 @@ export type TerrainTextureCache = {
   clear(): void;
 };
 
-/**
- * Client-side cache for verified terrain textures. The cache never turns an
- * asset ID into a guessed path; callers must provide an explicit source URL.
- */
 export function createTerrainTextureCache(): TerrainTextureCache {
   const textures = new Map<string, Texture>();
   const pending = new Map<string, Promise<Texture | null>>();
@@ -24,7 +20,6 @@ export function createTerrainTextureCache(): TerrainTextureCache {
       if (cached) return cached;
       const existing = pending.get(source.assetId);
       if (existing) return existing;
-
       const request = Assets.load<Texture>(source.url)
         .then(texture => {
           textures.set(source.assetId, texture);
