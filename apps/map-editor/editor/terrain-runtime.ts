@@ -1,11 +1,8 @@
 import type { TerrainAssetBindingMap } from './terrain-asset-binding';
 import { createTerrainTextureRegistry, type TerrainTextureSource } from './terrain-texture-registry';
+import { createTerrainTextureCache, type TerrainTextureCache } from './terrain-texture-cache';
 
-/**
- * Accepts only explicit absolute image URLs. Storage paths and asset IDs are
- * intentionally not guessed here; a future audited asset catalog can provide
- * the canonical URL resolver without changing the renderer contract.
- */
+/** Accept only canonical absolute HTTP(S) texture URLs. */
 export function explicitTerrainTextureUrl(assetId: string): string | null {
   try {
     const url = new URL(assetId);
@@ -21,4 +18,26 @@ export function createRuntimeTerrainTextureRegistry(bindings: TerrainAssetBindin
 
 export function terrainTextureSources(bindings: TerrainAssetBindingMap): TerrainTextureSource[] {
   return [...createRuntimeTerrainTextureRegistry(bindings).values()];
+}
+
+export type TerrainRuntime = {
+  registry: Map<string, TerrainTextureSource>;
+  cache: TerrainTextureCache;
+  loadAll(): Promise<void>;
+  dispose(): void;
+};
+
+export function createTerrainRuntime(bindings: TerrainAssetBindingMap): TerrainRuntime {
+  const registry = createRuntimeTerrainTextureRegistry(bindings);
+  const cache = createTerrainTextureCache();
+  return {
+    registry,
+    cache,
+    async loadAll() {
+      await Promise.all(Array.from(registry.values()).map(source => cache.load(source).then(() => undefined)));
+    },
+    dispose() {
+      cache.clear();
+    },
+  };
 }
