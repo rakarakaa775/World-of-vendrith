@@ -4,8 +4,6 @@ import type { TerrainEnvironmentContext } from './terrain-environment';
 type SeasonRow = { season_key: string | null };
 type WeatherRow = { weather_key: string | null };
 
-type CountRow = { count: number | string };
-
 export type EnvironmentCatalog = {
   seasons: string[];
   weathers: string[];
@@ -58,13 +56,6 @@ function keys(rows: unknown, field: 'season_key' | 'weather_key'): string[] {
     const value = (row as Record<string, unknown>)[field];
     return typeof value === 'string' && value.trim() ? [value.trim()] : [];
   }))];
-}
-
-function count(rows: unknown): number | null {
-  if (!Array.isArray(rows) || rows.length === 0) return 0;
-  const value = (rows[0] as CountRow)?.count;
-  const numeric = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
 }
 
 async function tableCount(client: SupabaseClient, table: string): Promise<number | null> {
