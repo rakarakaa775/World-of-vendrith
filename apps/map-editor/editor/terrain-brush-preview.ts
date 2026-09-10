@@ -26,12 +26,27 @@ export type TerrainBrushPreview = {
   junctionCounts: Record<'none' | 'single' | 'dual' | 'triple' | 'quad', number>;
 };
 
+const TERRAIN_INPUTS: Record<TerrainKey, string> = {
+  grass: tileIdForTerrain('grass'),
+  sand: tileIdForTerrain('sand'),
+  dirt: tileIdForTerrain('dirt'),
+  pavement: tileIdForTerrain('pavement'),
+  water: tileIdForTerrain('water'),
+};
+
+function normalizePaintedTileId(value: string | null): string | null {
+  if (!value) return null;
+  if (value in TERRAIN_INPUTS) return TERRAIN_INPUTS[value as TerrainKey];
+  return value;
+}
+
 function prospectiveDocument(document: MapDocument, layerId: string, points: GridPoint[], paintedTileId: string | null): MapDocument {
   if (!paintedTileId && points.length === 0) return document;
   const layer = document.layers.find(item => item.id === layerId);
   if (!layer || points.length === 0) return document;
   let next = document;
-  for (const point of points) next = paintCell(next, layerId, point, paintedTileId);
+  const normalizedTileId = normalizePaintedTileId(paintedTileId);
+  for (const point of points) next = paintCell(next, layerId, point, normalizedTileId);
   return next;
 }
 
