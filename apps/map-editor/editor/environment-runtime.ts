@@ -65,7 +65,7 @@ export function environmentRuntimeFromRow(row: EnvironmentRuntimeRow): Environme
     ? {
         weatherKey: row.weather_key,
         seasonKey: row.weather_season_key,
-        startedAt: row.weather_started_at,
+        startedAt: row.weather_started_at ?? row.simulation_at,
         endsAt: row.weather_ends_at,
         intensity: Math.max(0, Math.min(5, row.weather_intensity ?? 0)),
         seed: row.weather_seed,
