@@ -40,27 +40,27 @@ export function PixiMapCanvas({document,activeTool,selectedTileId,brushSize,sele
         for(let i=0;i<layer.cells.length;i++){
           const id=layer.cells[i]?.tileId;
           if(!id)continue;
-          const x=i%document.width,y=Math.floor(i/document.width),tile=new Graphics();
-          const t=document.tileSize;
+          const x=i%document.width,y=Math.floor(i/document.width),t=document.tileSize;
+          const tile=new Graphics();
           tile.rect(x*t+2,y*t+2,t-4,t-4).fill({color:tileColor(id,layer.kind),alpha:layer.kind==='collision'?.32:1});
           if(layer.kind==='ground'){
             const resolved=resolveTerrainCellWithAssets(document,layer.id,{x,y},terrainBindings);
+            const source=resolved?terrainTextureSourceFor(runtime.registry,resolved.assetId):null;
+            if(source){
+              const sprite=new Sprite(Texture.WHITE);
+              sprite.position.set(x*t+2,y*t+2);sprite.width=t-4;sprite.height=t-4;sprite.alpha=0;
+              world.addChild(tile);world.addChild(sprite);
+              textureJobs.push(runtime.cache.load(source).then(texture=>{
+                if(disposed||!texture)return;
+                sprite.texture=texture;sprite.tint=0xffffff;sprite.alpha=1;
+              }));
+            }else world.addChild(tile);
             if(resolved){
-              const source=terrainTextureSourceFor(runtime.registry,resolved.assetId);
-              if(source){
-                const sprite=new Sprite(Texture.WHITE);
-                sprite.position.set(x*t+2,y*t+2);sprite.width=t-4;sprite.height=t-4;
-                world.addChild(sprite);
-                textureJobs.push(runtime.cache.load(source).then(texture=>{
-                  if(disposed||!texture)return;
-                  sprite.texture=texture;sprite.tint=0xffffff;
-                }));
-              }else world.addChild(tile);
               const c=edgeColor(resolved.terrain);
               const west=(resolved.mask&8)!==0,east=(resolved.mask&2)!==0,north=(resolved.mask&1)!==0,south=(resolved.mask&4)!==0;
               if(!west)tile.moveTo(2,2).lineTo(2,t-2);if(!east)tile.moveTo(t-2,2).lineTo(t-2,t-2);if(!north)tile.moveTo(2,2).lineTo(t-2,2);if(!south)tile.moveTo(2,t-2).lineTo(t-2,t-2);
               tile.stroke({width:2,color:c,alpha:.75});
-            }else world.addChild(tile);
+            }
           }else world.addChild(tile);
         }
         if(layer.kind==='objects')for(const o of layer.objects){const g=new Graphics();g.rect(o.x*document.tileSize+3,o.y*document.tileSize+3,o.width*document.tileSize-6,o.height*document.tileSize-6).fill({color:o.kind==='house'?0x8b5e3c:o.kind==='tree'?0x3f7d45:0x777777,alpha:.9}).stroke({width:2,color:selectedObjectId===o.id?0xf8fafc:0x111827});world.addChild(g);const label=new Text({text:o.kind[0].toUpperCase(),style:{fontSize:14,fill:0xffffff}});label.position.set(o.x*document.tileSize+10,o.y*document.tileSize+8);world.addChild(label);}
