@@ -2,12 +2,14 @@ import type { MapDocument } from './map-document';
 import type { GridPoint } from './grid';
 import { neighborMask, terrainAt, terrainFromTileId, terrainVariantKey, type TerrainKey, type TerrainMask } from './terrain-engine';
 import { terrainRuleKey } from './terrain-rule-catalog';
+import { terrainAssetIdForMask, type TerrainAssetBindingMap } from './terrain-asset-binding';
 
 export type TerrainVariant = {
   terrain: TerrainKey;
   mask: TerrainMask;
   variantKey: string;
   ruleKey: string | null;
+  assetId: string | null;
   tileId: string | null;
 };
 
@@ -22,12 +24,14 @@ const FALLBACK_TILE: Record<TerrainKey, string> = {
 };
 
 export function resolveTerrainVariant(terrain: TerrainKey, mask: TerrainMask, resolver?: TerrainResolver): TerrainVariant {
+  const assetId = resolver?.(terrain, mask) ?? null;
   return {
     terrain,
     mask,
     variantKey: terrainVariantKey(mask),
     ruleKey: terrainRuleKey(terrain),
-    tileId: resolver?.(terrain, mask) ?? FALLBACK_TILE[terrain] ?? null,
+    assetId,
+    tileId: assetId ?? FALLBACK_TILE[terrain] ?? null,
   };
 }
 
@@ -48,6 +52,14 @@ export function resolveTerrainArea(document: MapDocument, layerId: string, point
     if (variant) result.push(variant);
   }
   return result;
+}
+
+export function createTerrainAssetResolver(bindings: TerrainAssetBindingMap): TerrainResolver {
+  return (terrain, mask) => terrainAssetIdForMask(bindings, terrain, mask);
+}
+
+export function resolveTerrainCellWithAssets(document: MapDocument, layerId: string, point: GridPoint, bindings: TerrainAssetBindingMap): TerrainVariant | null {
+  return resolveTerrainCell(document, layerId, point, createTerrainAssetResolver(bindings));
 }
 
 export function tileIdForTerrain(terrain: TerrainKey): string {
