@@ -7,10 +7,12 @@ export type PaintShape = 'square' | 'line' | 'rectangle';
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
 
 export function pointsInSquare(center: GridPoint, size: number): GridPoint[] {
-  const radius = Math.floor((Math.max(1, size) - 1) / 2);
+  const extent = Math.max(1, Math.floor(size));
+  const before = Math.floor((extent - 1) / 2);
+  const after = extent - before - 1;
   const points: GridPoint[] = [];
-  for (let y = center.y - radius; y <= center.y + radius; y += 1) {
-    for (let x = center.x - radius; x <= center.x + radius; x += 1) points.push({ x, y });
+  for (let y = center.y - before; y <= center.y + after; y += 1) {
+    for (let x = center.x - before; x <= center.x + after; x += 1) points.push({ x, y });
   }
   return points;
 }
