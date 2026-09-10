@@ -4,6 +4,8 @@ import { paintCell } from './map-state';
 import { pointsInFloodFill } from './paint-tools';
 import { terrainAt, neighborMask, terrainVariantKey, affectedTerrainCells, type TerrainKey } from './terrain-engine';
 import { resolveTerrainJunction } from './terrain-junction-resolver';
+import { tileIdForTerrain } from './terrain-resolver';
+import type { TerrainAssetBindingMap } from './terrain-asset-binding';
 
 export type TerrainBrushPreviewCell = {
   point: GridPoint;
@@ -12,6 +14,9 @@ export type TerrainBrushPreviewCell = {
   variantKey: string | null;
   junctionKind: 'none' | 'single' | 'dual' | 'triple' | 'quad';
   junctionMode: 'none' | 'edge' | 'dual-corner' | 'triple-corner' | 'quad-corner';
+  assetId: string | null;
+  tileId: string | null;
+  bound: boolean;
 };
 
 export type TerrainBrushPreview = {
@@ -21,17 +26,21 @@ export type TerrainBrushPreview = {
   junctionCounts: Record<'none' | 'single' | 'dual' | 'triple' | 'quad', number>;
 };
 
-function terrainDocument(document: MapDocument, layerId: string, points: GridPoint[], paintedTerrain: TerrainKey | null): MapDocument {
-  if (!paintedTerrain && points.length === 0) return document;
+function prospectiveDocument(document: MapDocument, layerId: string, points: GridPoint[], paintedTileId: string | null): MapDocument {
+  if (!paintedTileId && points.length === 0) return document;
   const layer = document.layers.find(item => item.id === layerId);
   if (!layer || points.length === 0) return document;
   let next = document;
-  const tileId = paintedTerrain === null ? null : `${paintedTerrain}-tile`;
-  for (const point of points) next = paintCell(next, layerId, point, tileId);
+  for (const point of points) next = paintCell(next, layerId, point, paintedTileId);
   return next;
 }
 
-function previewCells(document: MapDocument, layerId: string, points: GridPoint[], paintedTerrain: TerrainKey | null): TerrainBrushPreviewCell[] {
+function previewCells(
+  document: MapDocument,
+  layerId: string,
+  points: GridPoint[],
+  bindings: TerrainAssetBindingMap,
+): TerrainBrushPreviewCell[] {
   const result: TerrainBrushPreviewCell[] = [];
   const seen = new Set<string>();
   for (const point of points) {
@@ -39,16 +48,24 @@ function previewCells(document: MapDocument, layerId: string, points: GridPoint[
     const key = `${point.x}:${point.y}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const terrain = paintedTerrain ?? terrainAt(document, point, layerId);
-    const mask = terrain ? neighborMask(document, layerId, point, terrain) : null;
-    const junction = terrain ? resolveTerrainJunction(document, layerId, point) : null;
+    const terrain = terrainAt(document, point, layerId);
+    if (!terrain) {
+      result.push({ point, terrain: null, mask: null, variantKey: null, junctionKind: 'none', junctionMode: 'none', assetId: null, tileId: null, bound: false });
+      continue;
+    }
+    const mask = neighborMask(document, layerId, point, terrain);
+    const binding = bindings[terrain]?.[mask] ?? null;
+    const junction = resolveTerrainJunction(document, layerId, point);
     result.push({
       point,
       terrain,
       mask,
-      variantKey: mask === null ? null : terrainVariantKey(mask),
+      variantKey: terrainVariantKey(mask),
       junctionKind: junction?.junction.kind ?? 'none',
       junctionMode: junction?.mode ?? 'none',
+      assetId: binding?.assetId ?? null,
+      tileId: binding?.assetId ?? tileIdForTerrain(terrain),
+      bound: binding !== null,
     });
   }
   return result;
@@ -58,7 +75,8 @@ export function analyzeTerrainBrushPreview(
   document: MapDocument,
   layerId: string,
   points: GridPoint[],
-  paintedTerrain: TerrainKey | null,
+  paintedTileId: string | null,
+  bindings: TerrainAssetBindingMap = {},
 ): TerrainBrushPreview {
   const unique = new Map<string, GridPoint>();
   for (const point of points) {
@@ -66,9 +84,9 @@ export function analyzeTerrainBrushPreview(
     unique.set(`${point.x}:${point.y}`, point);
   }
   const changedCells = [...unique.values()];
-  const prospective = terrainDocument(document, layerId, changedCells, paintedTerrain);
+  const prospective = prospectiveDocument(document, layerId, changedCells, paintedTileId);
   const affected = affectedTerrainCells(prospective, changedCells);
-  const cells = previewCells(prospective, layerId, affected, null);
+  const cells = previewCells(prospective, layerId, affected, bindings);
   const terrainCounts: Partial<Record<TerrainKey, number>> = {};
   const junctionCounts: TerrainBrushPreview['junctionCounts'] = { none: 0, single: 0, dual: 0, triple: 0, quad: 0 };
   for (const cell of cells) {
@@ -82,8 +100,9 @@ export function analyzeFloodTerrainBrushPreview(
   document: MapDocument,
   layerId: string,
   start: GridPoint,
-  paintedTerrain: TerrainKey | null,
+  paintedTileId: string | null,
+  bindings: TerrainAssetBindingMap = {},
 ): TerrainBrushPreview {
   const points = pointsInFloodFill(document, layerId, start);
-  return analyzeTerrainBrushPreview(document, layerId, points, paintedTerrain);
+  return analyzeTerrainBrushPreview(document, layerId, points, paintedTileId, bindings);
 }
