@@ -5,7 +5,7 @@ import { MapBrowser } from './map-browser';
 import { createMap, type MapDocument } from '../editor/map-document';
 import { createMapEditorSupabaseClient } from '../editor/supabase-client';
 import { loadTerrainAssetBindingsFromSupabase, terrainAssetBindingSummary } from '../editor/supabase-terrain-asset-loader';
-import { loadEnvironmentCatalogFromSupabase, environmentCatalogSummary } from '../editor/supabase-environment-loader';
+import { loadEnvironmentCatalogFromSupabase, environmentCatalogSummary, type EnvironmentCatalog } from '../editor/supabase-environment-loader';
 import type { TerrainAssetBindingMap } from '../editor/terrain-asset-binding';
 
 export function MapEditorApp(){
@@ -15,6 +15,7 @@ export function MapEditorApp(){
   const[terrainBindings,setTerrainBindings]=useState<TerrainAssetBindingMap>({});
   const[terrainStatus,setTerrainStatus]=useState('Loading verified terrain assets…');
   const[environmentStatus,setEnvironmentStatus]=useState('Loading environment catalog…');
+  const[environmentCatalog,setEnvironmentCatalog]=useState<EnvironmentCatalog|null>(null);
   const active=maps.find(m=>m.id===activeMapId)??maps[0];
   const update=useCallback((next:MapDocument)=>setMaps(prev=>prev.some(m=>m.id===next.id)?prev.map(m=>m.id===next.id?next:m):[...prev,next]),[]);
   useEffect(()=>{
@@ -28,12 +29,13 @@ export function MapEditorApp(){
     });
     loadEnvironmentCatalogFromSupabase(client).then(result=>{
       if(cancelled)return;
+      setEnvironmentCatalog(result.source==='supabase'?result.catalog:null);
       setEnvironmentStatus(environmentCatalogSummary(result));
     });
     return()=>{cancelled=true};
   },[]);
   return <div style={{display:'grid',gridTemplateRows:'auto 1fr',height:'100vh'}}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={setActiveMapId}/>
-    <EditorShell key={active.id} initialDocument={active} onDocumentChange={update} terrainBindings={terrainBindings} terrainStatus={`${terrainStatus} · ${environmentStatus}`}/>
+    <EditorShell key={active.id} initialDocument={active} onDocumentChange={update} terrainBindings={terrainBindings} terrainStatus={`${terrainStatus} · ${environmentStatus}`} environmentCatalog={environmentCatalog}/>
   </div>
 }
