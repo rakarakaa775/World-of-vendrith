@@ -19,8 +19,14 @@ This file supplements `docs/MAP_EDITOR_ROADMAP.md` with implementation checkpoin
 - [x] Optimistic merge persistence RPC — Supabase `map_editor_commit_merge_v1`
 - [x] Optimistic merge persistence adapter — `apps/map-editor/editor/map-merge-persistence.ts`
 - [x] Optimistic merge persistence adapter tests — `apps/map-editor/editor/map-merge-persistence.test.ts`
+- [x] Rebuild navigation/geometry/occupancy after applied merge — Supabase `map_editor_reconcile_after_merge_v1`, invoked transactionally by `map_editor_commit_merge_v1`
 - [~] Actual rendered Conflict Resolution UI integration
-- [ ] Rebuild navigation/geometry/occupancy after applied merge
+
+## Verification note
+
+Verified against the live Supabase function definitions on 2026-09-11. `map_editor_commit_merge_v1` inserts the next authoritative `map_versions` row only when `p_expected_version` matches the current version, then invokes `map_editor_reconcile_after_merge_v1` before returning success. The reconciliation function validates map ownership/version, removes only orphan geometry, synchronizes object OBB geometry for the map, rebuilds navigation, and updates the runtime snapshot with the committed version. Reconciliation failure therefore aborts the transaction rather than leaving a known-stale committed version.
+
+The stale-version branch returns `conflict` before version insertion/reconciliation, preserving optimistic concurrency semantics.
 
 ## Storage
 
