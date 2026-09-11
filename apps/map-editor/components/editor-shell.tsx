@@ -222,9 +222,10 @@ export function EditorShell({
 
   const runtimeReady = environmentRuntime?.source === "engine";
   const terrainEnvironmentReady = environmentTerrainContextReady(environmentRuntime);
+  const inspectedTerrain = terrainInspector?.terrain ?? null;
   const runtimeTerrain =
-    terrainInspector && environmentRuntime
-      ? resolveEnvironmentTerrainAsset(terrainInspector.terrain, terrainBindings, environmentRuntime)
+    inspectedTerrain !== null && environmentRuntime
+      ? resolveEnvironmentTerrainAsset(inspectedTerrain, terrainBindings, environmentRuntime)
       : null;
 
   return (
