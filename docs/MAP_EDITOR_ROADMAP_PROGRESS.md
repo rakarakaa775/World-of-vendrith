@@ -26,6 +26,7 @@ This file supplements `docs/MAP_EDITOR_ROADMAP.md` with implementation checkpoin
 - [x] Atomic resolved-conflict commit flow tests — `apps/map-editor/editor/map-conflict-commit.test.ts`
 - [x] Rendered conflict overlay boundary — `apps/map-editor/components/conflict-resolution-editor-overlay.tsx`
 - [~] Actual rendered Conflict Resolution UI integration — panel and overlay exist and are mounted by `MapEditorApp`, but the editor does not yet produce a live three-way conflict context from its Save/Load path
+- [x] Authoritative runtime version carried into `MapEditorApp` and merge persistence
 - [ ] Live conflict trigger with authoritative base/version context
 - [ ] Stale-version refresh/retry UX
 - [ ] End-to-end browser conflict-flow verification
@@ -37,6 +38,8 @@ Verified against the live Supabase function definitions on 2026-09-11. `map_edit
 The stale-version branch returns `conflict` before version insertion/reconciliation, preserving optimistic concurrency semantics.
 
 The client-side atomic commit helper now preserves that result: a stale commit is returned as `conflict` and is not treated as persisted.
+
+The runtime snapshot loader now exposes `version_number` from the authoritative `map_versions` row referenced by the runtime snapshot, and `MapEditorApp` uses that number for resolved merge commits.
 
 ## Storage
 
