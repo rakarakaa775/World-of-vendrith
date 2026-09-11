@@ -1,53 +1,42 @@
 # Map Editor Roadmap Progress
 
-This file supplements `docs/MAP_EDITOR_ROADMAP.md` with implementation checkpoints when the master roadmap is not safely patchable through the connected GitHub API.
+## Foundation — Conflict / Persistence
 
-## Reliability / Conflict Resolution
-
-- [x] Snapshot comparison diff model — `apps/map-editor/editor/map-conflict-diff.ts`
-- [x] Snapshot comparison diff tests — `apps/map-editor/editor/map-conflict-diff.test.ts`
-- [x] Entity/cell-level three-way merge foundation — `apps/map-editor/editor/map-entity-merge.ts`
-- [x] Entity/cell merge tests — `apps/map-editor/editor/map-entity-merge.test.ts`
-- [x] Delete-vs-edit reconciliation foundation — `apps/map-editor/editor/map-merge-reconcile.ts`
-- [x] Delete-vs-edit / derived-state tests — `apps/map-editor/editor/map-merge-reconcile.test.ts`
-- [x] Conflict resolution UI session model — `apps/map-editor/editor/map-conflict-resolution-ui-model.ts`
-- [x] Conflict resolution UI model tests — `apps/map-editor/editor/map-conflict-resolution-ui-model.test.ts`
-- [x] Conflict resolution application model — `apps/map-editor/editor/map-conflict-resolution-apply.ts`
-- [x] Conflict resolution application tests — `apps/map-editor/editor/map-conflict-resolution-apply.test.ts`
-- [x] Conflict resolution view contract — `apps/map-editor/editor/map-conflict-resolution-view.ts`
-- [x] Conflict resolution view tests — `apps/map-editor/editor/map-conflict-resolution-view.test.ts`
-- [x] Optimistic merge persistence RPC — Supabase `map_editor_commit_merge_v1`
-- [x] Optimistic merge persistence adapter — `apps/map-editor/editor/map-merge-persistence.ts`
-- [x] Optimistic merge persistence adapter tests — `apps/map-editor/editor/map-merge-persistence.test.ts`
-- [x] Rebuild navigation/geometry/occupancy after applied merge — Supabase `map_editor_reconcile_after_merge_v1`, invoked transactionally by `map_editor_commit_merge_v1`
-- [x] Supabase optimistic merge persistence bridge — `apps/map-editor/editor/map-merge-persistence-supabase.ts`
-- [x] Supabase optimistic merge persistence bridge tests — `apps/map-editor/editor/map-merge-persistence-supabase.test.ts`
-- [x] Atomic resolved-conflict commit flow — `apps/map-editor/editor/map-conflict-commit.ts`
-- [x] Atomic resolved-conflict commit flow tests — `apps/map-editor/editor/map-conflict-commit.test.ts`
-- [x] Rendered conflict overlay boundary — `apps/map-editor/components/conflict-resolution-editor-overlay.tsx`
-- [~] Actual rendered Conflict Resolution UI integration — panel and overlay exist and are mounted by `MapEditorApp`, but the editor does not yet produce a live three-way conflict context from its Save/Load path
-- [x] Authoritative runtime version carried into `MapEditorApp` and merge persistence
-- [ ] Live conflict trigger with authoritative base/version context
+- [x] Snapshot comparison diff model
+- [x] Three-way merge foundation
+- [x] Delete-vs-edit reconciliation
+- [x] Conflict resolution session model
+- [x] Conflict resolution view contract
+- [x] Rendered Conflict Resolution panel
+- [x] Conflict resolution overlay
+- [x] Canonical resolution → MapDocument
+- [x] Apply gate tests
+- [x] Optimistic merge persistence RPC — `map_editor_commit_merge_v1`
+- [x] Optimistic merge persistence adapter
+- [x] Supabase optimistic merge persistence bridge
+- [x] Authoritative runtime `version_number` exposed by `map_editor_get_runtime_snapshot_v1`
+- [x] MapEditorApp authoritative-version wiring for resolved conflict commit
+- [x] Stale-save conflict controller — `apps/map-editor/editor/map-conflict-save-controller.ts`
+- [x] Stale-save conflict controller test
+- [x] Reconciliation after successful merge commit
+- [~] Rendered UI live conflict trigger — controller is implemented, but the existing Save button still needs to invoke it
+- [ ] Wire controller into the editor Save action and retain base snapshot/version for the editing session
 - [ ] Stale-version refresh/retry UX
 - [ ] End-to-end browser conflict-flow verification
+- [ ] Foundation Exit Gate
 
-## Verification note
+## Current vertical slice
 
-Verified against the live Supabase function definitions on 2026-09-11. `map_editor_commit_merge_v1` inserts the next authoritative `map_versions` row only when `p_expected_version` matches the current version, then invokes `map_editor_reconcile_after_merge_v1` before returning success. The reconciliation function validates map ownership/version, removes only orphan geometry, synchronizes object OBB geometry for the map, rebuilds navigation, and updates the runtime snapshot with the committed version. Reconciliation failure therefore aborts the transaction rather than leaving a known-stale committed version.
+`load(version N) → retain base → edit → save → read authoritative remote → detect stale → three-way merge → conflict UI → resolve → commit(expected N) → N+1 → reconciliation → refresh`
 
-The stale-version branch returns `conflict` before version insertion/reconciliation, preserving optimistic concurrency semantics.
+The stale-save controller now implements the core detection/commit branch: it loads the authoritative remote snapshot, compares its version to the retained expected version, constructs `MapMergeResult`, and commits a clean merge through the optimistic RPC. If the RPC races and returns `conflict`, it reloads remote state and returns a fresh merge result rather than overwriting remote state.
 
-The client-side atomic commit helper now preserves that result: a stale commit is returned as `conflict` and is not treated as persisted.
+The remaining work is wiring that controller into the actual editor Save action and retaining the load-time base document/version in the editor session. This is deliberately not marked complete until the real UI path is exercised.
 
-The runtime snapshot loader now exposes `version_number` from the authoritative `map_versions` row referenced by the runtime snapshot, and `MapEditorApp` uses that number for resolved merge commits.
+## Verification note — 2026-09-11
 
-## Storage
-
-- Engine and UI models: GitHub
-- Authoritative map state and merge-version persistence: Supabase
-- Conflict session state: client-side model until live conflict triggering is integrated
-- Resolved merge commit: Supabase `map_versions` through `map_editor_commit_merge_v1`
+Supabase `map_versions.version_number` is authoritative. `map_editor_commit_merge_v1` locks the map, compares `p_expected_version`, returns `conflict` without insertion when stale, and on success inserts the next version and invokes reconciliation transactionally.
 
 ## Current next task
 
-Complete the live conflict trigger: retain the authoritative base snapshot and its version when the editor loads/starts editing, detect a stale Save against the authoritative snapshot, build `MapMergeResult(base, local, remote)`, open the rendered resolution overlay, then commit the resolved document with that retained expected version. After a stale response, refresh remote state and reopen/rebase rather than silently overwriting it. Finish with browser E2E verification and then reassess the Foundation exit gate before moving to the next phase.
+Wire `saveWithConflictDetection()` into `MapEditorApp`'s persisted Save action. On load, retain both the loaded `MapDocument` and `version_number` as the editing base. On Save, call the controller; if it returns `conflict`, open the existing overlay; if committed, update the base document/version. Then verify the stale-save path in the browser before closing Foundation.
