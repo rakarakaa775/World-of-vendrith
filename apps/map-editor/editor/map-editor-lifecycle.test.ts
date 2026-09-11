@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MapDocument } from './map-document';
 import { createMapEditorLifecycle } from './map-editor-lifecycle';
 import type { MapSaveController } from './map-save-controller';
+import type { MapDocumentAutosaver } from './map-persistence';
 
 const document: MapDocument = {
   version: 1,
@@ -18,14 +19,8 @@ describe('createMapEditorLifecycle', () => {
   it('opens, records changes, and saves before close', async () => {
     const save = vi.fn().mockResolvedValue(true);
     const controller = {
-      setDocument: vi.fn(),
-      markDirty: vi.fn(),
-      save,
-      load: vi.fn(),
-      recover: vi.fn(),
-      getState: vi.fn().mockReturnValue('dirty'),
-      getDocument: vi.fn().mockReturnValue(document),
-      clearRecovery: vi.fn(),
+      setDocument: vi.fn(), markDirty: vi.fn(), save, load: vi.fn(), recover: vi.fn(),
+      getState: vi.fn().mockReturnValue('dirty'), getDocument: vi.fn().mockReturnValue(document), clearRecovery: vi.fn(),
     } as unknown as MapSaveController;
     const lifecycle = createMapEditorLifecycle(controller);
 
@@ -35,5 +30,33 @@ describe('createMapEditorLifecycle', () => {
     expect(controller.markDirty).toHaveBeenCalled();
     expect(await lifecycle.beforeClose()).toBe(true);
     expect(save).toHaveBeenCalled();
+  });
+
+  it('schedules autosave for changes and flushes it on save', async () => {
+    const save = vi.fn().mockResolvedValue(true);
+    const controller = {
+      setDocument: vi.fn(), markDirty: vi.fn(), save, load: vi.fn(), recover: vi.fn(),
+      getState: vi.fn().mockReturnValue('dirty'), getDocument: vi.fn().mockReturnValue(document), clearRecovery: vi.fn(),
+    } as unknown as MapSaveController;
+    const autosaver = {
+      schedule: vi.fn(), flush: vi.fn().mockResolvedValue({ ok: true }), cancel: vi.fn(),
+    } as unknown as MapDocumentAutosaver;
+    const lifecycle = createMapEditorLifecycle(controller, autosaver);
+
+    lifecycle.change(document, 'version-1');
+    expect(autosaver.schedule).toHaveBeenCalledWith(document, 'version-1');
+    expect(await lifecycle.save()).toBe(true);
+    expect(autosaver.flush).toHaveBeenCalled();
+  });
+
+  it('cancels pending autosave on dispose', () => {
+    const controller = {
+      setDocument: vi.fn(), markDirty: vi.fn(), save: vi.fn(), load: vi.fn(), recover: vi.fn(),
+      getState: vi.fn().mockReturnValue('clean'), getDocument: vi.fn(), clearRecovery: vi.fn(),
+    } as unknown as MapSaveController;
+    const autosaver = { schedule: vi.fn(), flush: vi.fn(), cancel: vi.fn() } as unknown as MapDocumentAutosaver;
+    const lifecycle = createMapEditorLifecycle(controller, autosaver);
+    lifecycle.dispose();
+    expect(autosaver.cancel).toHaveBeenCalled();
   });
 });
