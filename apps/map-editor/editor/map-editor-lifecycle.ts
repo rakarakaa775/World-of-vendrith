@@ -1,10 +1,12 @@
 import type { MapDocument } from './map-document';
 import type { MapSaveController } from './map-save-controller';
 import type { MapDocumentAutosaver } from './map-persistence';
+import { createMapSaveStatusSnapshot, type MapSaveStatusSnapshot } from './map-save-status';
 
 export type MapEditorLifecycle = {
   open(document?: MapDocument): Promise<MapDocument | null>;
   change(document: MapDocument, versionId?: string | null): void;
+  getSaveStatus(): MapSaveStatusSnapshot;
   save(): Promise<boolean>;
   recover(): MapDocument | null;
   beforeClose(): Promise<boolean>;
@@ -27,6 +29,11 @@ export function createMapEditorLifecycle(
       controller.setDocument(document);
       controller.markDirty();
       autosaver?.schedule(document, versionId);
+    },
+    getSaveStatus() {
+      const document = controller.getDocument();
+      const hasRecovery = document ? controller.getState() === 'recovery-available' : false;
+      return createMapSaveStatusSnapshot(controller.getState(), hasRecovery);
     },
     async save() {
       const saved = await controller.save();
