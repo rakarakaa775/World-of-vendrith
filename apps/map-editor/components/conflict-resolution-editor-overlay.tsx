@@ -10,7 +10,7 @@ export type ConflictResolutionEditorOverlayProps = {
   result: MapMergeResult;
   session: ConflictResolutionSession;
   onCancel: () => void;
-  onResolved: (document: MapDocument) => void | Promise<void>;
+  onResolved: (document: MapDocument, session: ConflictResolutionSession) => void | Promise<void>;
 };
 
 export function ConflictResolutionEditorOverlay({ result, session, onCancel, onResolved }: ConflictResolutionEditorOverlayProps) {
@@ -18,7 +18,7 @@ export function ConflictResolutionEditorOverlay({ result, session, onCancel, onR
     <ConflictResolutionPanel
       session={session}
       onCancel={onCancel}
-      onApply={nextSession => onResolved(applyResolution(result, nextSession))}
+      onApply={nextSession => onResolved(applyResolution(result, nextSession), nextSession)}
     />
   );
 }
