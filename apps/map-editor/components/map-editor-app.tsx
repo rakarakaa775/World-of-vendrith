@@ -1,5 +1,5 @@
-"use client";
 // @ts-nocheck
+"use client";
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EditorShell } from './editor-shell';
 import { MapBrowser } from './map-browser';
