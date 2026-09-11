@@ -49,6 +49,18 @@ describe('createMapEditorLifecycle', () => {
     expect(autosaver.flush).toHaveBeenCalled();
   });
 
+  it('exposes the save status snapshot for the UI', () => {
+    const controller = {
+      setDocument: vi.fn(), markDirty: vi.fn(), save: vi.fn(), load: vi.fn(), recover: vi.fn(),
+      getState: vi.fn().mockReturnValue('dirty'), getDocument: vi.fn().mockReturnValue(document), clearRecovery: vi.fn(),
+    } as unknown as MapSaveController;
+    const lifecycle = createMapEditorLifecycle(controller);
+    const status = lifecycle.getSaveStatus();
+    expect(status.status).toBe('dirty');
+    expect(status.hasUnsavedChanges).toBe(true);
+    expect(status.canSave).toBe(true);
+  });
+
   it('cancels pending autosave on dispose', () => {
     const controller = {
       setDocument: vi.fn(), markDirty: vi.fn(), save: vi.fn(), load: vi.fn(), recover: vi.fn(),
