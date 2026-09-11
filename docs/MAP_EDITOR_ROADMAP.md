@@ -45,9 +45,10 @@ Target: **Incarnate-class world-building editor**.
 - [~] Save/Load controller tests — GitHub `apps/map-editor/editor/map-save-controller.test.ts`
 - [~] Save status state machine — GitHub `apps/map-editor/editor/map-save-status.ts`
 - [~] Save status tests — GitHub `apps/map-editor/editor/map-save-status.test.ts`
+- [~] Lifecycle save-status integration — GitHub `apps/map-editor/editor/map-editor-lifecycle.ts`
+- [~] Lifecycle save-status tests — GitHub `apps/map-editor/editor/map-editor-lifecycle.test.ts`
 
 ## 1. Professional 2D Canvas
-
 - [~] Pan — GitHub UI
 - [~] Zoom — GitHub UI
 - [ ] Zoom-to-selection — GitHub UI
@@ -61,7 +62,6 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Multi-resolution zoom — GitHub UI
 
 ## 2. Selection & Transform
-
 - [~] Single selection UI — GitHub UI
 - [~] Multi-select — GitHub + Supabase
 - [ ] Box selection — GitHub UI
@@ -78,7 +78,6 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Numeric transform — GitHub UI
 
 ## 3. Terrain Painting Engine
-
 - [x] Cell painting foundation — GitHub
 - [x] Terrain resolver — Supabase
 - [~] Brush — GitHub UI
@@ -102,7 +101,6 @@ Target: **Incarnate-class world-building editor**.
 - [~] Walkability integration — Supabase navigation
 
 ## 4. Layer System
-
 - [x] Layer model — Supabase
 - [x] Layer rules — Supabase
 - [~] Layer tree UI — GitHub UI
@@ -118,7 +116,6 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Player-visible layers — Supabase Auth
 
 ## 5. Asset Browser
-
 - [~] Asset browser foundation — GitHub UI
 - [ ] Search — GitHub UI
 - [ ] Categories — Asset Library
@@ -131,7 +128,6 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Asset validation — GitHub + Supabase
 
 ## 6. Object Placement
-
 - [x] Object persistence — Supabase
 - [x] Object footprint — Supabase
 - [x] OBB geometry — Supabase
