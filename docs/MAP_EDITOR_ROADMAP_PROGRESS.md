@@ -22,7 +22,13 @@ This file supplements `docs/MAP_EDITOR_ROADMAP.md` with implementation checkpoin
 - [x] Rebuild navigation/geometry/occupancy after applied merge — Supabase `map_editor_reconcile_after_merge_v1`, invoked transactionally by `map_editor_commit_merge_v1`
 - [x] Supabase optimistic merge persistence bridge — `apps/map-editor/editor/map-merge-persistence-supabase.ts`
 - [x] Supabase optimistic merge persistence bridge tests — `apps/map-editor/editor/map-merge-persistence-supabase.test.ts`
-- [~] Actual rendered Conflict Resolution UI integration
+- [x] Atomic resolved-conflict commit flow — `apps/map-editor/editor/map-conflict-commit.ts`
+- [x] Atomic resolved-conflict commit flow tests — `apps/map-editor/editor/map-conflict-commit.test.ts`
+- [x] Rendered conflict overlay boundary — `apps/map-editor/components/conflict-resolution-editor-overlay.tsx`
+- [~] Actual rendered Conflict Resolution UI integration — panel and overlay exist and are mounted by `MapEditorApp`, but the editor does not yet produce a live three-way conflict context from its Save/Load path
+- [ ] Live conflict trigger with authoritative base/version context
+- [ ] Stale-version refresh/retry UX
+- [ ] End-to-end browser conflict-flow verification
 
 ## Verification note
 
@@ -30,13 +36,15 @@ Verified against the live Supabase function definitions on 2026-09-11. `map_edit
 
 The stale-version branch returns `conflict` before version insertion/reconciliation, preserving optimistic concurrency semantics.
 
+The client-side atomic commit helper now preserves that result: a stale commit is returned as `conflict` and is not treated as persisted.
+
 ## Storage
 
 - Engine and UI models: GitHub
 - Authoritative map state and merge-version persistence: Supabase
-- Conflict session state: client-side model until rendered UI integration
+- Conflict session state: client-side model until live conflict triggering is integrated
 - Resolved merge commit: Supabase `map_versions` through `map_editor_commit_merge_v1`
 
 ## Current next task
 
-Connect the rendered Conflict Resolution UI to the existing Supabase optimistic merge bridge using the authoritative version carried by the conflict snapshot, then implement stale-version refresh/retry UX and the end-to-end test.
+Complete the live conflict trigger: retain the authoritative base snapshot and its version when the editor loads/starts editing, detect a stale Save against the authoritative snapshot, build `MapMergeResult(base, local, remote)`, open the rendered resolution overlay, then commit the resolved document with that retained expected version. After a stale response, refresh remote state and reopen/rebase rather than silently overwriting it. Finish with browser E2E verification and then reassess the Foundation exit gate before moving to the next phase.
