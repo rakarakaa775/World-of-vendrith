@@ -21,7 +21,8 @@
 - [x] Reconciliation after successful merge commit
 - [x] Wire controller into persisted MapEditorApp Save action
 - [x] Retain load-time base document and authoritative version for the editing session
-- [~] Stale-version refresh/retry UX — stale conflict is preserved and remote version is surfaced; interactive rebase/retry still requires runtime verification
+- [x] Implement stale-version refresh/retry UX — refreshed remote is retained as the retry base and a new conflict session is opened rather than overwriting remote state
+- [ ] Runtime verification of stale-version refresh/retry UX
 - [ ] End-to-end browser conflict-flow verification
 - [ ] Foundation Exit Gate
 
@@ -29,9 +30,7 @@
 
 `load(version N) → retain base → edit → save → read authoritative remote → detect stale → three-way merge → conflict UI → resolve → commit(expected N) → N+1 → reconciliation → refresh`
 
-The persisted MapEditorApp Save action now calls `saveWithConflictDetection()`. The editor retains the loaded base document and authoritative `version_number`; a stale remote version opens the existing conflict overlay instead of overwriting remote state. A successful save/merge advances both the authoritative version and the retained base document.
-
-The remaining Foundation work is runtime verification of the stale/rebase/retry interaction and browser E2E. No browser/Vercel deployment is currently connected in this session, so those checks cannot truthfully be marked complete from repository inspection alone.
+The persisted MapEditorApp Save action calls `saveWithConflictDetection()`. The editor retains the loaded base document and authoritative `version_number`; a stale remote version opens the existing conflict overlay instead of overwriting remote state. If the user resolves the conflict and another remote write wins the optimistic race, the latest authoritative snapshot is loaded, the resolved document is rebased against that snapshot, and a fresh conflict session is opened for another review. A successful commit advances both the authoritative version and the retained base document.
 
 ## Verification note — 2026-09-11
 
@@ -40,3 +39,5 @@ Supabase `map_versions.version_number` is authoritative. `map_editor_commit_merg
 ## Current next task
 
 Run the actual editor against a configured deployment/browser and execute the two-client stale-save scenario: both clients load version N; client A commits N+1; client B saves against base N; B must open conflict UI, resolve, commit against the authoritative remote version, and refresh to N+2. Then run the existing automated tests/build and close the Foundation Exit Gate only after those checks pass.
+
+**Phase transition rule:** do not move to the next roadmap phase until Runtime verification + browser E2E + Foundation Exit Gate are all marked complete. The user must be informed before the phase transition.
