@@ -43,6 +43,8 @@ Target: **Incarnate-class world-building editor**.
 - [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts` + browser localStorage
 - [~] Save/Load controller — GitHub `apps/map-editor/editor/map-save-controller.ts`
 - [~] Save/Load controller tests — GitHub `apps/map-editor/editor/map-save-controller.test.ts`
+- [~] Editor lifecycle integration — GitHub `apps/map-editor/editor/map-editor-lifecycle.ts`
+- [~] Editor lifecycle tests — GitHub `apps/map-editor/editor/map-editor-lifecycle.test.ts`
 
 ## 1. Professional 2D Canvas
 
