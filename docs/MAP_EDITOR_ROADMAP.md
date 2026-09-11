@@ -41,7 +41,7 @@ Target: **Incarnate-class world-building editor**.
 - [x] Layer rules — Supabase `map_editor_layer_rules`
 - [x] Validation/readiness gate — GitHub `apps/map-editor/editor/map-validation.ts`
 - [~] Autosave — GitHub + Supabase
-- [ ] Crash recovery — GitHub + Supabase
+- [x] Crash recovery — GitHub `apps/map-editor/editor/map-recovery.ts` + browser localStorage
 
 ## 1. Professional 2D Canvas
 
@@ -325,7 +325,7 @@ Target: **Incarnate-class world-building editor**.
 - [~] Autosave controller — GitHub
 - [~] Dirty state foundation — GitHub UI
 - [~] Save status foundation — GitHub UI
-- [ ] Crash recovery — GitHub + Supabase
+- [x] Crash recovery — GitHub `apps/map-editor/editor/map-recovery.ts` + browser localStorage
 - [~] Snapshot recovery foundation — Supabase
 - [ ] Conflict detection — Supabase
 - [~] Version checkpoints — Supabase
