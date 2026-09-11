@@ -20,6 +20,8 @@ This file supplements `docs/MAP_EDITOR_ROADMAP.md` with implementation checkpoin
 - [x] Optimistic merge persistence adapter — `apps/map-editor/editor/map-merge-persistence.ts`
 - [x] Optimistic merge persistence adapter tests — `apps/map-editor/editor/map-merge-persistence.test.ts`
 - [x] Rebuild navigation/geometry/occupancy after applied merge — Supabase `map_editor_reconcile_after_merge_v1`, invoked transactionally by `map_editor_commit_merge_v1`
+- [x] Supabase optimistic merge persistence bridge — `apps/map-editor/editor/map-merge-persistence-supabase.ts`
+- [x] Supabase optimistic merge persistence bridge tests — `apps/map-editor/editor/map-merge-persistence-supabase.test.ts`
 - [~] Actual rendered Conflict Resolution UI integration
 
 ## Verification note
@@ -37,4 +39,4 @@ The stale-version branch returns `conflict` before version insertion/reconciliat
 
 ## Current next task
 
-Build the rendered Conflict Resolution UI around the existing session/application/persistence models, then connect the resolved document to the Supabase RPC and handle stale-version refresh/retry UX.
+Connect the rendered Conflict Resolution UI to the existing Supabase optimistic merge bridge using the authoritative version carried by the conflict snapshot, then implement stale-version refresh/retry UX and the end-to-end test.
