@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ConflictChoice, ConflictResolutionSession } from "../editor/map-conflict-resolution-ui-model";
-import { canApplyResolution, chooseConflict } from "../editor/map-conflict-resolution-ui-model";
+import { canApplyResolution, chooseConflict, resolveAll } from "../editor/map-conflict-resolution-ui-model";
 import { createConflictResolutionView } from "../editor/map-conflict-resolution-view";
 
 export type ConflictResolutionPanelProps = {
@@ -14,11 +14,18 @@ export type ConflictResolutionPanelProps = {
 const choices: ConflictChoice[] = ["local", "remote", "base"];
 
 export function ConflictResolutionPanel({ session, onApply, onCancel }: ConflictResolutionPanelProps) {
-  const [activeId, setActiveId] = useState(session.conflicts[session.selected]?.id ?? null);
-  const activeIndex = Math.max(0, session.conflicts.findIndex(c => c.id === activeId));
-  const selectedSession = { ...session, selected: activeIndex };
+  const [workingSession, setWorkingSession] = useState(session);
+  const activeId = workingSession.conflicts[workingSession.selected]?.id ?? null;
+  const activeIndex = Math.max(0, workingSession.conflicts.findIndex(c => c.id === activeId));
+  const selectedSession = { ...workingSession, selected: activeIndex };
   const view = useMemo(() => createConflictResolutionView(selectedSession), [selectedSession]);
   const applyEnabled = canApplyResolution(selectedSession);
+
+  const choose = (choice: ConflictChoice) => {
+    const current = selectedSession.conflicts[activeIndex];
+    if (!current) return;
+    setWorkingSession(chooseConflict(selectedSession, current.id, choice));
+  };
 
   return (
     <section role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
@@ -30,7 +37,7 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
 
         <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12, marginTop: 16 }}>
           <nav aria-label="Conflicts" style={{ display: "grid", alignContent: "start", gap: 5 }}>
-            {view.panels.map((panel, index) => <button key={panel.id} onClick={() => setActiveId(panel.id)} aria-pressed={index === view.selectedIndex} style={{ textAlign: "left", padding: 9 }}>
+            {view.panels.map((panel, index) => <button key={panel.id} onClick={() => setWorkingSession({ ...selectedSession, selected: index })} aria-pressed={index === view.selectedIndex} style={{ textAlign: "left", padding: 9 }}>
               {panel.title}<span style={{ display: "block", fontSize: 10, opacity: .7 }}>{panel.kind} · {panel.selected ?? "unresolved"}</span>
             </button>)}
           </nav>
@@ -44,7 +51,8 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
                 {(["base", "local", "remote"] as const).map(key => <div key={key} style={{ border: "1px solid #334155", borderRadius: 5, padding: 8 }}><strong>{key}</strong><pre style={{ maxHeight: 260, overflow: "auto", fontSize: 10, whiteSpace: "pre-wrap" }}>{panel[key]}</pre></div>)}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                {choices.map(choice => <button key={choice} onClick={() => onApply({ ...chooseConflict(selectedSession, current.id, choice), selected: view.selectedIndex })}>{`Keep ${choice}`}</button>)}
+                {choices.map(choice => <button key={choice} onClick={() => choose(choice)}>{`Keep ${choice}`}</button>)}
+                <button onClick={() => setWorkingSession(resolveAll(selectedSession, "local"))}>Resolve All Local</button>
               </div>
               <p style={{ fontSize: 11, opacity: .7 }}>Current: {current.choice ?? "unresolved"}</p>
             </article>;
