@@ -1,53 +1,36 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { MapDocument } from "../editor/map-document";
-import { createConflictResolutionView, type ConflictResolutionView } from "../editor/map-conflict-resolution-view";
-import type { ConflictResolutionSession, ConflictResolutionChoice } from "../editor/map-conflict-resolution";
+import type { ConflictChoice, ConflictResolutionSession } from "../editor/map-conflict-resolution-ui-model";
+import { canApplyResolution, chooseConflict } from "../editor/map-conflict-resolution-ui-model";
+import { createConflictResolutionView } from "../editor/map-conflict-resolution-view";
 
 export type ConflictResolutionPanelProps = {
   session: ConflictResolutionSession;
-  onApply: (document: MapDocument) => void | Promise<void>;
+  onChange?: (session: ConflictResolutionSession) => void;
+  onApply: (session: ConflictResolutionSession) => void | Promise<void>;
   onCancel?: () => void;
 };
 
-const choices: ConflictResolutionChoice[] = ["local", "remote", "base"];
+const choices: ConflictChoice[] = ["local", "remote", "base"];
 
-export function ConflictResolutionPanel({ session, onApply, onCancel }: ConflictResolutionPanelProps) {
-  const [choice, setChoice] = useState<ConflictResolutionChoice>("local");
-  const view: ConflictResolutionView = useMemo(() => createConflictResolutionView(session, choice), [session, choice]);
+export function ConflictResolutionPanel({ session, onChange, onApply, onCancel }: ConflictResolutionPanelProps) {
+  const [selected, setSelected] = useState(session.selected);
+  const current = useMemo(() => ({ ...session, selected }), [session, selected]);
+  const view = useMemo(() => createConflictResolutionView(current), [current]);
+  const choose = (choice: ConflictChoice) => {
+    const next = chooseConflict(current, current.conflicts[selected]?.id ?? "", choice);
+    onChange?.(next);
+  };
 
-  return (
-    <section role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
-      <div style={{ width: "min(980px, calc(100vw - 32px))", maxHeight: "calc(100vh - 32px)", overflow: "auto", border: "1px solid #475569", borderRadius: 8, background: "#0f172a", padding: 18, boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
-        <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-          <div>
-            <h2 id="conflict-resolution-title" style={{ margin: 0 }}>Resolve Map Conflict</h2>
-            <p style={{ margin: "6px 0 0", fontSize: 12, opacity: .75 }}>{view.status}</p>
-          </div>
-          {onCancel && <button onClick={onCancel}>Cancel</button>}
-        </header>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 16 }}>
-          {choices.map(option => {
-            const active = choice === option;
-            return <button key={option} onClick={() => setChoice(option)} aria-pressed={active} style={{ textAlign: "left", padding: 12, border: "1px solid #475569", borderRadius: 6, background: active ? "#1e293b" : "#111827" }}>
-              <strong>{option === "local" ? "Local" : option === "remote" ? "Remote" : "Base"}</strong>
-              <div style={{ fontSize: 11, opacity: .7, marginTop: 4 }}>{option === "local" ? "Keep this editor's resolved changes." : option === "remote" ? "Use the latest authoritative map." : "Return to the common base."}</div>
-            </button>;
-          })}
-        </div>
-
-        <div style={{ marginTop: 14, padding: 12, border: "1px solid #334155", borderRadius: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 600 }}>Resolved snapshot</div>
-          <pre style={{ margin: "8px 0 0", maxHeight: 260, overflow: "auto", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{JSON.stringify(view.preview, null, 2)}</pre>
-        </div>
-
-        <footer style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-          {onCancel && <button onClick={onCancel}>Cancel</button>}
-          <button disabled={!view.canApply} onClick={() => onApply(view.resolvedDocument)}>Apply Merge</button>
-        </footer>
+  return <section role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
+    <div style={{ width: "min(980px, calc(100vw - 32px))", maxHeight: "calc(100vh - 32px)", overflow: "auto", border: "1px solid #475569", borderRadius: 8, background: "#0f172a", padding: 18 }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}><div><h2 id="conflict-resolution-title" style={{ margin: 0 }}>{view.title}</h2><p style={{ margin: "6px 0 0", fontSize: 12, opacity: .75 }}>{view.summary}</p></div>{onCancel && <button onClick={onCancel}>Cancel</button>}</header>
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12, marginTop: 16 }}>
+        <nav aria-label="Conflicts" style={{ display: "grid", alignContent: "start", gap: 5 }}>{view.panels.map((panel, index) => <button key={panel.id} onClick={() => setSelected(index)} aria-pressed={selected === index} style={{ textAlign: "left", padding: 8 }}>{panel.title} · {panel.kind}</button>)}</nav>
+        {view.panels[selected] && <article style={{ border: "1px solid #334155", borderRadius: 6, padding: 12 }}><h3 style={{ margin: 0 }}>{view.panels[selected].title}</h3><div style={{ display: "flex", gap: 8, marginTop: 10 }}>{choices.map(choice => <button key={choice} onClick={() => choose(choice)} aria-pressed={view.panels[selected].selected === choice}>{choice}</button>)}</div><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 12 }}>{[['Base', view.panels[selected].base], ['Local', view.panels[selected].local], ['Remote', view.panels[selected].remote]].map(([label, value]) => <div key={label as string}><strong>{label}</strong><pre style={{ maxHeight: 240, overflow: "auto", fontSize: 10, whiteSpace: "pre-wrap" }}>{value}</pre></div>)}</div></article>}
       </div>
-    </section>
-  );
+      <footer style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>{onCancel && <button onClick={onCancel}>Cancel</button>}<button disabled={!canApplyResolution(current)} onClick={() => onApply(current)}>Apply Merge</button></footer>
+    </div>
+  </section>;
 }
