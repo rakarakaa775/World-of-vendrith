@@ -41,3 +41,55 @@ export async function loadMapDocumentSnapshot(
   const document = parseMapDocument(JSON.stringify(result.snapshot));
   return { result, document };
 }
+
+export type MapDocumentAutosaver = {
+  schedule(document: MapDocument, versionId?: string | null): void;
+  flush(): Promise<RuntimeSnapshotResult | null>;
+  cancel(): void;
+};
+
+export function createMapDocumentAutosaver(
+  client: SupabaseClient,
+  delayMs = 1000,
+): MapDocumentAutosaver {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let pending: { document: MapDocument; versionId: string | null } | null = null;
+  let inFlight: Promise<RuntimeSnapshotResult> | null = null;
+
+  const run = async (): Promise<RuntimeSnapshotResult | null> => {
+    if (!pending) return null;
+    const next = pending;
+    pending = null;
+    inFlight = saveMapDocumentSnapshot(client, next.document, next.versionId);
+    try {
+      return await inFlight;
+    } finally {
+      inFlight = null;
+    }
+  };
+
+  return {
+    schedule(document, versionId = null) {
+      pending = { document, versionId };
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        void run();
+      }, Math.max(0, delayMs));
+    },
+    async flush() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      const result = await run();
+      if (inFlight) return await inFlight;
+      return result;
+    },
+    cancel() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      pending = null;
+    },
+  };
+}
