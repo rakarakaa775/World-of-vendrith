@@ -2,6 +2,7 @@ import type { MapDocument } from './map-document';
 import { mergeMapDocumentsThreeWay, type MapMergeResult } from './map-entity-merge';
 import { createSupabaseMapMergePersistence, serializeResolvedMapSnapshot } from './map-merge-persistence-supabase';
 import { loadMapDocumentSnapshot } from './map-persistence';
+import { normalizeMergeCommitResponse } from './map-merge-persistence';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type ConflictSaveResult =
@@ -27,14 +28,29 @@ export async function saveWithConflictDetection(
     }
 
     const persistence = createSupabaseMapMergePersistence(client);
-    const committed = await persistence.commitResolvedMerge(local.id, expectedVersion, serializeResolvedMapSnapshot(merge.document), 'map-editor-save');
+    const committed = normalizeMergeCommitResponse(
+      await persistence.commitResolvedMerge(
+        local.id,
+        expectedVersion,
+        serializeResolvedMapSnapshot(merge.document),
+        'map-editor-save',
+      ),
+    );
+
     if (committed.status === 'conflict') {
       const refreshed = await loadMapDocumentSnapshot(client, local.id);
       if (!refreshed.document) return { status: 'error', error: new Error('Remote map disappeared during save') };
-      const refreshedVersion = refreshed.result.version_number ?? committed.current_version;
-      return { status: 'conflict', merge: mergeMapDocumentsThreeWay(base, local, refreshed.document), expectedVersion, remoteVersion: refreshedVersion, remoteDocument: refreshed.document };
+      const refreshedVersion = refreshed.result.version_number ?? committed.currentVersion;
+      return {
+        status: 'conflict',
+        merge: mergeMapDocumentsThreeWay(base, local, refreshed.document),
+        expectedVersion,
+        remoteVersion: refreshedVersion,
+        remoteDocument: refreshed.document,
+      };
     }
-    return { status: 'committed', document: merge.document, version: committed.version_number };
+
+    return { status: 'committed', document: merge.document, version: committed.versionNumber };
   } catch (error) {
     return { status: 'error', error };
   }
