@@ -71,7 +71,7 @@ export function MapEditorApp(){
           const commit=await persistence.commitResolvedMerge(document,0,serializeResolvedMapSnapshot(document),'initial-bootstrap');
           if(commit.status!=='committed') throw new Error(`Initial map bootstrap did not commit: ${commit.status}`);
           effectiveMapId=createdId;
-          setPersistenceStatus(`Authoritative map created at version ${commit.version}`);
+          setPersistenceStatus(`Authoritative map created at version ${commit.versionNumber}`);
         }
         setPersistedMapId(effectiveMapId);
       }
