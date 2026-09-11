@@ -328,8 +328,10 @@ Target: **Incarnate-class world-building editor**.
 - [~] Conflict resolution model — GitHub
 - [~] Conflict resolution UI contract — GitHub
 - [~] Snapshot comparison diff model — GitHub
+- [~] Entity/cell-level merge strategy — GitHub + Supabase
+- [~] Delete-vs-edit reconciliation — GitHub
+- [~] Derived-state reconciliation contract — GitHub + Supabase
 - [ ] Conflict resolution UI implementation — GitHub UI
-- [ ] Entity/cell-level merge strategy — GitHub + Supabase
 - [ ] Offline editing queue — GitHub
 - [ ] Network-loss recovery — GitHub + Supabase
 
