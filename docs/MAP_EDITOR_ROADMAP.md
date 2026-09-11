@@ -3,7 +3,6 @@
 Target: **Incarnate-class world-building editor**.
 
 ## Legend
-
 - [x] Done / verified
 - [~] Partial / foundation exists
 - [ ] Not yet complete
@@ -41,7 +40,7 @@ Target: **Incarnate-class world-building editor**.
 - [x] Layer rules — Supabase `map_editor_layer_rules`
 - [x] Validation/readiness gate — GitHub `apps/map-editor/editor/map-validation.ts`
 - [~] Autosave — GitHub + Supabase
-- [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts` + browser localStorage
+- [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts` + browser localStorage; integrated with autosaver
 
 ## 1. Professional 2D Canvas
 
@@ -322,10 +321,10 @@ Target: **Incarnate-class world-building editor**.
 
 - [x] Runtime snapshot — Supabase
 - [x] Persistence bridge — GitHub
-- [~] Autosave controller — GitHub
+- [~] Autosave controller — GitHub; writes recovery journal and persists runtime snapshot
 - [~] Dirty state foundation — GitHub UI
 - [~] Save status foundation — GitHub UI
-- [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts` + browser localStorage
+- [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts` + browser localStorage; integrated with autosaver
 - [~] Snapshot recovery foundation — Supabase
 - [ ] Conflict detection — Supabase
 - [~] Version checkpoints — Supabase
@@ -376,7 +375,6 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Publish — Supabase + GitHub
 
 Validation pipeline:
-
 `Map → Schema → Hierarchy → Terrain → Objects → Geometry → Navigation → Environment → Assets → READY → Publish`
 
 ## 23. Incarnate-Class Differentiation
@@ -402,7 +400,7 @@ Validation pipeline:
 # Current Priority Queue
 
 1. [ ] Save/Load UI hardening
-2. [ ] Autosave + crash recovery integration
+2. [ ] Autosave + crash recovery integration hardening
 3. [ ] Professional canvas camera
 4. [ ] Selection + transform UX
 5. [ ] Layer system UX
@@ -420,11 +418,8 @@ Validation pipeline:
 17. [ ] AI world-building
 
 # Definition of Done — Map Editor v1
-
 A user can:
-
 **Create World → Create Region → Create Map → Paint Terrain → Place Assets → Edit Objects → Configure Navigation → Configure Environment/Weather → Save → Close → Reopen → State remains identical → Validate → Publish.**
 
 # Vercel Policy
-
 Vercel is intentionally deferred. Connect/deploy it when the Map Editor reaches a buildable integration milestone and browser/runtime verification becomes useful. Until then, GitHub + Supabase remain the primary implementation and source-of-truth systems.
