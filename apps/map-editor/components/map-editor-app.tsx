@@ -42,7 +42,8 @@ export function MapEditorApp(){
       const retryMerge=mergeMapDocumentsThreeWay(retryBase,resolved,refreshed.document);
       setAuthoritativeVersion(refreshed.result.version_number??response.current_version); setBaseDocument(refreshed.document); openConflictResolution(retryMerge,refreshed.document); setPersistenceStatus(`Remote advanced to version ${refreshed.result.version_number??response.current_version}; review the refreshed conflict`); return false;
     }
-    setAuthoritativeVersion(response.version_number); setBaseDocument(resolved); update(resolved); setPersistenceStatus(`Saved as version ${response.version_number}`); return true;
+    const savedVersion=response.version_number??expectedVersion;
+    setAuthoritativeVersion(savedVersion); setBaseDocument(resolved); update(resolved); setPersistenceStatus(`Saved as version ${savedVersion}`); return true;
   },[baseDocument,conflictRemoteDocument,openConflictResolution,update]);
   const applyConflictResolution=useCallback(async(resolved:MapDocument)=>{if(!conflictResult)return;setBusy(true);try{if(await persistResolved(resolved,conflictResult.remoteVersion))closeConflictResolution();}catch(error){setPersistenceStatus(`Conflict commit failed: ${error instanceof Error?error.message:'unknown error'}`)}finally{setBusy(false)}},[conflictResult,persistResolved,closeConflictResolution]);
   useEffect(()=>{let cancelled=false;const client=createMapEditorSupabaseClient();if(!client){setTerrainStatus('Supabase environment is not configured');setEnvironmentStatus('Supabase environment is not configured');setEnvironmentRuntime(emptyEnvironmentRuntime(runtimeWorldId));setEnvironmentRuntimeError('Supabase environment is not configured');setPersistenceStatus('Supabase environment is not configured');return()=>{cancelled=true}};
