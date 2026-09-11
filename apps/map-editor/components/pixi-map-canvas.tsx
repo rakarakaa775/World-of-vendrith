@@ -13,6 +13,7 @@ import { buildTerrainRenderPlan, terrainRenderCellAt } from '../editor/terrain-r
 import { junctionCornerDirections, terrainJunctionGeometry } from '../editor/terrain-junction-geometry';
 import { analyzeTerrainBrushPreview, analyzeFloodTerrainBrushPreview } from '../editor/terrain-brush-preview';
 import type { TerrainAssetBindingMap } from '../editor/terrain-asset-binding';
+import type { EnvironmentRuntimeState } from '../editor/environment-runtime';
 
 type Props = {
   document: MapDocument;
@@ -29,6 +30,7 @@ type Props = {
   onObjectMove: (objectId: string, point: GridPoint) => void;
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
+  environmentRuntime?: EnvironmentRuntimeState | null;
 };
 
 const tileColor = (id: string, kind: string) => kind === 'collision' ? 0xef4444 : id === 'water-tile' ? 0x234b63 : id === 'sand' ? 0xc9a66b : id === 'dirt' ? 0x76513a : id === 'stone-tile' ? 0x59616b : 0x4d7c4a;
@@ -53,7 +55,7 @@ function drawBrushPreview(preview: Graphics, document: MapDocument, layerId: str
   }
 }
 
-export function PixiMapCanvas({document,activeTool,activeLayerId,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onCellInspect,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings={}}:Props){
+export function PixiMapCanvas({document,activeTool,activeLayerId,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onCellInspect,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings={},environmentRuntime=null}:Props){
   const hostRef=useRef<HTMLDivElement>(null); const viewportRef=useRef<Viewport>(DEFAULT_VIEWPORT);
   useEffect(()=>{let disposed=false;const host=hostRef.current;if(!host)return;const runtime=createTerrainRuntime(terrainBindings);const app=new Application();
     void app.init({resizeTo:host,background:'#0f1318',antialias:true}).then(()=>{if(disposed){app.destroy(true,{children:true});runtime.dispose();return;}host.replaceChildren(app.canvas);const world=new Container();const grid=new Graphics();const overlay=new Graphics();const preview=new Graphics();const width=document.width*document.tileSize;const height=document.height*document.tileSize;const terrainPlans=new Map<string,ReturnType<typeof buildTerrainRenderPlan>>();
@@ -72,6 +74,6 @@ export function PixiMapCanvas({document,activeTool,activeLayerId,selectedTileId,
       const wheel=(e:WheelEvent)=>{const r=host.getBoundingClientRect();viewportRef.current=zoomAt(viewportRef.current,e.deltaY<0?1.1:0.9,e.clientX-r.left,e.clientY-r.top);apply();};
       app.stage.eventMode='static';app.stage.hitArea=app.screen;app.stage.on('pointerdown',down).on('pointermove',move).on('pointerup',up).on('pointerupoutside',up);host.addEventListener('wheel',wheel,{passive:true});void Promise.all(textureJobs);return()=>host.removeEventListener('wheel',wheel);
     });return()=>{disposed=true;runtime.dispose();app.destroy(true,{children:true});};
-  },[document,activeTool,activeLayerId,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onCellInspect,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings]);
+  },[document,activeTool,activeLayerId,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onCellInspect,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings,environmentRuntime]);
   return <div ref={hostRef} style={{width:'100%',height:'100%',minHeight:320,overflow:'hidden'}}/>;
 }
