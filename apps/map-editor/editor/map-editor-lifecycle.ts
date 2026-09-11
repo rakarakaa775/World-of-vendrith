@@ -1,16 +1,20 @@
 import type { MapDocument } from './map-document';
 import type { MapSaveController } from './map-save-controller';
+import type { MapDocumentAutosaver } from './map-persistence';
 
 export type MapEditorLifecycle = {
   open(document?: MapDocument): Promise<MapDocument | null>;
-  change(document: MapDocument): void;
+  change(document: MapDocument, versionId?: string | null): void;
   save(): Promise<boolean>;
   recover(): MapDocument | null;
   beforeClose(): Promise<boolean>;
   dispose(): void;
 };
 
-export function createMapEditorLifecycle(controller: MapSaveController): MapEditorLifecycle {
+export function createMapEditorLifecycle(
+  controller: MapSaveController,
+  autosaver?: MapDocumentAutosaver,
+): MapEditorLifecycle {
   return {
     async open(document) {
       if (document) {
@@ -19,24 +23,31 @@ export function createMapEditorLifecycle(controller: MapSaveController): MapEdit
       }
       return controller.load();
     },
-    change(document) {
+    change(document, versionId = null) {
       controller.setDocument(document);
       controller.markDirty();
+      autosaver?.schedule(document, versionId);
     },
-    save() {
-      return controller.save();
+    async save() {
+      const saved = await controller.save();
+      if (saved) await autosaver?.flush();
+      return saved;
     },
     recover() {
-      return controller.recover();
+      const recovered = controller.recover();
+      if (recovered) autosaver?.schedule(recovered);
+      return recovered;
     },
     async beforeClose() {
       const state = controller.getState();
-      if (state !== 'dirty' && state !== 'error') return true;
-      return controller.save();
+      if (state !== 'dirty' && state !== 'error') {
+        await autosaver?.flush();
+        return true;
+      }
+      return this.save();
     },
     dispose() {
-      // Lifecycle ownership is intentionally limited to save/recovery orchestration.
-      // The caller owns DOM listeners and rendering resources.
+      autosaver?.cancel();
     },
   };
 }
