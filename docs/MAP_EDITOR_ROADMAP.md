@@ -47,6 +47,16 @@ Target: **Incarnate-class world-building editor**.
 - [~] Save status tests — GitHub `apps/map-editor/editor/map-save-status.test.ts`
 - [~] Lifecycle save-status integration — GitHub `apps/map-editor/editor/map-editor-lifecycle.ts`
 - [~] Lifecycle save-status tests — GitHub `apps/map-editor/editor/map-editor-lifecycle.test.ts`
+- [~] Network-loss persistence queue — GitHub `apps/map-editor/editor/map-network-recovery.ts`
+- [~] Network-loss persistence tests — GitHub `apps/map-editor/editor/map-network-recovery.test.ts`
+- [~] Conflict detection foundation — GitHub `apps/map-editor/editor/map-conflict-detection.ts`
+- [~] Conflict detection tests — GitHub `apps/map-editor/editor/map-conflict-detection.test.ts`
+- [~] Conflict resolution model — GitHub `apps/map-editor/editor/map-conflict-resolution.ts`
+- [~] Conflict resolution tests — GitHub `apps/map-editor/editor/map-conflict-resolution.test.ts`
+- [~] Conflict resolution UI contract — GitHub `apps/map-editor/editor/map-conflict-resolution-ui.ts`
+- [~] Conflict resolution UI tests — GitHub `apps/map-editor/editor/map-conflict-resolution-ui.test.ts`
+- [~] Snapshot comparison diff model — GitHub `apps/map-editor/editor/map-conflict-diff.ts`
+- [~] Snapshot comparison diff tests — GitHub `apps/map-editor/editor/map-conflict-diff.test.ts`
 
 ## 1. Professional 2D Canvas
 - [~] Pan — GitHub UI
@@ -217,16 +227,16 @@ Target: **Incarnate-class world-building editor**.
 - [x] Environment catalog — Supabase
 - [x] Environment resolver — Supabase
 - [~] Runtime environment foundation — Supabase
-- [ ] Temperature — GitHub engine + Supabase
-- [ ] Humidity — GitHub engine + Supabase
-- [ ] Wind — GitHub engine + Supabase
+- [ ] Temperature — GitHub + Supabase
+- [ ] Humidity — GitHub + Supabase
+- [ ] Wind — GitHub + Supabase
 - [ ] Clouds — GitHub rendering
 - [ ] Rain — GitHub rendering
 - [ ] Snow — GitHub rendering
 - [ ] Fog — GitHub rendering
 - [ ] Storm — GitHub rendering
 - [ ] Weather transitions — GitHub engine
-- [ ] Seasonal effects — GitHub engine + Supabase
+- [ ] Seasonal effects — GitHub + Supabase
 
 ## 13. Time & Seasons
 - [ ] World clock — GitHub + Supabase
@@ -311,9 +321,15 @@ Target: **Incarnate-class world-building editor**.
 - [~] Autosave controller — GitHub
 - [~] Dirty state foundation — GitHub UI
 - [~] Save status foundation — GitHub UI
-- [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts`
+- [~] Crash recovery integration — GitHub
 - [~] Snapshot recovery foundation — Supabase
-- [ ] Conflict detection — Supabase
+- [~] Network-loss persistence queue — GitHub
+- [~] Conflict detection foundation — GitHub
+- [~] Conflict resolution model — GitHub
+- [~] Conflict resolution UI contract — GitHub
+- [~] Snapshot comparison diff model — GitHub
+- [ ] Conflict resolution UI implementation — GitHub UI
+- [ ] Entity/cell-level merge strategy — GitHub + Supabase
 - [ ] Offline editing queue — GitHub
 - [ ] Network-loss recovery — GitHub + Supabase
 
@@ -354,7 +370,7 @@ Target: **Incarnate-class world-building editor**.
 - [x] Navigation validation — GitHub + Supabase
 - [x] Environment validation — GitHub + Supabase
 - [x] Asset validation — GitHub + Asset Library
-- [x] Readiness gate foundation — GitHub `apps/map-editor/editor/map-validation.ts`
+- [x] Readiness gate foundation — GitHub
 - [ ] Publish — Supabase + GitHub
 
 ## 23. Incarnate-Class Differentiation
@@ -379,25 +395,26 @@ Target: **Incarnate-class world-building editor**.
 # Current Priority Queue
 1. [ ] Save/Load UI integration
 2. [ ] Autosave + crash recovery integration
-3. [ ] Professional canvas camera
-4. [ ] Selection + transform UX
-5. [ ] Layer system UX
-6. [ ] Terrain brush suite
-7. [ ] Asset browser
-8. [ ] Object placement + inspector
-9. [ ] Navigation visualization
-10. [ ] Weather / time / seasons
-11. [ ] Water / roads / elevation
-12. [ ] Cartography
-13. [ ] Procedural world generation
-14. [ ] Collaboration
-15. [ ] Large-world performance
-16. [ ] Simulation preview
-17. [ ] AI world-building
+3. [ ] Conflict resolution UI implementation
+4. [ ] Professional canvas camera
+5. [ ] Selection + transform UX
+6. [ ] Layer system UX
+7. [ ] Terrain brush suite
+8. [ ] Asset browser
+9. [ ] Object placement + inspector
+10. [ ] Navigation visualization
+11. [ ] Weather / time / seasons
+12. [ ] Water / roads / elevation
+13. [ ] Cartography
+14. [ ] Procedural world generation
+15. [ ] Collaboration
+16. [ ] Large-world performance
+17. [ ] Simulation preview
+18. [ ] AI world-building
 
 # Definition of Done — Map Editor v1
 A user can:
 **Create World → Create Region → Create Map → Paint Terrain → Place Assets → Edit Objects → Configure Navigation → Configure Environment/Weather → Save → Close → Reopen → State remains identical → Validate → Publish.**
 
 # Vercel Policy
-Vercel is intentionally deferred. Connect/deploy it when the Map Editor reaches a buildable integration milestone and browser/runtime verification becomes useful. Until then, GitHub + Supabase remain the primary implementation and source-of-truth systems.
+Vercel is intentionally deferred until the Map Editor reaches a buildable integration milestone and browser/runtime verification becomes useful. Until then, GitHub + Supabase remain the primary implementation and source-of-truth systems.
