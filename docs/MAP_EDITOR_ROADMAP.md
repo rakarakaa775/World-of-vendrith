@@ -39,7 +39,7 @@ Target: **Incarnate-class world-building editor**.
 - [x] Gizmo sessions — Supabase `map_editor_gizmo_sessions`
 - [x] Snap settings — Supabase `map_editor_snap_settings`
 - [x] Layer rules — Supabase `map_editor_layer_rules`
-- [~] Validation/readiness gate — GitHub + Supabase
+- [x] Validation/readiness gate — GitHub `apps/map-editor/editor/map-validation.ts`
 - [~] Autosave — GitHub + Supabase
 - [ ] Crash recovery — GitHub + Supabase
 
@@ -364,15 +364,15 @@ Target: **Incarnate-class world-building editor**.
 
 ## 22. Validation & Publishing
 
-- [~] Schema validation — GitHub + Supabase
-- [~] Hierarchy validation — GitHub + Supabase
-- [~] Terrain validation — GitHub + Supabase
-- [~] Object validation — GitHub + Supabase
+- [x] Schema validation — GitHub + Supabase
+- [x] Hierarchy validation — GitHub + Supabase
+- [x] Terrain validation — GitHub + Supabase
+- [x] Object validation — GitHub + Supabase
 - [x] Geometry validation foundation — Supabase
-- [~] Navigation validation — GitHub + Supabase
-- [~] Environment validation — GitHub + Supabase
-- [~] Asset validation — GitHub + Asset Library
-- [ ] Readiness gate — GitHub
+- [x] Navigation validation — GitHub + Supabase
+- [x] Environment validation — GitHub + Supabase
+- [x] Asset validation — GitHub + Asset Library
+- [x] Readiness gate foundation — GitHub `apps/map-editor/editor/map-validation.ts`
 - [ ] Publish — Supabase + GitHub
 
 Validation pipeline:
@@ -401,24 +401,23 @@ Validation pipeline:
 
 # Current Priority Queue
 
-1. [ ] Validation/readiness gate
-2. [ ] Save/Load UI hardening
-3. [ ] Autosave + crash recovery
-4. [ ] Professional canvas camera
-5. [ ] Selection + transform UX
-6. [ ] Layer system UX
-7. [ ] Terrain brush suite
-8. [ ] Asset browser
-9. [ ] Object placement + inspector
-10. [ ] Navigation visualization
-11. [ ] Weather / time / seasons
-12. [ ] Water / roads / elevation
-13. [ ] Cartography
-14. [ ] Procedural world generation
-15. [ ] Collaboration
-16. [ ] Large-world performance
-17. [ ] Simulation preview
-18. [ ] AI world-building
+1. [ ] Save/Load UI hardening
+2. [ ] Autosave + crash recovery
+3. [ ] Professional canvas camera
+4. [ ] Selection + transform UX
+5. [ ] Layer system UX
+6. [ ] Terrain brush suite
+7. [ ] Asset browser
+8. [ ] Object placement + inspector
+9. [ ] Navigation visualization
+10. [ ] Weather / time / seasons
+11. [ ] Water / roads / elevation
+12. [ ] Cartography
+13. [ ] Procedural world generation
+14. [ ] Collaboration
+15. [ ] Large-world performance
+16. [ ] Simulation preview
+17. [ ] AI world-building
 
 # Definition of Done — Map Editor v1
 
