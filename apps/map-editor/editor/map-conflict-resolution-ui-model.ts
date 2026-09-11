@@ -45,7 +45,7 @@ function applyValue(document: MapDocument, conflict: ConflictView): void {
   }
   if (conflict.kind === 'object' && parts[1] === 'object') {
     const objectId = parts.slice(2).join(':');
-    setLayer(document, layer => {
+    setLayer(document, layerId, layer => {
       const index = layer.objects.findIndex(object => object.id === objectId);
       if (value === null) { if (index >= 0) layer.objects.splice(index, 1); return; }
       if (index >= 0) layer.objects[index] = value as MapObject;
