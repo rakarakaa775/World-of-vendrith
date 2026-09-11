@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MapDocument } from './map-document';
 import { parseMapDocument, serializeMapDocument } from './map-serialization';
+import { createCrashRecoveryJournal, type CrashRecoveryJournal } from './map-crash-recovery';
 
 export type RuntimeSnapshotResult = {
   ok: boolean;
@@ -48,10 +49,17 @@ export type MapDocumentAutosaver = {
   cancel(): void;
 };
 
+export type MapDocumentRecoveryAutosaver = MapDocumentAutosaver & {
+  recover(mapId: string): MapDocument | null;
+  hasRecovery(mapId: string): boolean;
+  clearRecovery(mapId: string): void;
+};
+
 export function createMapDocumentAutosaver(
   client: SupabaseClient,
   delayMs = 1000,
-): MapDocumentAutosaver {
+  journal: CrashRecoveryJournal = createCrashRecoveryJournal(),
+): MapDocumentRecoveryAutosaver {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: { document: MapDocument; versionId: string | null } | null = null;
   let inFlight: Promise<RuntimeSnapshotResult> | null = null;
@@ -60,6 +68,7 @@ export function createMapDocumentAutosaver(
     if (!pending) return null;
     const next = pending;
     pending = null;
+    journal.write(next.document);
     inFlight = saveMapDocumentSnapshot(client, next.document, next.versionId);
     try {
       return await inFlight;
@@ -71,6 +80,7 @@ export function createMapDocumentAutosaver(
   return {
     schedule(document, versionId = null) {
       pending = { document, versionId };
+      journal.write(document);
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;
@@ -90,6 +100,15 @@ export function createMapDocumentAutosaver(
       if (timer) clearTimeout(timer);
       timer = null;
       pending = null;
+    },
+    recover(mapId) {
+      return journal.read(mapId);
+    },
+    hasRecovery(mapId) {
+      return journal.has(mapId);
+    },
+    clearRecovery(mapId) {
+      journal.clear(mapId);
     },
   };
 }
