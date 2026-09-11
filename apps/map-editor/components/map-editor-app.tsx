@@ -54,8 +54,9 @@ export function MapEditorApp(){
       if(cancelled)return;
       let effectiveMapId=configuredPersistedMapId;
       if(!effectiveMapId){
-        const {data:existing,error:existingError}=await client.from('maps').select('id,name,map_type,width,height').eq('world_id',runtimeWorldId).order('created_at',{ascending:true}).limit(1).maybeSingle();
+        const {data:existingRows,error:existingError}=await client.from('maps').select('id,name,map_type,width,height').eq('world_id',runtimeWorldId).order('created_at',{ascending:true}).limit(1);
         if(existingError) throw existingError;
+        const existing=existingRows?.[0] as {id:string}|undefined;
         if(existing?.id){
           effectiveMapId=existing.id;
           setPersistenceStatus('Found existing authoritative map…');
@@ -63,11 +64,13 @@ export function MapEditorApp(){
           const bootstrap=createMap('world');
           const {data:created,error:createError}=await client.from('maps').insert({world_id:runtimeWorldId,name:'World Map',map_type:'world',coordinate_mode:'square',width:bootstrap.width,height:bootstrap.height,tile_size:bootstrap.tileSize,metadata:{editor_bootstrap:true}}).select('id').single();
           if(createError) throw createError;
-          const document={...bootstrap,id:created.id,name:'World Map'};
+          const createdId=(created as {id?:string}|null)?.id;
+          if(!createdId) throw new Error('Supabase did not return the bootstrap map id');
+          const document={...bootstrap,id:createdId,name:'World Map'};
           const persistence=createSupabaseMapMergePersistence(client);
           const commit=await persistence.commitResolvedMerge(document,0,serializeResolvedMapSnapshot(document),'initial-bootstrap');
           if(commit.status!=='committed') throw new Error(`Initial map bootstrap did not commit: ${commit.status}`);
-          effectiveMapId=created.id;
+          effectiveMapId=createdId;
           setPersistenceStatus(`Authoritative map created at version ${commit.version}`);
         }
         setPersistedMapId(effectiveMapId);
