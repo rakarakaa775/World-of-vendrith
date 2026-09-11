@@ -1,5 +1,6 @@
 import type { TerrainKey } from './terrain-engine';
 import type { TerrainAssetBindingMap } from './terrain-asset-binding';
+import { terrainAssetIdForMask } from './terrain-asset-binding';
 import type { EnvironmentRuntimeState } from './environment-runtime';
 import {
   effectiveTerrainAssetId,
@@ -34,7 +35,9 @@ function baseAssetIdForTerrain(
   bindings: TerrainAssetBindingMap,
   terrain: TerrainKey,
 ): string | null {
-  return bindings[terrain]?.['mask_00'] ?? null;
+  // mask_00 in the legacy representation corresponds to mask 0 in the
+  // authoritative TerrainAssetBindingMap.
+  return terrainAssetIdForMask(bindings, terrain, 0) ?? null;
 }
 
 export function resolveEnvironmentTerrainAsset(
