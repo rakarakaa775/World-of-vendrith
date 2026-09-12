@@ -53,7 +53,7 @@ export function createMapSaveController(
         recovery.clear(document.id);
         state = 'saved';
         return true;
-      } catch {
+      } catch (error) {
         pending.enqueue(serialized);
         state = 'error';
         return false;
