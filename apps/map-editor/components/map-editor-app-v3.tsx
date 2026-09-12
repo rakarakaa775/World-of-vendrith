@@ -16,6 +16,7 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const CONFIGURED_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_MAP_ID?.trim() || null;
+const BUILD_MARKER = "terrain-bindings-runtime-diagnostics-2026-09-12";
 const messageOf = (e: any) => e?.message || e?.error_description || e?.details || e?.hint || String(e || "unknown error");
 
 function mapFromRow(row: any): MapDocument {
@@ -32,7 +33,7 @@ export function MapEditorAppV3() {
   const [version, setVersion] = useState(0);
   const [status, setStatus] = useState("Connecting to Supabase…");
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
-  const [terrainStatus, setTerrainStatus] = useState("Loading verified terrain bindings…");
+  const [terrainStatus, setTerrainStatus] = useState(`Loading verified terrain bindings… · ${BUILD_MARKER}`);
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [showSlots, setShowSlots] = useState(false);
@@ -74,11 +75,13 @@ export function MapEditorAppV3() {
           client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id"),
           client.from("asset_registry").select("id,name,slug,status,license_registry_id").in("name", ["tile_grass.png", "tile_dirt.png", "tile_pavement.png"]),
         ]);
-        if (bindingResult.error) throw bindingResult.error;
-        if (baseAssetResult.error) throw baseAssetResult.error;
+        if (bindingResult.error) throw new Error(`binding query failed: ${messageOf(bindingResult.error)}`);
+        if (baseAssetResult.error) throw new Error(`asset query failed: ${messageOf(baseAssetResult.error)}`);
 
-        const transitionLoaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(bindingResult.data || []);
-        const baseRows = (baseAssetResult.data || []).flatMap((asset: any) => {
+        const transitionRows = bindingResult.data || [];
+        const baseAssetRows = baseAssetResult.data || [];
+        const transitionLoaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(transitionRows);
+        const baseRows = baseAssetRows.flatMap((asset: any) => {
           const terrain = asset.name === "tile_grass.png" ? "grass" : asset.name === "tile_dirt.png" ? "dirt" : asset.name === "tile_pavement.png" ? "pavement" : null;
           if (!terrain || asset.status !== "approved" || !asset.license_registry_id) return [];
           return [{ terrain_key: terrain, neighbor_mask: 255, asset_id: asset.id, candidate_status: "approved", asset_status: asset.status, autotile_capable: false, license_registry_id: asset.license_registry_id }];
@@ -95,12 +98,12 @@ export function MapEditorAppV3() {
         }
         if (!cancelled) {
           setTerrainBindings(bindings);
-          setTerrainStatus(`Verified base/transition bindings · ${accepted.length}/256`);
+          setTerrainStatus(`Terrain runtime · workbench ${transitionRows.length} rows / ${transitionLoaded.accepted.length} accepted · base assets ${baseAssetRows.length} rows / ${baseLoaded.accepted.length} accepted · final ${accepted.length}/256 · ${BUILD_MARKER}`);
         }
       } catch (error) {
         if (!cancelled) {
           setTerrainBindings({});
-          setTerrainStatus(`Terrain bindings unavailable · ${messageOf(error)}`);
+          setTerrainStatus(`Terrain bindings unavailable · ${messageOf(error)} · ${BUILD_MARKER}`);
         }
       }
 
