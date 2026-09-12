@@ -11,6 +11,8 @@ import { saveWithConflictDetection } from "../editor/map-conflict-save-controlle
 import { createSupabaseMapMergePersistence, serializeResolvedMapSnapshot } from "../editor/map-merge-persistence-supabase";
 import { normalizeMergeCommitResponse } from "../editor/map-merge-persistence";
 import { parseMapDocument } from "../editor/map-serialization";
+import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
+import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const CONFIGURED_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_MAP_ID?.trim() || null;
@@ -29,6 +31,8 @@ export function MapEditorAppV3() {
   const [baseDocument, setBaseDocument] = useState<MapDocument | null>(null);
   const [version, setVersion] = useState(0);
   const [status, setStatus] = useState("Connecting to Supabase…");
+  const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
+  const [terrainStatus, setTerrainStatus] = useState("Loading verified terrain bindings…");
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [showSlots, setShowSlots] = useState(false);
@@ -65,6 +69,21 @@ export function MapEditorAppV3() {
       const currentSession = await client.auth.getSession();
       if (!currentSession.data.session) { const auth = await client.auth.signInAnonymously(); if (auth.error) throw auth.error; }
       if (cancelled) return;
+
+      try {
+        const { data, error } = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
+        if (error) throw error;
+        const loaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(data || []);
+        if (!cancelled) {
+          setTerrainBindings(loaded.bindings);
+          setTerrainStatus(loaded.diagnostics.complete ? "Terrain bindings ready · 256/256" : `Verified base/transition bindings · ${loaded.diagnostics.accepted}/256`);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTerrainBindings({});
+          setTerrainStatus(`Terrain bindings unavailable · ${messageOf(error)}`);
+        }
+      }
 
       let mapId = CONFIGURED_MAP_ID || "";
       if (mapId) {
@@ -173,7 +192,7 @@ export function MapEditorAppV3() {
         <button onClick={loadLatest} disabled={busy || !persistedMapId}>Load Latest</button>
         <span style={{ fontSize: 11, opacity: .8 }}>v{version} · {status}</span>
       </div>
-      <EditorShell key={`${active.id}:${editorRevision}`} initialDocument={active} onDocumentChange={update} onSave={(document) => save(document)} />
+      <EditorShell key={`${active.id}:${editorRevision}`} initialDocument={active} onDocumentChange={update} onSave={(document) => save(document)} terrainBindings={terrainBindings} terrainStatus={terrainStatus} />
     </div>
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
   </div>;
