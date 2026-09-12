@@ -12,8 +12,10 @@ const assetCache = new Map<string, AssetRecord | null>();
 /** Canonical bundled terrain textures. Supabase remains the registry/provenance source. */
 const LOCAL_TERRAIN_ASSETS: Record<string, string> = {
   'tile_grass.png': '/assets/terrain/tile_grass.png',
+  'tile_sand.png': '/assets/terrain/tile_sand.png',
   'tile_dirt.png': '/assets/terrain/tile_dirt.png',
   'tile_pavement.png': '/assets/terrain/tile_pavement.png',
+  'tile_water.png': '/assets/terrain/tile_water.png',
 };
 
 export function normalizeAssetPath(path: string): string {
