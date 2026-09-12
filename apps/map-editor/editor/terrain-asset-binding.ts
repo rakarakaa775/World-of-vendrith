@@ -11,9 +11,8 @@ export type TerrainAssetBinding = {
 export type TerrainAssetBindingMap = Partial<Record<TerrainKey, Partial<Record<number, TerrainAssetBinding>>>>;
 
 /**
- * Empty by design: Supabase currently reports zero bound assets for the
- * verified terrain-rule catalog. Bindings must come from verified assets;
- * this registry never invents asset IDs.
+ * Empty by design: verified terrain bindings are loaded from Supabase at runtime.
+ * This registry never invents asset IDs.
  */
 export const VERIFIED_TERRAIN_ASSET_BINDINGS: TerrainAssetBindingMap = {};
 
@@ -26,12 +25,20 @@ export function createTerrainAssetBindingMap(bindings: TerrainAssetBinding[]): T
   return map;
 }
 
+/**
+ * Resolve an exact autotile mask first. When a terrain has only its verified
+ * base tile (mask 255), use that tile as the safe visual fallback for every
+ * other mask until transition assets are approved and bound. This keeps the
+ * renderer textured instead of falling back to flat debug colors at edges.
+ */
 export function getTerrainAssetBinding(
   bindings: TerrainAssetBindingMap,
   terrain: TerrainKey,
   mask: TerrainMask,
 ): TerrainAssetBinding | null {
-  return bindings[terrain]?.[mask] ?? null;
+  const terrainBindings = bindings[terrain];
+  if (!terrainBindings) return null;
+  return terrainBindings[mask] ?? terrainBindings[255] ?? null;
 }
 
 export function terrainAssetIdForMask(
