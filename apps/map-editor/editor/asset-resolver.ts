@@ -41,8 +41,7 @@ export function clearAssetRecordCache(): void {
 }
 
 export async function resolveAssetRecord(client: any, assetId: string): Promise<AssetRecord | null> {
-  const cached = getCachedAssetRecord(assetId);
-  if (cached) return cached;
+  if (assetCache.has(assetId)) return assetCache.get(assetId) ?? null;
   const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height').eq('id', assetId).maybeSingle();
   if (error) throw error;
   if (!data) {
@@ -55,10 +54,19 @@ export async function resolveAssetRecord(client: any, assetId: string): Promise<
 export async function resolveAssetRecords(client: any, assetIds: string[]): Promise<Map<string, AssetRecord>> {
   const unique = [...new Set(assetIds.filter(Boolean))];
   const result = new Map<string, AssetRecord>();
-  const missing = unique.filter(id => !getCachedAssetRecord(id));
-  for (const id of missing) await resolveAssetRecord(client, id);
+  const missing = unique.filter(id => !assetCache.has(id));
+  if (missing.length) {
+    const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height').in('id', missing);
+    if (error) throw error;
+    const found = new Set<string>();
+    for (const row of data ?? []) {
+      const asset = cacheAssetRecord(row as AssetRecord);
+      if (asset?.id) found.add(asset.id);
+    }
+    for (const id of missing) if (!found.has(id)) assetCache.set(id, null);
+  }
   for (const id of unique) {
-    const asset = getCachedAssetRecord(id);
+    const asset = assetCache.get(id);
     if (asset) result.set(id, asset);
   }
   return result;
