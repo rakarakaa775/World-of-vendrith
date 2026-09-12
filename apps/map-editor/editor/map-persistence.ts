@@ -15,17 +15,22 @@ export type RuntimeSnapshotResult = {
   snapshot?: unknown;
 };
 
+function normalizeRuntimeSnapshotResult(data: unknown): RuntimeSnapshotResult {
+  if (Array.isArray(data)) return (data[0] ?? {}) as RuntimeSnapshotResult;
+  return (data ?? {}) as RuntimeSnapshotResult;
+}
+
 export async function saveMapDocumentSnapshot(client: SupabaseClient, document: MapDocument, versionId?: string | null): Promise<RuntimeSnapshotResult> {
   const snapshot = JSON.parse(serializeMapDocument(document));
   const { data, error } = await client.rpc('map_editor_upsert_runtime_snapshot_v1', { p_map_id: document.id, p_snapshot: snapshot, p_version_id: versionId ?? null });
   if (error) throw error;
-  return data as RuntimeSnapshotResult;
+  return normalizeRuntimeSnapshotResult(data);
 }
 
 export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: string): Promise<{ result: RuntimeSnapshotResult; document: MapDocument | null }> {
   const { data, error } = await client.rpc('map_editor_get_runtime_snapshot_v1', { p_map_id: mapId });
   if (error) throw error;
-  const result = data as RuntimeSnapshotResult;
+  const result = normalizeRuntimeSnapshotResult(data);
   if (!result.ok || !result.found || result.snapshot == null) return { result, document: null };
   return { result, document: parseMapDocument(JSON.stringify(result.snapshot)) };
 }
