@@ -1,0 +1,37 @@
+name: one-time-fix-map-id
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fix nullable mapId narrowing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/map-editor/components/map-editor-app-v3.tsx')
+          text = path.read_text()
+          old = 'let mapId: string | null = null;'
+          new = 'let mapId = "";'
+          if old not in text:
+              raise SystemExit('target text not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Commit fix and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/one-time-fix-map-id.yml
+          git add apps/map-editor/components/map-editor-app-v3.tsx .github/workflows/one-time-fix-map-id.yml
+          git commit -m "fix: narrow map id initialization" || exit 0
+          git push
