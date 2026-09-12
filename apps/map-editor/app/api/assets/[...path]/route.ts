@@ -5,11 +5,33 @@ import path from "node:path";
 const ASSET_REPO = "rakarakaa775/Asset-library-LPC";
 const ASSET_REF = "main";
 
-const LOCAL_TERRAIN_FILES: Record<string, { relativePath: string; contentType: string }> = {
+type LocalTerrainFile = { relativePath: string; contentType: string };
+
+const LOCAL_TERRAIN_FILES: Record<string, LocalTerrainFile> = {
   "tile_grass.png": { relativePath: "public/assets/terrain/tile_grass.png", contentType: "image/png" },
   "tile_dirt.png": { relativePath: "public/assets/terrain/tile_dirt.png", contentType: "image/png" },
   "tile_pavement.png": { relativePath: "public/assets/terrain/tile_pavement.png", contentType: "image/png" },
 };
+
+const LEGACY_TERRAIN_FILES: Record<string, LocalTerrainFile> = {
+  "tile_grass.png": { relativePath: "tile_grass.png", contentType: "image/png" },
+  "tile_dirt.png": { relativePath: "tile_dirt.png", contentType: "image/png" },
+  "tile_pavement.png": { relativePath: "tile_pavement.png", contentType: "image/png" },
+};
+
+async function readBundledTerrain(fileName: string): Promise<{ body: Buffer; source: string; contentType: string } | null> {
+  const candidates = [LOCAL_TERRAIN_FILES[fileName], LEGACY_TERRAIN_FILES[fileName]].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      const absolutePath = path.join(process.cwd(), candidate.relativePath);
+      const body = await fs.readFile(absolutePath);
+      return { body, source: candidate.relativePath, contentType: candidate.contentType };
+    } catch {
+      // Try the next canonical/legacy location. The allowlist prevents arbitrary reads.
+    }
+  }
+  return null;
+}
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await context.params;
@@ -18,30 +40,23 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
     return new Response("Invalid asset path", { status: 400 });
   }
 
-  const localMatch = assetPath.startsWith("local/")
-    ? LOCAL_TERRAIN_FILES[assetPath.slice("local/".length)]
-    : undefined;
-
-  if (localMatch) {
-    try {
-      // Canonical bundled terrain files live in public/assets/terrain.
-      // Keep the allowlist strict so this route cannot become an arbitrary
-      // filesystem reader.
-      const file = await fs.readFile(path.join(process.cwd(), localMatch.relativePath));
-      return new Response(file, {
+  const localFileName = assetPath.startsWith("local/") ? assetPath.slice("local/".length) : null;
+  if (localFileName && LOCAL_TERRAIN_FILES[localFileName]) {
+    const bundled = await readBundledTerrain(localFileName);
+    if (bundled) {
+      return new Response(bundled.body, {
         status: 200,
         headers: {
-          "Content-Type": localMatch.contentType,
+          "Content-Type": bundled.contentType,
           "Cache-Control": "public, max-age=31536000, immutable",
+          "X-Vandrith-Asset-Source": bundled.source,
         },
       });
-    } catch (error) {
-      console.error("Bundled terrain asset failed to read", localMatch.relativePath, error);
-      return new Response("Bundled terrain asset not found", {
-        status: 404,
-        headers: { "Cache-Control": "no-store" },
-      });
     }
+    return new Response("Bundled terrain asset not found", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const upstream = `https://media.githubusercontent.com/media/${ASSET_REPO}/${ASSET_REF}/raw/${assetPath
