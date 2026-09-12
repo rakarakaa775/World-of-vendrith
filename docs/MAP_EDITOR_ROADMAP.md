@@ -7,11 +7,18 @@ Target: **Incarnate-class world-building editor**.
 - [~] Partial / foundation exists
 - [ ] Not yet complete
 
+## Current Status — 2026-09-12
+
+- **Foundation & persistence:** COMPLETE for the currently verified editor flow.
+- **Terrain painting:** basic paint is working; advanced tools remain.
+- **Save / Load:** Save, update/overwrite, Load Latest, Save Slot and Load Slot are verified working in the current deployment test.
+- **Next implementation target:** Phase 1 Terrain Editing Tools.
+
 **Storage / implementation locations**
 - **GitHub** — editor UI, engine, serializers, client-side interaction.
 - **Supabase** — authoritative world/editor state, persistence, commands, navigation, geometry, environment.
 - **Asset Library / Storage** — asset files, metadata, manifests.
-- **Vercel** — deployment and browser/runtime verification; intentionally deferred until the editor is sufficiently buildable.
+- **Vercel** — deployment and browser/runtime verification.
 
 ---
 
@@ -38,27 +45,21 @@ Target: **Incarnate-class world-building editor**.
 - [x] Gizmo sessions — Supabase `map_editor_gizmo_sessions`
 - [x] Snap settings — Supabase `map_editor_snap_settings`
 - [x] Layer rules — Supabase `map_editor_layer_rules`
-- [x] Validation/readiness gate — GitHub `apps/map-editor/editor/map-validation.ts`
+- [x] Validation/readiness gate — GitHub
 - [~] Autosave — GitHub + Supabase
-- [~] Crash recovery integration — GitHub `apps/map-editor/editor/map-crash-recovery.ts` + browser localStorage
-- [~] Save/Load controller — GitHub `apps/map-editor/editor/map-save-controller.ts`
-- [~] Save/Load controller tests — GitHub `apps/map-editor/editor/map-save-controller.test.ts`
-- [~] Save status state machine — GitHub `apps/map-editor/editor/map-save-status.ts`
-- [~] Save status tests — GitHub `apps/map-editor/editor/map-save-status.test.ts`
-- [~] Lifecycle save-status integration — GitHub `apps/map-editor/editor/map-editor-lifecycle.ts`
-- [~] Lifecycle save-status tests — GitHub `apps/map-editor/editor/map-editor-lifecycle.test.ts`
-- [~] Network-loss persistence queue — GitHub `apps/map-editor/editor/map-network-recovery.ts`
-- [~] Network-loss persistence tests — GitHub `apps/map-editor/editor/map-network-recovery.test.ts`
-- [~] Conflict detection foundation — GitHub `apps/map-editor/editor/map-conflict-detection.ts`
-- [~] Conflict detection tests — GitHub `apps/map-editor/editor/map-conflict-detection.test.ts`
-- [~] Conflict resolution model — GitHub `apps/map-editor/editor/map-conflict-resolution.ts`
-- [~] Conflict resolution tests — GitHub `apps/map-editor/editor/map-conflict-resolution.test.ts`
-- [~] Conflict resolution UI contract — GitHub `apps/map-editor/editor/map-conflict-resolution-ui.ts`
-- [~] Conflict resolution UI tests — GitHub `apps/map-editor/editor/map-conflict-resolution-ui.test.ts`
-- [~] Snapshot comparison diff model — GitHub `apps/map-editor/editor/map-conflict-diff.ts`
-- [~] Snapshot comparison diff tests — GitHub `apps/map-editor/editor/map-conflict-diff.test.ts`
+- [~] Crash recovery integration — GitHub + browser localStorage
+- [x] Save / Load baseline — GitHub + Supabase
+- [~] Save / Load controller tests — GitHub
+- [~] Save status state machine — GitHub
+- [~] Network-loss persistence queue — GitHub
+- [~] Conflict detection foundation — GitHub
+- [~] Conflict resolution model — GitHub
+- [~] Snapshot comparison diff model — GitHub
+
+---
 
 ## 1. Professional 2D Canvas
+
 - [~] Pan — GitHub UI
 - [~] Zoom — GitHub UI
 - [ ] Zoom-to-selection — GitHub UI
@@ -72,6 +73,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Multi-resolution zoom — GitHub UI
 
 ## 2. Selection & Transform
+
 - [~] Single selection UI — GitHub UI
 - [~] Multi-select — GitHub + Supabase
 - [ ] Box selection — GitHub UI
@@ -88,16 +90,17 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Numeric transform — GitHub UI
 
 ## 3. Terrain Painting Engine
+
 - [x] Cell painting foundation — GitHub
 - [x] Terrain resolver — Supabase
-- [~] Brush — GitHub UI
+- [x] Basic brush / paint — GitHub UI
+- [x] Basic terrain palette — GitHub UI
 - [ ] Eraser — GitHub UI
 - [ ] Line — GitHub UI
 - [ ] Rectangle — GitHub UI
 - [ ] Fill — GitHub UI
 - [ ] Gradient — GitHub UI
 - [ ] Stamp — GitHub UI
-- [ ] Terrain palette — GitHub UI
 - [ ] Terrain categories — GitHub + Supabase
 - [ ] Terrain transitions — GitHub engine
 - [ ] Autotiling — GitHub engine
@@ -111,6 +114,7 @@ Target: **Incarnate-class world-building editor**.
 - [~] Walkability integration — Supabase navigation
 
 ## 4. Layer System
+
 - [x] Layer model — Supabase
 - [x] Layer rules — Supabase
 - [~] Layer tree UI — GitHub UI
@@ -126,6 +130,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Player-visible layers — Supabase Auth
 
 ## 5. Asset Browser
+
 - [~] Asset browser foundation — GitHub UI
 - [ ] Search — GitHub UI
 - [ ] Categories — Asset Library
@@ -138,6 +143,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Asset validation — GitHub + Supabase
 
 ## 6. Object Placement
+
 - [x] Object persistence — Supabase
 - [x] Object footprint — Supabase
 - [x] OBB geometry — Supabase
@@ -152,6 +158,7 @@ Target: **Incarnate-class world-building editor**.
 - [~] Collision-aware placement — GitHub + Supabase
 
 ## 7. Procedural World Generation
+
 - [ ] Random terrain — GitHub engine
 - [ ] Biome generation — GitHub engine
 - [ ] Elevation generation — GitHub engine
@@ -168,6 +175,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Procedural presets — GitHub + Supabase
 
 ## 8. Elevation & 3D-Aware Data
+
 - [ ] Height field — Supabase + GitHub engine
 - [ ] Elevation painting — GitHub UI
 - [ ] Slope — GitHub engine
@@ -182,6 +190,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Height-aware objects — GitHub + Supabase
 
 ## 9. Water & Hydrology
+
 - [ ] Rivers — GitHub engine + Supabase
 - [ ] Lakes — GitHub engine + Supabase
 - [ ] Oceans — GitHub engine + Supabase
@@ -195,6 +204,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Water traversal rules — Supabase navigation
 
 ## 10. Roads, Paths & Structures
+
 - [ ] Road drawing — GitHub UI
 - [ ] Path graph — Supabase + GitHub
 - [ ] Road width — GitHub UI
@@ -208,6 +218,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Structure groups — GitHub + Supabase
 
 ## 11. Navigation & Gameplay Layer
+
 - [x] Navigation cells — Supabase
 - [x] Navigation obstacles — Supabase
 - [x] Navigation projection — Supabase
@@ -224,6 +235,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Restricted zones — Supabase
 
 ## 12. Weather & Environment
+
 - [x] Environment catalog — Supabase
 - [x] Environment resolver — Supabase
 - [~] Runtime environment foundation — Supabase
@@ -239,6 +251,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Seasonal effects — GitHub + Supabase
 
 ## 13. Time & Seasons
+
 - [ ] World clock — GitHub + Supabase
 - [ ] Calendar — GitHub + Supabase
 - [ ] Day/night cycle — GitHub rendering
@@ -251,6 +264,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Event calendar — Supabase
 
 ## 14. Lighting & Visual Presentation
+
 - [ ] Ambient lighting — GitHub rendering
 - [ ] Directional light — GitHub rendering
 - [ ] Point lights — GitHub rendering
@@ -264,6 +278,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Dynamic weather lighting — GitHub rendering
 
 ## 15. Labels, Annotation & Cartography
+
 - [~] Annotation persistence foundation — Supabase
 - [ ] Labels — GitHub UI + Supabase
 - [ ] Icons — GitHub UI + Supabase
@@ -282,6 +297,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Trade routes — Supabase + GitHub
 
 ## 16. Search & World Explorer
+
 - [ ] Global search — GitHub UI + Supabase
 - [ ] Map search — Supabase
 - [ ] Object search — Supabase
@@ -293,6 +309,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] World explorer — GitHub UI
 
 ## 17. Collaboration
+
 - [ ] Project sharing — Supabase Auth
 - [ ] Permissions — Supabase Auth/RLS
 - [ ] Viewer role — Supabase
@@ -306,6 +323,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Publish workflow — Supabase + GitHub
 
 ## 18. Import / Export
+
 - [x] JSON document — GitHub
 - [ ] PNG — GitHub export engine
 - [ ] JPG — GitHub export engine
@@ -316,6 +334,7 @@ Target: **Incarnate-class world-building editor**.
 - [~] Full restore — GitHub + Supabase
 
 ## 19. Reliability
+
 - [x] Runtime snapshot — Supabase
 - [x] Persistence bridge — GitHub
 - [~] Autosave controller — GitHub
@@ -336,6 +355,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Network-loss recovery — GitHub + Supabase
 
 ## 20. Performance
+
 - [ ] Virtualized canvas — GitHub
 - [ ] Chunked map data — GitHub + Supabase
 - [ ] Lazy asset loading — GitHub + Asset Library
@@ -349,6 +369,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] 100k+ object target — GitHub/Vercel
 
 ## 21. Professional UX
+
 - [ ] Keyboard shortcuts — GitHub UI
 - [ ] Command palette — GitHub UI
 - [ ] Context menus — GitHub UI
@@ -364,6 +385,7 @@ Target: **Incarnate-class world-building editor**.
 - [~] Toolbar — GitHub UI
 
 ## 22. Validation & Publishing
+
 - [x] Schema validation — GitHub + Supabase
 - [x] Hierarchy validation — GitHub + Supabase
 - [x] Terrain validation — GitHub + Supabase
@@ -376,6 +398,7 @@ Target: **Incarnate-class world-building editor**.
 - [ ] Publish — Supabase + GitHub
 
 ## 23. Incarnate-Class Differentiation
+
 - [ ] Procedural Map Wizard — GitHub
 - [ ] Campaign/world templates — GitHub + Supabase
 - [ ] Massive world maps — GitHub + Supabase
@@ -395,28 +418,36 @@ Target: **Incarnate-class world-building editor**.
 ---
 
 # Current Priority Queue
-1. [ ] Save/Load UI integration
-2. [ ] Autosave + crash recovery integration
-3. [ ] Conflict resolution UI implementation
-4. [ ] Professional canvas camera
-5. [ ] Selection + transform UX
-6. [ ] Layer system UX
-7. [ ] Terrain brush suite
-8. [ ] Asset browser
-9. [ ] Object placement + inspector
-10. [ ] Navigation visualization
-11. [ ] Weather / time / seasons
-12. [ ] Water / roads / elevation
-13. [ ] Cartography
-14. [ ] Procedural world generation
-15. [ ] Collaboration
-16. [ ] Large-world performance
-17. [ ] Simulation preview
-18. [ ] AI world-building
+
+1. [x] Stabilize Save / Load and update / overwrite flow
+2. [ ] Terrain tool suite: Line
+3. [ ] Terrain tool suite: Rectangle
+4. [ ] Terrain tool suite: Flood Fill
+5. [ ] Robust Erase
+6. [ ] Multi-cell brush validation
+7. [ ] Paint performance optimization
+8. [ ] Large-map stress test
+9. [ ] Professional canvas camera UX
+10. [ ] Selection + transform UX
+11. [ ] Layer system UX
+12. [ ] Asset browser
+13. [ ] Object placement + inspector
+14. [ ] Navigation visualization
+15. [ ] Weather / time / seasons
+16. [ ] Water / roads / elevation
+17. [ ] Cartography
+18. [ ] Procedural world generation
+19. [ ] Collaboration
+20. [ ] Large-world performance
+21. [ ] Simulation preview
+22. [ ] AI world-building
 
 # Definition of Done — Map Editor v1
+
 A user can:
+
 **Create World → Create Region → Create Map → Paint Terrain → Place Assets → Edit Objects → Configure Navigation → Configure Environment/Weather → Save → Close → Reopen → State remains identical → Validate → Publish.**
 
 # Vercel Policy
-Vercel is intentionally deferred until the Map Editor reaches a buildable integration milestone and browser/runtime verification becomes useful. Until then, GitHub + Supabase remain the primary implementation and source-of-truth systems.
+
+Vercel is used for deployment and browser/runtime verification. GitHub remains the implementation source and Supabase remains the authoritative persistence/world-state system.
