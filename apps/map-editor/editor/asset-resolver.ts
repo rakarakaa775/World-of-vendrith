@@ -10,11 +10,25 @@ const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
 const assetCache = new Map<string, AssetRecord | null>();
 let storageSyncPromise: Promise<void> | null = null;
 
+const LOCAL_TERRAIN_ASSETS: Record<string, string> = {
+  'tile_grass.png': '/api/assets/local/tile_grass.png',
+  'tile_dirt.png': '/api/assets/local/tile_dirt.png',
+  'tile_pavement.png': '/api/assets/local/tile_pavement.png',
+};
+
 export function normalizeAssetPath(path: string): string {
   return path.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
 }
 
+function localTerrainUrl(assetPath: string): string | null {
+  const normalized = assetPath.replace(/\\/g, '/').replace(/^\/+/, '');
+  const fileName = normalized.split('/').pop() || '';
+  return LOCAL_TERRAIN_ASSETS[fileName] || null;
+}
+
 export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCKET): string | null {
+  const localUrl = localTerrainUrl(assetPath);
+  if (localUrl) return localUrl;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!supabaseUrl || !assetPath) return null;
   return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${encodeURIComponent(bucket)}/${normalizeAssetPath(assetPath)}`;
@@ -58,7 +72,7 @@ async function ensureTerrainAssetsInStorage(client: any): Promise<void> {
       if (error) throw error;
     })().catch((error) => {
       storageSyncPromise = null;
-      console.warn('Terrain asset Storage sync failed; continuing with existing Storage objects', error);
+      console.warn('Terrain asset Storage sync failed; continuing with local terrain assets or existing Storage objects', error);
     });
   }
   await storageSyncPromise;
