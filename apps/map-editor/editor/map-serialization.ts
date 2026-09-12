@@ -10,16 +10,14 @@ type SerializedMapDocument = {
 };
 
 export function serializeMapDocument(document: MapDocument): string {
-  const payload: SerializedMapDocument = {
-    schema: MAP_DOCUMENT_SCHEMA,
-    version: MAP_DOCUMENT_VERSION,
-    document,
-  };
+  const payload: SerializedMapDocument = { schema: MAP_DOCUMENT_SCHEMA, version: MAP_DOCUMENT_VERSION, document };
   return JSON.stringify(payload, null, 2);
 }
 
-export function parseMapDocument(value: string): MapDocument {
-  const payload: unknown = JSON.parse(value);
+export function parseMapDocument(value: string | MapDocument): MapDocument {
+  const payload: unknown = typeof value === 'string'
+    ? JSON.parse(value)
+    : { schema: MAP_DOCUMENT_SCHEMA, version: MAP_DOCUMENT_VERSION, document: value };
   if (!payload || typeof payload !== 'object') throw new Error('Invalid map document payload');
   const candidate = payload as Partial<SerializedMapDocument>;
   if (candidate.schema !== MAP_DOCUMENT_SCHEMA) throw new Error('Unsupported map document schema');
