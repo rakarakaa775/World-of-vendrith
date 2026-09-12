@@ -9,14 +9,18 @@ type LocalTerrainFile = { relativePath: string; contentType: string };
 
 const LOCAL_TERRAIN_FILES: Record<string, LocalTerrainFile> = {
   "tile_grass.png": { relativePath: "public/assets/terrain/tile_grass.png", contentType: "image/png" },
+  "tile_sand.png": { relativePath: "public/assets/terrain/tile_sand.png", contentType: "image/png" },
   "tile_dirt.png": { relativePath: "public/assets/terrain/tile_dirt.png", contentType: "image/png" },
   "tile_pavement.png": { relativePath: "public/assets/terrain/tile_pavement.png", contentType: "image/png" },
+  "tile_water.png": { relativePath: "public/assets/terrain/tile_water.png", contentType: "image/png" },
 };
 
 const LEGACY_TERRAIN_FILES: Record<string, LocalTerrainFile> = {
   "tile_grass.png": { relativePath: "tile_grass.png", contentType: "image/png" },
+  "tile_sand.png": { relativePath: "tile_sand.png", contentType: "image/png" },
   "tile_dirt.png": { relativePath: "tile_dirt.png", contentType: "image/png" },
   "tile_pavement.png": { relativePath: "tile_pavement.png", contentType: "image/png" },
+  "tile_water.png": { relativePath: "tile_water.png", contentType: "image/png" },
 };
 
 async function readBundledTerrain(fileName: string): Promise<{ body: Buffer; source: string; contentType: string } | null> {
