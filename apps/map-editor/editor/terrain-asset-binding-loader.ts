@@ -41,15 +41,21 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isApprovedAssetStatus(value: unknown): boolean {
+  return value === 'approved' || value === 'verified' || value === 'active';
+}
+
 /**
  * Converts rows from public.vandrith_asset_binding_workbench into the editor
- * binding registry. Only fully verified runtime-safe rows are accepted:
- * terrain + mask must be present, the candidate must be approved, the asset
- * must be active, the asset must support autotiling, and a license registry
- * record must exist.
+ * binding registry without inventing asset IDs.
  *
- * Unknown/malformed rows are rejected rather than guessed. This is deliberate:
- * the editor must never manufacture an asset binding from incomplete audit data.
+ * Two audited cases are accepted:
+ * 1. Full autotile bindings: approved candidate + active/verified asset +
+ *    autotile-capable + license registry.
+ * 2. Verified base terrain: mask 255 + approved/verified/active asset + a
+ *    license registry. These are intentionally allowed even when the asset is
+ *    not autotile-capable so the editor can render its real base texture while
+ *    transition masks remain unbound and safely fall back to the base color.
  */
 export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoadResult {
   if (!Array.isArray(rows)) {
@@ -71,23 +77,30 @@ export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoad
     }
 
     const row = value as Partial<TerrainAssetBindingRow>;
-    if (
-      !isTerrainKey(row.terrain_key) ||
-      !isValidMask(row.neighbor_mask) ||
-      !isNonEmptyString(row.asset_id) ||
-      row.candidate_status !== 'approved' ||
-      row.asset_status !== 'active' ||
-      row.autotile_capable !== true ||
-      !isNonEmptyString(row.license_registry_id)
-    ) {
+    const baseTerrain =
+      isTerrainKey(row.terrain_key) &&
+      row.neighbor_mask === 255 &&
+      isNonEmptyString(row.asset_id) &&
+      isApprovedAssetStatus(row.asset_status) &&
+      isNonEmptyString(row.license_registry_id);
+    const fullAutotile =
+      isTerrainKey(row.terrain_key) &&
+      isValidMask(row.neighbor_mask) &&
+      isNonEmptyString(row.asset_id) &&
+      row.candidate_status === 'approved' &&
+      isApprovedAssetStatus(row.asset_status) &&
+      row.autotile_capable === true &&
+      isNonEmptyString(row.license_registry_id);
+
+    if (!baseTerrain && !fullAutotile) {
       rejected += 1;
       continue;
     }
 
     accepted.push({
-      terrain: row.terrain_key,
-      mask: row.neighbor_mask,
-      assetId: row.asset_id.trim(),
+      terrain: row.terrain_key as TerrainKey,
+      mask: row.neighbor_mask as TerrainMask,
+      assetId: row.asset_id!.trim(),
       sourceRuleKey: null,
     });
   }
