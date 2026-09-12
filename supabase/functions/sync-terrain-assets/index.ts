@@ -33,12 +33,17 @@ Deno.serve(async (req) => {
 
   const results: Array<Record<string, unknown>> = [];
   for (const assetPath of paths) {
-    const upstream = `https://media.githubusercontent.com/media/${REPO}/${REF}/raw/${assetPath.split("/").map(encodeURIComponent).join("/")}`;
+    // Git LFS media endpoint does not contain /raw/ between ref and path.
+    const upstream = `https://media.githubusercontent.com/media/${REPO}/${REF}/${assetPath.split("/").map(encodeURIComponent).join("/")}`;
     try {
       const response = await fetch(upstream, { redirect: "follow" });
       if (!response.ok) throw new Error(`GitHub LFS HTTP ${response.status}`);
+      const contentType = response.headers.get("content-type") || "";
       const bytes = new Uint8Array(await response.arrayBuffer());
       if (!bytes.length) throw new Error("empty asset");
+      if (contentType.includes("text/plain") && new TextDecoder().decode(bytes).startsWith("version https://git-lfs.github.com/spec/v1")) {
+        throw new Error("GitHub returned an LFS pointer instead of the binary asset");
+      }
       const { error } = await admin.storage.from(BUCKET).upload(assetPath, bytes, {
         contentType: "image/png",
         cacheControl: "31536000",
