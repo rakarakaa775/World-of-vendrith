@@ -52,6 +52,18 @@ export async function resolveAssetRecord(client: any, assetId: string): Promise<
   return cacheAssetRecord(data as AssetRecord);
 }
 
+export async function resolveAssetRecords(client: any, assetIds: string[]): Promise<Map<string, AssetRecord>> {
+  const unique = [...new Set(assetIds.filter(Boolean))];
+  const result = new Map<string, AssetRecord>();
+  const missing = unique.filter(id => !getCachedAssetRecord(id));
+  for (const id of missing) await resolveAssetRecord(client, id);
+  for (const id of unique) {
+    const asset = getCachedAssetRecord(id);
+    if (asset) result.set(id, asset);
+  }
+  return result;
+}
+
 export async function resolveAssetUrlById(client: any, assetId: string): Promise<string | null> {
   return resolveAssetUrl(await resolveAssetRecord(client, assetId));
 }
