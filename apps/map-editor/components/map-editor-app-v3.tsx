@@ -95,7 +95,7 @@ export function MapEditorAppV3() {
       }
       if (cancelled) return;
 
-      let mapId: string | null = null;
+      let mapId = "";
 
       if (CONFIGURED_MAP_ID) {
         try {
