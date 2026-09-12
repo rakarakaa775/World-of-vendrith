@@ -6,31 +6,31 @@ export type AssetRecord = {
   tile_height?: number | null;
 };
 
-const DEFAULT_ASSET_REPO = 'rakarakaa775/Asset-library-LPC';
-const DEFAULT_ASSET_REF = 'main';
+const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
 const assetCache = new Map<string, AssetRecord | null>();
 
 export function normalizeAssetPath(path: string): string {
   return path.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
 }
 
-/**
- * Resolve an approved LFS asset to a same-origin URL.
- *
- * The browser previously loaded Git LFS media directly. That can fail at the
- * browser/CORS boundary even when the GitHub media endpoint itself is valid.
- * The editor now uses its Next.js same-origin asset proxy so Pixi receives
- * actual image bytes from the same origin as the editor.
+/** Runtime asset delivery uses the public Supabase Storage bucket.
+ * GitHub remains the source/library; Supabase Storage holds the bytes served to Pixi.
  */
-export function assetRawUrl(assetPath: string, _repo = DEFAULT_ASSET_REPO, _ref = DEFAULT_ASSET_REF): string {
-  return `/api/assets/${normalizeAssetPath(assetPath)}`;
+export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCKET): string | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!supabaseUrl || !assetPath) return null;
+  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${encodeURIComponent(bucket)}/${normalizeAssetPath(assetPath)}`;
+}
+
+export function assetRawUrl(assetPath: string): string | null {
+  return assetStorageUrl(assetPath);
 }
 
 export function resolveAssetUrl(asset: AssetRecord | null | undefined): string | null {
   if (!asset?.asset_path) return null;
   const status = String(asset.status ?? '').toLowerCase();
   if (status && !['approved', 'verified', 'active'].includes(status)) return null;
-  return assetRawUrl(asset.asset_path);
+  return assetStorageUrl(asset.asset_path);
 }
 
 export function cacheAssetRecord(asset: AssetRecord): AssetRecord | null {
