@@ -35,9 +35,10 @@ function baseAssetIdForTerrain(
   bindings: TerrainAssetBindingMap,
   terrain: TerrainKey,
 ): string | null {
-  // mask_00 in the legacy representation corresponds to mask 0 in the
-  // authoritative TerrainAssetBindingMap.
-  return terrainAssetIdForMask(bindings, terrain, 0) ?? null;
+  // The verified base terrain bindings use the canonical full-neighborhood
+  // mask 255. Do not ask for mask 0 here: mask 0 is a valid transition state,
+  // not the base tile in the current registry.
+  return terrainAssetIdForMask(bindings, terrain, 255) ?? null;
 }
 
 export function resolveEnvironmentTerrainAsset(
