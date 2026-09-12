@@ -44,7 +44,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
   if (localFileName && LOCAL_TERRAIN_FILES[localFileName]) {
     const bundled = await readBundledTerrain(localFileName);
     if (bundled) {
-      return new Response(bundled.body, {
+      return new Response(new Uint8Array(bundled.body), {
         status: 200,
         headers: {
           "Content-Type": bundled.contentType,
