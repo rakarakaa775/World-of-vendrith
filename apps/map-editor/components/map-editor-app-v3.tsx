@@ -63,28 +63,57 @@ export function MapEditorAppV3() {
       const currentSession = await client.auth.getSession();
       if (!currentSession.data.session) { const auth = await client.auth.signInAnonymously(); if (auth.error) throw auth.error; }
       if (cancelled) return;
-      let mapId = "";
-      if (CONFIGURED_MAP_ID) {
+
+      let mapId = CONFIGURED_MAP_ID || "";
+      if (mapId) {
         try {
-          const { data, error } = await client.from("maps").select("id,name,width,height,tile_size").eq("id", CONFIGURED_MAP_ID).maybeSingle();
-          if (!error && data?.id) {
-            mapId = data.id;
-            const loaded = await adoptAuthoritative(client, mapId);
+          const { data, error } = await client.from("maps").select("id,name,width,height,tile_size").eq("id", mapId).maybeSingle();
+          if (error) throw error;
+          if (data?.id) {
+            setPersistedMapId(data.id);
+            const loaded = await adoptAuthoritative(client, data.id);
             if (!loaded) {
-              const document = mapFromRow(data); const newVersion = await bootstrapVersion(client, document, mapId);
-              setMaps([document]); setActiveMapId(mapId); setBaseDocument(document); setVersion(newVersion); await refreshSlots(client, mapId); setStatus(`Ready · version ${newVersion}`);
+              const document = mapFromRow(data);
+              const newVersion = await bootstrapVersion(client, document, data.id);
+              if (cancelled) return;
+              setMaps([document]); setActiveMapId(data.id); setBaseDocument(document); setVersion(newVersion); await refreshSlots(client, data.id); setStatus(`Ready · version ${newVersion}`);
             }
+            return;
           }
-        } catch (error) { setStatus(`Configured map unavailable · creating session map (${messageOf(error)})`); }
+          mapId = "";
+        } catch (error) {
+          setStatus(`Configured map unavailable · using latest map (${messageOf(error)})`);
+          mapId = "";
+        }
       }
+
       if (!mapId) {
+        const { data: latest, error: latestError } = await client.from("maps").select("id,name,width,height,tile_size").eq("world_id", WORLD_ID).eq("map_type", "world").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (latestError) throw latestError;
+        if (latest?.id) {
+          setPersistedMapId(latest.id);
+          const loaded = await adoptAuthoritative(client, latest.id);
+          if (loaded) return;
+          const document = mapFromRow(latest);
+          const newVersion = await bootstrapVersion(client, document, latest.id);
+          if (cancelled) return;
+          setMaps([document]); setActiveMapId(latest.id); setBaseDocument(document); setVersion(newVersion); await refreshSlots(client, latest.id); setStatus(`Ready · version ${newVersion}`); return;
+        }
+
         const document = createMap("world");
         const { data, error } = await client.from("maps").insert({ world_id: WORLD_ID, name: "World Map", map_type: "world", coordinate_mode: "square", width: document.width, height: document.height, tile_size: document.tileSize, metadata: { editor_bootstrap: true } }).select("id,name,width,height,tile_size").single();
         if (error) throw error;
-        mapId = data.id; const persistedDocument = { ...document, id: mapId, name: data.name || document.name }; const newVersion = await bootstrapVersion(client, persistedDocument, mapId);
+        mapId = data.id;
+        const persistedDocument = { ...document, id: mapId, name: data.name || document.name };
+        setPersistedMapId(mapId);
         if (cancelled) return;
-        setPersistedMapId(mapId); setMaps([persistedDocument]); setActiveMapId(mapId); setBaseDocument(persistedDocument); setVersion(newVersion); await refreshSlots(client, mapId); setStatus(`Ready · new map version ${newVersion}`);
-      } else setPersistedMapId(mapId);
+        try {
+          const newVersion = await bootstrapVersion(client, persistedDocument, mapId);
+          setMaps([persistedDocument]); setActiveMapId(mapId); setBaseDocument(persistedDocument); setVersion(newVersion); await refreshSlots(client, mapId); setStatus(`Ready · new map version ${newVersion}`);
+        } catch (error) {
+          setMaps([persistedDocument]); setActiveMapId(mapId); setBaseDocument(null); setVersion(0); setStatus(`Connected · initial Save will create version (${messageOf(error)})`);
+        }
+      }
     };
     void initialize().catch(error => { if (!cancelled) setStatus(`Initialization failed: ${messageOf(error)}`); });
     return () => { cancelled = true; };
