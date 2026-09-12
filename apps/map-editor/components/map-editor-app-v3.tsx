@@ -119,14 +119,14 @@ export function MapEditorAppV3() {
     return () => { cancelled = true; };
   }, [adoptAuthoritative, bootstrapVersion, refreshSlots]);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (documentToSave: MapDocument = active) => {
     const client = createMapEditorSupabaseClient();
-    if (!client || !persistedMapId || active.id !== persistedMapId) { setStatus("Save unavailable: map is not connected to Supabase"); return null; }
+    if (!client || !persistedMapId || documentToSave.id !== persistedMapId) { setStatus("Save unavailable: map is not connected to Supabase"); return null; }
     setBusy(true); setStatus("Saving to Supabase…");
     try {
       let result: any;
-      if (!baseDocument || version < 1) { const newVersion = await bootstrapVersion(client, active, persistedMapId); result = { status: "committed", version: newVersion, document: active }; }
-      else result = await saveWithConflictDetection(client, active, baseDocument, version);
+      if (!baseDocument || version < 1) { const newVersion = await bootstrapVersion(client, documentToSave, persistedMapId); result = { status: "committed", version: newVersion, document: documentToSave }; }
+      else result = await saveWithConflictDetection(client, documentToSave, baseDocument, version);
       if (result.status === "committed") { setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, persistedMapId); setStatus(`Saved · version ${Number(result.version) || 1}`); return result; }
       if (result.status === "conflict") { setStatus(`Save conflict at remote version ${result.remoteVersion}. Load Latest first.`); return null; }
       setStatus(`Save failed: ${messageOf(result.error)}`); return null;
@@ -137,7 +137,7 @@ export function MapEditorAppV3() {
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
     const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Save Slot unavailable: map is not connected"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    const saved = await save(); if (!saved) return;
+    const saved = await save(active); if (!saved) return;
     setBusy(true);
     try {
       const { data: versionRow, error: versionError } = await client.from("map_versions").select("id").eq("map_id", persistedMapId).eq("version_number", saved.version).single();
@@ -145,7 +145,7 @@ export function MapEditorAppV3() {
       const { error } = await client.from("map_editor_save_slots").upsert({ map_id: persistedMapId, slot_number: slot, label: label.trim() || `Save Slot ${slot}`, version_id: versionRow?.id || null, version_number: Number(saved.version), snapshot: serializeResolvedMapSnapshot(saved.document) }, { onConflict: "map_id,slot_number" });
       if (error) throw error; await refreshSlots(client, persistedMapId); setStatus(`Game saved to Slot ${slot}`);
     } catch (error) { setStatus(`Save Slot ${slot} failed: ${messageOf(error)}`); } finally { setBusy(false); }
-  }, [persistedMapId, refreshSlots, save]);
+  }, [active, persistedMapId, refreshSlots, save]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Load unavailable: map is not connected"); return; }
@@ -166,11 +166,11 @@ export function MapEditorAppV3() {
     <div style={{ position: "relative", minHeight: 0 }}>
       <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 6, alignItems: "center", padding: 6, border: "1px solid #334155", borderRadius: 6, background: "#0f172a" }}>
         <button onClick={() => setShowSlots(true)} disabled={busy}>Save / Load</button>
-        <button onClick={save} disabled={busy || !persistedMapId}>Quick Save</button>
+        <button onClick={() => void save()} disabled={busy || !persistedMapId}>Quick Save</button>
         <button onClick={loadLatest} disabled={busy || !persistedMapId}>Load Latest</button>
         <span style={{ fontSize: 11, opacity: .8 }}>v{version} · {status}</span>
       </div>
-      <EditorShell initialDocument={active} onDocumentChange={update} onSave={async () => { await save(); }} />
+      <EditorShell initialDocument={active} onDocumentChange={update} onSave={(document) => save(document)} />
     </div>
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
   </div>;
