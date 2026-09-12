@@ -1,4 +1,4 @@
-import { MapEditorAppV2 } from "../components/map-editor-app-v2";
+import { MapEditorAppV3 } from "../components/map-editor-app-v3";
 
 export default function Page() {
   return (
@@ -11,7 +11,7 @@ export default function Page() {
           -webkit-user-select: none;
         }
       `}</style>
-      <MapEditorAppV2 />
+      <MapEditorAppV3 />
     </>
   );
 }
