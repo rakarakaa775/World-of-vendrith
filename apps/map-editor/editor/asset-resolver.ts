@@ -10,10 +10,15 @@ const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
 const assetCache = new Map<string, AssetRecord | null>();
 let storageSyncPromise: Promise<void> | null = null;
 
+/**
+ * Canonical bundled terrain assets for the map editor.
+ * These files live under apps/map-editor/public/assets/terrain and are
+ * intentionally resolved through Next.js public assets, not Supabase Storage.
+ */
 const LOCAL_TERRAIN_ASSETS: Record<string, string> = {
-  'tile_grass.png': '/api/assets/local/tile_grass.png',
-  'tile_dirt.png': '/api/assets/local/tile_dirt.png',
-  'tile_pavement.png': '/api/assets/local/tile_pavement.png',
+  'tile_grass.png': '/assets/terrain/tile_grass.png',
+  'tile_dirt.png': '/assets/terrain/tile_dirt.png',
+  'tile_pavement.png': '/assets/terrain/tile_pavement.png',
 };
 
 export function normalizeAssetPath(path: string): string {
@@ -72,7 +77,7 @@ async function ensureTerrainAssetsInStorage(client: any): Promise<void> {
       if (error) throw error;
     })().catch((error) => {
       storageSyncPromise = null;
-      console.warn('Terrain asset Storage sync failed; continuing with local terrain assets or existing Storage objects', error);
+      console.warn('Terrain asset Storage sync failed; continuing with bundled terrain assets or existing Storage objects', error);
     });
   }
   await storageSyncPromise;
