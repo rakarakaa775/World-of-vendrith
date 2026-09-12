@@ -15,16 +15,15 @@ export function normalizeAssetPath(path: string): string {
 }
 
 /**
- * Resolve an approved asset to a browser-loadable URL.
+ * Resolve an approved LFS asset to a same-origin URL.
  *
- * The Asset-library-LPC repository stores image files with Git LFS. For LFS
- * content GitHub's media endpoint expects the `raw/` segment after the ref;
- * without it the request can resolve to an HTML/error response instead of the
- * actual image bytes, which Pixi cannot turn into a texture.
+ * The browser previously loaded Git LFS media directly. That can fail at the
+ * browser/CORS boundary even when the GitHub media endpoint itself is valid.
+ * The editor now uses its Next.js same-origin asset proxy so Pixi receives
+ * actual image bytes from the same origin as the editor.
  */
-export function assetRawUrl(assetPath: string, repo = DEFAULT_ASSET_REPO, ref = DEFAULT_ASSET_REF): string {
-  const cleanRepo = repo.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
-  return `https://media.githubusercontent.com/media/${cleanRepo}/${encodeURIComponent(ref)}/raw/${normalizeAssetPath(assetPath)}`;
+export function assetRawUrl(assetPath: string, _repo = DEFAULT_ASSET_REPO, _ref = DEFAULT_ASSET_REF): string {
+  return `/api/assets/${normalizeAssetPath(assetPath)}`;
 }
 
 export function resolveAssetUrl(asset: AssetRecord | null | undefined): string | null {
