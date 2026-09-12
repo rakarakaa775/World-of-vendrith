@@ -12,13 +12,15 @@ let storageSyncPromise: Promise<void> | null = null;
 
 /**
  * Canonical bundled terrain assets for the map editor.
- * These files live under apps/map-editor/public/assets/terrain and are
- * intentionally resolved through Next.js public assets, not Supabase Storage.
+ * The browser reads these through the allowlisted Next.js asset API. The API
+ * serves apps/map-editor/public/assets/terrain first and the temporary
+ * root-level upload location second, so the renderer is decoupled from where
+ * the original PNG was uploaded in the repository.
  */
 const LOCAL_TERRAIN_ASSETS: Record<string, string> = {
-  'tile_grass.png': '/assets/terrain/tile_grass.png',
-  'tile_dirt.png': '/assets/terrain/tile_dirt.png',
-  'tile_pavement.png': '/assets/terrain/tile_pavement.png',
+  'tile_grass.png': '/api/assets/local/tile_grass.png',
+  'tile_dirt.png': '/api/assets/local/tile_dirt.png',
+  'tile_pavement.png': '/api/assets/local/tile_pavement.png',
 };
 
 export function normalizeAssetPath(path: string): string {
