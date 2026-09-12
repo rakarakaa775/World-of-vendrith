@@ -5,10 +5,10 @@ import path from "node:path";
 const ASSET_REPO = "rakarakaa775/Asset-library-LPC";
 const ASSET_REF = "main";
 
-const LOCAL_TERRAIN_FILES: Record<string, { fileName: string; contentType: string }> = {
-  "tile_grass.png": { fileName: "tile_grass.png", contentType: "image/png" },
-  "tile_dirt.png": { fileName: "tile_dirt.png", contentType: "image/png" },
-  "tile_pavement.png": { fileName: "tile_pavement.png", contentType: "image/png" },
+const LOCAL_TERRAIN_FILES: Record<string, { relativePath: string; contentType: string }> = {
+  "tile_grass.png": { relativePath: "public/assets/terrain/tile_grass.png", contentType: "image/png" },
+  "tile_dirt.png": { relativePath: "public/assets/terrain/tile_dirt.png", contentType: "image/png" },
+  "tile_pavement.png": { relativePath: "public/assets/terrain/tile_pavement.png", contentType: "image/png" },
 };
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
@@ -24,10 +24,10 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
 
   if (localMatch) {
     try {
-      // The Vercel project root is apps/map-editor, so these files are bundled
-      // alongside package.json at deploy time. Keep the allowlist above strict
-      // so this route can never become an arbitrary filesystem reader.
-      const file = await fs.readFile(path.join(process.cwd(), localMatch.fileName));
+      // Canonical bundled terrain files live in public/assets/terrain.
+      // Keep the allowlist strict so this route cannot become an arbitrary
+      // filesystem reader.
+      const file = await fs.readFile(path.join(process.cwd(), localMatch.relativePath));
       return new Response(file, {
         status: 200,
         headers: {
@@ -36,7 +36,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
         },
       });
     } catch (error) {
-      console.error("Bundled terrain asset failed to read", localMatch.fileName, error);
+      console.error("Bundled terrain asset failed to read", localMatch.relativePath, error);
       return new Response("Bundled terrain asset not found", {
         status: 404,
         headers: { "Cache-Control": "no-store" },
