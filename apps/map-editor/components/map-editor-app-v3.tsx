@@ -71,12 +71,32 @@ export function MapEditorAppV3() {
       if (cancelled) return;
 
       try {
-        const { data, error } = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
-        if (error) throw error;
-        const loaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(data || []);
+        const [bindingResult, baseAssetResult] = await Promise.all([
+          client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id"),
+          client.from("asset_registry").select("id,slug,status,license_registry_id").in("slug", ["topdown_mockup_tile_grass", "topdown_mockup_tile_dirt", "topdown_mockup_tile_pavement"]),
+        ]);
+        if (bindingResult.error) throw bindingResult.error;
+        if (baseAssetResult.error) throw baseAssetResult.error;
+
+        const transitionLoaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(bindingResult.data || []);
+        const baseRows = (baseAssetResult.data || []).flatMap((asset: any) => {
+          const terrain = asset.slug === "topdown_mockup_tile_grass" ? "grass" : asset.slug === "topdown_mockup_tile_dirt" ? "dirt" : asset.slug === "topdown_mockup_tile_pavement" ? "pavement" : null;
+          if (!terrain || asset.status !== "approved" || !asset.license_registry_id) return [];
+          return [{ terrain_key: terrain, neighbor_mask: 255, asset_id: asset.id, candidate_status: "approved", asset_status: asset.status, autotile_capable: false, license_registry_id: asset.license_registry_id }];
+        });
+        const baseLoaded = loadTerrainAssetBindings(baseRows);
+        const merged = [...transitionLoaded.accepted, ...baseLoaded.accepted];
+        const deduped = new Map<string, (typeof merged)[number]>();
+        for (const binding of merged) deduped.set(`${binding.terrain}:${binding.mask}`, binding);
+        const accepted = [...deduped.values()];
+        const bindings: TerrainAssetBindingMap = {};
+        for (const binding of accepted) {
+          bindings[binding.terrain] ??= {};
+          bindings[binding.terrain]![binding.mask] = binding;
+        }
         if (!cancelled) {
-          setTerrainBindings(loaded.bindings);
-          setTerrainStatus(loaded.diagnostics.complete ? "Terrain bindings ready · 256/256" : `Verified base/transition bindings · ${loaded.diagnostics.accepted}/256`);
+          setTerrainBindings(bindings);
+          setTerrainStatus(`Verified base/transition bindings · ${accepted.length}/256`);
         }
       } catch (error) {
         if (!cancelled) {
