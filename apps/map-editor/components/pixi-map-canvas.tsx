@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { createElement, useEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Rectangle, Sprite } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
@@ -27,8 +27,6 @@ export function PixiMapCanvas({document,activeTool,activeLayerId,selectedTileId,
    grid.rect(0,0,width,height).fill({color:0xffffff});grid.rect(0,0,width,height).stroke({width:2,color:0x64748b});for(let x=1;x<document.width;x++){grid.moveTo(x*document.tileSize,0).lineTo(x*document.tileSize,height);}for(let y=1;y<document.height;y++){grid.moveTo(0,y*document.tileSize).lineTo(width,y*document.tileSize);}grid.stroke({width:1,color:0xcbd5e1});world.addChild(grid);
    const ground=document.layers.find(layer=>layer.id===activeLayerId);
    const textureRequests=new Set<string>();
-   // Always resolve the verified base bindings so an empty/new map can load
-   // the real terrain textures before the first paint operation.
    for(const terrain of ["grass","sand","dirt","pavement","water"] as const){const binding=getTerrainAssetBinding(terrainBindings,terrain,255);if(binding)textureRequests.add(binding.assetId);}
    if(ground&&ground.kind!=="objects")for(let i=0;i<document.width*document.height;i++){const id=ground.cells[i]?.tileId;const terrain=terrainFromTileId(id??null);if(!terrain)continue;const binding=getTerrainAssetBinding(terrainBindings,terrain,neighborMask(document,activeLayerId,{x:i%document.width,y:Math.floor(i/document.width)},terrain));if(binding)textureRequests.add(binding.assetId);}
    let assetRecords=new Map<string,any>();
@@ -51,5 +49,5 @@ export function PixiMapCanvas({document,activeTool,activeLayerId,selectedTileId,
   }).catch(error=>console.error("Pixi map canvas initialization failed",error));
   return()=>{disposed=true;host.replaceChildren();};
  },[document,activeTool,activeLayerId,selectedTileId,brushSize,selection,onPaint,onSelectionChange,onCellInspect,onStamp,onObjectPlace,onObjectMove,selectedObjectId,terrainBindings,environmentRuntime]);
- return <div ref={hostRef} style={{width:"100%",height:"100%",minHeight:360,background:"#fff",touchAction:"none"}/>;
+ return createElement("div",{ref:hostRef,style:{width:"100%",height:"100%",minHeight:360,background:"#fff",touchAction:"none"}});
 }
