@@ -47,17 +47,25 @@ export type MergePersistenceCommit = {
   currentVersion: number;
 };
 
-export function normalizeMergeCommitResponse(response: MergeCommitResponse): MergePersistenceCommit | MergePersistenceConflict {
-  if (response.status === 'conflict') {
-    return { status: 'conflict', currentVersion: response.current_version };
+/**
+ * Supabase/PostgREST returns RETURNS TABLE RPCs as an array of rows.
+ * Normalize both the table-RPC array form and the object form so the
+ * editor does not mistake a successful commit for missing version data.
+ */
+export function normalizeMergeCommitResponse(response: MergeCommitResponse | MergeCommitResponse[]): MergePersistenceCommit | MergePersistenceConflict {
+  const normalized = Array.isArray(response) ? response[0] : response;
+  if (!normalized) throw new Error('Merge commit returned no result row');
+
+  if (normalized.status === 'conflict') {
+    return { status: 'conflict', currentVersion: normalized.current_version };
   }
-  if (!response.version_id || response.version_number == null) {
+  if (!normalized.version_id || normalized.version_number == null) {
     throw new Error('Merge commit returned committed status without version metadata');
   }
   return {
     status: 'committed',
-    versionId: response.version_id,
-    versionNumber: response.version_number,
-    currentVersion: response.current_version,
+    versionId: normalized.version_id,
+    versionNumber: normalized.version_number,
+    currentVersion: normalized.current_version,
   };
 }
