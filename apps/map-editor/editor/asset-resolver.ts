@@ -14,9 +14,15 @@ export function normalizeAssetPath(path: string): string {
   return path.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
 }
 
+/**
+ * Resolve an approved asset to a browser-loadable URL.
+ * The asset library is Git-LFS backed, so raw.githubusercontent.com can return
+ * an LFS pointer instead of the binary. The media.githubusercontent.com endpoint
+ * serves the repository file content through GitHub's media layer.
+ */
 export function assetRawUrl(assetPath: string, repo = DEFAULT_ASSET_REPO, ref = DEFAULT_ASSET_REF): string {
   const cleanRepo = repo.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
-  return `https://raw.githubusercontent.com/${cleanRepo}/${encodeURIComponent(ref)}/${normalizeAssetPath(assetPath)}`;
+  return `https://media.githubusercontent.com/media/${cleanRepo}/${encodeURIComponent(ref)}/${normalizeAssetPath(assetPath)}`;
 }
 
 export function resolveAssetUrl(asset: AssetRecord | null | undefined): string | null {
