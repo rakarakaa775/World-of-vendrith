@@ -36,7 +36,6 @@ export function MapEditorAppV3() {
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [showSlots, setShowSlots] = useState(false);
-  const [editorRevision, setEditorRevision] = useState(0);
   const active = maps.find(map => map.id === activeMapId) || maps[0];
 
   const update = useCallback((next: MapDocument) => {
@@ -50,7 +49,7 @@ export function MapEditorAppV3() {
   const adoptAuthoritative = useCallback(async (client: any, mapId: string) => {
     const loaded = await loadMapDocumentSnapshot(client, mapId);
     if (!loaded.document) return false;
-    setMaps([loaded.document]); setActiveMapId(loaded.document.id); setBaseDocument(loaded.document); setVersion(Number(loaded.result.version_number) || 0); setEditorRevision(r => r + 1);
+    setMaps([loaded.document]); setActiveMapId(loaded.document.id); setBaseDocument(loaded.document); setVersion(Number(loaded.result.version_number) || 0);
     await refreshSlots(client, mapId); setStatus(`Ready · version ${Number(loaded.result.version_number) || 0}`); return true;
   }, [refreshSlots]);
   const bootstrapVersion = useCallback(async (client: any, document: MapDocument, mapId: string) => {
@@ -73,9 +72,6 @@ export function MapEditorAppV3() {
       try {
         const [bindingResult, baseAssetResult] = await Promise.all([
           client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id"),
-          // Use the audited physical filenames as the runtime contract. This is
-          // intentionally independent of slug naming so a catalog slug rename
-          // cannot make the editor report 0 base bindings.
           client.from("asset_registry").select("id,name,slug,status,license_registry_id").in("name", ["tile_grass.png", "tile_dirt.png", "tile_pavement.png"]),
         ]);
         if (bindingResult.error) throw bindingResult.error;
@@ -200,8 +196,11 @@ export function MapEditorAppV3() {
     setBusy(true);
     try {
       const { data, error } = await client.from("map_editor_save_slots").select("snapshot,version_number,label").eq("map_id", persistedMapId).eq("slot_number", slot).maybeSingle();
-      if (error) throw error; if (!data?.snapshot) throw new Error("Save slot is empty"); const document = parseMapDocument(data.snapshot as MapDocument);
-      setMaps([document]); setActiveMapId(document.id); setBaseDocument(document); setVersion(Number(data.version_number) || 1); setEditorRevision(r => r + 1); setShowSlots(false); setStatus(`Loaded ${data.label || `Save Slot ${slot}`} · version ${data.version_number}`);
+      if (error) throw error;
+      if (!data?.snapshot) throw new Error("Save slot is empty");
+      const snapshot = typeof data.snapshot === "string" ? data.snapshot : JSON.stringify(data.snapshot);
+      const document = parseMapDocument(snapshot);
+      setMaps([document]); setActiveMapId(document.id); setBaseDocument(document); setVersion(Number(data.version_number) || 1); setShowSlots(false); setStatus(`Loaded ${data.label || `Save Slot ${slot}`} · version ${data.version_number}`);
     } catch (error) { setStatus(`Load Slot ${slot} failed: ${messageOf(error)}`); } finally { setBusy(false); }
   }, [persistedMapId]);
 
@@ -214,7 +213,7 @@ export function MapEditorAppV3() {
         <button onClick={loadLatest} disabled={busy || !persistedMapId}>Load Latest</button>
         <span style={{ fontSize: 11, opacity: .8 }}>v{version} · {status}</span>
       </div>
-      <EditorShell initialDocument={active} editorRevision={editorRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
+      <EditorShell initialDocument={active} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
   </div>;
