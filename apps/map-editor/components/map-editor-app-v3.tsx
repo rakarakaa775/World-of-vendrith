@@ -73,14 +73,17 @@ export function MapEditorAppV3() {
       try {
         const [bindingResult, baseAssetResult] = await Promise.all([
           client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id"),
-          client.from("asset_registry").select("id,slug,status,license_registry_id").in("slug", ["topdown_mockup_tile_grass", "topdown_mockup_tile_dirt", "topdown_mockup_tile_pavement"]),
+          // Use the audited physical filenames as the runtime contract. This is
+          // intentionally independent of slug naming so a catalog slug rename
+          // cannot make the editor report 0 base bindings.
+          client.from("asset_registry").select("id,name,slug,status,license_registry_id").in("name", ["tile_grass.png", "tile_dirt.png", "tile_pavement.png"]),
         ]);
         if (bindingResult.error) throw bindingResult.error;
         if (baseAssetResult.error) throw baseAssetResult.error;
 
         const transitionLoaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(bindingResult.data || []);
         const baseRows = (baseAssetResult.data || []).flatMap((asset: any) => {
-          const terrain = asset.slug === "topdown_mockup_tile_grass" ? "grass" : asset.slug === "topdown_mockup_tile_dirt" ? "dirt" : asset.slug === "topdown_mockup_tile_pavement" ? "pavement" : null;
+          const terrain = asset.name === "tile_grass.png" ? "grass" : asset.name === "tile_dirt.png" ? "dirt" : asset.name === "tile_pavement.png" ? "pavement" : null;
           if (!terrain || asset.status !== "approved" || !asset.license_registry_id) return [];
           return [{ terrain_key: terrain, neighbor_mask: 255, asset_id: asset.id, candidate_status: "approved", asset_status: asset.status, autotile_capable: false, license_registry_id: asset.license_registry_id }];
         });
@@ -160,14 +163,14 @@ export function MapEditorAppV3() {
     return () => { cancelled = true; };
   }, [adoptAuthoritative, bootstrapVersion, refreshSlots]);
 
-  const save = useCallback(async (documentToSave: MapDocument = active) => {
+  const save = useCallback(async () => {
     const client = createMapEditorSupabaseClient();
-    if (!client || !persistedMapId || documentToSave.id !== persistedMapId) { setStatus("Save unavailable: map is not connected to Supabase"); return null; }
+    if (!client || !persistedMapId || active.id !== persistedMapId) { setStatus("Save unavailable: map is not connected to Supabase"); return null; }
     setBusy(true); setStatus("Saving to Supabase…");
     try {
       let result: any;
-      if (!baseDocument || version < 1) { const newVersion = await bootstrapVersion(client, documentToSave, persistedMapId); result = { status: "committed", version: newVersion, document: documentToSave }; }
-      else result = await saveWithConflictDetection(client, documentToSave, baseDocument, version);
+      if (!baseDocument || version < 1) { const newVersion = await bootstrapVersion(client, active, persistedMapId); result = { status: "committed", version: newVersion, document: active }; }
+      else result = await saveWithConflictDetection(client, active, baseDocument, version);
       if (result.status === "committed") { setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, persistedMapId); setStatus(`Saved · version ${Number(result.version) || 1}`); return result; }
       if (result.status === "conflict") { setStatus(`Save conflict at remote version ${result.remoteVersion}. Load Latest first.`); return null; }
       setStatus(`Save failed: ${messageOf(result.error)}`); return null;
@@ -178,7 +181,7 @@ export function MapEditorAppV3() {
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
     const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Save Slot unavailable: map is not connected"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    const saved = await save(active); if (!saved) return;
+    const saved = await save(); if (!saved) return;
     setBusy(true);
     try {
       const { data: versionRow, error: versionError } = await client.from("map_versions").select("id").eq("map_id", persistedMapId).eq("version_number", saved.version).single();
@@ -186,7 +189,7 @@ export function MapEditorAppV3() {
       const { error } = await client.from("map_editor_save_slots").upsert({ map_id: persistedMapId, slot_number: slot, label: label.trim() || `Save Slot ${slot}`, version_id: versionRow?.id || null, version_number: Number(saved.version), snapshot: serializeResolvedMapSnapshot(saved.document) }, { onConflict: "map_id,slot_number" });
       if (error) throw error; await refreshSlots(client, persistedMapId); setStatus(`Game saved to Slot ${slot}`);
     } catch (error) { setStatus(`Save Slot ${slot} failed: ${messageOf(error)}`); } finally { setBusy(false); }
-  }, [active, persistedMapId, refreshSlots, save]);
+  }, [persistedMapId, refreshSlots, save]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Load unavailable: map is not connected"); return; }
@@ -197,8 +200,7 @@ export function MapEditorAppV3() {
     setBusy(true);
     try {
       const { data, error } = await client.from("map_editor_save_slots").select("snapshot,version_number,label").eq("map_id", persistedMapId).eq("slot_number", slot).maybeSingle();
-      if (error) throw error; if (!data?.snapshot) throw new Error("Save slot is empty");
-      const document = parseMapDocument(JSON.stringify(data.snapshot));
+      if (error) throw error; if (!data?.snapshot) throw new Error("Save slot is empty"); const document = parseMapDocument(data.snapshot as MapDocument);
       setMaps([document]); setActiveMapId(document.id); setBaseDocument(document); setVersion(Number(data.version_number) || 1); setEditorRevision(r => r + 1); setShowSlots(false); setStatus(`Loaded ${data.label || `Save Slot ${slot}`} · version ${data.version_number}`);
     } catch (error) { setStatus(`Load Slot ${slot} failed: ${messageOf(error)}`); } finally { setBusy(false); }
   }, [persistedMapId]);
@@ -208,11 +210,11 @@ export function MapEditorAppV3() {
     <div style={{ position: "relative", minHeight: 0 }}>
       <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 6, alignItems: "center", padding: 6, border: "1px solid #334155", borderRadius: 6, background: "#0f172a" }}>
         <button onClick={() => setShowSlots(true)} disabled={busy}>Save / Load</button>
-        <button onClick={() => void save()} disabled={busy || !persistedMapId}>Quick Save</button>
+        <button onClick={save} disabled={busy || !persistedMapId}>Quick Save</button>
         <button onClick={loadLatest} disabled={busy || !persistedMapId}>Load Latest</button>
         <span style={{ fontSize: 11, opacity: .8 }}>v{version} · {status}</span>
       </div>
-      <EditorShell key={`${active.id}:${editorRevision}`} initialDocument={active} onDocumentChange={update} onSave={(document) => save(document)} terrainBindings={terrainBindings} terrainStatus={terrainStatus} />
+      <EditorShell initialDocument={active} editorRevision={editorRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
   </div>;
