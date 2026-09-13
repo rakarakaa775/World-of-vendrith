@@ -16,7 +16,7 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const CONFIGURED_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_MAP_ID?.trim() || null;
-const BUILD_MARKER = "terrain-bindings-runtime-diagnostics-2026-09-12";
+const BUILD_MARKER = "terrain-base-assets-5-2026-09-13";
 const messageOf = (e: any) => e?.message || e?.error_description || e?.details || e?.hint || String(e || "unknown error");
 
 function mapFromRow(row: any): MapDocument {
@@ -73,7 +73,7 @@ export function MapEditorAppV3() {
       try {
         const [bindingResult, baseAssetResult] = await Promise.all([
           client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id"),
-          client.from("asset_registry").select("id,name,slug,status,license_registry_id").in("name", ["tile_grass.png", "tile_dirt.png", "tile_pavement.png"]),
+          client.from("asset_registry").select("id,name,slug,status,license_registry_id").in("name", ["tile_grass.png", "tile_sand.png", "tile_dirt.png", "tile_pavement.png", "tile_water.png"]),
         ]);
         if (bindingResult.error) throw new Error(`binding query failed: ${messageOf(bindingResult.error)}`);
         if (baseAssetResult.error) throw new Error(`asset query failed: ${messageOf(baseAssetResult.error)}`);
@@ -82,7 +82,7 @@ export function MapEditorAppV3() {
         const baseAssetRows = baseAssetResult.data || [];
         const transitionLoaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(transitionRows);
         const baseRows = baseAssetRows.flatMap((asset: any) => {
-          const terrain = asset.name === "tile_grass.png" ? "grass" : asset.name === "tile_dirt.png" ? "dirt" : asset.name === "tile_pavement.png" ? "pavement" : null;
+          const terrain = asset.name === "tile_grass.png" ? "grass" : asset.name === "tile_sand.png" ? "sand" : asset.name === "tile_dirt.png" ? "dirt" : asset.name === "tile_pavement.png" ? "pavement" : asset.name === "tile_water.png" ? "water" : null;
           if (!terrain || asset.status !== "approved" || !asset.license_registry_id) return [];
           return [{ terrain_key: terrain, neighbor_mask: 255, asset_id: asset.id, candidate_status: "approved", asset_status: asset.status, autotile_capable: false, license_registry_id: asset.license_registry_id }];
         });
