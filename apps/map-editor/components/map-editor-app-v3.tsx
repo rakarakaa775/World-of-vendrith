@@ -42,6 +42,7 @@ export function MapEditorAppV3() {
   const [showSlots, setShowSlots] = useState(false);
   const [conflictResult, setConflictResult] = useState<MapMergeResult | null>(null);
   const [conflictSession, setConflictSession] = useState<ConflictResolutionSession | null>(null);
+  const [conflictRemoteVersion, setConflictRemoteVersion] = useState<number | null>(null);
   const active = maps.find(map => map.id === activeMapId) || maps[0];
 
   const update = useCallback((next: MapDocument) => {
@@ -179,6 +180,7 @@ export function MapEditorAppV3() {
       if (result.status === "conflict") {
         setConflictResult(result.merge);
         setConflictSession(createConflictResolutionSession(result.merge));
+        setConflictRemoteVersion(Number(result.remoteVersion) || 0);
         setStatus(`Save conflict · remote version ${result.remoteVersion} · resolve changes`);
         return result;
       }
@@ -187,15 +189,15 @@ export function MapEditorAppV3() {
     finally { setBusy(false); }
   }, [active, baseDocument, bootstrapVersion, persistedMapId, refreshSlots, update, version]);
 
-  const resolveConflict = useCallback(async (document: MapDocument, session: ConflictResolutionSession) => {
+  const resolveConflict = useCallback(async (document: MapDocument, _session: ConflictResolutionSession) => {
     const client = createMapEditorSupabaseClient();
-    if (!client || !persistedMapId || !conflictResult) { setStatus("Conflict resolution unavailable: map is not connected"); return; }
+    if (!client || !persistedMapId || !conflictResult || conflictRemoteVersion === null) { setStatus("Conflict resolution unavailable: map is not connected"); return; }
     setBusy(true); setStatus("Committing resolved merge…");
     try {
       const persistence = createSupabaseMapMergePersistence(client);
       const rawResult = await persistence.commitResolvedMerge(
         persistedMapId,
-        conflictResult.remoteVersion,
+        conflictRemoteVersion,
         serializeResolvedMapSnapshot(document),
         "map-editor-conflict-resolved",
       );
@@ -206,6 +208,7 @@ export function MapEditorAppV3() {
         update(document);
         setConflictResult(null);
         setConflictSession(null);
+        setConflictRemoteVersion(null);
         await refreshSlots(client, persistedMapId);
         setStatus(`Conflict resolved · version ${committed.versionNumber}`);
         return;
@@ -214,17 +217,20 @@ export function MapEditorAppV3() {
       const refreshed = await loadMapDocumentSnapshot(client, persistedMapId);
       if (!refreshed.document) throw new Error("Authoritative map snapshot is unavailable after conflict retry");
       const nextMerge = mergeMapDocumentsThreeWay(baseDocument || conflictResult.document, document, refreshed.document);
-      setConflictResult({ ...nextMerge, remoteVersion: Number(refreshed.result.version_number) || 0 });
+      const nextRemoteVersion = Number(refreshed.result.version_number) || 0;
+      setConflictResult(nextMerge);
       setConflictSession(createConflictResolutionSession(nextMerge));
-      setStatus(`Remote changed again · version ${Number(refreshed.result.version_number) || 0} · resolve again`);
+      setConflictRemoteVersion(nextRemoteVersion);
+      setStatus(`Remote changed again · version ${nextRemoteVersion} · resolve again`);
     } catch (error) {
       setStatus(`Conflict resolution failed: ${messageOf(error)}`);
     } finally { setBusy(false); }
-  }, [baseDocument, conflictResult, persistedMapId, refreshSlots, update]);
+  }, [baseDocument, conflictRemoteVersion, conflictResult, persistedMapId, refreshSlots, update]);
 
   const cancelConflict = useCallback(() => {
     setConflictResult(null);
     setConflictSession(null);
+    setConflictRemoteVersion(null);
     setStatus(`Save conflict · changes remain local · version ${version}`);
   }, [version]);
 
@@ -272,7 +278,7 @@ export function MapEditorAppV3() {
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
     {conflictResult && conflictSession && (
       <ConflictResolutionEditorOverlay
-        key={`${conflictResult.remoteVersion}:${conflictResult.conflicts.length}`}
+        key={`${conflictRemoteVersion}:${conflictResult.conflicts.length}`}
         result={conflictResult}
         session={conflictSession}
         onCancel={cancelConflict}
