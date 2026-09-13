@@ -27,12 +27,50 @@ export async function saveMapDocumentSnapshot(client: SupabaseClient, document: 
   return normalizeRuntimeSnapshotResult(data);
 }
 
+/**
+ * Runtime snapshots are the fast editor cache, while map_versions is the
+ * durable authoritative history. Older/runtime-drifted rows can report
+ * "not found" even though a committed version exists. Always recover from
+ * the newest durable version before declaring the map unavailable.
+ */
 export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: string): Promise<{ result: RuntimeSnapshotResult; document: MapDocument | null }> {
   const { data, error } = await client.rpc('map_editor_get_runtime_snapshot_v1', { p_map_id: mapId });
   if (error) throw error;
   const result = normalizeRuntimeSnapshotResult(data);
-  if (!result.ok || !result.found || result.snapshot == null) return { result, document: null };
-  return { result, document: parseMapDocument(JSON.stringify(result.snapshot)) };
+  if (result.ok && result.found && result.snapshot != null) {
+    return { result, document: parseMapDocument(JSON.stringify(result.snapshot)) };
+  }
+
+  const { data: versionRows, error: versionError } = await client
+    .from('map_versions')
+    .select('id,map_id,version_number,snapshot,created_at')
+    .eq('map_id', mapId)
+    .order('version_number', { ascending: false })
+    .limit(1);
+
+  if (versionError) throw versionError;
+  const latest = versionRows?.[0] as any;
+  if (!latest?.snapshot) return { result, document: null };
+
+  const document = parseMapDocument(
+    typeof latest.snapshot === 'string' ? latest.snapshot : JSON.stringify(latest.snapshot),
+  );
+
+  return {
+    result: {
+      ...result,
+      ok: true,
+      found: true,
+      id: latest.id ?? result.id,
+      map_id: latest.map_id ?? mapId,
+      version_id: latest.id ?? result.version_id ?? null,
+      version_number: Number(latest.version_number) || 0,
+      updated_at: latest.created_at ?? result.updated_at,
+      snapshot: latest.snapshot,
+      code: 'durable-version-fallback',
+    },
+    document,
+  };
 }
 
 export type MapDocumentAutosaver = { schedule(document: MapDocument, versionId?: string | null): void; flush(): Promise<RuntimeSnapshotResult | null>; cancel(): void };
