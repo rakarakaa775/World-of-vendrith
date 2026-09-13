@@ -53,37 +53,71 @@ export function MapEditorApp(){
     setAuthoritativeVersion(savedVersion); setBaseDocument(resolved); update(resolved); setPersistenceStatus(`Saved as version ${savedVersion}`); return true;
   },[baseDocument,conflictRemoteDocument,openConflictResolution,update]);
   const applyConflictResolution=useCallback(async(resolved:MapDocument)=>{if(!conflictResult)return;setBusy(true);try{if(await persistResolved(resolved,authoritativeVersion))closeConflictResolution();}catch(error){setPersistenceStatus(`Conflict commit failed: ${error instanceof Error?error.message:'unknown error'}`)}finally{setBusy(false)}},[conflictResult,persistResolved,closeConflictResolution,authoritativeVersion]);
-  useEffect(()=>{let cancelled=false;const client=createMapEditorSupabaseClient();if(!client){setTerrainStatus('Supabase environment is not configured');setEnvironmentStatus('Supabase environment is not configured');setEnvironmentRuntime(emptyEnvironmentRuntime(runtimeWorldId));setEnvironmentRuntimeError('Supabase environment is not configured');setPersistenceStatus('Supabase environment is not configured');return()=>{cancelled=true}};
+
+  useEffect(()=>{
+    let cancelled=false;
+    const client=createMapEditorSupabaseClient();
+    if(!client){setTerrainStatus('Supabase environment is not configured');setEnvironmentStatus('Supabase environment is not configured');setEnvironmentRuntime(emptyEnvironmentRuntime(runtimeWorldId));setEnvironmentRuntimeError('Supabase environment is not configured');setPersistenceStatus('Supabase environment is not configured');return()=>{cancelled=true}};
     const initialize=async()=>{
-      const {data:sessionData}=await client.auth.getSession();
-      if(!sessionData.session){const {error}=await client.auth.signInAnonymously();if(error){if(!cancelled){setTerrainStatus('Supabase connected · authentication required');setEnvironmentStatus('Supabase connected · anonymous sign-in unavailable');setEnvironmentRuntime(emptyEnvironmentRuntime(runtimeWorldId));setEnvironmentRuntimeError(`Authentication required: ${error.message}`);setPersistenceStatus('Supabase connected · sign-in is required for protected data');}return;}}
+      let {data:sessionData}=await client.auth.getSession();
+      let session=sessionData.session;
+      if(!session){
+        const {data,error}=await client.auth.signInAnonymously();
+        if(error||!data.session){if(!cancelled){setTerrainStatus('Supabase connected · authentication required');setEnvironmentStatus('Supabase connected · anonymous sign-in unavailable');setEnvironmentRuntime(emptyEnvironmentRuntime(runtimeWorldId));setEnvironmentRuntimeError(`Authentication required: ${error?.message??'anonymous session was not returned'}`);setPersistenceStatus('Supabase connected · sign-in is required for protected data');}return;}
+        session=data.session;
+      }
       if(cancelled)return;
       let effectiveMapId=configuredPersistedMapId;
       if(!effectiveMapId){
         const db=client as any;
-        const {data:existingRows,error:existingError}=await db.from('maps').select('id,name,map_type,width,height').eq('world_id',runtimeWorldId).order('created_at',{ascending:true}).limit(1);
+        const {data:existingRows,error:existingError}=await db.from('maps').select('id,name,map_type,width,height,updated_at').eq('world_id',runtimeWorldId).eq('created_by',session.user.id).order('updated_at',{ascending:false}).limit(1);
         if(existingError) throw existingError;
         const existing=existingRows?.[0] as {id:string}|undefined;
-        if(existing?.id){effectiveMapId=existing.id;setPersistenceStatus('Found existing authoritative map…')}
-        else{
+        if(existing?.id){
+          effectiveMapId=existing.id;
+          setPersistenceStatus('Found your authoritative map…');
+        } else {
           const bootstrap=createMap('world');
           const {data:created,error:createError}=await db.from('maps').insert({world_id:runtimeWorldId,name:'World Map',map_type:'world',coordinate_mode:'square',width:bootstrap.width,height:bootstrap.height,tile_size:bootstrap.tileSize,metadata:{editor_bootstrap:true}}).select('id').single();
           if(createError) throw createError;
           const createdId=(created as {id?:string}|null)?.id; if(!createdId) throw new Error('Supabase did not return the bootstrap map id');
-          const document={...bootstrap,id:createdId,name:'World Map'}; const persistence=createSupabaseMapMergePersistence(client); const commit=await persistence.commitResolvedMerge(document,0,serializeResolvedMapSnapshot(document),'initial-bootstrap');
-          if(commit.status!=='committed') throw new Error(`Initial map bootstrap did not commit: ${commit.status}`); effectiveMapId=createdId; setPersistenceStatus(`Authoritative map created at version ${commit.version_number??0}`);
+          const document={...bootstrap,id:createdId,name:'World Map'};
+          const persistence=createSupabaseMapMergePersistence(client);
+          const commit=await persistence.commitResolvedMerge(document,0,serializeResolvedMapSnapshot(document),'initial-bootstrap');
+          if(commit.status!=='committed') throw new Error(`Initial map bootstrap did not commit: ${commit.status}`);
+          effectiveMapId=createdId;
+          setPersistenceStatus(`Authoritative map created at version ${commit.version_number??0}`);
         }
         setPersistedMapId(effectiveMapId);
       }
       if(cancelled)return;
       if(effectiveMapId){
-        loadMapDocumentSnapshot(client,effectiveMapId).then(async({result,document})=>{if(cancelled)return;if(document){setMaps([document]);setActiveMapId(document.id);setAuthoritativeVersion(result.version_number??0);setBaseDocument(document);setPersistenceStatus(`Saved map loaded at version ${result.version_number??0}`);try{await refreshSaveSlots(client,effectiveMapId!)}catch(error){if(!cancelled)setPersistenceStatus(`Save slots unavailable: ${error instanceof Error?error.message:'unknown error'}`)}}else setPersistenceStatus(result.code==='MAP_ACCESS_DENIED'?'Map access denied':'No saved snapshot found')}).catch(error=>{if(!cancelled)setPersistenceStatus(`Load failed: ${error instanceof Error?error.message:'unknown error'}`)})
+        const loaded=await loadMapDocumentSnapshot(client,effectiveMapId);
+        if(cancelled)return;
+        if(loaded.document){
+          setMaps([loaded.document]); setActiveMapId(loaded.document.id); setAuthoritativeVersion(loaded.result.version_number??0); setBaseDocument(loaded.document); setPersistenceStatus(`Saved map loaded at version ${loaded.result.version_number??0}`);
+          try{await refreshSaveSlots(client,effectiveMapId)}catch(error){if(!cancelled)setPersistenceStatus(`Save slots unavailable: ${error instanceof Error?error.message:'unknown error'}`)}
+        } else if(loaded.result.code==='MAP_ACCESS_DENIED') {
+          setPersistenceStatus('Map access denied');
+        } else {
+          const bootstrap={...createMap('world'),id:effectiveMapId,name:'World Map'};
+          const persistence=createSupabaseMapMergePersistence(client);
+          const commit=await persistence.commitResolvedMerge(effectiveMapId,0,serializeResolvedMapSnapshot(bootstrap),'initial-bootstrap-repair');
+          if(commit.status==='committed'){
+            setMaps([bootstrap]); setActiveMapId(bootstrap.id); setAuthoritativeVersion(commit.version_number??1); setBaseDocument(bootstrap); setPersistenceStatus(`Authoritative snapshot repaired at version ${commit.version_number??1}`); await refreshSaveSlots(client,effectiveMapId);
+          } else {
+            setPersistenceStatus('No saved snapshot found');
+          }
+        }
       }
       loadTerrainAssetBindingsFromSupabase(client).then(result=>{if(cancelled)return;setTerrainBindings(result.bindings);setTerrainStatus(terrainAssetBindingSummary(result))});
       loadEnvironmentCatalogFromSupabase(client).then(result=>{if(cancelled)return;setEnvironmentCatalog(result.source==='supabase'?result.catalog:null);setEnvironmentReadiness(result.source==='supabase'?result.readiness:null);setEnvironmentStatus(environmentCatalogSummary(result))});
       loadEnvironmentRuntime(client,runtimeWorldId).then(result=>{if(cancelled)return;setEnvironmentRuntime(result.state);setEnvironmentRuntimeError(result.error)});
-    }; void initialize().catch(error=>{if(!cancelled)setPersistenceStatus(`Initialization failed: ${error instanceof Error?error.message:'unknown error'}`)}); return()=>{cancelled=true};
+    };
+    void initialize().catch(error=>{if(!cancelled)setPersistenceStatus(`Initialization failed: ${error instanceof Error?error.message:'unknown error'}`)});
+    return()=>{cancelled=true};
   },[refreshSaveSlots]);
+
   const save=useCallback(async():Promise<SavedDocument|null>=>{const client=createMapEditorSupabaseClient();if(!client||!persistedMapId||active.id!==persistedMapId){setPersistenceStatus('Save unavailable: authoritative map is not ready');return null;}if(!baseDocument||!authoritativeVersion){setPersistenceStatus('Save unavailable: authoritative base/version has not loaded');return null;}setBusy(true);setPersistenceStatus('Checking authoritative version…');try{const result=await saveWithConflictDetection(client,active,baseDocument,authoritativeVersion);if(result.status==='conflict'){setAuthoritativeVersion(result.remoteVersion);openConflictResolution(result.merge,result.remoteDocument);setPersistenceStatus(`Conflict detected: base ${result.expectedVersion}, remote ${result.remoteVersion}`);return null}else if(result.status==='committed'){setAuthoritativeVersion(result.version);setBaseDocument(result.document);update(result.document);setPersistenceStatus(`Saved as version ${result.version}`);return {document:result.document,version:result.version}}else setPersistenceStatus(`Save failed: ${result.error instanceof Error?result.error.message:'unknown error'}`)}finally{setBusy(false)}return null},[active,baseDocument,authoritativeVersion,openConflictResolution,update,persistedMapId]);
   const saveToSlot=useCallback(async(slotNumber:number,requestedLabel:string)=>{const client=createMapEditorSupabaseClient();if(!client||!persistedMapId)return;const label=window.prompt(`Nama untuk Save Slot ${slotNumber}`,requestedLabel||`Save Slot ${slotNumber}`);if(label===null)return;const saved=await save();if(!saved)return;setBusy(true);try{const payload={map_id:persistedMapId,slot_number:slotNumber,label:label.trim()||`Save Slot ${slotNumber}`,version_id:null,version_number:saved.version,snapshot:serializeResolvedMapSnapshot(saved.document)};const {error}=await client.from('map_editor_save_slots').upsert(payload,{onConflict:'map_id,slot_number'});if(error)throw error;await refreshSaveSlots(client,persistedMapId);setPersistenceStatus(`Game saved to Slot ${slotNumber}`)}catch(error){setPersistenceStatus(`Save Slot ${slotNumber} failed: ${error instanceof Error?error.message:'unknown error'}`)}finally{setBusy(false)}},[persistedMapId,save,refreshSaveSlots]);
   const load=useCallback(async()=>{const client=createMapEditorSupabaseClient();if(!client||!persistedMapId){setPersistenceStatus('Load unavailable: authoritative map is not ready');return;}setBusy(true);setPersistenceStatus('Loading…');try{const {result,document}=await loadMapDocumentSnapshot(client,persistedMapId);if(document){setMaps([document]);setActiveMapId(document.id);setAuthoritativeVersion(result.version_number??0);setBaseDocument(document);setPersistenceStatus(`Loaded from Supabase at version ${result.version_number??0}`)}else setPersistenceStatus(result.code==='MAP_ACCESS_DENIED'?'Map access denied':'No saved snapshot found')}catch(error){setPersistenceStatus(`Load failed: ${error instanceof Error?error.message:'unknown error'}`)}finally{setBusy(false)}},[persistedMapId]);
