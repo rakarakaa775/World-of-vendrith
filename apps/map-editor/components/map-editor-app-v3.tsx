@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorShell } from "./editor-shell";
 import { MapBrowser } from "./map-browser";
 import { SaveSlotsPanel, type SaveSlot } from "./save-slots-panel";
+import { ConflictResolutionEditorOverlay } from "./conflict-resolution-editor-overlay";
 import { createMap, type MapDocument } from "../editor/map-document";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import { loadMapDocumentSnapshot } from "../editor/map-persistence";
@@ -11,6 +12,8 @@ import { saveWithConflictDetection } from "../editor/map-conflict-save-controlle
 import { createSupabaseMapMergePersistence, serializeResolvedMapSnapshot } from "../editor/map-merge-persistence-supabase";
 import { normalizeMergeCommitResponse } from "../editor/map-merge-persistence";
 import { parseMapDocument } from "../editor/map-serialization";
+import { mergeMapDocumentsThreeWay, type MapMergeResult } from "../editor/map-entity-merge";
+import { createConflictResolutionSession, type ConflictResolutionSession } from "../editor/map-conflict-resolution-ui-model";
 import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 
@@ -37,6 +40,8 @@ export function MapEditorAppV3() {
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [showSlots, setShowSlots] = useState(false);
+  const [conflictResult, setConflictResult] = useState<MapMergeResult | null>(null);
+  const [conflictSession, setConflictSession] = useState<ConflictResolutionSession | null>(null);
   const active = maps.find(map => map.id === activeMapId) || maps[0];
 
   const update = useCallback((next: MapDocument) => {
@@ -171,16 +176,62 @@ export function MapEditorAppV3() {
       if (!baseDocument || version < 1) { const newVersion = await bootstrapVersion(client, active, persistedMapId); result = { status: "committed", version: newVersion, document: active }; }
       else result = await saveWithConflictDetection(client, active, baseDocument, version);
       if (result.status === "committed") { setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, persistedMapId); setStatus(`Saved · version ${Number(result.version) || 1}`); return result; }
-      if (result.status === "conflict") { setStatus(`Save conflict at remote version ${result.remoteVersion}. Load Latest first.`); return null; }
+      if (result.status === "conflict") {
+        setConflictResult(result.merge);
+        setConflictSession(createConflictResolutionSession(result.merge));
+        setStatus(`Save conflict · remote version ${result.remoteVersion} · resolve changes`);
+        return result;
+      }
       setStatus(`Save failed: ${messageOf(result.error)}`); return null;
     } catch (error) { setStatus(`Save failed: ${messageOf(error)}`); return null; }
     finally { setBusy(false); }
   }, [active, baseDocument, bootstrapVersion, persistedMapId, refreshSlots, update, version]);
 
+  const resolveConflict = useCallback(async (document: MapDocument, session: ConflictResolutionSession) => {
+    const client = createMapEditorSupabaseClient();
+    if (!client || !persistedMapId || !conflictResult) { setStatus("Conflict resolution unavailable: map is not connected"); return; }
+    setBusy(true); setStatus("Committing resolved merge…");
+    try {
+      const persistence = createSupabaseMapMergePersistence(client);
+      const rawResult = await persistence.commitResolvedMerge(
+        persistedMapId,
+        conflictResult.remoteVersion,
+        serializeResolvedMapSnapshot(document),
+        "map-editor-conflict-resolved",
+      );
+      const committed = normalizeMergeCommitResponse(rawResult);
+      if (committed.status === "committed") {
+        setVersion(committed.versionNumber);
+        setBaseDocument(document);
+        update(document);
+        setConflictResult(null);
+        setConflictSession(null);
+        await refreshSlots(client, persistedMapId);
+        setStatus(`Conflict resolved · version ${committed.versionNumber}`);
+        return;
+      }
+
+      const refreshed = await loadMapDocumentSnapshot(client, persistedMapId);
+      if (!refreshed.document) throw new Error("Authoritative map snapshot is unavailable after conflict retry");
+      const nextMerge = mergeMapDocumentsThreeWay(baseDocument || conflictResult.document, document, refreshed.document);
+      setConflictResult({ ...nextMerge, remoteVersion: Number(refreshed.result.version_number) || 0 });
+      setConflictSession(createConflictResolutionSession(nextMerge));
+      setStatus(`Remote changed again · version ${Number(refreshed.result.version_number) || 0} · resolve again`);
+    } catch (error) {
+      setStatus(`Conflict resolution failed: ${messageOf(error)}`);
+    } finally { setBusy(false); }
+  }, [baseDocument, conflictResult, persistedMapId, refreshSlots, update]);
+
+  const cancelConflict = useCallback(() => {
+    setConflictResult(null);
+    setConflictSession(null);
+    setStatus(`Save conflict · changes remain local · version ${version}`);
+  }, [version]);
+
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
     const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Save Slot unavailable: map is not connected"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    const saved = await save(); if (!saved) return;
+    const saved = await save(); if (!saved || saved.status !== "committed") return;
     setBusy(true);
     try {
       const { data: versionRow, error: versionError } = await client.from("map_versions").select("id").eq("map_id", persistedMapId).eq("version_number", saved.version).single();
@@ -219,5 +270,14 @@ export function MapEditorAppV3() {
       <EditorShell initialDocument={active} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
+    {conflictResult && conflictSession && (
+      <ConflictResolutionEditorOverlay
+        key={`${conflictResult.remoteVersion}:${conflictResult.conflicts.length}`}
+        result={conflictResult}
+        session={conflictSession}
+        onCancel={cancelConflict}
+        onResolved={resolveConflict}
+      />
+    )}
   </div>;
 }
