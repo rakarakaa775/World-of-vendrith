@@ -20,6 +20,16 @@ function normalizeRuntimeSnapshotResult(data: unknown): RuntimeSnapshotResult {
   return (data ?? {}) as RuntimeSnapshotResult;
 }
 
+function parsePersistedSnapshot(snapshot: unknown): MapDocument {
+  const payload = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+  if (!payload || typeof payload !== 'object') throw new Error('Persisted map snapshot is invalid');
+  const candidate = payload as { document?: unknown };
+  // Canonical persisted shape is { schema, version, document }.
+  // Keep a raw-document fallback for older rows.
+  if ('document' in candidate) return parseMapDocument(payload as any);
+  return parseMapDocument({ schema: 'vandrith.map-document', version: 1, document: payload } as any);
+}
+
 export async function saveMapDocumentSnapshot(client: SupabaseClient, document: MapDocument, versionId?: string | null): Promise<RuntimeSnapshotResult> {
   const snapshot = JSON.parse(serializeMapDocument(document));
   const { data, error } = await client.rpc('map_editor_upsert_runtime_snapshot_v1', { p_map_id: document.id, p_snapshot: snapshot, p_version_id: versionId ?? null });
@@ -29,16 +39,20 @@ export async function saveMapDocumentSnapshot(client: SupabaseClient, document: 
 
 /**
  * Runtime snapshots are the fast editor cache, while map_versions is the
- * durable authoritative history. Older/runtime-drifted rows can report
- * "not found" even though a committed version exists. Always recover from
- * the newest durable version before declaring the map unavailable.
+ * durable authoritative history. Recover from the newest durable version
+ * when the runtime row is absent or its payload cannot be parsed.
  */
 export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: string): Promise<{ result: RuntimeSnapshotResult; document: MapDocument | null }> {
   const { data, error } = await client.rpc('map_editor_get_runtime_snapshot_v1', { p_map_id: mapId });
   if (error) throw error;
   const result = normalizeRuntimeSnapshotResult(data);
+
   if (result.ok && result.found && result.snapshot != null) {
-    return { result, document: parseMapDocument(JSON.stringify(result.snapshot)) };
+    try {
+      return { result, document: parsePersistedSnapshot(result.snapshot) };
+    } catch (runtimeParseError) {
+      console.warn('Runtime map snapshot parse failed; falling back to durable version', runtimeParseError);
+    }
   }
 
   const { data: versionRows, error: versionError } = await client
@@ -52,9 +66,7 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
   const latest = versionRows?.[0] as any;
   if (!latest?.snapshot) return { result, document: null };
 
-  const document = parseMapDocument(
-    typeof latest.snapshot === 'string' ? latest.snapshot : JSON.stringify(latest.snapshot),
-  );
+  const document = parsePersistedSnapshot(latest.snapshot);
 
   return {
     result: {
