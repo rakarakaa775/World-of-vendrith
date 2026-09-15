@@ -75,7 +75,6 @@ export function MapEditorAppV3() {
       const currentSession = await client.auth.getSession();
       if (!currentSession.data.session) { const auth = await client.auth.signInAnonymously(); if (auth.error) throw auth.error; }
       if (cancelled) return;
-
       try {
         const [bindingResult, baseAssetResult] = await Promise.all([
           client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id"),
@@ -83,7 +82,6 @@ export function MapEditorAppV3() {
         ]);
         if (bindingResult.error) throw new Error(`binding query failed: ${messageOf(bindingResult.error)}`);
         if (baseAssetResult.error) throw new Error(`asset query failed: ${messageOf(baseAssetResult.error)}`);
-
         const transitionRows = bindingResult.data || [];
         const baseAssetRows = baseAssetResult.data || [];
         const transitionLoaded: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(transitionRows);
@@ -98,19 +96,13 @@ export function MapEditorAppV3() {
         for (const binding of merged) deduped.set(`${binding.terrain}:${binding.mask}`, binding);
         const accepted = [...deduped.values()];
         const bindings: TerrainAssetBindingMap = {};
-        for (const binding of accepted) {
-          bindings[binding.terrain] ??= {};
-          bindings[binding.terrain]![binding.mask] = binding;
-        }
+        for (const binding of accepted) { bindings[binding.terrain] ??= {}; bindings[binding.terrain]![binding.mask] = binding; }
         if (!cancelled) {
           setTerrainBindings(bindings);
           setTerrainStatus(`Terrain runtime · workbench ${transitionRows.length} rows / ${transitionLoaded.accepted.length} accepted · base assets ${baseAssetRows.length} rows / ${baseLoaded.accepted.length} accepted · final ${accepted.length}/256 · ${BUILD_MARKER}`);
         }
       } catch (error) {
-        if (!cancelled) {
-          setTerrainBindings({});
-          setTerrainStatus(`Terrain bindings unavailable · ${messageOf(error)} · ${BUILD_MARKER}`);
-        }
+        if (!cancelled) { setTerrainBindings({}); setTerrainStatus(`Terrain bindings unavailable · ${messageOf(error)} · ${BUILD_MARKER}`); }
       }
 
       let mapId = CONFIGURED_MAP_ID || "";
@@ -130,10 +122,7 @@ export function MapEditorAppV3() {
             return;
           }
           mapId = "";
-        } catch (error) {
-          setStatus(`Configured map unavailable · using latest map (${messageOf(error)})`);
-          mapId = "";
-        }
+        } catch (error) { setStatus(`Configured map unavailable · using latest map (${messageOf(error)})`); mapId = ""; }
       }
 
       if (!mapId) {
@@ -177,13 +166,7 @@ export function MapEditorAppV3() {
       if (!baseDocument || version < 1) { const newVersion = await bootstrapVersion(client, active, persistedMapId); result = { status: "committed", version: newVersion, document: active }; }
       else result = await saveWithConflictDetection(client, active, baseDocument, version);
       if (result.status === "committed") { setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, persistedMapId); setStatus(`Saved · version ${Number(result.version) || 1}`); return result; }
-      if (result.status === "conflict") {
-        setConflictResult(result.merge);
-        setConflictSession(createConflictResolutionSession(result.merge));
-        setConflictRemoteVersion(Number(result.remoteVersion) || 0);
-        setStatus(`Save conflict · remote version ${result.remoteVersion} · resolve changes`);
-        return result;
-      }
+      if (result.status === "conflict") { setConflictResult(result.merge); setConflictSession(createConflictResolutionSession(result.merge)); setConflictRemoteVersion(Number(result.remoteVersion) || 0); setStatus(`Save conflict · remote version ${result.remoteVersion} · resolve changes`); return result; }
       setStatus(`Save failed: ${messageOf(result.error)}`); return null;
     } catch (error) { setStatus(`Save failed: ${messageOf(error)}`); return null; }
     finally { setBusy(false); }
@@ -195,73 +178,68 @@ export function MapEditorAppV3() {
     setBusy(true); setStatus("Committing resolved merge…");
     try {
       const persistence = createSupabaseMapMergePersistence(client);
-      const rawResult = await persistence.commitResolvedMerge(
-        persistedMapId,
-        conflictRemoteVersion,
-        serializeResolvedMapSnapshot(document),
-        "map-editor-conflict-resolved",
-      );
+      const rawResult = await persistence.commitResolvedMerge(persistedMapId, conflictRemoteVersion, serializeResolvedMapSnapshot(document), "map-editor-conflict-resolved");
       const committed = normalizeMergeCommitResponse(rawResult);
       if (committed.status === "committed") {
-        setVersion(committed.versionNumber);
-        setBaseDocument(document);
-        update(document);
-        setConflictResult(null);
-        setConflictSession(null);
-        setConflictRemoteVersion(null);
-        await refreshSlots(client, persistedMapId);
-        setStatus(`Conflict resolved · version ${committed.versionNumber}`);
-        return;
+        setVersion(committed.versionNumber); setBaseDocument(document); update(document); setConflictResult(null); setConflictSession(null); setConflictRemoteVersion(null); await refreshSlots(client, persistedMapId); setStatus(`Conflict resolved · version ${committed.versionNumber}`); return;
       }
-
       const refreshed = await loadMapDocumentSnapshot(client, persistedMapId);
       if (!refreshed.document) throw new Error("Authoritative map snapshot is unavailable after conflict retry");
       const nextMerge = mergeMapDocumentsThreeWay(baseDocument || conflictResult.document, document, refreshed.document);
       const nextRemoteVersion = Number(refreshed.result.version_number) || 0;
-      setConflictResult(nextMerge);
-      setConflictSession(createConflictResolutionSession(nextMerge));
-      setConflictRemoteVersion(nextRemoteVersion);
-      setStatus(`Remote changed again · version ${nextRemoteVersion} · resolve again`);
-    } catch (error) {
-      setStatus(`Conflict resolution failed: ${messageOf(error)}`);
-    } finally { setBusy(false); }
+      setConflictResult(nextMerge); setConflictSession(createConflictResolutionSession(nextMerge)); setConflictRemoteVersion(nextRemoteVersion); setStatus(`Remote changed again · version ${nextRemoteVersion} · resolve again`);
+    } catch (error) { setStatus(`Conflict resolution failed: ${messageOf(error)}`); }
+    finally { setBusy(false); }
   }, [baseDocument, conflictRemoteVersion, conflictResult, persistedMapId, refreshSlots, update]);
 
-  const cancelConflict = useCallback(() => {
-    setConflictResult(null);
-    setConflictSession(null);
-    setConflictRemoteVersion(null);
-    setStatus(`Save conflict · changes remain local · version ${version}`);
-  }, [version]);
+  const cancelConflict = useCallback(() => { setConflictResult(null); setConflictSession(null); setConflictRemoteVersion(null); setStatus(`Save conflict · changes remain local · version ${version}`); }, [version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
-    const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Save Slot unavailable: map is not connected"); return; }
-    const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    const saved = await save(); if (!saved || saved.status !== "committed") return;
+    const client = createMapEditorSupabaseClient();
+    if (!client || !persistedMapId) { setStatus("Save Slot unavailable: map is not connected"); return; }
+    const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`);
+    if (label === null) return;
+    const saved = await save();
+    if (!saved || saved.status !== "committed") return;
     setBusy(true);
     try {
       const { data: versionRow, error: versionError } = await client.from("map_versions").select("id").eq("map_id", persistedMapId).eq("version_number", saved.version).single();
       if (versionError) throw versionError;
-      const { error } = await client.from("map_editor_save_slots").upsert({ map_id: persistedMapId, slot_number: slot, label: label.trim() || `Save Slot ${slot}`, version_id: versionRow?.id || null, version_number: Number(saved.version), snapshot: serializeResolvedMapSnapshot(saved.document) }, { onConflict: "map_id,slot_number" });
-      if (error) throw error; await refreshSlots(client, persistedMapId); setStatus(`Game saved to Slot ${slot}`);
-    } catch (error) { setStatus(`Save Slot ${slot} failed: ${messageOf(error)}`); } finally { setBusy(false); }
+      const { data, error } = await client.rpc("map_editor_save_slot_v1", {
+        p_map_id: persistedMapId,
+        p_slot_number: slot,
+        p_label: label.trim() || `Save Slot ${slot}`,
+        p_version_id: versionRow?.id || null,
+        p_version_number: Number(saved.version),
+        p_snapshot: serializeResolvedMapSnapshot(saved.document),
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
+      await refreshSlots(client, persistedMapId); setStatus(`Game saved to Slot ${slot}`);
+    } catch (error) { setStatus(`Save Slot ${slot} failed: ${messageOf(error)}`); }
+    finally { setBusy(false); }
   }, [persistedMapId, refreshSlots, save]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Load unavailable: map is not connected"); return; }
     setBusy(true); try { if (!(await adoptAuthoritative(client, persistedMapId))) throw new Error("No authoritative snapshot exists"); } catch (error) { setStatus(`Load failed: ${messageOf(error)}`); } finally { setBusy(false); }
   }, [adoptAuthoritative, persistedMapId]);
+
   const loadSlot = useCallback(async (slot: number) => {
-    const client = createMapEditorSupabaseClient(); if (!client || !persistedMapId) { setStatus("Load Slot unavailable: map is not connected"); return; }
+    const client = createMapEditorSupabaseClient();
+    if (!client || !persistedMapId) { setStatus("Load Slot unavailable: map is not connected"); return; }
     setBusy(true);
     try {
-      const { data, error } = await client.from("map_editor_save_slots").select("snapshot,version_number,label").eq("map_id", persistedMapId).eq("slot_number", slot).maybeSingle();
+      const { data, error } = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: persistedMapId, p_slot_number: slot });
       if (error) throw error;
-      if (!data?.snapshot) throw new Error("Save slot is empty");
-      const snapshot = typeof data.snapshot === "string" ? data.snapshot : JSON.stringify(data.snapshot);
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
+      const snapshot = typeof result.snapshot === "string" ? result.snapshot : JSON.stringify(result.snapshot);
       const document = parseMapDocument(snapshot);
-      setMaps([document]); setActiveMapId(document.id); setBaseDocument(document); setVersion(Number(data.version_number) || 1); setShowSlots(false); setStatus(`Loaded ${data.label || `Save Slot ${slot}`} · version ${data.version_number}`);
-    } catch (error) { setStatus(`Load Slot ${slot} failed: ${messageOf(error)}`); } finally { setBusy(false); }
+      setMaps([document]); setActiveMapId(document.id); setBaseDocument(document); setVersion(Number(result.version_number) || 1); setShowSlots(false); setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · version ${result.version_number}`);
+    } catch (error) { setStatus(`Load Slot ${slot} failed: ${messageOf(error)}`); }
+    finally { setBusy(false); }
   }, [persistedMapId]);
 
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
@@ -276,14 +254,6 @@ export function MapEditorAppV3() {
       <EditorShell initialDocument={active} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
     <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
-    {conflictResult && conflictSession && (
-      <ConflictResolutionEditorOverlay
-        key={`${conflictRemoteVersion}:${conflictResult.conflicts.length}`}
-        result={conflictResult}
-        session={conflictSession}
-        onCancel={cancelConflict}
-        onResolved={resolveConflict}
-      />
-    )}
+    {conflictResult && conflictSession && <ConflictResolutionEditorOverlay key={`${conflictRemoteVersion}:${conflictResult.conflicts.length}`} result={conflictResult} session={conflictSession} onCancel={cancelConflict} onResolved={resolveConflict} />}
   </div>;
 }
