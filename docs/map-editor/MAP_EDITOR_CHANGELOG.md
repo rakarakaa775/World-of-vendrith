@@ -114,3 +114,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Source package presence verified in project-uploaded files; repository binary transfer remains pending.
 - **Notes:** Individual assets must not be declared repository-present until a verified transfer occurs.
+
+## 2026-09-16 — Supabase terrain whitelist audited
+
+- **Type:** Added / Changed
+- **Reason:** Prevent unapproved or partially reviewed terrain assets from entering the Map Editor staging library.
+- **Details:** Queried Supabase terrain types, binding candidates, and asset registry records. Established a two-source approval rule requiring both `asset_registry.status = approved` and `asset_binding_candidates.candidate_status = approved`, with `category = terrain` for terrain staging.
+- **Affected:** `docs/map-editor/MAP_EDITOR_ASSET_APPROVAL.md`, `assets/map-editor/terrain/README.md`, Supabase asset approval boundary.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Supabase audit completed. Current final approved terrain staging set is empty because the discovered records contain status mismatches.
+- **Notes:** Examples include `Mountains v6 Snow` (binding approved, registry pending) and `tile_grass.png`, `tile_dirt.png`, `tile_pavement.png` (registry approved, binding needs_review). No binary terrain asset was activated or promoted.
