@@ -11,6 +11,7 @@
 - If a change is later reverted, record the revert as a separate entry and link it conceptually to the original change.
 - This log and `MAP_EDITOR_STATUS_LOG.md` are mandatory companions for every project update.
 - Roadmap changes must record the affected phase, goal, gate, and reason.
+- Asset-library changes must record storage category, provenance/approval state, and whether binaries were actually transferred.
 
 ## Entry format
 
@@ -19,7 +20,7 @@
 - **Type:** Added / Changed / Updated / Removed / Restored / Reverted / Fixed
 - **Reason:** Why the change was made.
 - **Details:** What was changed.
-- **Affected:** Files, database objects, RPCs, UI, serializer, or contracts.
+- **Affected:** Files, database objects, RPCs, UI, serializer, assets, or contracts.
 - **Roadmap phase:** Active phase at the time of change.
 - **Verification:** Not tested / In progress / Verified / Reverted.
 - **Notes:** Important compatibility or rollback information.
@@ -83,3 +84,33 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Documentation committed.
 - **Notes:** Any future roadmap revision must also update the phase-goal document and both logs.
+
+## 2026-09-16 — Three-map scope formalized
+
+- **Type:** Changed / Updated
+- **Reason:** Ensure the Map Editor documentation explicitly matches the product goal of authoring World, Kingdom/Region, and Playable maps.
+- **Details:** Added map-scale definitions, scale-specific authoring rules, explicit `map_type` semantics, World → Region and Region → Playable relationships, and scale-specific technical/projection/test requirements.
+- **Affected:** `MAP_EDITOR_BIBLE.md`, `MAP_EDITOR_GAME_DESIGN.md`, `MAP_EDITOR_TECHNICAL.md`, `MAP_EDITOR_ROADMAP.md`, `MAP_EDITOR_PHASE_GOALS.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Documentation committed; implementation audit remains pending.
+- **Notes:** The three map types share one canonical MapDocument and persistence architecture.
+
+## 2026-09-16 — Asset library staging structure created
+
+- **Type:** Added
+- **Reason:** Separate asset storage from application use and establish dedicated system categories.
+- **Details:** Added `assets/` with categories for Map Editor, Life Build, Inventory, Characters, Environment, Weapons, Objects, UI, Effects, Vehicles, Animations, Animals, Shared, Source, and Documentation. Added storage/approval rules and asset registry.
+- **Affected:** `assets/`, `assets/_documentation/ASSET_LIBRARY_REGISTRY.md`, `MAP_EDITOR_BIBLE.md`, roadmap/phase-goal documents.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Folder structure and registry committed. Binary asset transfer not yet verified through GitHub.
+- **Notes:** Supplied audited source packages remain the provenance baseline; no asset has been activated in application code.
+
+## 2026-09-16 — Asset binary transfer boundary documented
+
+- **Type:** Added / Changed
+- **Reason:** Prevent a false claim that large supplied ZIP libraries were copied into GitHub when the available connector does not provide a suitable verified binary transfer path.
+- **Details:** Recorded the supplied master/LPC packages as source-library inputs and explicitly separated repository storage structure from binary transfer status.
+- **Affected:** `assets/_source/README.md`, `assets/_documentation/ASSET_LIBRARY_REGISTRY.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Source package presence verified in project-uploaded files; repository binary transfer remains pending.
+- **Notes:** Individual assets must not be declared repository-present until a verified transfer occurs.
