@@ -17,3 +17,4 @@
 | 2026-09-16 | Documentation baseline | Added Database Contract, Change Log, and Status Log; established documentation-first workflow. |
 | 2026-09-16 | Persistence debugging paused | Save Slot/Load issue remains unresolved; canvas flicker regression was identified and restoration was prioritized. |
 | 2026-09-16 | Stability baseline | Editor history behavior restored after the V4 experiment caused canvas flicker. |
+| 2026-09-16 | Documentation control locked | Bible now requires the detailed Change Log and short Status Log to be updated for every repository, database, architecture, asset, or configuration update. |
