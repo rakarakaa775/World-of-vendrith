@@ -1,6 +1,6 @@
 # Vandrith Map Editor — Change Log
 
-**Purpose:** Detailed historical record of what was updated, changed, added, removed, restored, or reverted in the Map Editor.
+**Purpose:** Detailed historical record of what was updated, changed, added, removed, restored, reverted, or fixed in the Map Editor.
 
 ## Rules
 
@@ -9,6 +9,7 @@
 - Never delete historical entries; append corrections as new entries.
 - Each entry must identify the date, area, change type, reason, affected files/contracts, and verification state when known.
 - If a change is later reverted, record the revert as a separate entry and link it conceptually to the original change.
+- This log and `MAP_EDITOR_STATUS_LOG.md` are mandatory companions for every project update.
 
 ## Entry format
 
@@ -47,3 +48,12 @@
 - **Affected:** `EditorShell` history/document boundary behavior.
 - **Verification:** Commit recorded as the stability restoration baseline; browser verification remains required.
 - **Notes:** A future Load implementation must create an explicit state boundary only after a successful validated load.
+
+## 2026-09-16 — Database contract and documentation controls formalized
+
+- **Type:** Added / Changed
+- **Reason:** Prevent further implementation drift and preserve an auditable project history.
+- **Details:** Added the database contract, detailed changelog, and short status log; updated the Bible to require both logs for every repository/database/architecture update.
+- **Affected:** `MAP_EDITOR_DATABASE_CONTRACT.md`, `MAP_EDITOR_CHANGELOG.md`, `MAP_EDITOR_STATUS_LOG.md`, `MAP_EDITOR_BIBLE.md`.
+- **Verification:** Documentation committed to GitHub.
+- **Notes:** Future implementation work must update both logs in the same work session as the change.
