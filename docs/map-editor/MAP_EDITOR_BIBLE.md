@@ -182,3 +182,25 @@ If an implementation change is reverted, both logs must record the reversion. If
 ## 15. Change rule
 
 Before changing persistence schema or editor state architecture, update this Bible and the technical specification with the reason, invariant affected, migration plan, and rollback plan. After the change, update the Change Log and Status Log in the same work session.
+
+## 16. Roadmap authority and mandatory implementation order
+
+The Map Editor must be implemented according to `docs/map-editor/MAP_EDITOR_ROADMAP.md` and the phase purposes defined in `docs/map-editor/MAP_EDITOR_PHASE_GOALS.md`.
+
+The required order is:
+
+`Foundation Audit → Stable Editor Core → MapDocument & Serialization → Persistence Foundation → Save Slots & Load → Derived Projections → Terrain/Environment/World Integration → Full Authoring Features → Verification/Release`.
+
+A later phase must not be used to bypass an unresolved earlier-phase foundation problem. Existing code, database rows, RPCs, and previous implementation progress are evidence to audit; they are not proof that a phase is complete.
+
+All roadmap checklists/checkmarks are intentionally reset whenever a new foundation audit cycle begins. Phase progress must be established again through evidence, not assumed from previous work.
+
+If implementation reveals that the roadmap itself is incorrect, implementation must pause. The roadmap and phase-goals document must be revised first, then the change recorded in both project logs.
+
+## 17. Roadmap compliance rule
+
+Every implementation task must identify the active roadmap phase before code or database changes are made. Work must satisfy that phase's purpose and gate.
+
+A change that belongs to a later phase is not to be implemented early merely because it appears convenient. If a later-phase change is necessary to diagnose the current phase, it must be explicitly marked as diagnostic work and must not silently become production architecture.
+
+The roadmap is therefore a mandatory construction order, not merely a progress tracker.
