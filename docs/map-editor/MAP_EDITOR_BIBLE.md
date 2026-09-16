@@ -20,6 +20,7 @@ The Map Editor is the authoring tool used to create, inspect, modify, version, s
 8. **Editor UX and persistence are separate concerns.** Canvas rendering/history must not depend on a successful network request.
 9. **No silent data loss.** Load, merge, version conflict, or validation failure must not overwrite the current local document without an explicit successful result.
 10. **Documentation precedes architectural churn.** Do not change database architecture, editor state architecture, or persistence contracts merely to patch a symptom.
+11. **Every implementation update is traceable.** Repository/database changes must be recorded in both the detailed Change Log and the short Status Log.
 
 ## 3. User-facing capabilities
 
@@ -167,6 +168,17 @@ The Map Editor persistence system is considered complete only when all of the fo
 - derived projections can be rebuilt from the authoritative snapshot;
 - a refresh does not destroy persisted data.
 
-## 14. Change rule
+## 14. Documentation and change-control rule
 
-Before changing persistence schema or editor state architecture, update this Bible and the technical specification with the reason, invariant affected, migration plan, and rollback plan.
+Every project update that changes repository code, database schema/data contract, RPC behavior, assets, configuration, or documented architecture **must update these two records in the same work session**:
+
+1. `docs/map-editor/MAP_EDITOR_CHANGELOG.md` — detailed record of what was added, changed, removed, restored, reverted, or fixed.
+2. `docs/map-editor/MAP_EDITOR_STATUS_LOG.md` — short record of the update date/time, status, and affected changes.
+
+The detailed Change Log is append-only. The Status Log remains concise. Documentation-only updates are also recorded so the project history remains traceable.
+
+If an implementation change is reverted, both logs must record the reversion. If a database or architecture change is planned but not yet applied, record it as planned rather than describing it as completed.
+
+## 15. Change rule
+
+Before changing persistence schema or editor state architecture, update this Bible and the technical specification with the reason, invariant affected, migration plan, and rollback plan. After the change, update the Change Log and Status Log in the same work session.
