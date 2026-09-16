@@ -124,3 +124,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Supabase audit completed. Current final approved terrain staging set is empty because the discovered records contain status mismatches.
 - **Notes:** Examples include `Mountains v6 Snow` (binding approved, registry pending) and `tile_grass.png`, `tile_dirt.png`, `tile_pavement.png` (registry approved, binding needs_review). No binary terrain asset was activated or promoted.
+
+## 2026-09-16 — Save/Load contract created
+
+- **Type:** Added
+- **Reason:** Establish an implementation-independent contract before repairing Save/Load behavior.
+- **Details:** Defined identity, MapDocument, serialization, Quick Save, Save Slot, Load Latest, Load Slot, error boundaries, atomicity, concurrency, projection separation, and verification requirements.
+- **Affected:** `docs/map-editor/MAP_EDITOR_SAVE_LOAD_CONTRACT.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Documentation committed to GitHub.
+- **Notes:** No runtime Save/Load code was changed. The contract requires explicit error stages rather than collapsing failures into a generic save error.
