@@ -8,6 +8,14 @@
 
 The Map Editor is the authoring tool used to create, inspect, modify, version, save, load, and validate maps used by Vandrith. It must let a designer work visually while preserving a deterministic, versioned map document that can be projected into gameplay-oriented database structures.
 
+The editor is intentionally designed for three map scales:
+
+1. **World Map** — macro world geography and high-level relationships.
+2. **Kingdom/Region Map** — regional geography, territory, settlements, routes, and regional points of interest.
+3. **Playable Map** — detailed gameplay spaces directly traversed by the player.
+
+These are three authoring scales within one Map Editor architecture, not three unrelated persistence systems.
+
 ## 2. Core principles
 
 1. **The map document is the source of truth for editor state.**
@@ -21,6 +29,8 @@ The Map Editor is the authoring tool used to create, inspect, modify, version, s
 9. **No silent data loss.** Load, merge, version conflict, or validation failure must not overwrite the current local document without an explicit successful result.
 10. **Documentation precedes architectural churn.** Do not change database architecture, editor state architecture, or persistence contracts merely to patch a symptom.
 11. **Every implementation update is traceable.** Repository/database changes must be recorded in both the detailed Change Log and the short Status Log.
+12. **Roadmap order is mandatory.** Implementation must follow the active Master Roadmap phase and its Phase Goal; later-phase work may not bypass an unresolved earlier-phase gate.
+13. **Asset storage is separate from asset usage.** Storing an asset does not make it active or approved for runtime/editor use.
 
 ## 3. User-facing capabilities
 
@@ -34,7 +44,17 @@ The Map Editor is the authoring tool used to create, inspect, modify, version, s
 - Undo/Redo.
 - Terrain inspection and environment diagnostics.
 
-### 3.2 Persistence
+### 3.2 Three map scales
+
+**World Map** must support macro geography, major land/water features, kingdom/region anchors, major routes/connections, labels/metadata, and world coordinate context.
+
+**Kingdom/Region Map** must support regional terrain, boundaries, settlements, roads/rivers/routes, regional POIs, resource/activity anchors, and explicit links to playable locations.
+
+**Playable Map** must support fine terrain, objects/buildings, collision/walkability, navigation, geometry/footprints, gameplay anchors, and local environment context.
+
+All three scales use the same MapDocument, identity, version, save-slot, ownership, and serialization foundations. Scale-specific tools and validation are capability profiles rather than separate editors.
+
+### 3.3 Persistence
 
 The editor must support:
 
@@ -47,19 +67,23 @@ The editor must support:
 
 ## 4. Map identity
 
-A Map Editor session must operate on one explicit `map_id`. The editor must never confuse:
+A Map Editor session must operate on one explicit `map_id` and one explicit `map_type`.
+
+The editor must never confuse:
 
 - World Map identity,
+- Kingdom/Region Map identity,
+- Playable Map identity,
 - Region/location identity,
 - Map document identity,
 - Version identity,
 - Save-slot identity.
 
-A map can belong to a world and optionally reference location, settlement, or building context. Those relationships are metadata; they do not replace `map_id` as the persistence identity.
+World → Region and Region → Playable relationships are explicit metadata/references. They must not be inferred from screen position or dimensions.
 
 ## 5. Editor document
 
-The canonical editor document is the `MapDocument` object. It contains map identity, dimensions, tile size, layers, and editor entities required to reconstruct the visual map.
+The canonical editor document is the `MapDocument` object. It contains map identity, map type, dimensions, tile size, layers, and editor entities required to reconstruct the visual map.
 
 The repository currently serializes it with schema `vandrith.map-document`, payload version `1`, and a nested `document` object. The serializer validates identity, positive dimensions/tile size, and the presence of layers.
 
@@ -143,7 +167,17 @@ The Map Editor is not responsible for:
 - treating derived projections as the canonical editor document;
 - silently resolving version conflicts by discarding another version.
 
-## 12. Current known issue baseline
+## 12. Asset library rule
+
+Assets are stored in a dedicated repository library under `assets/`, divided by system such as `map-editor`, `life-build`, `inventory`, `characters`, `environment`, `weapons`, `objects`, `ui`, `effects`, `vehicles`, `animations`, `animals`, and `shared`.
+
+The asset library is a **staging/storage boundary**. Assets are not automatically imported, bundled, or referenced because they exist there.
+
+Every asset intended for use must retain provenance, license/credit information, approval state, and intended consumer/scale. Map Editor assets must distinguish World Map, Region Map, and Playable Map use where relevant.
+
+Original source packages must be preserved separately from normalized/staged assets. Unverified or missing-credit material must not be silently promoted to approved status.
+
+## 13. Current known issue baseline
 
 As of the September 16, 2026 debugging session:
 
@@ -151,7 +185,7 @@ As of the September 16, 2026 debugging session:
 - The UI also reported `save error` after the save/load-v4 experiment.
 - Therefore the next implementation work must first restore stable canvas behavior, then isolate the actual persistence/RPC error, without changing the core editor architecture again.
 
-## 13. Definition of done
+## 14. Definition of done
 
 The Map Editor persistence system is considered complete only when all of the following are demonstrated:
 
@@ -166,11 +200,13 @@ The Map Editor persistence system is considered complete only when all of the fo
 - stale-version behavior is deterministic;
 - authentication/ownership failures are safe;
 - derived projections can be rebuilt from the authoritative snapshot;
-- a refresh does not destroy persisted data.
+- a refresh does not destroy persisted data;
+- World, Region, and Playable map identities and relationships remain deterministic;
+- asset storage cannot accidentally activate unapproved assets.
 
-## 14. Documentation and change-control rule
+## 15. Documentation and change-control rule
 
-Every project update that changes repository code, database schema/data contract, RPC behavior, assets, configuration, or documented architecture **must update these two records in the same work session**:
+Every project update that changes repository code, database schema/data contract, RPC behavior, assets, asset storage, configuration, or documented architecture **must update these two records in the same work session**:
 
 1. `docs/map-editor/MAP_EDITOR_CHANGELOG.md` — detailed record of what was added, changed, removed, restored, reverted, or fixed.
 2. `docs/map-editor/MAP_EDITOR_STATUS_LOG.md` — short record of the update date/time, status, and affected changes.
@@ -179,28 +215,18 @@ The detailed Change Log is append-only. The Status Log remains concise. Document
 
 If an implementation change is reverted, both logs must record the reversion. If a database or architecture change is planned but not yet applied, record it as planned rather than describing it as completed.
 
-## 15. Change rule
+## 16. Roadmap governance
+
+The Master Roadmap and Phase Goals are mandatory construction controls.
+
+- Work must follow the active phase.
+- A later phase may not be implemented merely because it appears convenient or because a later-phase bug is visible.
+- A phase cannot be marked complete from code existence alone; it requires its defined evidence/gate.
+- If audit evidence shows that the roadmap is wrong, implementation pauses. The roadmap and Phase Goals are revised first, then both logs are updated.
+- After a roadmap reset, previous checkmarks are historical context only and do not constitute current completion evidence.
+
+## 17. Change rule
 
 Before changing persistence schema or editor state architecture, update this Bible and the technical specification with the reason, invariant affected, migration plan, and rollback plan. After the change, update the Change Log and Status Log in the same work session.
 
-## 16. Roadmap authority and mandatory implementation order
-
-The Map Editor must be implemented according to `docs/map-editor/MAP_EDITOR_ROADMAP.md` and the phase purposes defined in `docs/map-editor/MAP_EDITOR_PHASE_GOALS.md`.
-
-The required order is:
-
-`Foundation Audit → Stable Editor Core → MapDocument & Serialization → Persistence Foundation → Save Slots & Load → Derived Projections → Terrain/Environment/World Integration → Full Authoring Features → Verification/Release`.
-
-A later phase must not be used to bypass an unresolved earlier-phase foundation problem. Existing code, database rows, RPCs, and previous implementation progress are evidence to audit; they are not proof that a phase is complete.
-
-All roadmap checklists/checkmarks are intentionally reset whenever a new foundation audit cycle begins. Phase progress must be established again through evidence, not assumed from previous work.
-
-If implementation reveals that the roadmap itself is incorrect, implementation must pause. The roadmap and phase-goals document must be revised first, then the change recorded in both project logs.
-
-## 17. Roadmap compliance rule
-
-Every implementation task must identify the active roadmap phase before code or database changes are made. Work must satisfy that phase's purpose and gate.
-
-A change that belongs to a later phase is not to be implemented early merely because it appears convenient. If a later-phase change is necessary to diagnose the current phase, it must be explicitly marked as diagnostic work and must not silently become production architecture.
-
-The roadmap is therefore a mandatory construction order, not merely a progress tracker.
+Before introducing or promoting an asset, verify its provenance/license and approval state and record the asset-library change in the Change Log and Status Log.
