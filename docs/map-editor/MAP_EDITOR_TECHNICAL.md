@@ -1,13 +1,23 @@
 # Vandrith Map Editor — Technical Architecture
 
 **Document status:** Technical baseline / living specification  
-**Scope:** Frontend, persistence, Supabase, versioning, projection, and testing.
+**Scope:** Frontend, persistence, Supabase, versioning, projection, three-map architecture, and testing.
 
 ## 1. Architecture rule
 
 The editor is a client-side authoring application backed by Supabase persistence. Rendering/history must be decoupled from network persistence.
 
+The same technical foundation serves three map scales:
+
 ```text
+World Map
+   │
+   ├── Region / Kingdom Map
+   │      │
+   │      └── Playable Map
+   │
+   └── explicit map references / metadata
+
 UI tools
    ↓
 EditorShell
@@ -18,10 +28,28 @@ Persistence controller
    ↓
 Supabase RPC / authoritative tables
    ↓
-Derived projections
+Derived projections / runtime consumers
 ```
 
-## 2. Frontend state
+A map's scale is represented by an explicit semantic `map_type` (`world`, `region`, `playable`). It must not be inferred from dimensions, UI layout, or asset choice.
+
+## 2. Map-scale technical contract
+
+### World Map
+
+The World Map is a macro authoring surface. Its canonical document may contain broad terrain/geography, major route/link data, kingdom/region anchors, major POIs, labels, and coordinate metadata. Fine playable collision and detailed object geometry are not mandatory at this scale unless explicitly required by a future contract.
+
+### Kingdom / Region Map
+
+The Region Map is a regional authoring surface. It may contain regional terrain, political boundaries, roads/rivers/passes, settlements, regional POIs, resource/activity anchors, and explicit references to playable locations.
+
+### Playable Map
+
+The Playable Map is the highest-fidelity authoring surface. It must support tile-level terrain, objects/buildings, collision/walkability, navigation, geometry/footprints, and approved gameplay anchors.
+
+All three use the same `MapDocument`, serialization boundary, authoritative version model, save-slot model, and ownership rules. Scale-specific tools and validation are capability profiles over the same core rather than separate editors.
+
+## 3. Frontend state
 
 ### Canonical local state
 
@@ -42,7 +70,7 @@ Do **not** use a comparison such as `initialDocument !== document` as a continuo
 
 Only the latter events may replace the history root.
 
-## 3. Serialization
+## 4. Serialization
 
 Current serializer contract:
 
@@ -55,7 +83,7 @@ The parser must reject unsupported schema/version, incomplete identity, invalid 
 
 Serialization is the compatibility boundary between editor memory and persisted snapshots.
 
-## 4. Persistence layers
+## 5. Persistence layers
 
 There are three conceptual persistence layers.
 
@@ -72,7 +100,7 @@ There are three conceptual persistence layers.
 
 `map_cells`, `map_objects`, `map_object_geometry`, navigation data, and runtime snapshots are derived representations.
 
-## 5. RPC boundary
+## 6. RPC boundary
 
 Browser code must call controlled RPCs for operations requiring ownership, atomicity, or version validation.
 
@@ -87,7 +115,7 @@ Known Map Editor persistence contracts include:
 
 The client must treat RPC responses as structured results and expose server errors rather than hiding them behind a generic save failure.
 
-## 6. Save algorithm
+## 7. Save algorithm
 
 ```text
 Save(document)
@@ -110,7 +138,7 @@ A slot save adds:
 12. return slot confirmation
 ```
 
-## 7. Load algorithm
+## 8. Load algorithm
 
 ### Load Latest
 
@@ -137,7 +165,7 @@ resolve map + slot
 
 The loaded snapshot must not be merged into the current document by reference mutation.
 
-## 8. Conflict handling
+## 9. Conflict handling
 
 The repository contains a three-way merge controller that compares:
 
@@ -149,7 +177,7 @@ If the remote version changed or merge conflicts exist, the result must be `conf
 
 Conflict handling must never silently choose a winner.
 
-## 9. Derived projection
+## 10. Derived projection
 
 After an authoritative merge/save, reconciliation may:
 
@@ -161,15 +189,17 @@ After an authoritative merge/save, reconciliation may:
 
 The current reconciliation function explicitly describes `map_cells` as a projection of the authoritative MapDocument ground layer and treats the full-fidelity snapshot/version as authoritative.
 
-## 10. Database ownership and security
+Projection behavior may vary by map type, but the source remains the authoritative MapDocument. World maps primarily project high-level geographic/link data; region maps project regional geography/routes/POIs; playable maps project detailed cells, objects, geometry, navigation, and runtime data.
+
+## 11. Database ownership and security
 
 Every persistence RPC must validate `auth.uid()` and map ownership server-side.
 
-The client may cache `map_id`, version number, and slot metadata, but those values are not authorization credentials.
+The client may cache `map_id`, version number, map type, and slot metadata, but those values are not authorization credentials.
 
 A missing session must produce an authentication state, not a fake map or silent local-only save success.
 
-## 11. Error taxonomy
+## 12. Error taxonomy
 
 Use structured errors where possible:
 
@@ -181,6 +211,7 @@ VERSION_REQUIRED
 VERSION_CONFLICT
 INVALID_SNAPSHOT
 INVALID_SLOT
+INVALID_MAP_TYPE
 RPC_FAILURE
 NETWORK_FAILURE
 VALIDATION_FAILURE
@@ -189,7 +220,7 @@ LOAD_FAILURE
 
 The UI may present friendly messages, but diagnostics should preserve the underlying error code/message.
 
-## 12. Canvas stability requirements
+## 13. Canvas stability requirements
 
 The Pixi canvas must obey these rules:
 
@@ -200,11 +231,11 @@ The Pixi canvas must obey these rules:
 - loading explicitly replaces the document once;
 - terrain/environment diagnostics must not mutate the map document merely by being displayed.
 
-## 13. Save-state machine
+## 14. Save-state machine
 
 ```text
           ┌─────────────┐
-          │   DISCONNECTED│
+          │ DISCONNECTED│
           └──────┬──────┘
                  │ auth/map resolved
                  ▼
@@ -227,7 +258,7 @@ The Pixi canvas must obey these rules:
 Conflict is a separate terminal result for the attempted save and requires an explicit resolution flow.
 ```
 
-## 14. Load-state machine
+## 15. Load-state machine
 
 ```text
 READY → LOADING → SUCCESS → READY
@@ -236,7 +267,7 @@ READY → LOADING → SUCCESS → READY
 
 While loading, the current document must remain intact until a valid snapshot has been received and parsed.
 
-## 15. Testing matrix
+## 16. Testing matrix
 
 ### Editor state
 
@@ -250,6 +281,17 @@ While loading, the current document must remain intact until a valid snapshot ha
 - create/apply stamp;
 - copy/paste;
 - verify no flicker.
+
+### Map-scale tests
+
+- create/open World Map;
+- create/open Region Map;
+- create/open Playable Map;
+- verify `map_type` remains stable through save/load;
+- verify World → Region references;
+- verify Region → Playable references;
+- verify scale-specific validation does not alter canonical document semantics;
+- verify a Playable Map can use detailed projections without requiring them for World Map authoring.
 
 ### Persistence
 
@@ -275,9 +317,12 @@ While loading, the current document must remain intact until a valid snapshot ha
 - geometry synchronization;
 - orphan geometry cleanup;
 - navigation rebuild;
-- runtime snapshot update.
+- runtime snapshot update;
+- World Map high-level link projection;
+- Region Map route/POI projection;
+- Playable Map detailed cell/object/navigation projection.
 
-## 16. Debug protocol for future bugs
+## 17. Debug protocol for future bugs
 
 When Save/Load fails, do not immediately change architecture.
 
@@ -288,23 +333,26 @@ Collect in this order:
 3. browser status text;
 4. authenticated session state;
 5. resolved `map_id`;
-6. current authoritative version;
-7. exact RPC/function invoked;
-8. RPC error code/message;
-9. database row count for relevant map/slot;
-10. snapshot parse/validation result.
+6. resolved `map_type`;
+7. current authoritative version;
+8. exact RPC/function invoked;
+9. RPC error code/message;
+10. database row count for relevant map/slot;
+11. snapshot parse/validation result.
 
 Only after these are known should code be changed.
 
-## 17. Current implementation note
+## 18. Current implementation note
 
 The repository currently contains the editor shell, Pixi canvas, MapDocument serializer, conflict-save controller, Supabase persistence functions, and projection functions. The September 16, 2026 debugging session exposed two independent classes of problems: a frontend history-reset regression that caused canvas flicker, and an unresolved persistence `save error`. These must be debugged independently.
 
-## 18. Change management
+## 19. Change management
 
 Any change to:
 
 - `MapDocument` schema;
+- map type semantics;
+- World/Region/Playable relationships;
 - layer semantics;
 - version semantics;
 - save-slot semantics;
@@ -315,7 +363,7 @@ Any change to:
 
 must update this document and include a migration/backward-compatibility note.
 
-## 19. Technical definition of done
+## 20. Technical definition of done
 
 A release is persistence-safe only when:
 
@@ -326,4 +374,5 @@ A release is persistence-safe only when:
 - load does not occur from stale client-only state;
 - conflicts are surfaced explicitly;
 - derived tables can be regenerated from authoritative snapshots;
+- all three map types preserve identity and scale semantics;
 - failures are diagnosable from logs/status without guessing.
