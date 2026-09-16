@@ -24,3 +24,4 @@
 | 2026-09-16 | Roadmap made mandatory | Phase 0 — Foundation Audit | Bible now requires implementation to follow roadmap phase order; later phases cannot bypass unresolved foundation problems. |
 | 2026-09-16 | Three-map scope formalized | Phase 0 — Foundation Audit | Documented World Map, Kingdom/Region Map, and Playable Map as three scales sharing one editor architecture. |
 | 2026-09-16 | Asset staging structure created | Phase 0 — Foundation Audit | Added dedicated asset categories for Map Editor, Life Build, Inventory and other project systems plus source/documentation boundaries. Binary transfer is not yet verified. |
+| 2026-09-16 | Terrain whitelist audited | Phase 0 — Foundation Audit | Queried Supabase terrain/binding records and established the two-source approval rule. No terrain asset was promoted because current approval states are inconsistent. |
