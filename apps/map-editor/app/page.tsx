@@ -1,4 +1,4 @@
-import { MapEditorAppV3 } from "../components/map-editor-app-v3";
+import { MapEditorAppV4 } from "../components/map-editor-app-v4";
 import { MapEditorErrorBoundary } from "../components/map-editor-error-boundary";
 
 export default function Page() {
@@ -12,7 +12,7 @@ export default function Page() {
           -webkit-user-select: none;
         }
       `}</style>
-      <MapEditorAppV3 />
+      <MapEditorAppV4 />
     </MapEditorErrorBoundary>
   );
 }
