@@ -6,6 +6,7 @@
 
 | Date / Time | Status | Roadmap Phase | Update |
 |---|---|---|---|
+| 2026-09-17 | Pixi renderer lifecycle foundation repair | Phase 0 — Foundation Audit | Changed `PixiMapCanvas` to keep one Pixi `Application`/world container alive for the component lifetime and update the existing scene instead of recreating the canvas on every editor state change. Added async render cancellation and readiness gating. Automated build/test and browser/Vercel verification remain pending. |
 | 2026-09-17 | Foundation grid repair applied | Phase 0 — Foundation Audit | Replaced the hardcoded 240-cell layer allocation with the canonical `createEmptyCells(width, height)` boundary, validating positive integer dimensions and allocating exactly `width × height`. Added executable regression coverage for grid allocation and serialization. No Supabase, asset, or hierarchy changes. |
 | 2026-09-17 | Asset scope contract defined | Phase 0 — Foundation Audit | Defined explicit `world`, `region`, and `playable` asset scopes as a separate eligibility layer from approval. Proposed a dedicated many-to-many scope relation; no Supabase schema, scope assignments, or asset binaries changed. |
 | 2026-09-17 | Hierarchy persistence contract defined | Phase 0 — Foundation Audit | Audited the canonical World → Region → Playable → Interior model against the live `public.maps` semantics. Chose a separate Map Editor identity/hierarchy mapping layer so legacy `world`, `exterior`, and `interior` meanings remain unchanged. No Supabase schema/RPC or production map rows changed. |
