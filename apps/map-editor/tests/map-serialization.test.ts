@@ -15,6 +15,23 @@ describe("MapDocument serialization contract", () => {
     expect(parsed).toEqual(document);
   });
 
+  it("accepts the audited authoritative World Map identity shape", () => {
+    const document = {
+      ...createMap("world"),
+      id: "87ba34eb-5a75-42fa-8919-63e44b700c02",
+      name: "World Map",
+      mapType: "world" as const,
+      parentMapId: null,
+    };
+    const payload = JSON.stringify({
+      schema: MAP_DOCUMENT_SCHEMA,
+      version: MAP_DOCUMENT_VERSION,
+      document,
+    });
+
+    expect(parseMapDocument(payload, document.id)).toEqual(document);
+  });
+
   it("requires the canonical schema and version", () => {
     const document = createMap("world");
     const payload = JSON.parse(serializeMapDocument(document));
