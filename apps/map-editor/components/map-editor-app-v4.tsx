@@ -150,16 +150,10 @@ export function MapEditorAppV4() {
       if (cancelled) return;
       try {
         const binding = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
-        const assets = await client.from("asset_registry").select("id,name,status,license_registry_id").in("name", ["tile_grass.png","tile_sand.png","tile_dirt.png","tile_pavement.png","tile_water.png"]);
-        if (!binding.error && !assets.error) {
-          const transition: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
-          const base = loadTerrainAssetBindings((assets.data || []).flatMap((a: any) => {
-            const terrain = a.name === "tile_grass.png" ? "grass" : a.name === "tile_sand.png" ? "sand" : a.name === "tile_dirt.png" ? "dirt" : a.name === "tile_pavement.png" ? "pavement" : a.name === "tile_water.png" ? "water" : null;
-            return terrain && a.status === "approved" && a.license_registry_id ? [{ terrain_key: terrain, neighbor_mask: 255, asset_id: a.id, candidate_status: "approved", asset_status: a.status, autotile_capable: false, license_registry_id: a.license_registry_id }] : [];
-          }));
-          const all = [...transition.accepted, ...base.accepted]; const out: TerrainAssetBindingMap = {};
-          for (const b of all) { out[b.terrain] ??= {}; out[b.terrain]![b.mask] = b; }
-          setTerrainBindings(out); setTerrainStatus(`Terrain runtime · ${all.length}/256 · ${BUILD_MARKER}`);
+        if (!binding.error) {
+          const result: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
+          setTerrainBindings(result.bindings);
+          setTerrainStatus(`Terrain runtime · ${result.diagnostics.accepted}/256 · ${result.rejected} rejected · ${BUILD_MARKER}`);
         }
         await ensureConnection(client);
       } catch (e) { if (!cancelled) setStatus(`Connection failed: ${msg(e)}`); }
