@@ -41,6 +41,18 @@ The V4 `save()` calls `ensureConnection(client)` and then immediately reads `map
 ### F-012 — Runtime snapshot can be trusted before durable-version comparison
 `loadMapDocumentSnapshot()` accepts a found runtime snapshot after parsing and returns its `result.version_number` without comparing that version against the newest durable `map_versions` row. The Supabase runtime RPC likewise returns the runtime row directly when present and only falls back to durable history when the runtime row is absent. Database identity audits found the current stored rows internally consistent, but the read contract does not prove that a stale runtime cache cannot become authoritative if it exists with an older valid snapshot. This is a separate persistence-integrity gap from the concrete frontend state race in F-010.
 
+### F-013 — Load Latest does not validate loaded document identity against the requested map ID
+The V4 `adopt(client, mapId)` function calls `loadMapDocumentSnapshot(client, mapId)` and, if a document is returned, directly sets `maps`, `activeMapId`, and `baseDocument` from `loaded.document`; it does not assert `loaded.document.id === mapId`. This means the requested persistence target is not explicitly bound to the adopted document at the frontend load boundary. The existing three-way merge later checks IDs, but that is too late to serve as the Load identity gate.
+
+### F-014 — Load Slot has the same missing identity gate
+The V4 `loadSlot()` calls the requested map's Save Slot RPC, parses the returned snapshot, and directly adopts the parsed document. It sets `connectedMapId` to the requested map ID but does not verify `doc.id === id`. This can create a state in which the connected persistence target and the active document identity differ.
+
+### F-015 — Persistence loader does not cross-check snapshot identity against the requested map ID
+`loadMapDocumentSnapshot(client, mapId)` parses the runtime or durable snapshot but its parser only validates that the document has a non-empty `id`; it does not receive `mapId` as an expected identity and therefore cannot reject a validly shaped snapshot belonging to another map. The database RPCs enforce ownership and `map_id` at the row/query boundary, but the frontend canonical-load boundary should independently validate the returned document identity before adoption.
+
+### F-016 — Serializer validation is structural but not complete for the grid and requested-target contract
+`parseMapDocument()` validates schema/version, document identity presence, positive integer dimensions/tile size, and non-empty layers, but it does not validate layer IDs/kinds, layer cell counts against `width × height`, or equality between a caller's requested map ID and `document.id`. Those checks belong at the appropriate validation boundary rather than being inferred from later renderer or merge behavior.
+
 ## Current implementation evidence
 
 - Active page renders `MapEditorAppV4`.
@@ -54,6 +66,8 @@ The V4 `save()` calls `ensureConnection(client)` and then immediately reads `map
 - `saveWithConflictDetection()` performs remote load and three-way merge before the commit RPC.
 - `map_editor_commit_merge_v1` inserts a durable version and then invokes reconciliation; an unhandled reconciliation failure occurs inside the commit transaction boundary.
 - `map_editor_get_runtime_snapshot_v1` returns an existing runtime row without checking it against the newest durable version.
+- `parseMapDocument()` validates basic schema/document shape and dimensions but does not validate `document.id` against a requested persistence target or validate `cells.length === width × height`.
+- `adopt()` and `loadSlot()` currently adopt parsed documents without an explicit requested-ID equality check.
 
 ## Current database evidence
 
@@ -69,4 +83,5 @@ These findings are audit evidence, not permission to patch architecture. Each fi
 - Renderer lifecycle: audited; full Pixi application recreation on document changes is confirmed as a separate stability/performance defect.
 - Layer/grid dimension invariant: audited; F-008/F-009 are confirmed foundation defects.
 - Persistence failure boundary: audited at frontend and RPC-contract level; F-010/F-011/F-012 identified. Exact historical browser error instance is not available from the repository audit alone.
-- Remaining Phase 0 items: canonical load/save identity validation, terrain approval enforcement, focused reproduction tests, and final foundation gate.
+- Canonical load/save identity validation: audited; F-013/F-014/F-015/F-016 are confirmed validation-boundary defects.
+- Remaining Phase 0 items: terrain approval enforcement, focused reproduction tests, and final foundation gate.
