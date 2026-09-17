@@ -99,7 +99,8 @@ export function MapEditorAppV4() {
 
     const discoveredVersion = Number(loaded.result.version_number) || 0;
     if (discoveredVersion > 0) {
-      throw new Error(`Authoritative snapshot is not loadable · version ${discoveredVersion} · ${loaded.result.code || "snapshot-parse-or-read-failure"}`);
+      const detail = loaded.result.error ? ` · ${loaded.result.error}` : "";
+      throw new Error(`Authoritative snapshot is not loadable · version ${discoveredVersion} · ${loaded.result.code || "snapshot-parse-or-read-failure"}${detail}`);
     }
 
     const doc = fromRow(authoritative.data);
