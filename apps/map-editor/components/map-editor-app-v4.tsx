@@ -15,7 +15,8 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
-const BUILD_MARKER = "save-load-v4";
+const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
+const BUILD_MARKER = "save-load-v4-authoritative-world";
 const msg = (e: any) => e?.message || e?.error_description || e?.details || e?.hint || String(e || "unknown error");
 
 function fromRow(row: any): MapDocument {
@@ -61,11 +62,7 @@ export function MapEditorAppV4() {
     const raw = await p.commitResolvedMerge(mapId, 0, serializeResolvedMapSnapshot(doc), "map-editor-bootstrap-v4");
     const result = normalizeMergeCommitResponse(raw);
     if (result.status !== "committed") throw new Error(`bootstrap: ${result.status}`);
-    return {
-      version: Number(result.versionNumber) || 1,
-      projectionStatus: result.projectionStatus,
-      projectionError: result.projectionError,
-    };
+    return { version: Number(result.versionNumber) || 1, projectionStatus: result.projectionStatus, projectionError: result.projectionError };
   }, []);
 
   const adopt = useCallback(async (client: any, mapId: string) => {
@@ -87,55 +84,26 @@ export function MapEditorAppV4() {
     }
     if (active?.mapType !== "world") throw new Error("Only the persisted World Map can be saved in this phase");
 
-    const byId = active?.id && active.id !== seed.id
-      ? await client.from("maps").select("id,name,width,height,tile_size").eq("id", active.id).maybeSingle()
-      : { data: null, error: null };
-    if (byId.error) throw byId.error;
-    if (byId.data?.id) {
-      const id = byId.data.id as string;
-      const loaded = await loadMapDocumentSnapshot(client, id);
-      if (loaded.document) {
-        const connection = { mapId: id, document: loaded.document, version: Number(loaded.result.version_number) || 0 };
-        setConnectedMapId(id); setBaseDocument(loaded.document); setVersion(connection.version);
-        await refreshSlots(client, id);
-        setStatus(`Connected · version ${connection.version}`);
-        return connection;
-      }
-      const doc = fromRow(byId.data);
-      const boot = await bootstrap(client, doc, id);
-      const connection = { mapId: id, document: doc, version: boot.version };
-      setMaps(cur => cur.some(m => m.id === doc.id) ? cur : [...cur, doc]);
-      setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version); await refreshSlots(client, id); setStatus(`Connected · version ${boot.version}`);
+    const authoritative = await client.from("maps").select("id,name,width,height,tile_size,map_type,world_id").eq("id", AUTHORITATIVE_WORLD_MAP_ID).eq("world_id", WORLD_ID).eq("map_type", "world").maybeSingle();
+    if (authoritative.error) throw authoritative.error;
+    if (!authoritative.data?.id) throw new Error("Authoritative World Map is unavailable");
+
+    const id = authoritative.data.id as string;
+    const loaded = await loadMapDocumentSnapshot(client, id);
+    if (loaded.document) {
+      const connection = { mapId: id, document: loaded.document, version: Number(loaded.result.version_number) || 0 };
+      setMaps([loaded.document]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(loaded.document); setVersion(connection.version);
+      await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${connection.version}`);
       return connection;
     }
 
-    const latest = await client.from("maps").select("id,name,width,height,tile_size").eq("world_id", WORLD_ID).eq("map_type", "world").order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (latest.error) throw latest.error;
-    if (latest.data?.id) {
-      const id = latest.data.id as string;
-      const loaded = await loadMapDocumentSnapshot(client, id);
-      if (loaded.document) {
-        const connection = { mapId: id, document: loaded.document, version: Number(loaded.result.version_number) || 0 };
-        setConnectedMapId(id); setBaseDocument(loaded.document); setVersion(connection.version);
-        await refreshSlots(client, id); setStatus(`Connected · version ${connection.version}`);
-        return connection;
-      }
-      const doc = fromRow(latest.data);
-      const boot = await bootstrap(client, doc, id);
-      const connection = { mapId: id, document: doc, version: boot.version };
-      setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version); await refreshSlots(client, id); setStatus(`Connected · version ${boot.version}`);
-      return connection;
-    }
-
-    const doc = createMap("world");
-    const created = await client.from("maps").insert({ world_id: WORLD_ID, name: "World Map", map_type: "world", coordinate_mode: "square", width: doc.width, height: doc.height, tile_size: doc.tileSize, metadata: { editor_bootstrap: true } }).select("id,name,width,height,tile_size").single();
-    if (created.error) throw created.error;
-    const persisted = fromRow(created.data);
-    const boot = await bootstrap(client, persisted, persisted.id);
-    const connection = { mapId: persisted.id, document: persisted, version: boot.version };
-    setMaps([persisted]); setActiveMapId(persisted.id); setConnectedMapId(persisted.id); setBaseDocument(persisted); setVersion(boot.version); await refreshSlots(client, persisted.id); setStatus(`Connected · new map version ${boot.version}`);
+    const doc = fromRow(authoritative.data);
+    const boot = await bootstrap(client, doc, id);
+    const connection = { mapId: id, document: doc, version: boot.version };
+    setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version);
+    await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${boot.version}`);
     return connection;
-  }, [active, baseDocument, bootstrap, connectedMapId, refreshSlots, seed.id, version]);
+  }, [active, baseDocument, bootstrap, connectedMapId, refreshSlots, version]);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,13 +148,9 @@ export function MapEditorAppV4() {
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
       setConnectedMapId(connection.mapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, connection.mapId);
       const savedVersion = Number(result.version) || 1;
-      if (result.projectionStatus === "failed") {
-        setStatus(`Saved · version ${savedVersion} · projection failed: ${result.projectionError || "downstream projection failed"}`);
-      } else if (result.projectionStatus === "not_run") {
-        setStatus(`Saved · version ${savedVersion} · projection not run`);
-      } else {
-        setStatus(`Saved · version ${savedVersion} · projection committed`);
-      }
+      if (result.projectionStatus === "failed") setStatus(`Saved · version ${savedVersion} · projection failed: ${result.projectionError || "downstream projection failed"}`);
+      else if (result.projectionStatus === "not_run") setStatus(`Saved · version ${savedVersion} · projection not run`);
+      else setStatus(`Saved · version ${savedVersion} · projection committed`);
       return result;
     } catch (e) { setStatus(`Save failed: ${msg(e)}`); return null; }
     finally { setBusy(false); }
@@ -245,6 +209,6 @@ export function MapEditorAppV4() {
       </div>
       <EditorShell initialDocument={active} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
-    <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onClose={() => setShowSlots(false)} onSave={saveToSlot} onLoad={loadSlot} />
+    {showSlots && <SaveSlotsPanel slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
 }
