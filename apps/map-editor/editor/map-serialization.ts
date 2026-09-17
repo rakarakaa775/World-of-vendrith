@@ -2,12 +2,23 @@ import type { MapDocument } from './map-document';
 
 export const MAP_DOCUMENT_SCHEMA = 'vandrith.map-document';
 export const MAP_DOCUMENT_VERSION = 1 as const;
+const MAP_DOCUMENT_PARSER_MARKER = 'map-document-parser-v2';
 
 type SerializedMapDocument = {
   schema: typeof MAP_DOCUMENT_SCHEMA;
   version: typeof MAP_DOCUMENT_VERSION;
   document: MapDocument;
 };
+
+function requireIdentity(document: Partial<MapDocument>): asserts document is MapDocument {
+  const missing: string[] = [];
+  if (typeof document.id !== 'string' || document.id.trim() === '') missing.push('id');
+  if (typeof document.name !== 'string' || document.name.trim() === '') missing.push('name');
+  if (document.mapType !== 'world' && document.mapType !== 'region' && document.mapType !== 'playable') missing.push('mapType');
+  if (missing.length > 0) {
+    throw new Error(`${MAP_DOCUMENT_PARSER_MARKER}: Map document identity is incomplete; missing=${missing.join(',')}`);
+  }
+}
 
 export function serializeMapDocument(document: MapDocument): string {
   const payload: SerializedMapDocument = { schema: MAP_DOCUMENT_SCHEMA, version: MAP_DOCUMENT_VERSION, document };
@@ -23,9 +34,9 @@ export function parseMapDocument(value: string | MapDocument, requestedMapId?: s
   if (candidate.schema !== MAP_DOCUMENT_SCHEMA) throw new Error('Unsupported map document schema');
   if (candidate.version !== MAP_DOCUMENT_VERSION) throw new Error('Unsupported map document version');
   if (!candidate.document || typeof candidate.document !== 'object') throw new Error('Missing map document');
-  const document = candidate.document as MapDocument;
+  const document = candidate.document as Partial<MapDocument>;
   if (document.version !== MAP_DOCUMENT_VERSION) throw new Error('Unsupported document version');
-  if (!document.id || !document.name || !document.mapType) throw new Error('Map document identity is incomplete');
+  requireIdentity(document);
   if (requestedMapId && document.id !== requestedMapId) throw new Error('Loaded map identity does not match requested map');
   if (!Number.isInteger(document.width) || document.width <= 0) throw new Error('Map width must be a positive integer');
   if (!Number.isInteger(document.height) || document.height <= 0) throw new Error('Map height must be a positive integer');
