@@ -1,6 +1,6 @@
 # Map Editor Change Log Addendum — 2026-09-17 Authoritative World Routing
 
-This addendum records the detailed implementation entries for the F-006 bootstrap-duplication containment and cleanup work. The root `MAP_EDITOR_CHANGELOG.md` remains the historical governance log; this addendum preserves the technical detail without rewriting prior historical entries.
+This addendum records the detailed implementation entries for the F-006 bootstrap-duplication containment, cleanup work, and the follow-up Phase 0 hierarchy/persistence audit. The root `MAP_EDITOR_CHANGELOG.md` remains the historical governance log; this addendum preserves the technical detail without rewriting prior historical entries.
 
 ## 2026-09-17 — V4 persistence pinned to audited authoritative World Map
 
@@ -33,12 +33,24 @@ This addendum records the detailed implementation entries for the F-006 bootstra
 - **Verification:** Migration succeeded. Post-cleanup audit reports exactly 1 World Map for the audited world, 0 Region Maps, 0 Playable Maps, authoritative map `87ba34eb-5a75-42fa-8919-63e44b700c02` still present, 4 authoritative versions, 1 authoritative runtime snapshot, and 2 authoritative save slots. The unique partial index was re-queried and confirmed.
 - **Notes:** No asset binaries changed. No region/playable authoring data existed in the audited world and none was removed.
 
+## 2026-09-17 — Phase 0 map hierarchy/persistence caller audit
+
+- **Type:** Audited / Finding
+- **Reason:** Verify that the new one-World-Map database invariant is respected by the V4 authoring path before introducing Region/Playable persistence.
+- **Repository finding:** `map-editor-app-v4.tsx` now resolves persistence only against the explicit authoritative World Map ID and no longer selects a World Map by `created_at`. The current `MapBrowser` creates Region/Playable/Interior documents only in React memory and calls `onOpen()`; it does not persist child maps to Supabase. `map-manager.ts` likewise implements hierarchy as `MapDocument` relationships only.
+- **Database finding:** The live `public.maps` table currently supports `map_type` values `world`, `exterior`, and `interior`; it has no `parent_map_id` column. The current canonical `MapDocument`/Map Editor model uses logical `world`, `region`, and `playable` map types plus `parentMapId`/playable hierarchy fields. Therefore the repository's three-scale hierarchy cannot yet be persisted losslessly through the existing `maps` identity schema without an explicit mapping/contract decision.
+- **Live state:** Exactly 1 `world` map exists for `WORLD_ID = 3695d0b0-788e-42fa-9345-cc3197d0c94d`; the authoritative map has 4 versions, 1 runtime snapshot, 2 save slots, 48 `map_cells`, and no persisted objects/layers/connections/annotations. There are currently 0 Region and 0 Playable map rows.
+- **Constraint evidence:** All map-dependent foreign keys inspected point at `maps(id)`, mostly with `ON DELETE CASCADE`; there is currently no persisted hierarchy FK from a map to a parent map.
+- **Decision:** Do not add Region/Playable persistence or remap `maps.map_type` yet. The mismatch must first be resolved in the MapDocument/database contract and migration design, then implemented with tests. This keeps Phase 0 evidence separate from Phase 3 persistence implementation.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Repository files were re-fetched from `main`; live Supabase schema and rows were inspected after F-006 cleanup. No schema or data was changed by this audit.
+
 ## 2026-09-17 — F-006 cleanup status recorded
 
 - **Type:** Updated
-- **Reason:** Keep repository governance synchronized with the live Supabase cleanup.
-- **Details:** Added the cleanup result to `MAP_EDITOR_STATUS_LOG.md` and preserved the detailed dependency evidence in this addendum.
+- **Reason:** Keep repository governance synchronized with the live Supabase cleanup and follow-up audit.
+- **Details:** Added the cleanup result and hierarchy/persistence caller finding to `MAP_EDITOR_STATUS_LOG.md` and preserved detailed evidence in this addendum.
 - **Affected:** `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`, this addendum.
 - **Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** GitHub status-log update committed after the successful Supabase migration. Automated Map Editor tests and browser/Vercel verification remain separate gates.
-- **Notes:** The next foundation task should verify that all V4 callers respect the new one-World-Map database invariant and then continue the Phase 0 gate rather than introducing new authoring features early.
+- **Verification:** GitHub documentation update committed after the live audit. Automated Map Editor tests and browser/Vercel verification remain separate gates.
+- **Notes:** The next foundation task is to define the explicit database representation for World → Region → Playable → Interior before wiring child-map persistence.
