@@ -35,11 +35,28 @@ describe("Terrain asset approval contract", () => {
     expect(result.rejected).toBe(1);
   });
 
-  it("rejects a row whose asset is not approved, verified, or active", () => {
+  it("rejects a base terrain without an approved candidate", () => {
+    const result = loadTerrainAssetBindings([
+      { ...baseRow, candidate_status: "needs_review" },
+    ]);
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected).toBe(1);
+  });
+
+  it("rejects a row whose asset is not approved", () => {
     const result = loadTerrainAssetBindings([
       { ...baseRow, asset_status: "pending" },
     ]);
     expect(result.accepted).toHaveLength(0);
     expect(result.rejected).toBe(1);
+  });
+
+  it("rejects legacy verified and active asset statuses", () => {
+    const result = loadTerrainAssetBindings([
+      { ...baseRow, asset_status: "verified" },
+      { ...baseRow, asset_status: "active" },
+    ]);
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected).toBe(2);
   });
 });
