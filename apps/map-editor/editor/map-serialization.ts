@@ -23,6 +23,18 @@ function validateIdentity(document: Partial<MapDocument>): void {
   }
 }
 
+function requirePositiveInteger(value: unknown, label: 'width' | 'height' | 'tileSize'): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    const messages = {
+      width: 'Map width must be a positive integer',
+      height: 'Map height must be a positive integer',
+      tileSize: 'Tile size must be a positive integer',
+    } as const;
+    throw new Error(messages[label]);
+  }
+  return value;
+}
+
 export function serializeMapDocument(document: MapDocument): string {
   const payload: SerializedMapDocument = { schema: MAP_DOCUMENT_SCHEMA, version: MAP_DOCUMENT_VERSION, document };
   return JSON.stringify(payload, null, 2);
@@ -49,14 +61,9 @@ export function parseMapDocument(value: string | MapDocument, requestedMapId?: s
   validateIdentity(normalizedDocument);
   if (requestedMapId && normalizedDocument.id !== requestedMapId) throw new Error('Loaded map identity does not match requested map');
 
-  // Narrow numeric fields into local constants so TypeScript can retain the
-  // validation result across the subsequent arithmetic and array checks.
-  const width = normalizedDocument.width;
-  if (!Number.isInteger(width) || width <= 0) throw new Error('Map width must be a positive integer');
-  const height = normalizedDocument.height;
-  if (!Number.isInteger(height) || height <= 0) throw new Error('Map height must be a positive integer');
-  const tileSize = normalizedDocument.tileSize;
-  if (!Number.isInteger(tileSize) || tileSize <= 0) throw new Error('Tile size must be a positive integer');
+  const width = requirePositiveInteger(normalizedDocument.width, 'width');
+  const height = requirePositiveInteger(normalizedDocument.height, 'height');
+  requirePositiveInteger(normalizedDocument.tileSize, 'tileSize');
   const layers = normalizedDocument.layers;
   if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
   const expectedCellCount = width * height;
