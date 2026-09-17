@@ -27,10 +27,23 @@ export function resolveMapNavigationPersistence(
   return { connectedMapId: null, baseDocument: null, version: 0 };
 }
 
+/**
+ * Resolve the document that Save may publish after the asynchronous connection
+ * step. A World document with a stale/seed identity must not be published
+ * against the authoritative connection; in that case use the authoritative
+ * loaded document returned by the connection. Non-World documents remain
+ * rejected because this phase persists only the World Map.
+ */
 export function resolveSaveDocument(localDocument: MapDocument | undefined, connection: SaveConnection): MapDocument {
   if (!localDocument) throw new Error('No active map document');
-  if (localDocument.mapType !== 'world' || localDocument.id !== connection.mapId) {
+  if (localDocument.mapType !== 'world') {
     throw new Error('Active map is not the connected World Map');
+  }
+  if (localDocument.id !== connection.mapId) {
+    if (connection.document.mapType !== 'world' || connection.document.id !== connection.mapId) {
+      throw new Error('Connected World Map identity is invalid');
+    }
+    return connection.document;
   }
   return localDocument;
 }
