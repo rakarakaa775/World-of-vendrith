@@ -137,7 +137,7 @@
 
 - **Type:** Added
 - **Reason:** Create a single construction guide so future implementation follows the documented architecture rather than improvising from legacy code or symptoms.
--**Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
+- **Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
 - **Affected:** `docs/map-editor/BLUEPRINT.md`, `docs/map-editor/REQUIREMENTS.md`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Documentation committed to GitHub. No runtime code, Supabase schema, RPC, or asset binary was changed.
@@ -205,8 +205,8 @@
 
 ## 2026-09-17 — Focused test readiness audit recorded
 
--**Type:** Added
--**Reason:** Determine whether Phase 0 failure boundaries can be reproduced automatically before beginning foundation implementation.
+- **Type:** Added
+- **Reason:** Determine whether Phase 0 failure boundaries can be reproduced automatically before beginning foundation implementation.
 -**Details:** Audited `apps/map-editor/package.json`, `apps/map-editor/tsconfig.json`, and repository test-search results. The Map Editor package has only `dev`, `build`, and `start` scripts and no test-runner dependency or discovered test suite. Defined deterministic test seams for grid sizing/serialization, requested map identity, terrain approval, and Save connection/adoption state.
 -**Affected:** `apps/map-editor/package.json`, `apps/map-editor/tsconfig.json`, `MAP_EDITOR_FOUNDATION_AUDIT_2026-09-16.md`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
@@ -215,7 +215,7 @@
 
 ## 2026-09-17 — Focused test harness expanded
 
--**Type:** Added
+- **Type:** Added
 -**Reason:** Establish executable unit-test coverage around the audited foundation boundaries before runtime fixes.
 -**Details:** Added Vitest configuration and the Map Editor `test` script, grid/serialization foundation tests, requested-map identity contract tests, terrain approval boundary tests, and persistence autosaver tests. The identity tests intentionally expose the current missing requested-map guard rather than marking the defect as passing.
 -**Affected:** `apps/map-editor/package.json`, `apps/map-editor/vitest.config.ts`, `apps/map-editor/tests/map-document-grid.test.ts`, `apps/map-editor/tests/map-foundation-invariants.test.ts`, `apps/map-editor/tests/map-persistence-identity.test.ts`, `apps/map-editor/tests/terrain-asset-binding.test.ts`, `apps/map-editor/tests/map-persistence-autosaver.test.ts`.
@@ -225,7 +225,7 @@
 
 ## 2026-09-17 — Authoritative commit separated from projection failure
 
--**Type:** Changed / Fixed
+- **Type:** Changed / Fixed
 -**Reason:** The database commit RPC now distinguishes a durable `map_versions` commit from downstream projection/reconciliation failure. The frontend needed to preserve that distinction instead of treating the RPC result as a generic committed response.
 -**Details:** Extended the merge persistence response with `projection_status` and `projection_error`; exposed those fields through `ConflictSaveResult`; added regression coverage for successful projection, failed projection after authoritative commit, optimistic conflict, and missing commit metadata. Verified the live `map_editor_commit_merge_v1` definition after migration `separate_authoritative_commit_from_projection_failure` and confirmed the Map Editor test workflow passed on commit `e75bbdcec7a111852262511fbd98d5ef7d76a137` (run `35187622874`).
 -**Affected:** `apps/map-editor/editor/map-merge-persistence.ts`, `apps/map-editor/editor/map-merge-persistence-supabase.ts`, `apps/map-editor/editor/map-conflict-save-controller.ts`, `apps/map-editor/tests/map-merge-persistence.test.ts`, Supabase `map_editor_commit_merge_v1`.
@@ -235,7 +235,7 @@
 
 ## 2026-09-17 — V4 Quick Save projection-aware status
 
--**Type:** Changed / Fixed
+- **Type:** Changed / Fixed
 -**Reason:** The merge persistence contract now exposes projection outcome separately from authoritative commit success, so the V4 UI must not collapse a durable save with a downstream projection failure into a generic `Saved` message.
 -**Details:** Updated `map-editor-app-v4.tsx` bootstrap handling to preserve `projectionStatus` and `projectionError`. Quick Save now reports three explicit states after a committed version: projection committed, projection not run, or projection failed, while still preserving the authoritative version and document in editor state.
 -**Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
@@ -245,7 +245,7 @@
 
 ## 2026-09-17 — Asset scale-scope contract defined
 
--**Type:** Added / Changed
+- **Type:** Added / Changed
 -**Reason:** The Phase 0 asset audit confirmed that the current database records approval/provenance and asset capabilities but has no contractual mechanism to distinguish World, Region, and Playable eligibility.
 -**Details:** Added `MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, defining explicit `world`, `region`, and `playable` scopes, separating approval from scope eligibility, prohibiting inference from filenames/folders/categories/metadata, and specifying a future many-to-many scope relation. Updated `MAP_EDITOR_ASSET_APPROVAL.md` to reference the new contract. No existing asset received an automatic scope assignment.
 -**Affected:** `docs/map-editor/blueprint/MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, `docs/map-editor/blueprint/MAP_EDITOR_ASSET_APPROVAL.md`.
@@ -275,10 +275,20 @@
 
 ## 2026-09-17 — Save adopts authoritative document on seed identity mismatch
 
-- **Type:** Fixed
-- **Reason:** The bootstrap-conflict repair exposed the remaining identity race: Save captured the local bootstrap seed before `ensureConnection()` could adopt the authoritative World Map. If those IDs differ, the stale seed must never be sent to the authoritative merge boundary.
-- **Details:** Quick Save now preserves local edits only when the local document ID matches the resolved authoritative connection. When the IDs differ, it uses the already validated authoritative document returned by `ensureConnection()`. This keeps the identity guard strict while preventing a known bootstrap seed from being published as the connected World Map.
-- **Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
--**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Type:** Fixed
+-**Reason:** The bootstrap-conflict repair exposed the remaining identity race: Save captured the local bootstrap seed before `ensureConnection()` could adopt the authoritative World Map. If those IDs differ, the stale seed must never be sent to the authoritative merge boundary.
+-**Details:** Quick Save now preserves local edits only when the local document ID matches the resolved authoritative connection. When the IDs differ, it uses the already validated authoritative document returned by `ensureConnection()`. This keeps the identity guard strict while preventing a known bootstrap seed from being published as the connected World Map.
+-**Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
+**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** GitHub source update committed as `2fe13486d8c6f60ce5d2303228d98301a9d828f9`. Automated test/Vercel/browser verification remains pending.
 -**Notes:** No Supabase schema/RPC or asset binary changed. This is a frontend persistence-boundary correction.
+
+## 2026-09-17 — Authoritative snapshot diagnostics added
+
+-**Type:** Fixed
+-**Reason:** Browser testing still reported `snapshot-parse-or-read-failure` with an existing authoritative version. The previous persistence boundary discarded the actual runtime/durable parse or read error, preventing the next failure stage from being identified.
+-**Details:** Extended `RuntimeSnapshotResult` with an optional error detail and preserved the exact stage when runtime parsing fails, durable version reads fail, or durable snapshot parsing fails. V4 now includes that detail in the visible `Authoritative snapshot is not loadable` message instead of collapsing it to a generic code.
+-**Affected:** `apps/map-editor/editor/map-persistence.ts`, `apps/map-editor/components/map-editor-app-v4.tsx`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** GitHub commits `9e5728f2ad9e1b341c821237142c0153ef3f68fb` and `98bdfe9f6523291021997332e9b176c2128d24be`. Supabase schema/data unchanged. Browser/Vercel verification remains pending.
+-**Notes:** The live authoritative version 4 was independently inspected and its stored payload currently satisfies the visible serializer invariants: schema `vandrith.map-document`, payload/document version `1`, World Map identity, 20×12 dimensions, tile size 32, 3 layers, and 240 cells per layer. The new diagnostic message is therefore the next required evidence boundary before any database repair is considered.
