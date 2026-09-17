@@ -7,7 +7,14 @@ export type BuildingCategory = 'house'|'shop'|'workshop'|'farm'|'warehouse'|'tow
 export type MapObject = { id:string; kind:'building'|'decoration'|'poi'; category:string; x:number; y:number; width:number; height:number; assetId:string; rotation:number; zIndex:number; collision:boolean; playableMapId?:string|null };
 export type MapLayer = { id:string; name:string; kind:MapLayerKind; visible:boolean; locked:boolean; active:boolean; cells:TileCell[]; objects:MapObject[] };
 export type MapDocument = { version:1; id:string; name:string; mapType:MapType; parentMapId:string|null; width:number; height:number; tileSize:number; layers:MapLayer[]; playableSpace?:PlayableSpaceType; parentPlayableMapId?:string|null };
-const layer=(id:string,name:string,kind:MapLayerKind,width:number,height:number,active=false):MapLayer=>({id,name,kind,visible:true,locked:false,active,cells:Array.from({length:width*height},()=>({tileId:null})),objects:[]});
+
+export const createEmptyCells = (width:number, height:number):TileCell[] => {
+  if (!Number.isInteger(width) || width <= 0) throw new Error('Map width must be a positive integer');
+  if (!Number.isInteger(height) || height <= 0) throw new Error('Map height must be a positive integer');
+  return Array.from({length:width * height},()=>({tileId:null}));
+};
+
+const layer=(id:string,name:string,kind:MapLayerKind,width:number,height:number,active=false):MapLayer=>({id,name,kind,visible:true,locked:false,active,cells:createEmptyCells(width,height),objects:[]});
 export const MAP_CAPABILITIES={world:{buildings:false,collision:false,terrainDetail:false,regions:true},region:{buildings:true,collision:false,terrainDetail:true,regions:false},playable:{buildings:true,collision:true,terrainDetail:true,regions:false}} as const;
 export const createMap=(mapType:MapType='playable',parentMapId:string|null=null,playableSpace:PlayableSpaceType='exterior',parentPlayableMapId:string|null=null):MapDocument=>({version:1,id:`${mapType}-map-${Date.now()}`,name:`${mapType[0].toUpperCase()+mapType.slice(1)} Map`,mapType,parentMapId,width:20,height:12,tileSize:32,layers:[layer('ground','Ground','ground',20,12,true),layer('objects','Objects','objects',20,12),layer('collision','Collision','collision',20,12)],...(mapType==='playable'?{playableSpace,parentPlayableMapId}: {})});
 export const createStarterMap=()=>createMap('playable');
