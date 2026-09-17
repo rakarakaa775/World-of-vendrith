@@ -2,7 +2,7 @@ import type { MapDocument } from './map-document';
 
 export const MAP_DOCUMENT_SCHEMA = 'vandrith.map-document';
 export const MAP_DOCUMENT_VERSION = 1 as const;
-const MAP_DOCUMENT_PARSER_MARKER = 'map-document-parser-v3';
+const MAP_DOCUMENT_PARSER_MARKER = 'map-document-parser-v4';
 
 type SerializedMapDocument = {
   schema: typeof MAP_DOCUMENT_SCHEMA;
@@ -58,6 +58,11 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
     id: rawDocument.id,
     name: rawDocument.name,
     mapType: rawDocument.mapType,
+    width: rawDocument.width,
+    height: rawDocument.height,
+    tileSize: rawDocument.tileSize,
+    layers: rawDocument.layers,
+    version: rawDocument.version,
   } as Partial<MapDocument>;
   if (normalizedDocument.version !== MAP_DOCUMENT_VERSION) throw new Error('Unsupported document version');
   validateIdentity(normalizedDocument);
@@ -65,7 +70,7 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
 
   const width = requirePositiveInteger(normalizedDocument.width, 'width');
   const height = requirePositiveInteger(normalizedDocument.height, 'height');
-  requirePositiveInteger(normalizedDocument.tileSize, 'tileSize');
+  const tileSize = requirePositiveInteger(normalizedDocument.tileSize, 'tileSize');
   const layers = normalizedDocument.layers;
   if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
   const expectedCellCount = width * height;
@@ -73,7 +78,18 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
     if (!layer || !Array.isArray(layer.cells)) throw new Error('Map layer cells are invalid');
     if (layer.cells.length !== expectedCellCount) throw new Error('Layer cell count must equal width × height');
   }
-  return normalizedDocument as MapDocument;
+
+  return {
+    ...normalizedDocument,
+    id: normalizedDocument.id,
+    name: normalizedDocument.name,
+    mapType: normalizedDocument.mapType,
+    width,
+    height,
+    tileSize,
+    layers,
+    version: MAP_DOCUMENT_VERSION,
+  } as MapDocument;
 }
 
 export function cloneMapDocument(document: MapDocument): MapDocument {
