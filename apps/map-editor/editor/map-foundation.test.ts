@@ -61,6 +61,22 @@ describe('MapDocument foundation invariants', () => {
     expect(parsed.mapType).toBe('world');
   });
 
+  it('rejects malformed persisted numeric fields at the parser boundary', () => {
+    const document = makePayload(7, 5);
+    const serialized = JSON.parse(serializeMapDocument(document)) as { document: Record<string, unknown> };
+
+    serialized.document.width = '7';
+    expect(() => parseMapDocument(serialized as never, document.id)).toThrow('Map width must be a positive integer');
+
+    serialized.document.width = 7;
+    serialized.document.height = 0;
+    expect(() => parseMapDocument(serialized as never, document.id)).toThrow('Map height must be a positive integer');
+
+    serialized.document.height = 5;
+    serialized.document.tileSize = 0;
+    expect(() => parseMapDocument(serialized as never, document.id)).toThrow('Tile size must be a positive integer');
+  });
+
   it('rejects a persisted layer whose cell count does not match width × height', () => {
     const document = makePayload(7, 5);
     document.layers[0].cells = createEmptyCells(20, 12);
