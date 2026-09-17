@@ -209,6 +209,6 @@ export function MapEditorAppV4() {
       </div>
       <EditorShell initialDocument={active} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
-    {showSlots && <SaveSlotsPanel slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
+    {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
 }
