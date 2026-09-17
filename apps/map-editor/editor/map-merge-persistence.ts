@@ -10,13 +10,15 @@ export type MergeCommitResponse = {
   projection_error: string | null;
 };
 
+export type MergeCommitRpcResponse = MergeCommitResponse | MergeCommitResponse[];
+
 export type MapMergePersistence = {
   commitResolvedMerge: (
     mapId: string,
     expectedVersion: number,
     snapshot: Record<string, unknown>,
     label?: string,
-  ) => Promise<MergeCommitResponse>;
+  ) => Promise<MergeCommitRpcResponse>;
 };
 
 export type MergeRpcInvoker = (args: {
@@ -24,7 +26,7 @@ export type MergeRpcInvoker = (args: {
   p_expected_version: number;
   p_snapshot: Record<string, unknown>;
   p_label: string;
-}) => Promise<MergeCommitResponse>;
+}) => Promise<MergeCommitRpcResponse>;
 
 export function createMapMergePersistence(invoker: MergeRpcInvoker): MapMergePersistence {
   return {
@@ -57,7 +59,7 @@ export type MergePersistenceCommit = {
  * Normalize both the table-RPC array form and the object form so the
  * editor does not mistake a successful commit for missing version data.
  */
-export function normalizeMergeCommitResponse(response: MergeCommitResponse | MergeCommitResponse[]): MergePersistenceCommit | MergePersistenceConflict {
+export function normalizeMergeCommitResponse(response: MergeCommitRpcResponse): MergePersistenceCommit | MergePersistenceConflict {
   const normalized = Array.isArray(response) ? response[0] : response;
   if (!normalized) throw new Error('Merge commit returned no result row');
 
