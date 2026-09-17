@@ -142,7 +142,9 @@ export function MapEditorAppV4() {
     setBusy(true); setStatus("Saving to Supabase…");
     try {
       const connection = await ensureConnection(client);
-      const current = resolveSaveDocument(localCurrent, connection);
+      const current = localCurrent.id === connection.mapId
+        ? resolveSaveDocument(localCurrent, connection)
+        : connection.document;
       let result: any;
       if (connection.version < 1) {
         const boot = await bootstrap(client, current, connection.mapId);
