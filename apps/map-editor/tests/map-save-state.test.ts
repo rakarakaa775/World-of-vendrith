@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "../editor/map-document";
-import { resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
+import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 
 describe("Map save state boundary", () => {
   it("uses the local document while taking baseline and version from the resolved connection", () => {
@@ -22,5 +22,32 @@ describe("Map save state boundary", () => {
     connection.document.id = local.id;
 
     expect(() => resolveSaveDocument(local, connection)).toThrow("Active map is not the connected World Map");
+  });
+
+  it("disconnects stale persistence context when navigation changes the map", () => {
+    const connected = createMap("world");
+    const next = createMap("world");
+    const state = {
+      connectedMapId: connected.id,
+      baseDocument: connected,
+      version: 8,
+    };
+
+    expect(resolveMapNavigationPersistence(next.id, state)).toEqual({
+      connectedMapId: null,
+      baseDocument: null,
+      version: 0,
+    });
+  });
+
+  it("keeps persistence context when navigation selects the already connected map", () => {
+    const connected = createMap("world");
+    const state = {
+      connectedMapId: connected.id,
+      baseDocument: connected,
+      version: 8,
+    };
+
+    expect(resolveMapNavigationPersistence(connected.id, state)).toBe(state);
   });
 });
