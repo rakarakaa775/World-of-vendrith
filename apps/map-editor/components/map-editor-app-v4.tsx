@@ -12,12 +12,11 @@ import { normalizeMergeCommitResponse } from "../editor/map-merge-persistence";
 import { parseMapDocument } from "../editor/map-serialization";
 import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
+import { resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const BUILD_MARKER = "save-load-v4";
 const msg = (e: any) => e?.message || e?.error_description || e?.details || e?.hint || String(e || "unknown error");
-
-type Connection = { mapId: string; document: MapDocument; version: number };
 
 function fromRow(row: any): MapDocument {
   const seed = createMap("world");
@@ -70,7 +69,7 @@ export function MapEditorAppV4() {
     return true;
   }, [refreshSlots]);
 
-  const ensureConnection = useCallback(async (client: any): Promise<Connection> => {
+  const ensureConnection = useCallback(async (client: any): Promise<SaveConnection> => {
     if (connectedMapId && active?.mapType === "world" && active.id === connectedMapId && baseDocument) {
       return { mapId: connectedMapId, document: baseDocument, version };
     }
@@ -164,13 +163,13 @@ export function MapEditorAppV4() {
     setBusy(true); setStatus("Saving to Supabase…");
     try {
       const connection = await ensureConnection(client);
-      if (!localCurrent || localCurrent.mapType !== "world" || localCurrent.id !== connection.mapId) throw new Error("Active map is not the connected World Map");
+      const current = resolveSaveDocument(localCurrent, connection);
       let result: any;
       if (connection.version < 1) {
-        const v = await bootstrap(client, localCurrent, connection.mapId);
-        result = { status: "committed", version: v, document: localCurrent };
+        const v = await bootstrap(client, current, connection.mapId);
+        result = { status: "committed", version: v, document: current };
       } else {
-        result = await saveWithConflictDetection(client, localCurrent, connection.document, connection.version);
+        result = await saveWithConflictDetection(client, current, connection.document, connection.version);
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
       setConnectedMapId(connection.mapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, connection.mapId); setStatus(`Saved · version ${Number(result.version) || 1}`); return result;
