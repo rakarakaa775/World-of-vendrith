@@ -14,7 +14,7 @@ export function serializeMapDocument(document: MapDocument): string {
   return JSON.stringify(payload, null, 2);
 }
 
-export function parseMapDocument(value: string | MapDocument): MapDocument {
+export function parseMapDocument(value: string | MapDocument, requestedMapId?: string): MapDocument {
   const payload: unknown = typeof value === 'string'
     ? JSON.parse(value)
     : { schema: MAP_DOCUMENT_SCHEMA, version: MAP_DOCUMENT_VERSION, document: value };
@@ -26,10 +26,16 @@ export function parseMapDocument(value: string | MapDocument): MapDocument {
   const document = candidate.document as MapDocument;
   if (document.version !== MAP_DOCUMENT_VERSION) throw new Error('Unsupported document version');
   if (!document.id || !document.name || !document.mapType) throw new Error('Map document identity is incomplete');
+  if (requestedMapId && document.id !== requestedMapId) throw new Error('Loaded map identity does not match requested map');
   if (!Number.isInteger(document.width) || document.width <= 0) throw new Error('Map width must be a positive integer');
   if (!Number.isInteger(document.height) || document.height <= 0) throw new Error('Map height must be a positive integer');
   if (!Number.isInteger(document.tileSize) || document.tileSize <= 0) throw new Error('Tile size must be a positive integer');
   if (!Array.isArray(document.layers) || document.layers.length === 0) throw new Error('Map must contain at least one layer');
+  const expectedCellCount = document.width * document.height;
+  for (const layer of document.layers) {
+    if (!layer || !Array.isArray(layer.cells)) throw new Error('Map layer cells are invalid');
+    if (layer.cells.length !== expectedCellCount) throw new Error('Layer cell count must equal width × height');
+  }
   return document;
 }
 
