@@ -194,3 +194,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Repository source and current Supabase function definitions audited. No runtime or database change made; exact historical browser error cannot be reconstructed from source alone.
 - **Notes:** The next implementation should separate connection/adoption from Save execution and make the authoritative load/version boundary explicit. Do not rewrite the merge RPC until a focused reproduction demonstrates an RPC-side failure.
+
+## 2026-09-17 — Terrain approval enforcement audit recorded
+
+- **Type:** Added
+- **Reason:** Verify that runtime terrain loading obeys the documented two-source asset whitelist before terrain implementation proceeds.
+- **Details:** Audited `MAP_EDITOR_ASSET_APPROVAL.md`, `terrain-asset-binding-loader.ts`, `terrain-asset-binding.ts`, and the V4 terrain bootstrap path. Confirmed two approval-boundary defects: the loader accepts `verified`/`active` asset statuses beyond the documented `approved` state, and its base-terrain path does not require an approved binding candidate. V4 also synthesizes base bindings directly from `asset_registry` without checking a matching approved binding candidate, creating a second approval path outside the whitelist.
+- **Affected:** `MAP_EDITOR_ASSET_APPROVAL.md`, `apps/map-editor/editor/terrain-asset-binding-loader.ts`, `apps/map-editor/editor/terrain-asset-binding.ts`, `apps/map-editor/components/map-editor-app-v4.tsx`, Supabase asset approval boundary.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Repository source audit completed against current `main`. No runtime, Supabase, or asset binary change made.
+- **Notes:** The documented final approved terrain staging set remains empty from the prior Supabase audit. The next step is focused reproduction tests and the final Phase 0 foundation gate; approval enforcement should be implemented only after that gate.
