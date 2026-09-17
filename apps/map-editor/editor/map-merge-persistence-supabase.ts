@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { serializeMapDocument } from './map-serialization';
-import { createMapMergePersistence, type MapMergePersistence } from './map-merge-persistence';
+import { createMapMergePersistence, normalizeMergeCommitResponse, type MapMergePersistence } from './map-merge-persistence';
 
 export function createSupabaseMapMergePersistence(client: SupabaseClient): MapMergePersistence {
   return createMapMergePersistence(async ({ p_map_id, p_expected_version, p_snapshot, p_label }) => {
@@ -11,7 +11,7 @@ export function createSupabaseMapMergePersistence(client: SupabaseClient): MapMe
       p_label,
     });
     if (error) throw error;
-    return data as Awaited<ReturnType<MapMergePersistence['commitResolvedMerge']>>;
+    return normalizeMergeCommitResponse(data as Awaited<ReturnType<MapMergePersistence['commitResolvedMerge']>>);
   });
 }
 
