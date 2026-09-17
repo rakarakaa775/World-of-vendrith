@@ -2,17 +2,7 @@
 
 **Purpose:** Short operational timeline of Map Editor updates.
 
-## Rules
-
-- Every repository or Supabase update must add one status entry.
-- Keep entries brief; detailed technical history belongs in `MAP_EDITOR_CHANGELOG.md`.
-- Record the update date/time, short status, and what changed.
-- If several changes are part of one implementation session, use one entry with concise bullets.
-- The status log must be updated together with the detailed changelog for every project update.
-- Roadmap changes must identify the active phase.
-- Asset changes must state whether storage structure changed and whether binary transfer was verified.
-
-## Format
+**Rules:** Every repository or Supabase update must add one status entry. Keep entries brief; detailed technical history belongs in `MAP_EDITOR_CHANGELOG.md`. Record the update date/time, short status, and what changed. The status log must be updated together with the detailed changelog for every project update. Roadmap changes must identify the active phase. Asset changes must state whether storage structure changed and whether binary transfer was verified.
 
 | Date / Time | Status | Roadmap Phase | Update |
 |---|---|---|---|
@@ -30,3 +20,4 @@
 | 2026-09-17 | Documentation tree moved and verified | Phase 0 — Foundation Audit | Moved the Map Editor Bible, Requirements, Database Contract, Save/Load Contract, Technical Architecture, Game Design, Roadmap, Phase Goals, Asset Approval, and Phase 0 audit documents into `docs/map-editor/blueprint/`. Changelog and Status Log remain at `docs/map-editor/` as required governance records. No runtime, Supabase, deployment, or binary asset changes. |
 | 2026-09-17 | State / identity audit completed | Phase 0 — Foundation Audit | Audited `activeMapId` vs `connectedMapId`, EditorShell history boundaries, map navigation, Load Slot identity validation, and local child-map persistence scope. No runtime or Supabase changes made; implementation target is an explicit map-open boundary. |
 | 2026-09-17 | Layer/grid dimension audit completed | Phase 0 — Foundation Audit | Confirmed the shared MapDocument layer constructor hardcodes 240 cells instead of deriving `width × height`. No runtime or Supabase changes made; implementation target is a centralized dimension-safe grid invariant plus validation/test coverage. |
+| 2026-09-17 | Persistence failure boundary audit completed | Phase 0 — Foundation Audit | Traced Quick Save through connection/adoption, remote snapshot load, merge, commit RPC, reconciliation, and runtime cache. Identified a concrete V4 state race before the merge RPC and a runtime-cache freshness gap. No runtime or Supabase changes made. |
