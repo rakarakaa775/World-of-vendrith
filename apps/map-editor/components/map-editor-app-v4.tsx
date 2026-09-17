@@ -12,7 +12,7 @@ import { normalizeMergeCommitResponse } from "../editor/map-merge-persistence";
 import { parseMapDocument } from "../editor/map-serialization";
 import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
-import { resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
+import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const BUILD_MARKER = "save-load-v4";
@@ -41,6 +41,14 @@ export function MapEditorAppV4() {
   const update = useCallback((next: MapDocument) => {
     setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
   }, []);
+
+  const openMap = useCallback((nextMapId: string) => {
+    const next = resolveMapNavigationPersistence(nextMapId, { connectedMapId, baseDocument, version });
+    setActiveMapId(nextMapId);
+    setConnectedMapId(next.connectedMapId);
+    setBaseDocument(next.baseDocument);
+    setVersion(next.version);
+  }, [baseDocument, connectedMapId, version]);
 
   const refreshSlots = useCallback(async (client: any, mapId: string) => {
     const { data, error } = await client.from("map_editor_save_slots").select("slot_number,label,version_number,updated_at").eq("map_id", mapId).order("slot_number");
@@ -220,7 +228,7 @@ export function MapEditorAppV4() {
   }, [ensureConnection, refreshSlots]);
 
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
-    <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={setActiveMapId} />
+    <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} />
     <div style={{ position: "relative", minHeight: 0 }}>
       <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 6, alignItems: "center", padding: 6, border: "1px solid #334155", borderRadius: 6, background: "#0f172a" }}>
         <button onClick={() => setShowSlots(true)} disabled={busy}>Save / Load</button>
