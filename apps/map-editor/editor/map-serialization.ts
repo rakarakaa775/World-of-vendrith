@@ -38,9 +38,6 @@ export function parseMapDocument(value: string | MapDocument, requestedMapId?: s
   if (candidate.version !== MAP_DOCUMENT_VERSION) throw new Error('Unsupported map document version');
   if (!candidate.document || typeof candidate.document !== 'object') throw new Error('Missing map document');
 
-  // Read persisted identity into local primitives before validation. This keeps
-  // the validation boundary independent from structural/type assertions and
-  // makes a contradictory runtime failure observable with the exact values.
   const rawDocument = candidate.document as Record<string, unknown>;
   const normalizedDocument = {
     ...rawDocument,
@@ -51,12 +48,19 @@ export function parseMapDocument(value: string | MapDocument, requestedMapId?: s
   if (normalizedDocument.version !== MAP_DOCUMENT_VERSION) throw new Error('Unsupported document version');
   validateIdentity(normalizedDocument);
   if (requestedMapId && normalizedDocument.id !== requestedMapId) throw new Error('Loaded map identity does not match requested map');
-  if (!Number.isInteger(normalizedDocument.width) || normalizedDocument.width <= 0) throw new Error('Map width must be a positive integer');
-  if (!Number.isInteger(normalizedDocument.height) || normalizedDocument.height <= 0) throw new Error('Map height must be a positive integer');
-  if (!Number.isInteger(normalizedDocument.tileSize) || normalizedDocument.tileSize <= 0) throw new Error('Tile size must be a positive integer');
-  if (!Array.isArray(normalizedDocument.layers) || normalizedDocument.layers.length === 0) throw new Error('Map must contain at least one layer');
-  const expectedCellCount = normalizedDocument.width * normalizedDocument.height;
-  for (const layer of normalizedDocument.layers) {
+
+  // Narrow numeric fields into local constants so TypeScript can retain the
+  // validation result across the subsequent arithmetic and array checks.
+  const width = normalizedDocument.width;
+  if (!Number.isInteger(width) || width <= 0) throw new Error('Map width must be a positive integer');
+  const height = normalizedDocument.height;
+  if (!Number.isInteger(height) || height <= 0) throw new Error('Map height must be a positive integer');
+  const tileSize = normalizedDocument.tileSize;
+  if (!Number.isInteger(tileSize) || tileSize <= 0) throw new Error('Tile size must be a positive integer');
+  const layers = normalizedDocument.layers;
+  if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
+  const expectedCellCount = width * height;
+  for (const layer of layers) {
     if (!layer || !Array.isArray(layer.cells)) throw new Error('Map layer cells are invalid');
     if (layer.cells.length !== expectedCellCount) throw new Error('Layer cell count must equal width × height');
   }
