@@ -86,6 +86,16 @@ without adding a future contract/schema layer.
 
 **Decision:** Do not infer map-scale eligibility from filename, folder, category, or free-form metadata. Do not alter the existing asset tables in this audit step. Define the asset-scope contract first, then design the migration/RPC boundary around that contract.
 
+## Asset Scope Contract — 2026-09-17
+
+The dedicated scale-eligibility contract is now defined in:
+
+`MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`
+
+The contract establishes three explicit scopes — `world`, `region`, and `playable` — and requires both approval eligibility and an explicit scope assignment before an asset can be used. It proposes a separate many-to-many scope relation rather than changing `asset_registry` or treating JSON metadata as authorization.
+
+No existing asset has been automatically assigned a scope. No Supabase scope table or scope assignments have been created by this contract step.
+
 ## Storage policy
 
 Approved assets are staged under:
@@ -98,10 +108,8 @@ Staging is separate from runtime usage. Adding an asset to this library must not
 
 ## Audit rule
 
-Whenever the Supabase asset registry, binding candidates, licensing status, or approved terrain set changes, update:
+Whenever the Supabase asset registry, binding candidates, licensing status, approved terrain set, or Map Editor asset-scope contract changes, update:
 
 - `MAP_EDITOR_ASSET_APPROVAL.md`
 - `MAP_EDITOR_CHANGELOG.md`
 - `MAP_EDITOR_STATUS_LOG.md`
-
-before continuing implementation.
