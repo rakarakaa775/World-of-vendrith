@@ -53,6 +53,12 @@ The V4 `loadSlot()` calls the requested map's Save Slot RPC, parses the returned
 ### F-016 — Serializer validation is structural but not complete for the grid and requested-target contract
 `parseMapDocument()` validates schema/version, document identity presence, positive integer dimensions/tile size, and non-empty layers, but it does not validate layer IDs/kinds, layer cell counts against `width × height`, or equality between a caller's requested map ID and `document.id`. Those checks belong at the appropriate validation boundary rather than being inferred from later renderer or merge behavior.
 
+### F-017 — Terrain binding loader accepts states outside the documented approval whitelist
+The documented asset approval boundary requires both `asset_registry.status = approved` and `asset_binding_candidates.candidate_status = approved`, with terrain category required for terrain staging. The current `terrain-asset-binding-loader.ts` instead treats asset status values `approved`, `verified`, or `active` as acceptable. Its full-autotile path requires `candidate_status = approved`, but its base-terrain path (`neighbor_mask === 255`) does not require `candidate_status = approved` at all. Therefore the loader can promote a registry-approved base terrain asset even when its binding candidate is `needs_review` or `pending`, which directly contradicts the Phase 0 whitelist. This is a confirmed implementation-boundary defect; no runtime change has been made yet.
+
+### F-018 — V4 creates a second terrain approval path outside the binding-candidate gate
+`map-editor-app-v4.tsx` separately queries `asset_registry` for the five named terrain files and synthesizes base bindings whenever the asset has `status === approved` and a license registry ID. Those synthesized rows are then combined with `transition.accepted` from the binding loader. Because this path does not query or require a matching approved binding candidate, it can reintroduce an asset that the whitelist has rejected even if the binding workbench correctly rejected its candidate. This duplicates approval logic in the UI and makes the loader's whitelist non-authoritative at runtime.
+
 ## Current implementation evidence
 
 - Active page renders `MapEditorAppV4`.
@@ -68,10 +74,12 @@ The V4 `loadSlot()` calls the requested map's Save Slot RPC, parses the returned
 - `map_editor_get_runtime_snapshot_v1` returns an existing runtime row without checking it against the newest durable version.
 - `parseMapDocument()` validates basic schema/document shape and dimensions but does not validate `document.id` against a requested persistence target or validate `cells.length === width × height`.
 - `adopt()` and `loadSlot()` currently adopt parsed documents without an explicit requested-ID equality check.
+- `terrain-asset-binding-loader.ts` accepts `approved`, `verified`, and `active` asset statuses, and its base-terrain path omits binding-candidate approval.
+- `map-editor-app-v4.tsx` synthesizes additional base bindings directly from `asset_registry` without checking binding-candidate approval.
 
 ## Current database evidence
 
-Supabase exposes the dedicated Save/Load and merge RPCs. The current database contains repeated World Map rows; the newest observed World Map has one durable version and zero slots, while older maps demonstrate that slots have been persisted historically. The latest function audit confirms the merge RPC, reconcile RPC, runtime snapshot RPC, and Save Slot/Load Slot RPCs are present with the contracts described above. No database change was made during this audit.
+Supabase exposes the dedicated Save/Load and merge RPCs. The current database contains repeated World Map rows; the newest observed World Map has one durable version and zero slots, while older maps demonstrate that slots have been persisted historically. The latest function audit confirms the merge RPC, reconcile RPC, runtime snapshot RPC, and Save Slot/Load Slot RPCs are present with the contracts described above. The current asset approval audit found inconsistent registry/candidate states and therefore no final approved terrain staging set. No database change was made during this audit.
 
 ## Phase 0 rule
 
@@ -84,4 +92,5 @@ These findings are audit evidence, not permission to patch architecture. Each fi
 - Layer/grid dimension invariant: audited; F-008/F-009 are confirmed foundation defects.
 - Persistence failure boundary: audited at frontend and RPC-contract level; F-010/F-011/F-012 identified. Exact historical browser error instance is not available from the repository audit alone.
 - Canonical load/save identity validation: audited; F-013/F-014/F-015/F-016 are confirmed validation-boundary defects.
-- Remaining Phase 0 items: terrain approval enforcement, focused reproduction tests, and final foundation gate.
+- Terrain approval enforcement: audited; F-017/F-018 confirm that runtime terrain loading has approval paths that are broader than the documented two-source whitelist.
+- Remaining Phase 0 items: focused reproduction tests and final foundation gate.
