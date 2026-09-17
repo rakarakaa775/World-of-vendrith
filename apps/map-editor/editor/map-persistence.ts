@@ -6,6 +6,7 @@ import { createCrashRecoveryJournal, type CrashRecoveryJournal } from './map-cra
 export type RuntimeSnapshotResult = {
   ok: boolean;
   code?: string;
+  error?: string;
   found?: boolean;
   id?: string;
   map_id?: string;
@@ -18,6 +19,13 @@ export type RuntimeSnapshotResult = {
 function normalizeRuntimeSnapshotResult(data: unknown): RuntimeSnapshotResult {
   if (Array.isArray(data)) return (data[0] ?? {}) as RuntimeSnapshotResult;
   return (data ?? {}) as RuntimeSnapshotResult;
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) return String((error as { message?: unknown }).message || 'unknown error');
+  return 'unknown error';
 }
 
 function parsePersistedSnapshot(snapshot: unknown, requestedMapId?: string): MapDocument {
@@ -46,12 +54,14 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
   const { data, error } = await client.rpc('map_editor_get_runtime_snapshot_v1', { p_map_id: mapId });
   if (error) throw error;
   const result = normalizeRuntimeSnapshotResult(data);
+  let runtimeParseError: string | undefined;
 
   if (result.ok && result.found && result.snapshot != null) {
     try {
       return { result, document: parsePersistedSnapshot(result.snapshot, mapId) };
-    } catch (runtimeParseError) {
-      console.warn('Runtime map snapshot parse failed; falling back to durable version', runtimeParseError);
+    } catch (error) {
+      runtimeParseError = errorMessage(error);
+      console.warn('Runtime map snapshot parse failed; falling back to durable version', error);
     }
   }
 
@@ -62,16 +72,53 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
     .order('version_number', { ascending: false })
     .limit(1);
 
-  if (versionError) throw versionError;
+  if (versionError) {
+    return {
+      result: {
+        ...result,
+        ok: false,
+        code: runtimeParseError ? 'runtime-parse-failed-durable-read-failed' : 'durable-read-failed',
+        error: errorMessage(versionError),
+      },
+      document: null,
+    };
+  }
+
   const latest = versionRows?.[0] as any;
-  if (!latest?.snapshot) return { result, document: null };
+  if (!latest?.snapshot) {
+    return {
+      result: {
+        ...result,
+        ok: false,
+        code: runtimeParseError ? 'runtime-parse-failed-no-durable-snapshot' : (result.code || 'NO_SNAPSHOT'),
+        error: runtimeParseError,
+      },
+      document: null,
+    };
+  }
 
   let document: MapDocument;
   try {
     document = parsePersistedSnapshot(latest.snapshot, mapId);
-  } catch (durableParseError) {
-    console.warn('Durable map snapshot parse failed', durableParseError);
-    return { result, document: null };
+  } catch (error) {
+    const durableParseError = errorMessage(error);
+    console.warn('Durable map snapshot parse failed', error);
+    return {
+      result: {
+        ...result,
+        ok: false,
+        found: true,
+        id: latest.id ?? result.id,
+        map_id: latest.map_id ?? mapId,
+        version_id: latest.id ?? result.version_id ?? null,
+        version_number: Number(latest.version_number) || 0,
+        updated_at: latest.created_at ?? result.updated_at,
+        snapshot: latest.snapshot,
+        code: runtimeParseError ? 'runtime-and-durable-parse-failed' : 'durable-parse-failed',
+        error: runtimeParseError ? `runtime: ${runtimeParseError}; durable: ${durableParseError}` : durableParseError,
+      },
+      document: null,
+    };
   }
 
   return {
@@ -86,6 +133,7 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
       updated_at: latest.created_at ?? result.updated_at,
       snapshot: latest.snapshot,
       code: 'durable-version-fallback',
+      error: runtimeParseError,
     },
     document,
   };
