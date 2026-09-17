@@ -101,7 +101,7 @@
 - **Reason:** Separate asset storage from application use and establish dedicated system categories.
 - **Details:** Added `assets/` with categories for Map Editor, Life Build, Inventory, Characters, Environment, Weapons, Objects, UI, Effects, Vehicles, Animations, Animals, Shared, Source, and Documentation. Added storage/approval rules and asset registry.
 - **Affected:** `assets/`, `assets/_documentation/ASSET_LIBRARY_REGISTRY.md`, `MAP_EDITOR_BIBLE.md`, roadmap/phase-goal documents.
-- **Roadmap phase:** Phase 0 — Foundation Audit.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Folder structure and registry committed. Binary asset transfer not yet verified through GitHub.
 -**Notes:** Supplied audited source packages remain the provenance baseline; no asset has been activated in application code.
 
@@ -236,10 +236,20 @@
 
 ## 2026-09-17 — V4 Quick Save projection-aware status
 
-- **Type:** Changed / Fixed
-- **Reason:** The merge persistence contract now exposes projection outcome separately from authoritative commit success, so the V4 UI must not collapse a durable save with a downstream projection failure into a generic `Saved` message.
-- **Details:** Updated `map-editor-app-v4.tsx` bootstrap handling to preserve `projectionStatus` and `projectionError`. Quick Save now reports three explicit states after a committed version: projection committed, projection not run, or projection failed, while still preserving the authoritative version and document in editor state.
-- **Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
-- **Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** Repository write succeeded as commit `d64c8f8dcc62e494ec7845bb9ad78e7f1158a417`. Browser/Vercel verification is still pending.
-- **Notes:** This closes the UI messaging portion of F-011 for Quick Save, but end-to-end browser verification and projection-failure recovery behavior remain open foundation work.
+-**Type:** Changed / Fixed
+-**Reason:** The merge persistence contract now exposes projection outcome separately from authoritative commit success, so the V4 UI must not collapse a durable save with a downstream projection failure into a generic `Saved` message.
+-**Details:** Updated `map-editor-app-v4.tsx` bootstrap handling to preserve `projectionStatus` and `projectionError`. Quick Save now reports three explicit states after a committed version: projection committed, projection not run, or projection failed, while still preserving the authoritative version and document in editor state.
+-**Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** Repository write succeeded as commit `d64c8f8dcc62e494ec7845bb9ad78e7f1158a417`. Browser/Vercel verification is still pending.
+-**Notes:** This closes the UI messaging portion of F-011 for Quick Save, but end-to-end browser verification and projection-failure recovery behavior remain open foundation work.
+
+## 2026-09-17 — Asset scale-scope contract defined
+
+- **Type:** Added / Changed
+- **Reason:** The Phase 0 asset audit confirmed that the current database records approval/provenance and asset capabilities but has no contractual mechanism to distinguish World, Region, and Playable eligibility.
+- **Details:** Added `MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, defining explicit `world`, `region`, and `playable` scopes, separating approval from scope eligibility, prohibiting inference from filenames/folders/categories/metadata, and specifying a future many-to-many scope relation. Updated `MAP_EDITOR_ASSET_APPROVAL.md` to reference the new contract. No existing asset received an automatic scope assignment.
+- **Affected:** `docs/map-editor/blueprint/MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, `docs/map-editor/blueprint/MAP_EDITOR_ASSET_APPROVAL.md`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** Repository documentation committed. Live Supabase schema was audited and confirmed to have no dedicated Map Editor asset-scope relation; no Supabase schema/RPC or asset binary changed.
+-**Notes:** The next step is migration/RLS design and an implementation-level audit. The contract does not authorize a schema migration or initial scope assignments.
