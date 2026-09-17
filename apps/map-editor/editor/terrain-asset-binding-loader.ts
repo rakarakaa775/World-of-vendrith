@@ -41,21 +41,18 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isApprovedAssetStatus(value: unknown): boolean {
-  return value === 'approved' || value === 'verified' || value === 'active';
+function isApprovedAssetStatus(value: unknown): value is 'approved' {
+  return value === 'approved';
 }
 
 /**
  * Converts rows from public.vandrith_asset_binding_workbench into the editor
  * binding registry without inventing asset IDs.
  *
- * Two audited cases are accepted:
- * 1. Full autotile bindings: approved candidate + active/verified asset +
- *    autotile-capable + license registry.
- * 2. Verified base terrain: mask 255 + approved/verified/active asset + a
- *    license registry. These are intentionally allowed even when the asset is
- *    not autotile-capable so the editor can render its real base texture while
- *    transition masks remain unbound and safely fall back to the base color.
+ * Every runtime binding must satisfy the documented two-source approval
+ * boundary: the asset itself is approved and the binding candidate is
+ * approved. Full autotile rows additionally require an autotile-capable asset.
+ * A base terrain is represented by mask 255 and may be non-autotile-capable.
  */
 export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoadResult {
   if (!Array.isArray(rows)) {
@@ -77,20 +74,17 @@ export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoad
     }
 
     const row = value as Partial<TerrainAssetBindingRow>;
-    const baseTerrain =
-      isTerrainKey(row.terrain_key) &&
-      row.neighbor_mask === 255 &&
-      isNonEmptyString(row.asset_id) &&
-      isApprovedAssetStatus(row.asset_status) &&
-      isNonEmptyString(row.license_registry_id);
-    const fullAutotile =
+    const approvedCandidate = row.candidate_status === 'approved';
+    const approvedAsset = isApprovedAssetStatus(row.asset_status);
+    const common =
       isTerrainKey(row.terrain_key) &&
       isValidMask(row.neighbor_mask) &&
       isNonEmptyString(row.asset_id) &&
-      row.candidate_status === 'approved' &&
-      isApprovedAssetStatus(row.asset_status) &&
-      row.autotile_capable === true &&
+      approvedCandidate &&
+      approvedAsset &&
       isNonEmptyString(row.license_registry_id);
+    const baseTerrain = common && row.neighbor_mask === 255;
+    const fullAutotile = common && row.autotile_capable === true;
 
     if (!baseTerrain && !fullAutotile) {
       rejected += 1;
