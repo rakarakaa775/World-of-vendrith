@@ -61,7 +61,11 @@ export function MapEditorAppV4() {
     const raw = await p.commitResolvedMerge(mapId, 0, serializeResolvedMapSnapshot(doc), "map-editor-bootstrap-v4");
     const result = normalizeMergeCommitResponse(raw);
     if (result.status !== "committed") throw new Error(`bootstrap: ${result.status}`);
-    return Number(result.versionNumber) || 1;
+    return {
+      version: Number(result.versionNumber) || 1,
+      projectionStatus: result.projectionStatus,
+      projectionError: result.projectionError,
+    };
   }, []);
 
   const adopt = useCallback(async (client: any, mapId: string) => {
@@ -98,10 +102,10 @@ export function MapEditorAppV4() {
         return connection;
       }
       const doc = fromRow(byId.data);
-      const v = await bootstrap(client, doc, id);
-      const connection = { mapId: id, document: doc, version: v };
+      const boot = await bootstrap(client, doc, id);
+      const connection = { mapId: id, document: doc, version: boot.version };
       setMaps(cur => cur.some(m => m.id === doc.id) ? cur : [...cur, doc]);
-      setConnectedMapId(id); setBaseDocument(doc); setVersion(v); await refreshSlots(client, id); setStatus(`Connected · version ${v}`);
+      setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version); await refreshSlots(client, id); setStatus(`Connected · version ${boot.version}`);
       return connection;
     }
 
@@ -117,9 +121,9 @@ export function MapEditorAppV4() {
         return connection;
       }
       const doc = fromRow(latest.data);
-      const v = await bootstrap(client, doc, id);
-      const connection = { mapId: id, document: doc, version: v };
-      setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(v); await refreshSlots(client, id); setStatus(`Connected · version ${v}`);
+      const boot = await bootstrap(client, doc, id);
+      const connection = { mapId: id, document: doc, version: boot.version };
+      setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version); await refreshSlots(client, id); setStatus(`Connected · version ${boot.version}`);
       return connection;
     }
 
@@ -127,9 +131,9 @@ export function MapEditorAppV4() {
     const created = await client.from("maps").insert({ world_id: WORLD_ID, name: "World Map", map_type: "world", coordinate_mode: "square", width: doc.width, height: doc.height, tile_size: doc.tileSize, metadata: { editor_bootstrap: true } }).select("id,name,width,height,tile_size").single();
     if (created.error) throw created.error;
     const persisted = fromRow(created.data);
-    const v = await bootstrap(client, persisted, persisted.id);
-    const connection = { mapId: persisted.id, document: persisted, version: v };
-    setMaps([persisted]); setActiveMapId(persisted.id); setConnectedMapId(persisted.id); setBaseDocument(persisted); setVersion(v); await refreshSlots(client, persisted.id); setStatus(`Connected · new map version ${v}`);
+    const boot = await bootstrap(client, persisted, persisted.id);
+    const connection = { mapId: persisted.id, document: persisted, version: boot.version };
+    setMaps([persisted]); setActiveMapId(persisted.id); setConnectedMapId(persisted.id); setBaseDocument(persisted); setVersion(boot.version); await refreshSlots(client, persisted.id); setStatus(`Connected · new map version ${boot.version}`);
     return connection;
   }, [active, baseDocument, bootstrap, connectedMapId, refreshSlots, seed.id, version]);
 
@@ -174,13 +178,22 @@ export function MapEditorAppV4() {
       const current = resolveSaveDocument(localCurrent, connection);
       let result: any;
       if (connection.version < 1) {
-        const v = await bootstrap(client, current, connection.mapId);
-        result = { status: "committed", version: v, document: current };
+        const boot = await bootstrap(client, current, connection.mapId);
+        result = { status: "committed", version: boot.version, document: current, projectionStatus: boot.projectionStatus, projectionError: boot.projectionError };
       } else {
         result = await saveWithConflictDetection(client, current, connection.document, connection.version);
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
-      setConnectedMapId(connection.mapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, connection.mapId); setStatus(`Saved · version ${Number(result.version) || 1}`); return result;
+      setConnectedMapId(connection.mapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, connection.mapId);
+      const savedVersion = Number(result.version) || 1;
+      if (result.projectionStatus === "failed") {
+        setStatus(`Saved · version ${savedVersion} · projection failed: ${result.projectionError || "downstream projection failed"}`);
+      } else if (result.projectionStatus === "not_run") {
+        setStatus(`Saved · version ${savedVersion} · projection not run`);
+      } else {
+        setStatus(`Saved · version ${savedVersion} · projection committed`);
+      }
+      return result;
     } catch (e) { setStatus(`Save failed: ${msg(e)}`); return null; }
     finally { setBusy(false); }
   }, [active, activeMapId, bootstrap, ensureConnection, maps, refreshSlots, update]);
