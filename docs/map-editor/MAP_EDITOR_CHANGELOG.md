@@ -59,7 +59,7 @@
 
 - **Type:** Added / Changed
 - **Reason:** Prevent further implementation drift and preserve an auditable project history.
-- **Details:** Added the database contract, detailed changelog, and short status log; updated the Bible to require both logs for every repository/database/architecture update.
+- **Details:** Added the database contract, detailed changelog, and short status log; updated the Bible to require both logs for every repository/database/architecture/asset/configuration update.
 - **Affected:** `MAP_EDITOR_DATABASE_CONTRACT.md`, `MAP_EDITOR_CHANGELOG.md`, `MAP_EDITOR_STATUS_LOG.md`, `MAP_EDITOR_BIBLE.md`.
 - **Roadmap phase:** Foundation documentation.
 - **Verification:** Documentation committed to GitHub.
@@ -174,3 +174,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Source audit completed; no runtime or Supabase change made.
 - **Notes:** This is an audit finding, not yet a code fix. The next implementation must preserve the anti-flicker history rule while introducing an explicit map-open boundary.
+
+## 2026-09-17 — Layer/grid dimension foundation audit recorded
+
+- **Type:** Added
+- **Reason:** Verify the deterministic MapDocument grid invariant before terrain, object, persistence, or renderer implementation proceeds.
+- **Details:** Audited `map-document.ts` and searched the repository for additional `cells.length` producers. Confirmed that the shared `layer()` constructor hardcodes 240 cells while the document separately declares width/height. The current default 20×12 map masks the defect because 20×12 equals 240, but the data model is not dimension-safe.
+- **Affected:** `apps/map-editor/editor/map-document.ts`, `MAP_EDITOR_FOUNDATION_AUDIT_2026-09-16.md`, grid/serialization requirements.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Source audit completed; no runtime or Supabase change made. Repository code search found no additional matching `cells.length` producer in the available index.
+- **Notes:** Implementation should centralize grid allocation around `width * height` and add an explicit validation/test boundary for imported or persisted documents. This is a foundation correction, not yet applied.
