@@ -144,3 +144,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Documentation committed to GitHub. No runtime code, Supabase schema, RPC, or asset binary was changed.
 - **Notes:** Immediate foundation focus is editor-state identity, failed-load safety, renderer lifecycle stability, and deterministic MapDocument grid sizing. Existing Save/Load and Database contracts remain authoritative.
+
+## 2026-09-17 — Map Editor documentation consolidated under Blueprint
+
+- **Type:** Changed / Moved
+- **Reason:** Make the Blueprint the single navigational root for the Map Editor construction documentation while preserving the Change Log and Status Log at the documented governance path.
+- **Details:** Moved the existing Bible, Requirements, Database Contract, Save/Load Contract, Technical Architecture, Game Design, Roadmap, Phase Goals, Asset Approval, and Foundation/Load audits into `docs/map-editor/blueprint/`. No document contents were rewritten as part of the move.
+- **Affected:** `docs/map-editor/blueprint/` documentation tree; root Change Log and Status Log remain at `docs/map-editor/`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Repository tree move prepared; runtime code, Supabase schema/RPCs, deployment, and asset binaries unchanged.
+- **Notes:** The Change Log and Status Log remain at their original paths because the Bible explicitly defines those paths as mandatory governance records.
