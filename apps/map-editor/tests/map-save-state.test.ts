@@ -16,12 +16,31 @@ describe("Map save state boundary", () => {
     expect(connection.version).toBe(7);
   });
 
-  it("rejects a local document that is not the connected World Map", () => {
+  it("adopts the authoritative World document when the local World is still the seed identity", () => {
+    const local = createMap("world");
+    local.name = "Seed document";
+    const authoritative = createMap("world");
+    authoritative.id = "authoritative-world";
+    authoritative.name = "Authoritative World";
+    const connection: SaveConnection = { mapId: authoritative.id, document: authoritative, version: 4 };
+
+    expect(resolveSaveDocument(local, connection)).toBe(authoritative);
+  });
+
+  it("rejects a local document that is not a World Map", () => {
     const local = createMap("region");
-    const connection: SaveConnection = { mapId: local.id, document: createMap("world"), version: 1 };
-    connection.document.id = local.id;
+    const connection: SaveConnection = { mapId: "authoritative-world", document: createMap("world"), version: 1 };
+    connection.document.id = connection.mapId;
 
     expect(() => resolveSaveDocument(local, connection)).toThrow("Active map is not the connected World Map");
+  });
+
+  it("rejects an invalid authoritative connection instead of publishing it", () => {
+    const local = createMap("world");
+    const connection: SaveConnection = { mapId: "authoritative-world", document: createMap("region"), version: 1 };
+    connection.document.id = connection.mapId;
+
+    expect(() => resolveSaveDocument(local, connection)).toThrow("Connected World Map identity is invalid");
   });
 
   it("disconnects stale persistence context when navigation changes the map", () => {
