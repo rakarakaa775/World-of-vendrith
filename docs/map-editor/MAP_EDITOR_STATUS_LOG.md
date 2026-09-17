@@ -7,3 +7,4 @@
 | Date / Time | Status | Roadmap Phase | Update |
 |---|---|---|---|
 | 2026-09-17 | Focused invariant tests corrected | Phase 0 — Foundation Audit | Replaced the remaining foundation-test placeholder with executable grid acceptance/rejection and requested-map identity assertions against the real parser boundary. No Supabase, deployment, or asset changes. Test execution is still not verified in this session. |
+| 2026-09-17 | Focused Vitest CI verified | Phase 0 — Foundation Audit | Corrected the grid test so it reflects the actual MapDocument dimensions, added a GitHub Actions workflow for `apps/map-editor` Vitest execution, and verified workflow run `35181010280` completed successfully. No Supabase, deployment, or asset binary changes. |
