@@ -184,3 +184,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Source audit completed; no runtime or Supabase change made. Repository code search found no additional matching `cells.length` producer in the available index.
 - **Notes:** Implementation should centralize grid allocation around `width * height` and add an explicit validation/test boundary for imported or persisted documents. This is a foundation correction, not yet applied.
+
+## 2026-09-17 — Persistence failure boundary audit recorded
+
+- **Type:** Added
+- **Reason:** Trace Quick Save from the V4 UI through remote snapshot loading, three-way merge, commit RPC, reconciliation, and runtime snapshot update before changing persistence code.
+- **Details:** Confirmed a concrete frontend state race: `ensureConnection()` can schedule adoption of a persisted World Map, while `save()` immediately continues using its pre-adoption React state. This can reach the `Active map is not the connected World Map` guard before the merge RPC. Also confirmed that Quick Save has pre-commit failure stages in remote snapshot retrieval/parsing/merge, and that the runtime snapshot read path does not compare a valid runtime cache against the newest durable version before accepting it.
+- **Affected:** `map-editor-app-v4.tsx`, `map-persistence.ts`, `map-conflict-save-controller.ts`, `map-merge-persistence.ts`, `map-merge-persistence-supabase.ts`, Supabase `map_editor_commit_merge_v1`, `map_editor_reconcile_after_merge_v1`, `map_editor_get_runtime_snapshot_v1`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Repository source and current Supabase function definitions audited. No runtime or database change made; exact historical browser error cannot be reconstructed from source alone.
+- **Notes:** The next implementation should separate connection/adoption from Save execution and make the authoritative load/version boundary explicit. Do not rewrite the merge RPC until a focused reproduction demonstrates an RPC-side failure.
