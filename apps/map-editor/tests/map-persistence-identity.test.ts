@@ -19,19 +19,17 @@ function runtimeClient(snapshot: unknown) {
 }
 
 describe("Map persistence identity boundary", () => {
-  it("must not adopt a runtime snapshot whose document id differs from the requested map", async () => {
+  it("rejects a runtime snapshot whose document id differs from the requested map", async () => {
     const loaded = createMap("world");
     loaded.id = "different-world";
 
     const client = runtimeClient(serializeMapDocument(loaded));
     const result = await loadMapDocumentSnapshot(client, "requested-world");
 
-    expect(result.document?.id).not.toBe("requested-world");
-    // Contract boundary: the implementation must reject or discard this
-    // snapshot instead of publishing it as the requested map.
+    expect(result.document).toBeNull();
   });
 
-  it("must not adopt a durable fallback whose document id differs from the requested map", async () => {
+  it("rejects a durable fallback whose document id differs from the requested map", async () => {
     const loaded = createMap("world");
     loaded.id = "different-world";
 
@@ -59,7 +57,6 @@ describe("Map persistence identity boundary", () => {
 
     const result = await loadMapDocumentSnapshot(client, "requested-world");
 
-    expect(result.document?.id).not.toBe("requested-world");
-    // Contract boundary: durable fallback needs the same requested-map guard.
+    expect(result.document).toBeNull();
   });
 });
