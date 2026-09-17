@@ -57,6 +57,35 @@ When an asset is eventually approved, its permitted map scale must also be recor
 
 An asset approved for one scale is not automatically approved for every scale.
 
+### Scale-scope audit — 2026-09-17
+
+The live Supabase asset model was inspected for a first-class allowed-scope field.
+
+Current relevant structures include:
+
+- `asset_registry` — identity, category, status, asset path and visual/runtime capabilities;
+- `asset_manifest` — semantic role, category path, terrain/autotile/collision/interaction configuration and runtime properties;
+- `asset_binding_candidates` — terrain binding candidate status and review evidence;
+- `asset_license_registry` / `asset_provenance_verifications` — provenance, license and verification state;
+- `asset_seasonal_variants` — seasonal variants tied to a licensed asset.
+
+The current `asset_registry` schema does **not** contain a dedicated `allowed_scopes` field, and no separate Map Editor asset-scope relation is currently present in the audited public schema. `metadata` JSON fields exist on several tables, but they are not treated as a contractual substitute for an explicit scope model.
+
+Therefore the current database can express approval/provenance and several asset capabilities, but it cannot yet enforce the distinction:
+
+```text
+approved + world
+approved + region
+approved + playable
+approved + world + region
+approved + region + playable
+approved + world + region + playable
+```
+
+without adding a future contract/schema layer.
+
+**Decision:** Do not infer map-scale eligibility from filename, folder, category, or free-form metadata. Do not alter the existing asset tables in this audit step. Define the asset-scope contract first, then design the migration/RPC boundary around that contract.
+
 ## Storage policy
 
 Approved assets are staged under:
