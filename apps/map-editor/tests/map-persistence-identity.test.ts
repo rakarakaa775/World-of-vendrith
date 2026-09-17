@@ -3,6 +3,15 @@ import { createMap } from "../editor/map-document";
 import { serializeMapDocument } from "../editor/map-serialization";
 import { loadMapDocumentSnapshot } from "../editor/map-persistence";
 
+function emptyDurableChain() {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+  };
+}
+
 function runtimeClient(snapshot: unknown) {
   return {
     rpc: vi.fn().mockResolvedValue({
@@ -14,7 +23,7 @@ function runtimeClient(snapshot: unknown) {
       },
       error: null,
     }),
-    from: vi.fn(),
+    from: vi.fn().mockReturnValue(emptyDurableChain()),
   } as any;
 }
 
