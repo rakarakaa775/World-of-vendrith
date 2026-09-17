@@ -33,8 +33,10 @@ The three map scales share the same MapDocument, serialization, persistence, ver
 - Which assumptions in existing code contradict the Bible, Game Design, Technical, or Database Contract?
 - Which assets are approved, reviewed, pending, restricted, or unverified?
 - Which stored assets belong to Map Editor, Life Build, Inventory, or other systems?
+- Can the current asset data model represent allowed Map Editor scales (`world`, `region`, `playable`) as a first-class contract rather than as a filename/category convention?
+- Can one approved asset explicitly be shared across multiple scales without making every approved asset globally valid?
 
-**Exit evidence:** Foundation audit report and a controlled list of implementation changes required for Phase 1.
+**Exit evidence:** Foundation audit report and a controlled list of implementation changes required for Phase 1, plus a documented decision for how scale-scoped asset eligibility will be represented.
 
 ## Phase 1 — Stable Editor Core
 
@@ -68,7 +70,8 @@ The three map scales share the same MapDocument, serialization, persistence, ver
 - serialized envelope;
 - parser validation;
 - compatibility/version policy;
-- scale-specific capability data without creating incompatible document formats.
+- scale-specific capability data without creating incompatible document formats;
+- map-scale identity required for asset eligibility validation without embedding storage-specific assumptions into the document.
 
 **Exit evidence:** serialize → parse → compare round-trip tests plus malformed-payload tests for World, Region, and Playable documents.
 
@@ -130,7 +133,7 @@ The three map scales share the same MapDocument, serialization, persistence, ver
 
 **Purpose:** Connect authored maps to the broader Vandrith world/environment systems.
 
-**Goal:** Terrain, seasonal/weather behavior, coordinates, World, Region, and Playable context consume stable map contracts.
+**Goal:** Terrain, seasonal/weather behavior, coordinates, World, Region, and Playable context consume stable map contracts and asset-scale eligibility.
 
 **Must establish:**
 - terrain identity/bindings;
@@ -140,9 +143,12 @@ The three map scales share the same MapDocument, serialization, persistence, ver
 - coordinate profile behavior;
 - World → Region relationships;
 - Region → Playable relationships;
-- world/region/playable metadata boundaries.
+- world/region/playable metadata boundaries;
+- approved asset + allowed-scope validation;
+- explicit shared-asset behavior for assets permitted in multiple scales;
+- rejection of approved assets used outside their declared scope.
 
-**Exit evidence:** map context remains deterministic across editor, persistence, and environment/runtime consumers.
+**Exit evidence:** map context remains deterministic across editor, persistence, and environment/runtime consumers, and asset selection is constrained by both approval and map scale.
 
 ## Phase 7 — Full Authoring Feature Set
 
@@ -158,9 +164,11 @@ The three map scales share the same MapDocument, serialization, persistence, ver
 - navigation authoring;
 - selection/manipulation;
 - map-scale capability profiles;
-- approved future extensions.
+- approved future extensions;
+- asset palette filtering by active map scale;
+- placement-time rejection for out-of-scope assets.
 
-**Exit evidence:** feature-by-feature tests mapped to Game Design and Technical requirements for the applicable map type.
+**Exit evidence:** feature-by-feature tests mapped to Game Design and Technical requirements for the applicable map type, including asset approval/scope checks.
 
 ## Phase 8 — Verification, Recovery & Release
 
@@ -178,7 +186,8 @@ The three map scales share the same MapDocument, serialization, persistence, ver
 - asset-reference validation;
 - World/Region/Playable integration tests;
 - deployment verification;
-- documentation/log completeness.
+- documentation/log completeness;
+- cross-scope asset tests for world-only, region-only, playable-only, and explicitly shared assets.
 
 **Exit evidence:** release verification record with all required evidence and no unresolved foundation blocker.
 
@@ -193,7 +202,7 @@ Phase 2: Is the map representation deterministic across scales?
 Phase 3: Can authoritative persistence be trusted?
 Phase 4: Can snapshots be saved and restored safely?
 Phase 5: Can gameplay data be regenerated safely?
-Phase 6: Does the map integrate with the world/environment?
+Phase 6: Does the map integrate with the world/environment and scale-scoped asset system?
 Phase 7: Is the full designer workflow complete?
 Phase 8: Can we prove it survives real failures and release conditions?
 ```
