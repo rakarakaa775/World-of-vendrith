@@ -129,7 +129,7 @@
 - **Reason:** Establish an implementation-independent contract before repairing Save/Load behavior.
 -**Details:** Defined identity, MapDocument, serialization, Quick Save, Save Slot, Load Latest, Load Slot, error boundaries, atomicity, concurrency, projection separation, and verification requirements.
 -**Affected:** `docs/map-editor/MAP_EDITOR_SAVE_LOAD_CONTRACT.md`.
--**Roadmap phase:** Phase 0 — Foundation Audit.
+**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Documentation committed to GitHub.
 -**Notes:** No runtime Save/Load code was changed. The contract requires explicit error stages rather than collapsing failures into a generic save error.
 
@@ -137,7 +137,7 @@
 
 - **Type:** Added
 - **Reason:** Create a single construction guide so future implementation follows the documented architecture rather than improvising from legacy code or symptoms.
-- **Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
+-**Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
 - **Affected:** `docs/map-editor/BLUEPRINT.md`, `docs/map-editor/REQUIREMENTS.md`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Documentation committed to GitHub. No runtime code, Supabase schema, RPC, or asset binary was changed.
@@ -265,10 +265,20 @@
 
 ## 2026-09-17 — Authoritative bootstrap conflict guarded
 
-- **Type:** Fixed
-- **Reason:** Browser testing showed `Save failed: bootstrap: conflict` even though the audited authoritative World Map already contains durable versions. The frontend could enter the bootstrap branch when an existing authoritative snapshot was not adopted, masking the real load/read/parse boundary behind a misleading bootstrap conflict.
-- **Details:** Updated `map-editor-app-v4.tsx` so `ensureConnection()` now treats an existing discovered authoritative version as a loadability error instead of attempting bootstrap against expected version `0`. Bootstrap remains reserved for an authoritative map with no discovered durable version. The error now reports the discovered version and loadability code, making the next failure stage explicit.
+-**Type:** Fixed
+-**Reason:** Browser testing showed `Save failed: bootstrap: conflict` even though the audited authoritative World Map already contains durable versions. The frontend could enter the bootstrap branch when an existing authoritative snapshot was not adopted, masking the real load/read/parse boundary behind a misleading bootstrap conflict.
+-**Details:** Updated `map-editor-app-v4.tsx` so `ensureConnection()` now treats an existing discovered authoritative version as a loadability error instead of attempting bootstrap against expected version `0`. Bootstrap remains reserved for an authoritative map with no discovered durable version. The error now reports the discovered version and loadability code, making the next failure stage explicit.
 -**Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** GitHub source update committed as `73cf73278154f8237144054db893762e17715a48`. Live Supabase audit confirms the canonical World Map exists with durable versions; browser/Vercel verification of this correction is pending.
 -**Notes:** No Supabase schema/RPC or asset binary was changed by this correction. The next browser result should distinguish `version > 0 but snapshot not loadable` from a true empty-map bootstrap case.
+
+## 2026-09-17 — Save adopts authoritative document on seed identity mismatch
+
+- **Type:** Fixed
+- **Reason:** The bootstrap-conflict repair exposed the remaining identity race: Save captured the local bootstrap seed before `ensureConnection()` could adopt the authoritative World Map. If those IDs differ, the stale seed must never be sent to the authoritative merge boundary.
+- **Details:** Quick Save now preserves local edits only when the local document ID matches the resolved authoritative connection. When the IDs differ, it uses the already validated authoritative document returned by `ensureConnection()`. This keeps the identity guard strict while preventing a known bootstrap seed from being published as the connected World Map.
+- **Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** GitHub source update committed as `2fe13486d8c6f60ce5d2303228d98301a9d828f9`. Automated test/Vercel/browser verification remains pending.
+-**Notes:** No Supabase schema/RPC or asset binary changed. This is a frontend persistence-boundary correction.
