@@ -27,12 +27,19 @@ Supabase currently contains multiple World Map records with different owner UUID
 `map_editor_save_slot_v1` validates authentication, slot range, ownership, snapshot, version, and referenced version. V4 uses the dedicated Save Slot RPC. Legacy `map-editor-app.tsx` still contains a direct table path but is not the active page; `app/page.tsx` renders V4.
 
 ### F-008 — MapDocument grid sizing violates the deterministic dimension contract
-`MapDocument` declares `width` and `height`, and `createMap()` currently creates a 20×12 document. However, the shared `layer()` constructor hardcodes every layer to exactly 240 cells (`Array.from({length:240}, ...)`) instead of deriving the cell count from the document dimensions. The current default happens to satisfy `20 × 12 = 240`, so the defect is latent rather than visible for the default map size. Any future resize, non-default map creation, imported document, or dimension-changing migration can produce a document whose declared dimensions and layer cell storage disagree.
-
-The layer constructor also has no `width`/`height` parameters, so the invariant cannot be enforced at the point where cells are allocated. This is a foundation-level data-model defect and should be fixed before later terrain/object/canvas implementation relies on arbitrary map dimensions.
+`MapDocument` declares `width` and `height`, and `createMap()` currently creates a 20×12 document. However, the shared `layer()` constructor hardcodes every layer to exactly 240 cells instead of deriving the cell count from the document dimensions. The current default happens to satisfy `20 × 12 = 240`, so the defect is latent rather than visible for the default map size. Any future resize, non-default map creation, imported document, or dimension-changing migration can produce a document whose declared dimensions and layer cell storage disagree.
 
 ### F-009 — Grid-size invariant is not visibly enforced by the serialization boundary
 The current serializer/parser contract validates the presence and basic shape of `MapDocument`, but the audited `map-document.ts` implementation does not provide a central invariant for `cells.length === width * height`. Because the source search did not return additional `cells.length` matches, the hardcoded allocation in `map-document.ts` is the confirmed producer in the audited source. A focused parser/test check should still be added during implementation so malformed imported or persisted documents fail deterministically rather than reaching the renderer.
+
+### F-010 — Save path contains a state-commit race boundary
+The V4 `save()` calls `ensureConnection(client)` and then immediately reads `maps.find(m => m.id === activeMapId) || active`. `ensureConnection()` can asynchronously discover/adopt a persisted World Map and schedules React state updates (`maps`, `activeMapId`, `connectedMapId`, `baseDocument`, `version`), but those state updates are not synchronously visible inside the same `save()` invocation. Therefore, when connection repair/adoption is needed, the subsequent `current.id !== mapId` guard can evaluate against the pre-adoption document and report `Active map is not the connected World Map`, even though `ensureConnection()` has successfully found the target. This is a concrete frontend failure boundary before the merge RPC is reached.
+
+### F-011 — Quick Save also depends on a remote load before commit
+`saveWithConflictDetection()` first calls `loadMapDocumentSnapshot(client, local.id)`, then parses/merges the remote snapshot, checks the remote version, and only afterward calls `map_editor_commit_merge_v1`. Consequently, a Save failure can occur in remote snapshot retrieval/parsing or three-way merge without reaching the commit RPC. The commit RPC itself performs authentication, ownership, version comparison, durable version insertion, reconciliation, and runtime snapshot update. The current audit therefore cannot attribute every historical "Save failed" message to Supabase commit failure; the UI currently collapses all caught errors into a generic status string.
+
+### F-012 — Runtime snapshot can be trusted before durable-version comparison
+`loadMapDocumentSnapshot()` accepts a found runtime snapshot after parsing and returns its `result.version_number` without comparing that version against the newest durable `map_versions` row. The Supabase runtime RPC likewise returns the runtime row directly when present and only falls back to durable history when the runtime row is absent. Database identity audits found the current stored rows internally consistent, but the read contract does not prove that a stale runtime cache cannot become authoritative if it exists with an older valid snapshot. This is a separate persistence-integrity gap from the concrete frontend state race in F-010.
 
 ## Current implementation evidence
 
@@ -43,11 +50,14 @@ The current serializer/parser contract validates the presence and basic shape of
 - V4 Load Slot calls `map_editor_load_save_slot_v1`.
 - Quick Save calls `map_editor_commit_merge_v1` through conflict detection.
 - `map-document.ts` currently allocates every layer with `cells:Array.from({length:240}, ...)` while the document separately declares `width:20` and `height:12`.
-- Repository code search for `cells.length` and the exact `cells.length 240` pattern returned no additional matches, so no second producer of the same hardcoded allocation was found in the available search index. Direct file inspection remains authoritative for the confirmed producer.
+- `save()` can read stale React state after `ensureConnection()` schedules adoption state updates.
+- `saveWithConflictDetection()` performs remote load and three-way merge before the commit RPC.
+- `map_editor_commit_merge_v1` inserts a durable version and then invokes reconciliation; an unhandled reconciliation failure occurs inside the commit transaction boundary.
+- `map_editor_get_runtime_snapshot_v1` returns an existing runtime row without checking it against the newest durable version.
 
 ## Current database evidence
 
-Supabase exposes the dedicated Save/Load and merge RPCs. The current database contains repeated World Map rows; the newest observed World Map has one durable version and zero slots, while older maps demonstrate that slots have been persisted historically.
+Supabase exposes the dedicated Save/Load and merge RPCs. The current database contains repeated World Map rows; the newest observed World Map has one durable version and zero slots, while older maps demonstrate that slots have been persisted historically. The latest function audit confirms the merge RPC, reconcile RPC, runtime snapshot RPC, and Save Slot/Load Slot RPCs are present with the contracts described above. No database change was made during this audit.
 
 ## Phase 0 rule
 
@@ -55,7 +65,8 @@ These findings are audit evidence, not permission to patch architecture. Each fi
 
 ## Foundation audit sequence
 
-- State / identity lifecycle: audited.
+- State / identity lifecycle: audited; F-010 identifies a concrete Save state-commit race.
 - Renderer lifecycle: audited; full Pixi application recreation on document changes is confirmed as a separate stability/performance defect.
 - Layer/grid dimension invariant: audited; F-008/F-009 are confirmed foundation defects.
-- Remaining Phase 0 items: persistence failure boundary, canonical load/save identity validation, terrain approval enforcement, and final foundation gate.
+- Persistence failure boundary: audited at frontend and RPC-contract level; F-010/F-011/F-012 identified. Exact historical browser error instance is not available from the repository audit alone.
+- Remaining Phase 0 items: canonical load/save identity validation, terrain approval enforcement, focused reproduction tests, and final foundation gate.
