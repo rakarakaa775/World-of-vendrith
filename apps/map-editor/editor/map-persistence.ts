@@ -20,14 +20,14 @@ function normalizeRuntimeSnapshotResult(data: unknown): RuntimeSnapshotResult {
   return (data ?? {}) as RuntimeSnapshotResult;
 }
 
-function parsePersistedSnapshot(snapshot: unknown): MapDocument {
+function parsePersistedSnapshot(snapshot: unknown, requestedMapId?: string): MapDocument {
   const payload = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
   if (!payload || typeof payload !== 'object') throw new Error('Persisted map snapshot is invalid');
   const candidate = payload as { document?: unknown };
   // Canonical persisted shape is { schema, version, document }.
   // Keep a raw-document fallback for older rows.
-  if ('document' in candidate) return parseMapDocument(payload as any);
-  return parseMapDocument({ schema: 'vandrith.map-document', version: 1, document: payload } as any);
+  if ('document' in candidate) return parseMapDocument(payload as any, requestedMapId);
+  return parseMapDocument({ schema: 'vandrith.map-document', version: 1, document: payload } as any, requestedMapId);
 }
 
 export async function saveMapDocumentSnapshot(client: SupabaseClient, document: MapDocument, versionId?: string | null): Promise<RuntimeSnapshotResult> {
@@ -49,7 +49,7 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
 
   if (result.ok && result.found && result.snapshot != null) {
     try {
-      return { result, document: parsePersistedSnapshot(result.snapshot) };
+      return { result, document: parsePersistedSnapshot(result.snapshot, mapId) };
     } catch (runtimeParseError) {
       console.warn('Runtime map snapshot parse failed; falling back to durable version', runtimeParseError);
     }
@@ -66,7 +66,13 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
   const latest = versionRows?.[0] as any;
   if (!latest?.snapshot) return { result, document: null };
 
-  const document = parsePersistedSnapshot(latest.snapshot);
+  let document: MapDocument;
+  try {
+    document = parsePersistedSnapshot(latest.snapshot, mapId);
+  } catch (durableParseError) {
+    console.warn('Durable map snapshot parse failed', durableParseError);
+    return { result, document: null };
+  }
 
   return {
     result: {
