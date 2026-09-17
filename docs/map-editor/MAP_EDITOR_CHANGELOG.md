@@ -93,7 +93,7 @@
 - **Affected:** `MAP_EDITOR_BIBLE.md`, `MAP_EDITOR_GAME_DESIGN.md`, `MAP_EDITOR_TECHNICAL.md`, `MAP_EDITOR_ROADMAP.md`, `MAP_EDITOR_PHASE_GOALS.md`.
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Documentation committed; implementation audit remains pending.
-- **Notes:** The three map types share one canonical MapDocument and persistence architecture.
+-**Notes:** The three map types share one canonical MapDocument and persistence architecture.
 
 ## 2026-09-16 — Asset library staging structure created
 
@@ -204,3 +204,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Repository source audit completed against current `main`. No runtime, Supabase, or asset binary change made.
 - **Notes:** The documented final approved terrain staging set remains empty from the prior Supabase audit. The next step is focused reproduction tests and the final Phase 0 foundation gate; approval enforcement should be implemented only after that gate.
+
+## 2026-09-17 — Focused test readiness audit recorded
+
+- **Type:** Added
+- **Reason:** Determine whether Phase 0 failure boundaries can be reproduced automatically before beginning foundation implementation.
+- **Details:** Audited `apps/map-editor/package.json`, `tsconfig.json`, and repository test-search results. The Map Editor package has only `dev`, `build`, and `start` scripts and no test-runner dependency or discovered test suite. Defined deterministic test seams for grid sizing/serialization, requested map identity, terrain approval, and Save connection/adoption state.
+- **Affected:** `apps/map-editor/package.json`, `apps/map-editor/tsconfig.json`, `MAP_EDITOR_FOUNDATION_AUDIT_2026-09-16.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Repository audit completed. Focused tests themselves are not yet implemented or executed.
+- **Notes:** Phase 0 cannot honestly be marked fully verified until a test harness exists and the focused failure cases execute successfully. No runtime, Supabase, or binary asset change was made.
