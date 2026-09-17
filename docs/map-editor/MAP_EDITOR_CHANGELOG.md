@@ -100,7 +100,6 @@
 - **Type:** Added
 - **Reason:** Separate asset storage from application use and establish dedicated system categories.
 - **Details:** Added `assets/` with categories for Map Editor, Life Build, Inventory, Characters, Environment, Weapons, Objects, UI, Effects, Vehicles, Animations, Animals, Shared, Source, and Documentation. Added storage/approval rules and asset registry.
-- **Affected:** `assets/`, `assets/_documentation/ASSET_LIBRARY_REGISTRY.md`, `MAP_EDITOR_BIBLE.md`, roadmap/phase-goal documents.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Folder structure and registry committed. Binary asset transfer not yet verified through GitHub.
 -**Notes:** Supplied audited source packages remain the provenance baseline; no asset has been activated in application code.
@@ -138,8 +137,8 @@
 
 - **Type:** Added
 - **Reason:** Create a single construction guide so future implementation follows the documented architecture rather than improvising from legacy code or symptoms.
--**Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
--**Affected:** `docs/map-editor/BLUEPRINT.md`, `docs/map-editor/REQUIREMENTS.md`.
+- **Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
+- **Affected:** `docs/map-editor/BLUEPRINT.md`, `docs/map-editor/REQUIREMENTS.md`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Documentation committed to GitHub. No runtime code, Supabase schema, RPC, or asset binary was changed.
 -**Notes:** Immediate foundation focus is editor-state identity, failed-load safety, renderer lifecycle stability, and deterministic MapDocument grid sizing. Existing Save/Load and Database contracts remain authoritative.
@@ -158,7 +157,7 @@
 
 - **Type:** Verified / Updated
 - **Reason:** The previous entry described the move as prepared; the repository tree has now been checked after the actual create/delete operations.
--**Details:** Confirmed the Blueprint directory contains the moved construction documents and the root `docs/map-editor/` directory retains only the governance logs. The moved files preserve their original blob SHAs/content identity.
+- **Details:** Confirmed the Blueprint directory contains the moved construction documents and the root `docs/map-editor/` directory retains only the governance logs. The moved files preserve their original blob SHAs/content identity.
 -**Affected:** `docs/map-editor/blueprint/`, `MAP_EDITOR_CHANGELOG.md`, `MAP_EDITOR_STATUS_LOG.md`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Verified against the GitHub repository tree on 2026-09-17. No runtime code, Supabase schema/RPCs, deployment, or binary asset was changed.
@@ -246,7 +245,7 @@
 
 ## 2026-09-17 — Asset scale-scope contract defined
 
-- **Type:** Added / Changed
+-**Type:** Added / Changed
 -**Reason:** The Phase 0 asset audit confirmed that the current database records approval/provenance and asset capabilities but has no contractual mechanism to distinguish World, Region, and Playable eligibility.
 -**Details:** Added `MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, defining explicit `world`, `region`, and `playable` scopes, separating approval from scope eligibility, prohibiting inference from filenames/folders/categories/metadata, and specifying a future many-to-many scope relation. Updated `MAP_EDITOR_ASSET_APPROVAL.md` to reference the new contract. No existing asset received an automatic scope assignment.
 -**Affected:** `docs/map-editor/blueprint/MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, `docs/map-editor/blueprint/MAP_EDITOR_ASSET_APPROVAL.md`.
@@ -256,10 +255,20 @@
 
 ## 2026-09-17 — Pixi renderer lifecycle foundation repair
 
-- **Type:** Fixed
-- **Reason:** The Phase 0 renderer audit found that `PixiMapCanvas` destroyed and recreated the Pixi `Application` whenever the document, tool state, selection, callbacks, asset bindings, or environment state changed. That lifecycle coupled ordinary editor changes to canvas teardown/reinitialization and was the documented source of flicker risk.
-- **Details:** Split the Pixi lifecycle from scene rendering. The component now creates one `Application` and one world container for its lifetime, keeps the latest editor props in refs, redraws the existing scene on document/render-input changes, and guards asynchronous asset loading against stale renders. Pointer/paint handlers are attached to the persistent world and read current props through the ref. Renderer readiness gates scene/event effects so initialization and interaction do not race.
+-**Type:** Fixed
+-**Reason:** The Phase 0 renderer audit found that `PixiMapCanvas` destroyed and recreated the Pixi `Application` whenever the document, tool state, selection, callbacks, asset bindings, or environment state changed. That lifecycle coupled ordinary editor changes to canvas teardown/reinitialization and was the documented source of flicker risk.
+-**Details:** Split the Pixi lifecycle from scene rendering. The component now creates one `Application` and one world container for its lifetime, keeps the latest editor props in refs, redraws the existing scene on document/render-input changes, and guards asynchronous asset loading against stale renders. Pointer/paint handlers are attached to the persistent world and read current props through the ref. Renderer readiness gates scene/event effects so initialization and interaction do not race.
 -**Affected:** `apps/map-editor/components/pixi-map-canvas.tsx`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** GitHub source update completed. Automated build/test and browser/Vercel verification are still pending in this session.
 -**Notes:** This repair intentionally does not redesign the rendering model or introduce asset-scope persistence. It only establishes the renderer lifecycle boundary required by the foundation audit.
+
+## 2026-09-17 — Authoritative bootstrap conflict guarded
+
+- **Type:** Fixed
+- **Reason:** Browser testing showed `Save failed: bootstrap: conflict` even though the audited authoritative World Map already contains durable versions. The frontend could enter the bootstrap branch when an existing authoritative snapshot was not adopted, masking the real load/read/parse boundary behind a misleading bootstrap conflict.
+- **Details:** Updated `map-editor-app-v4.tsx` so `ensureConnection()` now treats an existing discovered authoritative version as a loadability error instead of attempting bootstrap against expected version `0`. Bootstrap remains reserved for an authoritative map with no discovered durable version. The error now reports the discovered version and loadability code, making the next failure stage explicit.
+-**Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** GitHub source update committed as `73cf73278154f8237144054db893762e17715a48`. Live Supabase audit confirms the canonical World Map exists with durable versions; browser/Vercel verification of this correction is pending.
+-**Notes:** No Supabase schema/RPC or asset binary was changed by this correction. The next browser result should distinguish `version > 0 but snapshot not loadable` from a true empty-map bootstrap case.
