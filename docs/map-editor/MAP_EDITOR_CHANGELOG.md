@@ -323,3 +323,13 @@
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** GitHub source updates committed as `2b7b7c1a9d1172b5b67ea01c219e55e9e15cd56a` and `1847477176c44175656cd4e76bc6f18016e31c63`. Vercel rebuild verification is pending; no Supabase schema/data or asset binary changed.
 -**Notes:** This is a compile-time boundary repair only. The Save/Load contract remains unchanged: invalid documents must fail before persistence, and authoritative identity must still be validated before adoption.
+
+## 2026-09-18 — Serializer persisted-object input boundary aligned
+
+- **Type:** Fixed / Updated
+- **Reason:** The Phase 0 audit identified that the runtime path receives a canonical `{ schema, version, document }` object from Supabase, while `parseMapDocument()` only declared string or MapDocument inputs. The test had therefore required a type-suppressing cast even though the runtime parser already handled an object envelope.
+- **Details:** Extended the parser input contract to accept the canonical serialized object envelope directly. Retained strict schema/version/identity validation and the explicit positive-integer boundary for `width`, `height`, and `tileSize`. Removed the test-only `never` cast so the regression test exercises the declared persisted-object contract directly.
+-**Affected:** `apps/map-editor/editor/map-serialization.ts`, `apps/map-editor/editor/map-foundation.test.ts`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** GitHub source updates committed as `7c847dad188d6aabf74e0016dac5aab1fb283e4c` and `02f1ed5e6e369379d1dd79ebe96c332a2c8275d3`. Vercel rebuild verification is pending. No Supabase schema/data or asset binary changed.
+-**Notes:** This keeps the parser aligned with the Save/Load Contract's persisted snapshot representation rather than weakening validation to satisfy TypeScript.
