@@ -1,10 +1,13 @@
 export type MergeCommitStatus = 'committed' | 'conflict';
+export type ProjectionStatus = 'not_run' | 'committed' | 'failed';
 
 export type MergeCommitResponse = {
   status: MergeCommitStatus;
   version_id: string | null;
   version_number: number | null;
   current_version: number;
+  projection_status: ProjectionStatus;
+  projection_error: string | null;
 };
 
 export type MapMergePersistence = {
@@ -45,6 +48,8 @@ export type MergePersistenceCommit = {
   versionId: string;
   versionNumber: number;
   currentVersion: number;
+  projectionStatus: ProjectionStatus;
+  projectionError: string | null;
 };
 
 /**
@@ -62,10 +67,15 @@ export function normalizeMergeCommitResponse(response: MergeCommitResponse | Mer
   if (!normalized.version_id || normalized.version_number == null) {
     throw new Error('Merge commit returned committed status without version metadata');
   }
+  if (!normalized.projection_status) {
+    throw new Error('Merge commit returned committed status without projection status');
+  }
   return {
     status: 'committed',
     versionId: normalized.version_id,
     versionNumber: normalized.version_number,
     currentVersion: normalized.current_version,
+    projectionStatus: normalized.projection_status,
+    projectionError: normalized.projection_error ?? null,
   };
 }
