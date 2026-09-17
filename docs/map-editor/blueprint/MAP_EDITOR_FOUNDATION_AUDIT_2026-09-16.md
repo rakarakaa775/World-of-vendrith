@@ -15,7 +15,7 @@ The canonical editor snapshot contains layers/cells/objects. Supabase also conta
 Quick Save uses conflict detection and `map_editor_commit_merge_v1`. That RPC inserts the durable version and then calls reconciliation, which projects cells, syncs geometry, rebuilds navigation, and updates the runtime snapshot. A save failure can therefore occur after the version insert and must be traced to the exact RPC boundary.
 
 ### F-004 — Runtime snapshot has layered fallback behavior
-The client loader checks the runtime snapshot and then durable `map_versions`; the runtime RPC also falls back to `map_versions`. Phase 0 must verify that stale runtime data cannot become authoritative.
+The client loader checks the runtime snapshot and then durable `map_versions`; the runtime RPC also falls back to durable history. Phase 0 must verify that stale runtime data cannot become authoritative.
 
 ### F-005 — V4 terrain loading bypasses the new whitelist rule
 The approved whitelist requires both asset registry approval and binding-candidate approval. V4 can synthesize base bindings from registry-approved assets without requiring an approved binding candidate. This must be corrected only after the foundation audit is complete.
@@ -59,6 +59,12 @@ The documented asset approval boundary requires both `asset_registry.status = ap
 ### F-018 — V4 creates a second terrain approval path outside the binding-candidate gate
 `map-editor-app-v4.tsx` separately queries `asset_registry` for the five named terrain files and synthesizes base bindings whenever the asset has `status === approved` and a license registry ID. Those synthesized rows are then combined with `transition.accepted` from the binding loader. Because this path does not query or require a matching approved binding candidate, it can reintroduce an asset that the whitelist has rejected even if the binding workbench correctly rejected its candidate. This duplicates approval logic in the UI and makes the loader's whitelist non-authoritative at runtime.
 
+### F-019 — Focused automated reproduction tests are not currently available in the Map Editor package
+The audited `apps/map-editor/package.json` exposes only `dev`, `build`, and `start` scripts; no test runner or test script is defined. Repository search did not return an existing Vitest/Jest-style test suite for the audited Map Editor. `tsconfig.json` includes the application TypeScript/TSX sources but does not establish a test configuration. Therefore the Phase 0 requirement for focused reproduction tests cannot yet be marked verified from repository evidence. The failures identified in F-008/F-010/F-013/F-014/F-017/F-018 remain source-verified findings, but their runtime reproduction is not yet automated.
+
+### F-020 — Phase 0 failure cases can be converted into deterministic unit-level test targets
+The source audit provides clear test seams without requiring a browser-first reproduction for every defect: grid allocation/validation can be tested around `map-document.ts` and serialization; requested-ID rejection around the persistence/adoption boundary; terrain approval acceptance/rejection around `terrain-asset-binding-loader.ts`; and Save connection state can be isolated around the connection/adoption contract. These tests have not been implemented in Phase 0, so this is a test-plan finding rather than a claim of runtime verification.
+
 ## Current implementation evidence
 
 - Active page renders `MapEditorAppV4`.
@@ -76,6 +82,7 @@ The documented asset approval boundary requires both `asset_registry.status = ap
 - `adopt()` and `loadSlot()` currently adopt parsed documents without an explicit requested-ID equality check.
 - `terrain-asset-binding-loader.ts` accepts `approved`, `verified`, and `active` asset statuses, and its base-terrain path omits binding-candidate approval.
 - `map-editor-app-v4.tsx` synthesizes additional base bindings directly from `asset_registry` without checking binding-candidate approval.
+- `apps/map-editor/package.json` has no test script or test-runner dependency.
 
 ## Current database evidence
 
@@ -93,4 +100,5 @@ These findings are audit evidence, not permission to patch architecture. Each fi
 - Persistence failure boundary: audited at frontend and RPC-contract level; F-010/F-011/F-012 identified. Exact historical browser error instance is not available from the repository audit alone.
 - Canonical load/save identity validation: audited; F-013/F-014/F-015/F-016 are confirmed validation-boundary defects.
 - Terrain approval enforcement: audited; F-017/F-018 confirm that runtime terrain loading has approval paths that are broader than the documented two-source whitelist.
-- Remaining Phase 0 items: focused reproduction tests and final foundation gate.
+- Focused reproduction tests: audited; F-019 confirms there is currently no repository test harness for the Map Editor, and F-020 defines the deterministic test seams that should be implemented next.
+- Remaining Phase 0 item: final foundation gate after the focused tests are established and executed.
