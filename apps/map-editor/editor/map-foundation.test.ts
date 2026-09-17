@@ -42,8 +42,21 @@ describe('MapDocument foundation invariants', () => {
     document.id = '87ba34eb-5a75-42fa-8919-63e44b700c02';
     document.name = 'World Map';
     document.mapType = 'world';
-    const parsed = parseMapDocument(serializeMapDocument(document), document.id);
+    const serialized = serializeMapDocument(document);
+    const parsed = parseMapDocument(serialized, document.id);
     expect(parsed.id).toBe('87ba34eb-5a75-42fa-8919-63e44b700c02');
+    expect(parsed.name).toBe('World Map');
+    expect(parsed.mapType).toBe('world');
+  });
+
+  it('accepts the same authoritative snapshot when Supabase returns an object', () => {
+    const document = makePayload(20, 12);
+    document.id = '87ba34eb-5a75-42fa-8919-63e44b700c02';
+    document.name = 'World Map';
+    document.mapType = 'world';
+    const persistedObject = JSON.parse(serializeMapDocument(document));
+    const parsed = parseMapDocument(persistedObject, document.id);
+    expect(parsed.id).toBe(document.id);
     expect(parsed.name).toBe('World Map');
     expect(parsed.mapType).toBe('world');
   });
