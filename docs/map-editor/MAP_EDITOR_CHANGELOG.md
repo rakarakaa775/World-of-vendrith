@@ -154,3 +154,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Repository tree move prepared; runtime code, Supabase schema/RPCs, deployment, and asset binaries unchanged.
 - **Notes:** The Change Log and Status Log remain at their original paths because the Bible explicitly defines those paths as mandatory governance records.
+
+## 2026-09-17 — Blueprint documentation move verified
+
+- **Type:** Verified / Updated
+- **Reason:** The previous entry described the move as prepared; the repository tree has now been checked after the actual create/delete operations.
+- **Details:** Confirmed the Blueprint directory contains the moved construction documents and the root `docs/map-editor/` directory retains only the governance logs. The moved files preserve their original blob SHAs/content identity.
+- **Affected:** `docs/map-editor/blueprint/`, `MAP_EDITOR_CHANGELOG.md`, `MAP_EDITOR_STATUS_LOG.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Verified against the GitHub repository tree on 2026-09-17. No runtime code, Supabase schema/RPCs, deployment, or binary asset was changed.
+- **Notes:** The governance logs remain at root by design. Future documentation references should use the new `blueprint/` paths.
