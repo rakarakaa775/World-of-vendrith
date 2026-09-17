@@ -93,7 +93,7 @@
 - **Affected:** `MAP_EDITOR_BIBLE.md`, `MAP_EDITOR_GAME_DESIGN.md`, `MAP_EDITOR_TECHNICAL.md`, `MAP_EDITOR_ROADMAP.md`, `MAP_EDITOR_PHASE_GOALS.md`.
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Documentation committed; implementation audit remains pending.
-- **Notes:** The three map types share one canonical MapDocument and persistence architecture.
+-**Notes:** The three map types share one canonical MapDocument and persistence architecture.
 
 ## 2026-09-16 — Asset library staging structure created
 
@@ -131,7 +131,7 @@
 - **Details:** Defined identity, MapDocument, serialization, Quick Save, Save Slot, Load Latest, Load Slot, error boundaries, atomicity, concurrency, projection separation, and verification requirements.
 - **Affected:** `docs/map-editor/MAP_EDITOR_SAVE_LOAD_CONTRACT.md`.
 - **Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** Documentation committed to GitHub.
+-**Verification:** Documentation committed to GitHub.
 -**Notes:** No runtime Save/Load code was changed. The contract requires explicit error stages rather than collapsing failures into a generic save error.
 
 ## 2026-09-17 — Construction Blueprint and Requirements Matrix established
@@ -221,7 +221,7 @@
 - **Details:** Added Vitest configuration and the Map Editor `test` script, grid/serialization foundation tests, requested-map identity contract tests, terrain approval boundary tests, and persistence autosaver tests. The identity tests intentionally expose the current missing requested-map guard rather than marking the defect as passing.
 - **Affected:** `apps/map-editor/package.json`, `apps/map-editor/vitest.config.ts`, `apps/map-editor/tests/map-document-grid.test.ts`, `apps/map-editor/tests/map-foundation-invariants.test.ts`, `apps/map-editor/tests/map-persistence-identity.test.ts`, `apps/map-editor/tests/terrain-asset-binding.test.ts`, `apps/map-editor/tests/map-persistence-autosaver.test.ts`.
 - **Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** Test files and runner configuration committed to GitHub. Tests have not been executed in this session, so no pass/fail result is claimed.
+-**Verification:** Test files and runner configuration committed to GitHub. Tests have not been executed in this session, so no pass/fail result is claimed.
 -**Notes:** The V4 React `ensureConnection()`/`save()` adoption race still has no direct deterministic UI seam; it remains an audit finding until an implementation seam can be tested without coupling tests to React timing.
 
 ## 2026-09-17 — Authoritative commit separated from projection failure
@@ -231,7 +231,7 @@
 - **Details:** Extended the merge persistence response with `projection_status` and `projection_error`; exposed those fields through `ConflictSaveResult`; added regression coverage for successful projection, failed projection after authoritative commit, optimistic conflict, and missing commit metadata. Verified the live `map_editor_commit_merge_v1` definition after migration `separate_authoritative_commit_from_projection_failure` and confirmed the Map Editor test workflow passed on commit `e75bbdcec7a111852262511fbd98d5ef7d76a137` (run `35187622874`).
 - **Affected:** `apps/map-editor/editor/map-merge-persistence.ts`, `apps/map-editor/editor/map-merge-persistence-supabase.ts`, `apps/map-editor/editor/map-conflict-save-controller.ts`, `apps/map-editor/tests/map-merge-persistence.test.ts`, Supabase `map_editor_commit_merge_v1`.
 - **Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** Verified by live Supabase function inspection and GitHub Actions run `35187622874`.
+-**Verification:** Verified by live Supabase function inspection and GitHub Actions run `35187622874`.
 -**Notes:** The authoritative version remains committed even when projection reports `failed`; UI-level messaging/handling of `projectionStatus` is the next boundary to audit before closing F-011.
 
 ## 2026-09-17 — V4 Quick Save projection-aware status
@@ -240,8 +240,8 @@
 - **Reason:** The merge persistence contract now exposes projection outcome separately from authoritative commit success, so the V4 UI must not collapse a durable save with a downstream projection failure into a generic `Saved` message.
 - **Details:** Updated `map-editor-app-v4.tsx` bootstrap handling to preserve `projectionStatus` and `projectionError`. Quick Save now reports three explicit states after a committed version: projection committed, projection not run, or projection failed, while still preserving the authoritative version and document in editor state.
 - **Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
-- **Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** Repository write succeeded as commit `d64c8f8dcc62e494ec7845bb9ad78e7f1158a417`. Browser/Vercel verification is still pending.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** Repository write succeeded as commit `d64c8f8dcc62e494ec7845bb9ad78e7f1158a417`. Browser/Vercel verification is still pending.
 -**Notes:** This closes the UI messaging portion of F-011 for Quick Save, but end-to-end browser verification and projection-failure recovery behavior remain open foundation work.
 
 ## 2026-09-17 — Asset scale-scope contract defined
@@ -251,13 +251,13 @@
 - **Details:** Added `MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, defining explicit `world`, `region`, and `playable` scopes, separating approval from scope eligibility, prohibiting inference from filenames/folders/categories/metadata, and specifying a future many-to-many scope relation. Updated `MAP_EDITOR_ASSET_APPROVAL.md` to reference the new contract. No existing asset received an automatic scope assignment.
 - **Affected:** `docs/map-editor/blueprint/MAP_EDITOR_ASSET_SCOPE_CONTRACT.md`, `docs/map-editor/blueprint/MAP_EDITOR_ASSET_APPROVAL.md`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
-- **Verification:** Repository documentation committed. Live Supabase schema was audited and confirmed to have no dedicated Map Editor asset-scope relation; no Supabase schema/RPC or asset binary changed.
+-**Verification:** Repository documentation committed. Live Supabase schema was audited and confirmed to have no dedicated Map Editor asset-scope relation; no Supabase schema/RPC or asset binary changed.
 -**Notes:** The next step is migration/RLS design and an implementation-level audit. The contract does not authorize a schema migration or initial scope assignments.
 
 ## 2026-09-17 — Pixi renderer lifecycle foundation repair
 
 -**Type:** Fixed
-- **Reason:** The Phase 0 renderer audit found that `PixiMapCanvas` destroyed and recreated the Pixi `Application` whenever the document, tool state, selection, callbacks, asset bindings, or environment state changed. That lifecycle coupled ordinary editor changes to canvas teardown/reinitialization and was the documented source of flicker risk.
+-**Reason:** The Phase 0 renderer audit found that `PixiMapCanvas` destroyed and recreated the Pixi `Application` whenever the document, tool state, selection, callbacks, asset bindings, or environment state changed. That lifecycle coupled ordinary editor changes to canvas teardown/reinitialization and was the documented source of flicker risk.
 -**Details:** Split the Pixi lifecycle from scene rendering. The component now creates one `Application` and one world container for its lifetime, keeps the latest editor props in refs, redraws the existing scene on document/render-input changes, and guards asynchronous asset loading against stale renders. Pointer/paint handlers are attached to the persistent world and read current props through the ref. Renderer readiness gates scene/event effects so initialization and interaction do not race.
 -**Affected:** `apps/map-editor/components/pixi-map-canvas.tsx`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
@@ -296,9 +296,9 @@
 
 ## 2026-09-18 — Persisted snapshot identity diagnostic deepened
 
-- **Type:** Fixed / Updated
-- **Reason:** Browser testing now reports `runtime-and-durable-parse-failed` with `Map document identity is incomplete`, while a direct live Supabase audit shows the canonical runtime snapshot and version 4 payload both contain `document.id`, `document.name`, and `document.mapType`. The next evidence boundary must distinguish a malformed transported payload from a different runtime target without weakening serializer validation.
-- **Details:** Extended `map-persistence.ts` to include the requested map ID and the observed persisted identity fields plus envelope/document keys whenever runtime or durable snapshot parsing fails. The parser contract remains strict; no fallback identity is synthesized and no persisted data is modified.
+-**Type:** Fixed / Updated
+-**Reason:** Browser testing now reports `runtime-and-durable-parse-failed` with `Map document identity is incomplete`, while a direct live Supabase audit shows the canonical runtime snapshot and version 4 payload both contain `document.id`, `document.name`, and `document.mapType`. The next evidence boundary must distinguish a malformed transported payload from a different runtime target without weakening serializer validation.
+-**Details:** Extended `map-persistence.ts` to include the requested map ID and the observed persisted identity fields plus envelope/document keys whenever runtime or durable snapshot parsing fails. The parser contract remains strict; no fallback identity is synthesized and no persisted data is modified.
 -**Affected:** `apps/map-editor/editor/map-persistence.ts`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Live Supabase audit confirms canonical runtime snapshot and durable version 4 currently contain complete World Map identity. GitHub source update committed as `2c37f023267216200fc21f993e34be2d0e3bcdb9`. Browser/Vercel verification of the new diagnostic remains pending.
@@ -306,10 +306,20 @@
 
 ## 2026-09-18 — Serializer identity guard made explicit
 
-- **Type:** Fixed / Added
-- **Reason:** The browser now reports complete persisted `id`, `name`, and `mapType` values while still surfacing the old generic identity error. That combination is logically inconsistent with the current serializer source and required a traceable parser boundary rather than a database change.
-- **Details:** Replaced the serializer's truthiness-only identity check with explicit type/non-empty checks and a unique parser marker. Added a regression fixture using the exact audited authoritative World Map identity and requested ID. No identity fallback or persisted-data rewrite was introduced.
-- **Affected:** `apps/map-editor/editor/map-serialization.ts`, `apps/map-editor/tests/map-serialization.test.ts`.
+-**Type:** Fixed / Added
+-**Reason:** The browser now reports complete persisted `id`, `name`, and `mapType` values while still surfacing the old generic identity error. That combination is logically inconsistent with the current serializer source and required a traceable parser boundary rather than a database change.
+-**Details:** Replaced the serializer's truthiness-only identity check with explicit type/non-empty checks and a unique parser marker. Added a regression fixture using the exact audited authoritative World Map identity and requested ID. No identity fallback or persisted-data rewrite was introduced.
+-**Affected:** `apps/map-editor/editor/map-serialization.ts`, `apps/map-editor/tests/map-serialization.test.ts`.
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** Source changes committed as `7b2c4de6e2cfe9a20a0ca0c8aa4d52de649202e5` and `2585b29c64f0498b20bc437db3e0da101652cfba`. Vercel/browser verification pending; Supabase unchanged.
 -**Notes:** If the next browser error still lacks the `map-document-parser-v2` marker, the running deployment is not executing this serializer revision even if the UI contains the newer persistence diagnostic.
+
+## 2026-09-18 — Serializer numeric validation boundary repaired
+
+- **Type:** Fixed / Added
+- **Reason:** Vercel build of commit `a55c3a5` compiled successfully but TypeScript rejected the serializer because `Number.isInteger()` does not narrow optional numeric properties. The previous local-constant attempt therefore remained compile-unsafe.
+- **Details:** Added an explicit `requirePositiveInteger()` validation boundary for `width`, `height`, and `tileSize`, returning a concrete `number` only after checking numeric type, integer-ness, and positivity. Added regression coverage for malformed persisted numeric fields while retaining the existing authoritative World Map object/string fixtures and grid cell-count checks.
+- **Affected:** `apps/map-editor/editor/map-serialization.ts`, `apps/map-editor/editor/map-foundation.test.ts`.
+-**Roadmap phase:** Phase 0 — Foundation Audit.
+-**Verification:** GitHub source updates committed as `2b7b7c1a9d1172b5b67ea01c219e55e9e15cd56a` and `1847477176c44175656cd4e76bc6f18016e31c63`. Vercel rebuild verification is pending; no Supabase schema/data or asset binary changed.
+-**Notes:** This is a compile-time boundary repair only. The Save/Load contract remains unchanged: invalid documents must fail before persistence, and authoritative identity must still be validated before adoption.
