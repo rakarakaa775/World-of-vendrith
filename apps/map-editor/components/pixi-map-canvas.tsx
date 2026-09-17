@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect, useRef } from "react";
+import { createElement, useEffect, useRef, useState } from "react";
 import { Application, Assets, Container, Graphics, Rectangle, Sprite } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
@@ -49,25 +49,20 @@ const expandBrush = (points: GridPoint[], size: number) => {
   return [...unique.values()];
 };
 
-/**
- * Pixi owns one application/canvas for the component lifetime. Document and
- * tool changes update the existing scene instead of destroying/recreating the
- * WebGL application. This is the renderer lifecycle boundary required by the
- * Map Editor foundation contract.
- */
+/** One Pixi application per component lifetime; React state changes only update its scene. */
 export function PixiMapCanvas(props: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const worldRef = useRef<Container | null>(null);
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
   const propsRef = useRef(props);
+  const [ready, setReady] = useState(false);
   propsRef.current = props;
 
   useEffect(() => {
     let disposed = false;
     const host = hostRef.current;
     if (!host) return;
-
     const app = new Application();
     appRef.current = app;
 
@@ -78,21 +73,19 @@ export function PixiMapCanvas(props: Props) {
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     }).then(() => {
-      if (disposed) {
-        app.destroy(true);
-        return;
-      }
-
+      if (disposed) { app.destroy(true); return; }
       const world = new Container();
       world.eventMode = "static";
-      app.stage.eventMode = "static";
       worldRef.current = world;
       host.replaceChildren(app.canvas);
+      app.stage.eventMode = "static";
       app.stage.addChild(world);
+      setReady(true);
     }).catch(error => console.error("Pixi map canvas initialization failed", error));
 
     return () => {
       disposed = true;
+      setReady(false);
       worldRef.current = null;
       appRef.current = null;
       host.replaceChildren();
@@ -101,23 +94,18 @@ export function PixiMapCanvas(props: Props) {
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     const render = async () => {
       const world = worldRef.current;
       const app = appRef.current;
-      if (!world || !app) return;
-      const {
-        document,
-        activeLayerId,
-        terrainBindings = {},
-        selectedObjectId,
-      } = propsRef.current;
-
+      const host = hostRef.current;
+      if (!world || !app || !host) return;
+      const { document, activeLayerId, terrainBindings = {}, selectedObjectId } = propsRef.current;
       world.removeChildren();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
-
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
       grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
@@ -137,11 +125,7 @@ export function PixiMapCanvas(props: Props) {
           const id = activeLayer.cells[i]?.tileId;
           const terrain = terrainFromTileId(id ?? null);
           if (!terrain) continue;
-          const binding = getTerrainAssetBinding(
-            terrainBindings,
-            terrain,
-            neighborMask(document, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrain),
-          );
+          const binding = getTerrainAssetBinding(terrainBindings, terrain, neighborMask(document, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrain));
           if (binding) textureRequests.add(binding.assetId);
         }
       }
@@ -149,11 +133,8 @@ export function PixiMapCanvas(props: Props) {
       let assetRecords = new Map<string, any>();
       const client = createMapEditorSupabaseClient();
       if (client && textureRequests.size) {
-        try {
-          assetRecords = await resolveAssetRecords(client, [...textureRequests]);
-        } catch (error) {
-          console.warn("Map editor asset metadata lookup failed", error);
-        }
+        try { assetRecords = await resolveAssetRecords(client, [...textureRequests]); }
+        catch (error) { console.warn("Map editor asset metadata lookup failed", error); }
       }
       if (cancelled || worldRef.current !== world) return;
 
@@ -218,18 +199,16 @@ export function PixiMapCanvas(props: Props) {
       world.addChild(overlay);
       world.hitArea = new Rectangle(0, 0, width, height);
       app.stage.hitArea = app.screen;
-      const v = viewportRef.current;
-      if (!v.x && !v.y) viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };
-      const current = viewportRef.current;
-      world.position.set(current.x, current.y);
-      world.scale.set(current.zoom);
+      if (!viewportRef.current.x && !viewportRef.current.y) viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };
+      world.position.set(viewportRef.current.x, viewportRef.current.y);
+      world.scale.set(viewportRef.current.zoom);
     };
-
     void render();
     return () => { cancelled = true; };
-  }, [props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
 
   useEffect(() => {
+    if (!ready) return;
     const host = hostRef.current;
     const world = worldRef.current;
     if (!host || !world) return;
@@ -301,9 +280,7 @@ export function PixiMapCanvas(props: Props) {
     const up = (e: any) => {
       const p = pointAt(e);
       const current = propsRef.current;
-      if (start && (current.activeTool === "Line" || current.activeTool === "Rectangle") && valid(p)) {
-        paint(current.activeTool === "Line" ? pointsInLine(start, p) : pointsInRectangle(start, p));
-      }
+      if (start && (current.activeTool === "Line" || current.activeTool === "Rectangle") && valid(p)) paint(current.activeTool === "Line" ? pointsInLine(start, p) : pointsInRectangle(start, p));
       start = null;
       selecting = false;
       movingId = null;
@@ -322,7 +299,7 @@ export function PixiMapCanvas(props: Props) {
       host.removeEventListener("wheel", wheel);
       world.off("pointerdown", down).off("pointermove", move).off("pointerup", up).off("pointerupoutside", up);
     };
-  }, []);
+  }, [ready]);
 
   return createElement("div", { ref: hostRef, style: { width: "100%", height: "100%", minHeight: 360, background: "#fff", touchAction: "none" } });
 }
