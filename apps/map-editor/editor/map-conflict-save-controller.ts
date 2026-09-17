@@ -2,11 +2,11 @@ import type { MapDocument } from './map-document';
 import { mergeMapDocumentsThreeWay, type MapMergeResult } from './map-entity-merge';
 import { createSupabaseMapMergePersistence, serializeResolvedMapSnapshot } from './map-merge-persistence-supabase';
 import { loadMapDocumentSnapshot } from './map-persistence';
-import { normalizeMergeCommitResponse } from './map-merge-persistence';
+import { normalizeMergeCommitResponse, type ProjectionStatus } from './map-merge-persistence';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type ConflictSaveResult =
-  | { status: 'committed'; document: MapDocument; version: number }
+  | { status: 'committed'; document: MapDocument; version: number; projectionStatus: ProjectionStatus; projectionError: string | null }
   | { status: 'conflict'; merge: MapMergeResult; expectedVersion: number; remoteVersion: number; remoteDocument: MapDocument }
   | { status: 'error'; error: unknown };
 
@@ -50,7 +50,13 @@ export async function saveWithConflictDetection(
       };
     }
 
-    return { status: 'committed', document: merge.document, version: committed.versionNumber };
+    return {
+      status: 'committed',
+      document: merge.document,
+      version: committed.versionNumber,
+      projectionStatus: committed.projectionStatus,
+      projectionError: committed.projectionError,
+    };
   } catch (error) {
     return { status: 'error', error };
   }
