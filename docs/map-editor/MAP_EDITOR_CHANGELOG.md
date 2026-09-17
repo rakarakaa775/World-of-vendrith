@@ -59,7 +59,7 @@
 
 - **Type:** Added / Changed
 - **Reason:** Prevent further implementation drift and preserve an auditable project history.
-- **Details:** Added the database contract, detailed changelog, and short status log; updated the Bible to require both logs for every repository/database/architecture/asset/configuration update.
+- **Details:** Added the database contract, detailed changelog, and short status log; updated the Bible to require both logs for every project update.
 - **Affected:** `MAP_EDITOR_DATABASE_CONTRACT.md`, `MAP_EDITOR_CHANGELOG.md`, `MAP_EDITOR_STATUS_LOG.md`, `MAP_EDITOR_BIBLE.md`.
 - **Roadmap phase:** Foundation documentation.
 - **Verification:** Documentation committed to GitHub.
@@ -224,3 +224,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Test files and runner configuration committed to GitHub. Tests have not been executed in this session, so no pass/fail result is claimed.
 - **Notes:** The V4 React `ensureConnection()`/`save()` adoption race still has no direct deterministic UI seam; it remains an audit finding until an implementation seam can be tested without coupling tests to React timing.
+
+## 2026-09-17 — Authoritative commit separated from projection failure
+
+- **Type:** Changed / Fixed
+- **Reason:** The database commit RPC now distinguishes a durable `map_versions` commit from downstream projection/reconciliation failure. The frontend needed to preserve that distinction instead of treating the RPC result as a generic committed response.
+- **Details:** Extended the merge persistence response with `projection_status` and `projection_error`; exposed those fields through `ConflictSaveResult`; added regression coverage for successful projection, failed projection after authoritative commit, optimistic conflict, and missing commit metadata. Verified the live `map_editor_commit_merge_v1` definition after migration `separate_authoritative_commit_from_projection_failure` and confirmed the Map Editor test workflow passed on commit `e75bbdcec7a111852262511fbd98d5ef7d76a137` (run `35187622874`).
+- **Affected:** `apps/map-editor/editor/map-merge-persistence.ts`, `apps/map-editor/editor/map-merge-persistence-supabase.ts`, `apps/map-editor/editor/map-conflict-save-controller.ts`, `apps/map-editor/tests/map-merge-persistence.test.ts`, Supabase `map_editor_commit_merge_v1`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Verified by live Supabase function inspection and GitHub Actions run `35187622874`.
+- **Notes:** The authoritative version remains committed even when projection reports `failed`; UI-level messaging/handling of `projectionStatus` is the next boundary to audit before closing F-011.
