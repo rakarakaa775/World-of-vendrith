@@ -28,6 +28,25 @@ function errorMessage(error: unknown): string {
   return 'unknown error';
 }
 
+function snapshotIdentityDiagnostic(snapshot: unknown, requestedMapId: string): string {
+  try {
+    const payload = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+    if (!payload || typeof payload !== 'object') return `requested=${requestedMapId}; payload=non-object`;
+    const candidate = payload as Record<string, unknown>;
+    const document = candidate.document && typeof candidate.document === 'object'
+      ? candidate.document as Record<string, unknown>
+      : candidate;
+    const id = typeof document.id === 'string' ? document.id : '<missing>';
+    const name = typeof document.name === 'string' ? document.name : '<missing>';
+    const mapType = typeof document.mapType === 'string' ? document.mapType : '<missing>';
+    const envelopeKeys = Object.keys(candidate).sort().join(',') || '<none>';
+    const documentKeys = Object.keys(document).sort().join(',') || '<none>';
+    return `requested=${requestedMapId}; id=${id}; name=${name}; mapType=${mapType}; envelopeKeys=${envelopeKeys}; documentKeys=${documentKeys}`;
+  } catch (error) {
+    return `requested=${requestedMapId}; identity-inspection-failed=${errorMessage(error)}`;
+  }
+}
+
 function parsePersistedSnapshot(snapshot: unknown, requestedMapId?: string): MapDocument {
   const payload = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
   if (!payload || typeof payload !== 'object') throw new Error('Persisted map snapshot is invalid');
@@ -61,7 +80,9 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
       return { result, document: parsePersistedSnapshot(result.snapshot, mapId) };
     } catch (error) {
       runtimeParseError = errorMessage(error);
-      console.warn('Runtime map snapshot parse failed; falling back to durable version', error);
+      const diagnostic = snapshotIdentityDiagnostic(result.snapshot, mapId);
+      console.warn('Runtime map snapshot parse failed; falling back to durable version', error, diagnostic);
+      runtimeParseError = `${runtimeParseError} [${diagnostic}]`;
     }
   }
 
@@ -102,7 +123,8 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
     document = parsePersistedSnapshot(latest.snapshot, mapId);
   } catch (error) {
     const durableParseError = errorMessage(error);
-    console.warn('Durable map snapshot parse failed', error);
+    const diagnostic = snapshotIdentityDiagnostic(latest.snapshot, mapId);
+    console.warn('Durable map snapshot parse failed', error, diagnostic);
     return {
       result: {
         ...result,
@@ -115,7 +137,7 @@ export async function loadMapDocumentSnapshot(client: SupabaseClient, mapId: str
         updated_at: latest.created_at ?? result.updated_at,
         snapshot: latest.snapshot,
         code: runtimeParseError ? 'runtime-and-durable-parse-failed' : 'durable-parse-failed',
-        error: runtimeParseError ? `runtime: ${runtimeParseError}; durable: ${durableParseError}` : durableParseError,
+        error: runtimeParseError ? `runtime: ${runtimeParseError}; durable: ${durableParseError} [${diagnostic}]` : `${durableParseError} [${diagnostic}]`,
       },
       document: null,
     };
