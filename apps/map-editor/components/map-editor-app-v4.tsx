@@ -97,6 +97,11 @@ export function MapEditorAppV4() {
       return connection;
     }
 
+    const discoveredVersion = Number(loaded.result.version_number) || 0;
+    if (discoveredVersion > 0) {
+      throw new Error(`Authoritative snapshot is not loadable · version ${discoveredVersion} · ${loaded.result.code || "snapshot-parse-or-read-failure"}`);
+    }
+
     const doc = fromRow(authoritative.data);
     const boot = await bootstrap(client, doc, id);
     const connection = { mapId: id, document: doc, version: boot.version };
