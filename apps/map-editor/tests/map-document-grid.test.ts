@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vitest";
-
-function expectedCellCount(width: number, height: number) {
-  return width * height;
-}
+import { createMap } from "../editor/map-document";
 
 describe("MapDocument grid invariant", () => {
-  it("derives cell count from width × height", () => {
-    expect(expectedCellCount(20, 12)).toBe(240);
-    expect(expectedCellCount(7, 5)).toBe(35);
-    expect(expectedCellCount(1, 1)).toBe(1);
+  it("allocates cells from width × height for a non-default document size", () => {
+    const document = createMap("playable");
+    const resized = { ...document, width: 7, height: 5 };
+
+    for (const layer of resized.layers) {
+      expect(layer.cells).toHaveLength(resized.width * resized.height);
+    }
   });
 
-  it("does not assume the default 20 × 12 dimensions", () => {
-    expect(expectedCellCount(16, 16)).toBe(256);
+  it("keeps the default 20 × 12 document at 240 cells", () => {
+    const document = createMap("world");
+
+    for (const layer of document.layers) {
+      expect(layer.cells).toHaveLength(document.width * document.height);
+    }
   });
 });
