@@ -164,3 +164,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Verified against the GitHub repository tree on 2026-09-17. No runtime code, Supabase schema/RPCs, deployment, or binary asset was changed.
 - **Notes:** The governance logs remain at root by design. Future documentation references should use the new `blueprint/` paths.
+
+## 2026-09-17 — State / identity foundation audit recorded
+
+- **Type:** Added
+- **Reason:** Verify the next foundation invariants before touching Save/Load implementation.
+- **Details:** Audited `activeMapId`, `connectedMapId`, EditorShell history boundaries, MapBrowser navigation, Load Slot identity handling, and local child-map persistence scope. Identified that map selection does not atomically synchronize persistence metadata, and Load Slot does not explicitly verify `document.id === requested mapId` before adoption.
+- **Affected:** `map-editor-app-v4.tsx`, `editor-shell.tsx`, `map-browser.tsx`, `map-document.ts`, `map-manager.ts`, `playable-hierarchy.ts`, `MAP_EDITOR_STATE_IDENTITY_AUDIT_2026-09-17.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Source audit completed; no runtime or Supabase change made.
+- **Notes:** This is an audit finding, not yet a code fix. The next implementation must preserve the anti-flicker history rule while introducing an explicit map-open boundary.
