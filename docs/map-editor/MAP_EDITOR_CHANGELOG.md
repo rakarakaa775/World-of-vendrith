@@ -134,3 +134,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Documentation committed to GitHub.
 - **Notes:** No runtime Save/Load code was changed. The contract requires explicit error stages rather than collapsing failures into a generic save error.
+
+## 2026-09-17 — Construction Blueprint and Requirements Matrix established
+
+- **Type:** Added
+- **Reason:** Create a single construction guide so future implementation follows the documented architecture rather than improvising from legacy code or symptoms.
+- **Details:** Added `BLUEPRINT.md` as the Map Editor construction guide and `REQUIREMENTS.md` as a testable foundation requirements matrix. The blueprint consolidates the existing Bible, roadmap, contracts, game-design and technical boundaries and explicitly maps the current foundation defects to implementation requirements.
+- **Affected:** `docs/map-editor/BLUEPRINT.md`, `docs/map-editor/REQUIREMENTS.md`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Documentation committed to GitHub. No runtime code, Supabase schema, RPC, or asset binary was changed.
+- **Notes:** Immediate foundation focus is editor-state identity, failed-load safety, renderer lifecycle stability, and deterministic MapDocument grid sizing. Existing Save/Load and Database contracts remain authoritative.
