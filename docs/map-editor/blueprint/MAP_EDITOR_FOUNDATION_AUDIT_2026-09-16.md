@@ -65,6 +65,9 @@ The audited `apps/map-editor/package.json` exposes only `dev`, `build`, and `sta
 ### F-020 — Phase 0 failure cases can be converted into deterministic unit-level test targets
 The source audit provides clear test seams without requiring a browser-first reproduction for every defect: grid allocation/validation can be tested around `map-document.ts` and serialization; requested-ID rejection around the persistence/adoption boundary; terrain approval acceptance/rejection around `terrain-asset-binding-loader.ts`; and Save connection state can be isolated around the connection/adoption contract. These tests have not been implemented in Phase 0, so this is a test-plan finding rather than a claim of runtime verification.
 
+### F-021 — Final Foundation Gate cannot pass yet because required focused tests are not established and executed
+The Blueprint defines Foundation stability as requiring deterministic map identity, load safety, non-flickering renderer behavior, deterministic grid sizing, explicit World/Region/Playable identity, testable Save/Load contracts without canvas side effects, and synchronized Change/Status logging. The Requirements Matrix makes these acceptance conditions testable, including `STATE-001`, `STATE-002`, `STATE-003`, `DOC-002`, `SER-002`, `SER-003`, `RENDER-002`, `SAVE-001`, and `LOAD-002`. The repository audit has identified source-level defects touching these requirements, and F-019 confirms there is currently no Map Editor test harness. No focused runtime/unit test execution has been performed. Therefore Phase 0 remains **BLOCKED / NOT PASSED**. This is an evidence-gate result, not a claim that every defect has been reproduced at runtime.
+
 ## Current implementation evidence
 
 - Active page renders `MapEditorAppV4`.
@@ -101,4 +104,5 @@ These findings are audit evidence, not permission to patch architecture. Each fi
 - Canonical load/save identity validation: audited; F-013/F-014/F-015/F-016 are confirmed validation-boundary defects.
 - Terrain approval enforcement: audited; F-017/F-018 confirm that runtime terrain loading has approval paths that are broader than the documented two-source whitelist.
 - Focused reproduction tests: audited; F-019 confirms there is currently no repository test harness for the Map Editor, and F-020 defines the deterministic test seams that should be implemented next.
-- Remaining Phase 0 item: final foundation gate after the focused tests are established and executed.
+- Final foundation gate: evaluated; F-021 records that the gate is blocked until the focused tests are established and executed with evidence.
+- Remaining Phase 0 work: establish the focused test harness, implement the deterministic reproduction tests, execute them, then re-evaluate the Foundation Gate before runtime architecture fixes or Phase 1 work.
