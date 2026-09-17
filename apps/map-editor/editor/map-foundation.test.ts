@@ -37,6 +37,17 @@ describe('MapDocument foundation invariants', () => {
     expect(parsed.layers.every(layer => layer.cells.length === 35)).toBe(true);
   });
 
+  it('accepts the audited authoritative World Map identity from persisted JSON', () => {
+    const document = makePayload(20, 12);
+    document.id = '87ba34eb-5a75-42fa-8919-63e44b700c02';
+    document.name = 'World Map';
+    document.mapType = 'world';
+    const parsed = parseMapDocument(serializeMapDocument(document), document.id);
+    expect(parsed.id).toBe('87ba34eb-5a75-42fa-8919-63e44b700c02');
+    expect(parsed.name).toBe('World Map');
+    expect(parsed.mapType).toBe('world');
+  });
+
   it('rejects a persisted layer whose cell count does not match width × height', () => {
     const document = makePayload(7, 5);
     document.layers[0].cells = createEmptyCells(20, 12);
