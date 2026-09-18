@@ -31,6 +31,7 @@ export function MapEditorAppV4() {
   const [connectedMapId, setConnectedMapId] = useState<string | null>(null);
   const [baseDocument, setBaseDocument] = useState<MapDocument | null>(null);
   const [version, setVersion] = useState(0);
+  const [loadRevision, setLoadRevision] = useState(0);
   const [status, setStatus] = useState("Connecting to Supabase…");
   const [busy, setBusy] = useState(true);
   const [slots, setSlots] = useState<SaveSlot[]>([]);
@@ -73,6 +74,7 @@ export function MapEditorAppV4() {
     setConnectedMapId(mapId);
     setBaseDocument(loaded.document);
     setVersion(Number(loaded.result.version_number) || 0);
+    setLoadRevision(v => v + 1);
     await refreshSlots(client, mapId);
     setStatus(`Connected · version ${Number(loaded.result.version_number) || 0}`);
     return true;
@@ -209,6 +211,7 @@ export function MapEditorAppV4() {
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
       setBaseDocument(document);
       setVersion(loadedVersion);
+      setLoadRevision(v => v + 1);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setStatus("Loaded Latest · authoritative durable version " + loadedVersion);
     } catch (e) { setStatus("Load failed: " + msg(e)); }
@@ -226,7 +229,7 @@ export function MapEditorAppV4() {
       const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
       const doc = parseMapDocument(typeof result.snapshot === "string" ? result.snapshot : JSON.stringify(result.snapshot), id);
-      setMaps([doc]); setActiveMapId(doc.id); setConnectedMapId(id); setBaseDocument(doc); setVersion(Number(result.version_number) || 1); await refreshSlots(client, id); setShowSlots(false); setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · version ${result.version_number}`);
+      setMaps([doc]); setActiveMapId(doc.id); setConnectedMapId(id); setBaseDocument(doc); setVersion(Number(result.version_number) || 1); setLoadRevision(v => v + 1); await refreshSlots(client, id); setShowSlots(false); setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · version ${result.version_number}`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
   }, [ensureConnection, refreshSlots]);
@@ -240,7 +243,7 @@ export function MapEditorAppV4() {
         <button onClick={loadLatest} disabled={busy}>Load Latest</button>
         <span style={{ fontSize: 11, opacity: .8 }}>v{version} · {status}</span>
       </div>
-      <EditorShell initialDocument={active} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
+      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
     </div>
     {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
