@@ -354,3 +354,13 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Governance history reconciled in this update session.
 - **Notes:** No Supabase schema/data or asset binaries changed.
+ 
+## 2026-09-18 — Load Latest switched to direct durable authoritative read
+
+- **Type:** Fixed
+- **Reason:** Browser verification now shows Quick Save succeeds, but Load Latest still fails. The previous repair bypassed the React connection cache but still entered `loadMapDocumentSnapshot()`, which first consumes the runtime snapshot RPC before falling back to durable history.
+- **Details:** Load Latest now reads the newest `map_versions` row directly for the audited authoritative World Map, parses that durable snapshot with the requested map ID, then atomically replaces the editor document, persistence baseline, version, and Save Slot list. This separates the explicit “Load Latest” action from the runtime cache path.
+- **Affected:** `apps/map-editor/components/map-editor-app-v4.tsx`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Save was observed working in browser at version 7. Direct durable Load Latest is implemented in commit `5fa15f7897728ff6f727c5628bbad85a05ca00e0`; Vercel/browser verification of this commit remains pending.
+- **Notes:** No Supabase schema/data or asset binaries were changed.
