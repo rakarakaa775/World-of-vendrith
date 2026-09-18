@@ -23,6 +23,65 @@ function validateIdentity(document: Partial<MapDocument>): void {
   }
 }
 
+
+function validateLayerSemantics(layer: unknown, expectedCellCount: number): void {
+  if (!layer || typeof layer !== 'object') throw new Error('Map layer is invalid');
+  const candidate = layer as Record<string, unknown>;
+  if (typeof candidate.id !== 'string' || candidate.id.trim() === '') throw new Error('Map layer id is invalid');
+  if (typeof candidate.name !== 'string' || candidate.name.trim() === '') throw new Error('Map layer name is invalid');
+  if (candidate.kind !== 'ground' && candidate.kind !== 'objects' && candidate.kind !== 'collision') {
+    throw new Error('Map layer kind is invalid');
+  }
+  for (const field of ['visible', 'locked', 'active']) {
+    if (typeof candidate[field] !== 'boolean') throw new Error(`Map layer ${field} flag is invalid`);
+  }
+  if (!Array.isArray(candidate.cells) || candidate.cells.length !== expectedCellCount) {
+    throw new Error('Map layer cells are invalid');
+  }
+  for (const cell of candidate.cells) {
+    if (!cell || typeof cell !== 'object') throw new Error('Map cell is invalid');
+    const tileId = (cell as Record<string, unknown>).tileId;
+    if (tileId !== null && (typeof tileId !== 'string' || tileId.trim() === '')) {
+      throw new Error('Map cell tileId is invalid');
+    }
+  }
+  if (!Array.isArray(candidate.objects)) throw new Error('Map layer objects are invalid');
+  for (const object of candidate.objects) validateObjectSemantics(object);
+}
+
+function validateObjectSemantics(object: unknown): void {
+  if (!object || typeof object !== 'object') throw new Error('Map object is invalid');
+  const candidate = object as Record<string, unknown>;
+  if (typeof candidate.id !== 'string' || candidate.id.trim() === '') throw new Error('Map object id is invalid');
+  if (candidate.kind !== 'building' && candidate.kind !== 'decoration' && candidate.kind !== 'poi') {
+    throw new Error('Map object kind is invalid');
+  }
+  if (typeof candidate.category !== 'string' || candidate.category.trim() === '') throw new Error('Map object category is invalid');
+  for (const field of ['x', 'y', 'width', 'height', 'rotation', 'zIndex']) {
+    if (typeof candidate[field] !== 'number' || !Number.isFinite(candidate[field])) {
+      throw new Error(`Map object ${field} is invalid`);
+    }
+  }
+  if (candidate.width <= 0 || candidate.height <= 0) throw new Error('Map object dimensions must be positive');
+  if (typeof candidate.assetId !== 'string' || candidate.assetId.trim() === '') throw new Error('Map object assetId is invalid');
+  if (typeof candidate.collision !== 'boolean') throw new Error('Map object collision is invalid');
+  if (candidate.playableMapId !== undefined && candidate.playableMapId !== null && typeof candidate.playableMapId !== 'string') {
+    throw new Error('Map object playableMapId is invalid');
+  }
+}
+
+function validateRelationshipMetadata(document: Partial<MapDocument>): void {
+  if (document.parentMapId !== null && typeof document.parentMapId !== 'string') {
+    throw new Error('Map parentMapId is invalid');
+  }
+  if (document.playableSpace !== undefined && document.playableSpace !== 'exterior' && document.playableSpace !== 'interior') {
+    throw new Error('Playable space type is invalid');
+  }
+  if (document.parentPlayableMapId !== undefined && document.parentPlayableMapId !== null && typeof document.parentPlayableMapId !== 'string') {
+    throw new Error('Map parentPlayableMapId is invalid');
+  }
+}
+
 function requirePositiveInteger(value: unknown, label: 'width' | 'height' | 'tileSize'): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
     const messages = {
@@ -74,10 +133,8 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
   const layers = normalizedDocument.layers;
   if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
   const expectedCellCount = width * height;
-  for (const layer of layers) {
-    if (!layer || !Array.isArray(layer.cells)) throw new Error('Map layer cells are invalid');
-    if (layer.cells.length !== expectedCellCount) throw new Error('Layer cell count must equal width × height');
-  }
+  validateRelationshipMetadata(normalizedDocument);
+  for (const layer of layers) validateLayerSemantics(layer, expectedCellCount);
 
   return {
     ...normalizedDocument,
