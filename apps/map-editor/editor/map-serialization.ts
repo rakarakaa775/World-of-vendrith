@@ -62,7 +62,11 @@ function validateObjectSemantics(object: unknown): void {
       throw new Error(`Map object ${field} is invalid`);
     }
   }
-  if (candidate.width <= 0 || candidate.height <= 0) throw new Error('Map object dimensions must be positive');
+  const width = candidate.width;
+  const height = candidate.height;
+  if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0 || typeof height !== 'number' || !Number.isFinite(height) || height <= 0) {
+    throw new Error('Map object dimensions must be positive');
+  }
   if (typeof candidate.assetId !== 'string' || candidate.assetId.trim() === '') throw new Error('Map object assetId is invalid');
   if (typeof candidate.collision !== 'boolean') throw new Error('Map object collision is invalid');
   if (candidate.playableMapId !== undefined && candidate.playableMapId !== null && typeof candidate.playableMapId !== 'string') {
