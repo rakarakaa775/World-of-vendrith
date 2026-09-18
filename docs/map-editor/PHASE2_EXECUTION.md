@@ -1,6 +1,6 @@
 # Vandrith Map Editor — Phase 2 Execution
 
-**Status:** IN PROGRESS — 2026-09-18
+**Status:** LOCKED COMPLETE — 2026-09-18
 
 ## Contract target
 
@@ -35,7 +35,7 @@ The contract must remain deterministic for:
 4. Add malformed-envelope and malformed-document regression cases.
 5. Run focused tests.
 6. Compare the resulting behavior against the Phase 2 exit evidence.
-7. Record the final Phase 2 lock only after the evidence passes.
+7. Record the final Phase 2 lock only after the evidence passes. **Completed:** Phase 2 exit evidence verified and lock recorded in `PHASE_STATUS_LOG.md`.
 
 ## Non-goals
 
