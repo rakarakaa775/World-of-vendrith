@@ -146,3 +146,59 @@ The live database also contains dedicated map-support structures including `map_
 7. No relationship may be inferred solely from legacy geography or coordinate-profile names.
 
 This reconstruction resolves the semantic question needed for the next SQL design, while preserving the existing legacy/game contract.
+
+
+## 11. Concrete physical schema design review — 2026-09-19
+
+### A. Identity table
+
+Proposed table: `public.editor_map_identity`.
+
+| Column | Type | Null | Rule |
+|---|---|---:|---|
+| `editor_map_id` | uuid | NO | PK; stable MapDocument.id |
+| `legacy_map_id` | uuid | YES | FK → maps.id; explicit bridge only |
+| `world_id` | uuid | NO | FK → worlds.id |
+| `map_type` | text | NO | CHECK: world | region | playable |
+| `parent_editor_map_id` | uuid | YES | self-FK; no self-parent |
+| `created_by` | uuid | NO | owner = auth.uid() |
+| `created_at` | timestamptz | NO | database timestamp |
+| `updated_at` | timestamptz | NO | database timestamp |
+
+### B. Interior relation
+
+Because the canonical MapDocument contract has only `world | region | playable`, Interior must not become a fourth MapDocument type. Use a separate `public.editor_map_interior` relation:
+
+| Column | Type | Null | Rule |
+|---|---|---:|---|
+| `editor_map_id` | uuid | NO | PK/FK → editor_map_identity |
+| `playable_editor_map_id` | uuid | NO | FK → editor_map_identity; must be playable |
+| `legacy_map_id` | uuid | YES | FK → maps.id; must be legacy interior when present |
+| `building_id` | uuid | YES | FK → buildings.id; required when legacy_map_id is present |
+| `created_by` | uuid | NO | owner = auth.uid() |
+| `created_at` | timestamptz | NO | database timestamp |
+| `updated_at` | timestamptz | NO | database timestamp |
+
+### C. Database-enforced invariants
+
+1. World has no parent.
+2. Region parent is World.
+3. Playable parent is Region.
+4. `editor_map_id` is the stable MapDocument identity.
+5. A mapped legacy row must have the same `world_id`.
+6. A mapped editor World must map to legacy `maps.map_type='world'`.
+7. A mapped editor Playable may map only to legacy `maps.map_type='exterior'`.
+8. An interior relation's editor identity must be `map_type='playable'`, while its owning parent is another Playable; this relation represents the Interior node without changing MapDocument's three-value type contract.
+9. When `editor_map_interior.legacy_map_id` is present, that legacy row must be `interior` and have non-null `building_id`.
+10. `building_id` must match the legacy map's `building_id` when both are present.
+11. No self-parent and no hierarchy cycle.
+12. One legacy `maps.id` may map to at most one editor identity/relation.
+13. Ownership is derived from `auth.uid()`; browser direct writes are not the authorization mechanism.
+
+### D. Migration A scope
+
+Migration A should create only the identity/relation schema, constraints, indexes, owner RLS, and internal validation helpers. It should **not** create child data and should not modify the existing World Map, versions, save slots, or persistence RPCs.
+
+### E. Follow-up
+
+After Migration A is applied and independently re-audited, Migration B will add controlled resolution/creation RPCs. Persistence bridging remains a later step.
