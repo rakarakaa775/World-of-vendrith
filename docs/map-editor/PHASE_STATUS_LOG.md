@@ -129,3 +129,18 @@ Phase 2 menetapkan dan memperkuat kontrak tunggal `MapDocument` pada batas seria
 
 ### Phase 2 conclusion
 Phase 2 memenuhi exit evidence yang ditetapkan pada `PHASE2_EXECUTION.md` dan telah dikunci untuk transisi ke Phase 3. Fondasi Map Editor dari Phase 1 tetap menjadi baseline yang tidak berubah.
+
+
+## 2026-09-18 — Phase 3 persistence checkpoint
+
+**Status:** In progress.
+
+- Added explicit authoritative map resolution before Save.
+- Resolution checks access, authoritative maps row, durable snapshot identity, and version.
+- Existing map_editor_commit_merge_v1 remains the server-controlled commit boundary.
+- Supabase audit found one persisted map (world) and an existing maps.map_type constraint of world | exterior | interior.
+- MapDocument uses world | region | playable; the current database vocabulary does not uniquely identify region versus playable.
+- The implementation rejects ambiguous non-World persistence rather than silently mapping types.
+- Phase 3 is therefore not complete yet. Next step is to establish the intended existing contract mapping before any compatibility migration.
+
+Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992fb7f2fda3223afecf3b38f7f65, f43a89d4e8d54e7056a38b42d833d3d4453fc131.
