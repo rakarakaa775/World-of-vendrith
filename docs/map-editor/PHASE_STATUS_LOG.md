@@ -57,3 +57,26 @@ Ordinary feature work must not redesign the locked persistence, ownership, versi
 
 ### Phase 2 exit evidence
 Serialize → parse → compare tests plus malformed-payload tests for all three map types, with no regression to the locked editor/persistence foundation.
+
+## 2026-09-18 — Phase 2 completion lock
+
+**Status:** Phase 2 closed for transition to Phase 3.
+
+### Phase 2 exit evidence verified
+- Canonical schema remains `vandrith.map-document`.
+- Document version remains `1`.
+- Parser validation covers identity, dimensions, tile size, layer semantics, cell semantics, object semantics, and relationship metadata.
+- Deterministic serialize → parse → compare coverage exists for World, Region, and Playable MapDocument types.
+- Regression coverage exists for malformed envelope schema/version, missing document, requested identity mismatch, numeric dimensions, layer cell counts, layer/cell semantics, and relationship metadata.
+- The latest Vercel status for commit `5b74b7e8812516da2cddd290ad06b41cdde9b073` is **success**.
+- Supabase remains `ACTIVE_HEALTHY`; the authoritative map foundation remains intact: `maps` 1 row, `map_versions` 12 rows, `map_cells` 68 rows, with no Phase 2 migration added.
+- No persistence RPC, ownership, save-slot, versioning, or snapshot-boundary redesign was introduced.
+
+### Implementation commits
+- `f4a92a5aee3dce576b3399e9f80423c73712a403` — strengthened serialization validation.
+- `80f3d9d01f940d9a1e48ff0dc40f6c46146e9fc6` — added Phase 2 round-trip and malformed-payload tests.
+- `8459db277d188f13bf5adb035689b5ca726145c9` — corrected TypeScript numeric narrowing for object dimensions.
+- `5b74b7e8812516da2cddd290ad06b41cdde9b073` — corrected the cell-count validation error-path contract.
+
+### Lock boundary
+Phase 2 is now locked. Phase 3 must build on the existing MapDocument/serialization contract and the Phase 1 persistence foundation. No compatibility or persistence redesign is implied by this lock.
