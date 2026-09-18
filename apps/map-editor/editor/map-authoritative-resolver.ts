@@ -41,6 +41,15 @@ export async function resolveAuthoritativeMap(
     throw new Error('MAP_ACCESS_ERROR: map not found or not accessible');
   }
 
+  // Phase 3: the existing World Map is idempotently registered in the
+  // explicit editor identity layer. No legacy maps row is created or changed.
+  const bootstrap = await client.rpc('map_editor_bootstrap_world_identity_v1', {
+    p_legacy_map_id: requestedMapId,
+  });
+  if (bootstrap.error) {
+    throw new Error(`MAP_IDENTITY_ERROR: ${bootstrap.error.message}`);
+  }
+
   const rowResult = await client
     .from('maps')
     .select('id,name,map_type,world_id,width,height,tile_size,metadata')
