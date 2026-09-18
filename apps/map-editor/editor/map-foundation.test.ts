@@ -83,4 +83,65 @@ describe('MapDocument foundation invariants', () => {
     expect(() => parseMapDocument(serializeMapDocument(document), document.id))
       .toThrow('Layer cell count must equal width × height');
   });
+
+  it.each(['world', 'region', 'playable'] as const)('round-trips %s MapDocument deterministically', (mapType) => {
+    const document = createMap(mapType);
+    document.id = `${mapType}-roundtrip`;
+    document.name = `${mapType} test map`;
+    const parsed = parseMapDocument(serializeMapDocument(document), document.id);
+    expect(parsed).toEqual(document);
+    expect(JSON.parse(serializeMapDocument(parsed))).toEqual(JSON.parse(serializeMapDocument(document)));
+  });
+
+  it('rejects malformed envelope schema and version', () => {
+    const document = createMap('world');
+    const payload = JSON.parse(serializeMapDocument(document)) as Record<string, unknown>;
+
+    payload.schema = 'wrong.schema';
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Unsupported map document schema');
+
+    payload.schema = 'vandrith.map-document';
+    payload.version = 99;
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Unsupported map document version');
+
+    payload.version = 1;
+    delete payload.document;
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Missing map document');
+  });
+
+  it('rejects a requested map identity mismatch', () => {
+    const document = createMap('region');
+    expect(() => parseMapDocument(serializeMapDocument(document), 'different-map-id'))
+      .toThrow('Loaded map identity does not match requested map');
+  });
+
+  it('rejects malformed layer and cell semantics', () => {
+    const document = createMap('playable');
+    const payload = JSON.parse(serializeMapDocument(document)) as { document: Record<string, unknown> };
+    const layer = (payload.document.layers as Array<Record<string, unknown>>)[0];
+
+    layer.kind = 'unknown';
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Map layer kind is invalid');
+
+    layer.kind = 'ground';
+    (layer.cells as Array<Record<string, unknown>>)[0].tileId = 123;
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Map cell tileId is invalid');
+
+    (layer.cells as Array<Record<string, unknown>>)[0].tileId = null;
+    layer.objects = null;
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Map layer objects are invalid');
+  });
+
+  it('rejects malformed relationship metadata', () => {
+    const document = createMap('playable');
+    const payload = JSON.parse(serializeMapDocument(document)) as { document: Record<string, unknown> };
+
+    payload.document.parentMapId = 123;
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Map parentMapId is invalid');
+
+    payload.document.parentMapId = null;
+    payload.document.playableSpace = 'dungeon';
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Playable space type is invalid');
+  });
+
 });
