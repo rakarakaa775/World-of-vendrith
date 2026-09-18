@@ -189,3 +189,18 @@ Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992
 - GitHub commits: `11deb988fd2d048fa47cc5535e1b47e794895c32` (Map Browser RPC bridge), `22d2d322b1e111f5bcd21abfa13d15359450911c` (app client/status wiring).
 - CI status is not yet reported for these commits; no production child identity was created during implementation.
 - Next gate: implement the non-World authoritative load/save bridge against `editor_map_identity`, without changing the existing World persistence foundation.
+
+
+## 2026-09-19 — Non-World authoritative persistence bridge
+
+- Supabase-first audit before implementation confirmed: `editor_map_identity` rows = 0, `editor_map_interior` rows = 0, legacy `maps` rows = 1, World Map max version = 12.
+- Added identity-keyed durable history `public.editor_map_versions`; it does not alter `maps` or existing `map_versions`.
+- Added authenticated RPCs:
+  - `map_editor_load_identity_snapshot_v1(editor_map_id)` — owner-scoped authoritative latest load.
+  - `map_editor_commit_identity_v1(editor_map_id, expected_version, snapshot, label)` — owner-scoped optimistic version commit with structured conflict response.
+- Non-World Map Editor Save now uses the identity persistence bridge and the existing three-way merge flow. Projection is explicitly `not_run` because editor-only Region/Playable identities do not automatically imply a legacy `maps` projection.
+- Non-World Load Latest now reads the identity-keyed authoritative version. A new child with no version remains an explicit unsaved document.
+- Save Slots remain scoped to the existing World persistence foundation; they are not silently redirected to the new identity history.
+- No production identity/version rows were created during implementation. Existing World Map remains at version 12.
+- GitHub commits: `9b54b2b893742b7a1b4cd0596abc7b7d9e2063b3` (SQL migration), `5bbc80d0c9cf34e313ed73dea3e1a2b5eb0bb8d5` (identity persistence helper), `23c9f389eb91c6a512eb9aa917ec66b4a217f43d` and `a5529a9c4fe3dd402f2e4f8d7418ad69614c669f` (app integration).
+- Runtime authenticated end-to-end Save/Load is still pending; raw SQL audit cannot impersonate the browser session.
