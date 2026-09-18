@@ -36,3 +36,33 @@ This is a contract-alignment blocker, not a reason to redesign the existing vers
 
 ### Next controlled step
 Audit the existing database/game contract for the intended mapping of world | exterior | interior to the editor's world | region | playable model. Only after that mapping is explicitly established should a minimal compatibility migration be considered. No table/RPC change is being invented at this checkpoint.
+
+
+## 2026-09-19 — migration-level verification gate
+
+**Status:** IN PROGRESS — design mapping is established; production hierarchy migration remains gated.
+
+### Verified live database boundary
+- public.maps contains exactly 1 row: the canonical World Map.
+- Legacy map types currently present: world = 1, exterior = 0, interior = 0.
+- maps.map_type remains constrained to world | exterior | interior.
+- There is no existing Map Editor identity/hierarchy table matching the editor contract.
+- There is no parent_map_id column on public.maps.
+- map_versions.map_id and map_editor_save_slots.map_id still reference maps.id.
+- Canonical World Map has 12 authoritative versions (1–12).
+
+### RPC/security audit
+- map_editor_can_access_v1(uuid) exists as SECURITY DEFINER.
+- map_editor_commit_merge_v1(uuid, integer, jsonb, text) exists as SECURITY DEFINER and remains the authoritative commit boundary.
+- map_editor_load_document_snapshot_v1(uuid) exists as the snapshot loader.
+- Save-slot RPCs are SECURITY DEFINER and owner-scoped.
+- Existing RLS policies protect owner writes while canonical-world read policies remain explicit.
+- Current persistence RPCs are tied directly to legacy maps.id; they are not yet an editor-identity abstraction.
+
+### Historical source parity finding
+The earlier spatial foundation migrations are recorded in Supabase migration history, but their original standalone files are not present in the current supabase/migrations tree. This is migration-source drift and matters for rollback/source reconstruction.
+
+### Gate decision
+Do not apply the hierarchy schema yet. The documented Option B contract is explicit, but the remaining gate is to reconstruct/verify the exact legacy spatial/game mapping and define physical table, RLS, uniqueness, cycle prevention, world-scope validation, RPC surface, and rollback as concrete SQL.
+
+No existing maps, map_versions, save-slot, or World Map data was changed by this audit.
