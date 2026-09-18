@@ -333,3 +333,24 @@
 -**Roadmap phase:** Phase 0 — Foundation Audit.
 -**Verification:** GitHub source updates committed as `7c847dad188d6aabf74e0016dac5aab1fb283e4c` and `02f1ed5e6e369379d1dd79ebe96c332a2c8275d3`. Vercel rebuild verification is pending. No Supabase schema/data or asset binary changed.
 -**Notes:** This keeps the parser aligned with the Save/Load Contract's persisted snapshot representation rather than weakening validation to satisfy TypeScript.
+
+
+## 2026-09-18 — Save rebase and Load Latest cache bypass
+
+- **Type:** Fixed / Added
+- **Reason:** Browser verification showed that the Map Editor could auto-load and load Save Slot 2 at version 3, while Quick Save and Load Latest still failed. The source audit found two concrete state/version problems: Quick Save returned a conflict solely because the authoritative remote version was newer than the loaded Save Slot, even when three-way merge had no conflicts; and Load Latest called ensureConnection() without forcing a fresh authoritative read, allowing an older Save Slot connection context to be reused.
+- **Details:** Updated map-conflict-save-controller.ts so the three-way merge is evaluated first. If local and remote changes are conflict-free, the save now commits against the remote version just read, effectively rebasing an older slot onto the current authoritative version. A true conflict still returns the conflict result, and a race during commit is reloaded and surfaced as a conflict. Updated map-editor-app-v4.tsx so ensureConnection() accepts a force-reload boundary and Load Latest uses it, then atomically adopts the freshly loaded authoritative document/version and refreshes slots. Added map-conflict-save-controller.test.ts covering conflict-free rebase and same-cell conflict.
+- **Affected:** apps/map-editor/editor/map-conflict-save-controller.ts, apps/map-editor/components/map-editor-app-v4.tsx, apps/map-editor/tests/map-conflict-save-controller.test.ts.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Source audit and repository writes completed. Automated/Vercel/browser verification is still pending.
+- **Notes:** No Supabase schema/data change was made. This fix preserves strict identity and three-way merge semantics; it does not bypass the authoritative version guard.
+
+## 2026-09-18 — Governance catch-up for serializer repair and temporary-file cleanup
+
+- **Type:** Updated
+- **Reason:** A serializer repair and a temporary-file cleanup were committed before the mandatory paired governance entries were added.
+- **Details:** Recorded serializer commit 6b5372ae262b9ee7e79477f1ff900369a6c475ae and cleanup commit 932bc294c2c6615eb58b7878d18af6a8efecf97c without changing their historical content or behavior.
+- **Affected:** apps/map-editor/editor/map-serialization.ts, temporary serializer file cleanup, governance logs.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Governance history reconciled in this update session.
+- **Notes:** No Supabase schema/data or asset binaries changed.
