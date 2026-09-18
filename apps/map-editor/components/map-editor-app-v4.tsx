@@ -211,6 +211,7 @@ export function MapEditorAppV4() {
   }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, maps, refreshSlots, update, version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
+    if (active.mapType !== "world") { setStatus("Save Slot is currently available only for the persisted World Map"); return; }
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
     const saved = await save(); if (!saved || saved.status !== "committed") return;
@@ -226,7 +227,7 @@ export function MapEditorAppV4() {
       await refreshSlots(client, mapId); setStatus(`Game saved to Slot ${slot}`);
     } catch (e) { setStatus(`Save Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [connectedMapId, refreshSlots, save]);
+  }, [active, connectedMapId, refreshSlots, save]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
@@ -304,6 +305,7 @@ export function MapEditorAppV4() {
   }, [refreshSlots]);
 
   const loadSlot = useCallback(async (slot: number) => {
+    if (active.mapType !== "world") { setStatus("Load Slot is currently available only for the persisted World Map"); return; }
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load Slot failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
@@ -317,7 +319,7 @@ export function MapEditorAppV4() {
       setMaps([doc]); setActiveMapId(doc.id); setConnectedMapId(id); setBaseDocument(doc); setVersion(Number(result.version_number) || 1); setLoadRevision(v => v + 1); await refreshSlots(client, id); setShowSlots(false); setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · version ${result.version_number}`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [ensureConnection, refreshSlots]);
+  }, [active, ensureConnection, refreshSlots]);
 
   const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
 
