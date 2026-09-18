@@ -15,25 +15,32 @@ An asset may enter the Map Editor staging library only when both conditions are 
 
 For terrain staging, `asset_registry.category` must also be `terrain`.
 
-## Current Supabase audit
+## Current Supabase audit — 2026-09-18
 
-The current audit found status mismatches between the asset registry and binding candidates. Therefore no terrain asset is promoted to the final approved staging set yet.
+The live audit now confirms the following terrain records satisfy the two-source approval rule:
 
-### Examples found
+- `tile_grass.png`
+- `tile_dirt.png`
+- `tile_pavement.png`
 
-- `Mountains v6 Snow`: binding candidate is `approved`, but asset registry status is `pending`.
-- `tile_grass.png`: asset registry is `approved`, but binding candidate is `needs_review`.
-- `tile_dirt.png`: asset registry is `approved`, but binding candidate is `needs_review`.
-- `tile_pavement.png`: asset registry is `approved`, but binding candidate is `needs_review`.
-- `LPC Overworld — Mountains`: candidate is `pending`.
-- `Mountains v6`: candidate is `pending`.
-- `Mountains TMW`: candidate is `pending`.
+Other audited mountain candidates remain pending or have an approval mismatch and are not part of the approved intake.
 
-## Current approved terrain staging set
+## Current repository staging intake
 
-**None yet.**
+The first two planned terrain originals have now been transferred individually:
 
-This is intentional. We will not copy or activate a terrain asset until the two-source approval rule is satisfied.
+- `tile_grass.png`
+- `tile_dirt.png`
+
+They are stored at:
+
+```text
+assets/map-editor/terrain/
+```
+
+This transfer does not automatically activate either asset in runtime/editor code.
+
+`tile_pavement.png` remains approved in the live Supabase audit but is intentionally not part of this two-asset intake.
 
 ## Terrain types requiring asset review
 
