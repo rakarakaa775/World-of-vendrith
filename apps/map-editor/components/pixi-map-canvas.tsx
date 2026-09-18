@@ -212,17 +212,24 @@ export function PixiMapCanvas(props: Props) {
     const host = hostRef.current;
     const world = worldRef.current;
     if (!host || !world) return;
-    let start: GridPoint | null = null;
+    let startPoint: GridPoint | null = null;
     let selecting = false;
     let movingId: string | null = null;
     let panning = false;
     let lastX = 0;
     let lastY = 0;
+    let activePointerId: number | null = null;
 
-    const pointAt = (e: any): GridPoint => {
+    // Use native pointer events at the host boundary for editing input. This
+    // keeps touch input deterministic on mobile browsers while preserving the
+    // existing Pixi scene/rendering and persistence foundation.
+    const pointAt = (e: PointerEvent): GridPoint => {
       const { document } = propsRef.current;
-      const p = e.getLocalPosition(world);
-      return { x: Math.floor(p.x / document.tileSize), y: Math.floor(p.y / document.tileSize) };
+      const rect = host.getBoundingClientRect();
+      const zoom = viewportRef.current.zoom || 1;
+      const localX = (e.clientX - rect.left - viewportRef.current.x) / zoom;
+      const localY = (e.clientY - rect.top - viewportRef.current.y) / zoom;
+      return { x: Math.floor(localX / document.tileSize), y: Math.floor(localY / document.tileSize) };
     };
     const valid = (p: GridPoint) => {
       const { document } = propsRef.current;
@@ -243,48 +250,68 @@ export function PixiMapCanvas(props: Props) {
       const validPts = expandBrush(pts.filter(valid), brushSize).filter(valid);
       if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : selectedTileId);
     };
-    const down = (e: any) => {
+    const down = (e: PointerEvent) => {
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      activePointerId = e.pointerId;
+      try { host.setPointerCapture(e.pointerId); } catch {}
       const p = pointAt(e);
       const current = propsRef.current;
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
-        if (valid(p)) { current.onCellInspect?.(p); paint(pointsInSquare(p, current.brushSize)); }
-        start = p;
+        if (valid(p)) { current.onCellInspect?.(p); paint([p]); }
+        startPoint = p;
         return;
       }
-      if (current.activeTool === "Flood") { if (valid(p)) { current.onCellInspect?.(p); paint(pointsInFloodFill(current.document, current.activeLayerId, p)); } return; }
-      if (current.activeTool === "Line" || current.activeTool === "Rectangle") { if (valid(p)) { current.onCellInspect?.(p); start = p; } return; }
+      if (current.activeTool === "Flood") {
+        if (valid(p)) { current.onCellInspect?.(p); paint(pointsInFloodFill(current.document, current.activeLayerId, p)); }
+        return;
+      }
+      if (current.activeTool === "Line" || current.activeTool === "Rectangle") {
+        if (valid(p)) { current.onCellInspect?.(p); startPoint = p; }
+        return;
+      }
       if (current.activeTool === "Select") {
         const o = hit(p);
         if (o) movingId = o.id;
-        else if (valid(p)) { selecting = true; start = p; current.onSelectionChange(normalizeSelection(p, p)); }
+        else if (valid(p)) { selecting = true; startPoint = p; current.onSelectionChange(normalizeSelection(p, p)); }
         return;
       }
       if (current.activeTool === "Stamp") { if (valid(p)) current.onStamp(p); return; }
       if (current.activeTool === "Building") { if (valid(p)) current.onObjectPlace(p); return; }
       panning = true;
-      lastX = e.global.x;
-      lastY = e.global.y;
+      lastX = e.clientX;
+      lastY = e.clientY;
     };
-    const move = (e: any) => {
+    const move = (e: PointerEvent) => {
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
       const p = pointAt(e);
       const current = propsRef.current;
-      if ((current.activeTool === "Paint" || current.activeTool === "Erase") && start && valid(p)) { paint(pointsInSquare(p, current.brushSize)); return; }
-      if (selecting && start && valid(p)) { current.onSelectionChange(normalizeSelection(start, p)); return; }
+      if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
+        paint([p]);
+        return;
+      }
+      if (selecting && startPoint && valid(p)) { current.onSelectionChange(normalizeSelection(startPoint, p)); return; }
       if (movingId && valid(p)) { current.onObjectMove(movingId, p); return; }
       if (!panning) return;
-      viewportRef.current = { ...viewportRef.current, x: viewportRef.current.x + e.global.x - lastX, y: viewportRef.current.y + e.global.y - lastY };
-      lastX = e.global.x;
-      lastY = e.global.y;
+      viewportRef.current = { ...viewportRef.current, x: viewportRef.current.x + e.clientX - lastX, y: viewportRef.current.y + e.clientY - lastY };
+      lastX = e.clientX;
+      lastY = e.clientY;
       world.position.set(viewportRef.current.x, viewportRef.current.y);
     };
-    const up = (e: any) => {
+    const up = (e: PointerEvent) => {
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
       const p = pointAt(e);
       const current = propsRef.current;
-      if (start && (current.activeTool === "Line" || current.activeTool === "Rectangle") && valid(p)) paint(current.activeTool === "Line" ? pointsInLine(start, p) : pointsInRectangle(start, p));
-      start = null;
+      if (startPoint && (current.activeTool === "Line" || current.activeTool === "Rectangle") && valid(p)) {
+        paint(current.activeTool === "Line" ? pointsInLine(startPoint, p) : pointsInRectangle(startPoint, p));
+      }
+      startPoint = null;
       selecting = false;
       movingId = null;
       panning = false;
+      if (activePointerId === e.pointerId) {
+        try { host.releasePointerCapture(e.pointerId); } catch {}
+        activePointerId = null;
+      }
     };
     const wheel = (e: WheelEvent) => {
       const r = host.getBoundingClientRect();
@@ -293,11 +320,19 @@ export function PixiMapCanvas(props: Props) {
       world.scale.set(viewportRef.current.zoom);
     };
 
-    world.on("pointerdown", down).on("pointermove", move).on("pointerup", up).on("pointerupoutside", up);
+    host.addEventListener("pointerdown", down);
+    host.addEventListener("pointermove", move);
+    host.addEventListener("pointerup", up);
+    host.addEventListener("pointercancel", up);
+    host.addEventListener("lostpointercapture", up);
     host.addEventListener("wheel", wheel, { passive: true });
     return () => {
+      host.removeEventListener("pointerdown", down);
+      host.removeEventListener("pointermove", move);
+      host.removeEventListener("pointerup", up);
+      host.removeEventListener("pointercancel", up);
+      host.removeEventListener("lostpointercapture", up);
       host.removeEventListener("wheel", wheel);
-      world.off("pointerdown", down).off("pointermove", move).off("pointerup", up).off("pointerupoutside", up);
     };
   }, [ready]);
 
