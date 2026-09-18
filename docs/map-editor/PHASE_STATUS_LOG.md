@@ -144,3 +144,17 @@ Phase 2 memenuhi exit evidence yang ditetapkan pada `PHASE2_EXECUTION.md` dan te
 - Phase 3 is therefore not complete yet. Next step is to establish the intended existing contract mapping before any compatibility migration.
 
 Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992fb7f2fda3223afecf3b38f7f65, f43a89d4e8d54e7056a38b42d833d3d4453fc131.
+
+
+## 2026-09-19 — Phase 3 Migration A source parity checkpoint
+
+**Status:** Migration A applied; source file now present in GitHub.
+
+- Supabase migration history records `20260918173802 / 20260919120000_map_editor_hierarchy_identity_v1`.
+- Post-migration audit confirms the new hierarchy tables are present and currently contain no production identity rows.
+- Canonical `World Map` remains the existing legacy `maps` row; its persisted version history remains at 12 versions with max version 12.
+- GitHub source added at `supabase/migrations/20260919120000_map_editor_hierarchy_identity_v1.sql` in commit `8659a963346cd8ae2fd96c6147a87ce774927dc6`.
+- No World bootstrap, child-map creation, persistence RPC, or existing map/version data was changed in this checkpoint.
+- Security advisor output was reviewed; existing anonymous-access warnings concern pre-existing project policies and are not evidence of a new hierarchy-table exposure.
+
+**Next gate:** controlled World identity bootstrap / resolution RPC design. Do not create Region/Playable/Interior production identities until the RPC contract and interior representation are explicitly resolved.
