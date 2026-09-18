@@ -204,3 +204,13 @@ Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992
 - No production identity/version rows were created during implementation. Existing World Map remains at version 12.
 - GitHub commits: `9b54b2b893742b7a1b4cd0596abc7b7d9e2063b3` (SQL migration), `5bbc80d0c9cf34e313ed73dea3e1a2b5eb0bb8d5` (identity persistence helper), `23c9f389eb91c6a512eb9aa917ec66b4a217f43d` and `a5529a9c4fe3dd402f2e4f8d7418ad69614c669f` (app integration).
 - Runtime authenticated end-to-end Save/Load is still pending; raw SQL audit cannot impersonate the browser session.
+
+
+## 2026-09-19 — First-save correction for new identities
+
+- Follow-up source audit found a first-save edge case: a newly created Region/Playable identity has no identity snapshot yet, so the conflict-safe helper must allow an initial commit at expected version 0.
+- Corrected `saveIdentityWithConflictDetection` to commit the local document directly at version 0 when the authoritative identity has no snapshot.
+- This preserves optimistic conflict handling for subsequent saves and does not alter World persistence.
+- Current Supabase audit remains: identity rows = 0, identity version rows = 0, legacy maps = 1, World Map max version = 12.
+- Latest source commit: `bd8a91068a3ee66348409e02d2dd47fd688bd655`.
+- GitHub combined status currently reports no status entries for the latest commit; therefore build/test PASS is not claimed yet.
