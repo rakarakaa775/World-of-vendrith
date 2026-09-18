@@ -158,3 +158,19 @@ Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992
 - Security advisor output was reviewed; existing anonymous-access warnings concern pre-existing project policies and are not evidence of a new hierarchy-table exposure.
 
 **Next gate:** controlled World identity bootstrap / resolution RPC design. Do not create Region/Playable/Interior production identities until the RPC contract and interior representation are explicitly resolved.
+
+
+## 2026-09-19 — Phase 3 Migration B RPC checkpoint
+
+**Status:** Controlled identity RPC boundary added; child hierarchy remains gated.
+
+- Added authenticated, owner-scoped `map_editor_bootstrap_world_identity_v1`.
+- Bootstrap is idempotent and binds the existing World editor identity to the existing legacy World Map ID; it does not create or rename a `maps` row.
+- Added authenticated, owner-scoped `map_editor_resolve_identity_v1`.
+- Verified in Supabase that both RPCs execute for `authenticated` and not `anon`.
+- Updated the authoritative resolver to bootstrap the explicit World identity before loading the existing authoritative snapshot.
+- GitHub source commit for RPC migration: `16fae48bbd9fa814b3f10974d3339ed3aaf671c8`.
+- Resolver implementation commit: `a5092e08bcc8d25994ef3627193926bd0a5887de`.
+- No Region/Playable/Interior production identities have been created yet.
+
+**Next gate:** exercise the authenticated World bootstrap through the application boundary, then design the child-creation RPC with explicit Region → Playable and Playable → Interior semantics before enabling durable child creation.
