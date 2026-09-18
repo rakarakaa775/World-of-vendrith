@@ -66,3 +66,33 @@ The earlier spatial foundation migrations are recorded in Supabase migration his
 Do not apply the hierarchy schema yet. The documented Option B contract is explicit, but the remaining gate is to reconstruct/verify the exact legacy spatial/game mapping and define physical table, RLS, uniqueness, cycle prevention, world-scope validation, RPC surface, and rollback as concrete SQL.
 
 No existing maps, map_versions, save-slot, or World Map data was changed by this audit.
+
+
+## 2026-09-19 — legacy spatial/game contract reconstruction
+
+**Status:** IN PROGRESS — semantic mapping verified; physical hierarchy migration still not applied.
+
+### Verified domain graph
+
+```
+worlds → continents → regions → locations → settlements → buildings
+```
+
+Live runtime contains 1 world, 1 continent, 1 domain region, 2 locations, 1 settlement, 2 buildings, and exactly 1 legacy `maps` row.
+
+### Mapping conclusion
+
+The domain `regions` table and Map Editor `region` scale are distinct contracts. No automatic identity mapping is authorized from geography, names, locations, settlements, dimensions, or UI position.
+
+The editor therefore keeps an explicit identity/hierarchy layer:
+
+- editor World → existing legacy World Map;
+- editor Region → editor identity, with no forced legacy map type;
+- editor Playable → explicit legacy `exterior` mapping only when a legacy map row is required;
+- editor Playable Interior → explicit Playable parent plus legacy `interior` mapping where applicable, preserving the required `building_id`.
+
+Coordinate profiles are configuration only and do not establish hierarchy. Existing `map_connections` and `map_building_placements` likewise do not supply an implicit editor parent relationship.
+
+### Gate result
+
+The semantic reconstruction is complete enough to proceed to a **concrete SQL design review**. The next implementation step is still not to alter `public.maps`: first define the exact physical editor identity/hierarchy schema, constraints, RLS, cycle/world-scope validation, RPC contract, and rollback. Only after that review should the first migration be applied.
