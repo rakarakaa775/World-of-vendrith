@@ -48,5 +48,12 @@ Ordinary feature work must not redesign the locked persistence, ownership, versi
 - Implementation commits: `f4a92a5aee3dce576b3399e9f80423c73712a403`, `80f3d9d01f940d9a1e48ff0dc40f6c46146e9fc6`.
 - Vercel deployment status for the latest test commit is currently `pending`; Phase 2 is therefore **in progress**, not locked complete.
 
+### Phase 2 build correction — 2026-09-18
+- Vercel build on commit `f643321` failed during TypeScript checking in `apps/map-editor/editor/map-serialization.ts` because `candidate.width` / `candidate.height` were still typed as `unknown` at the positivity comparison.
+- This was a TypeScript narrowing issue introduced by the strengthened object validation, not a Supabase/persistence failure.
+- Fixed with explicit numeric narrowing and finite/positive dimension checks in commit `8459db277d188f13bf5adb035689b5ca726145c9`.
+- Supabase was re-audited before the correction; project remains `ACTIVE_HEALTHY`, and no Phase 2 database migration is required.
+- Post-fix Vercel status is currently `pending`; Phase 2 remains **in progress** until the new build completes.
+
 ### Phase 2 exit evidence
 Serialize → parse → compare tests plus malformed-payload tests for all three map types, with no regression to the locked editor/persistence foundation.
