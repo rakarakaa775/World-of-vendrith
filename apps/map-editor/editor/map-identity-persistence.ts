@@ -28,7 +28,11 @@ export async function saveIdentityMapDocument(client:SupabaseClient,document:Map
 export async function saveIdentityWithConflictDetection(client:SupabaseClient,local:MapDocument,base:MapDocument,expectedVersion:number){
  try{
   const remote=await loadIdentityMapDocument(client,local.id);
-  if(!remote.document)return {status:'error' as const,error:new Error('Authoritative identity snapshot is unavailable')};
+  if(!remote.document){
+   const commit=await saveIdentityMapDocument(client,local,0,'map-editor-save');
+   if(commit.status==='conflict')return {status:'conflict' as const,merge:null,expectedVersion:0,remoteVersion:commit.current_version,remoteDocument:null};
+   return {status:'committed' as const,document:local,version:Number(commit.version_number)||1,projectionStatus:commit.projection_status,projectionError:commit.projection_error};
+  }
   const merge=mergeMapDocumentsThreeWay(base,local,remote.document);
   if(merge.conflicts.length)return {status:'conflict' as const,merge,expectedVersion,remoteVersion:remote.version,remoteDocument:remote.document};
   const commit=await saveIdentityMapDocument(client,merge.document,remote.version,'map-editor-save');
