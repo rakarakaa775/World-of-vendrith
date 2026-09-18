@@ -23,15 +23,20 @@ export async function saveWithConflictDetection(
     if (!remoteDocument) return { status: 'error', error: new Error('Authoritative map snapshot is unavailable') };
 
     const merge = mergeMapDocumentsThreeWay(base, local, remoteDocument);
-    if (remoteVersion !== expectedVersion || merge.conflicts.length > 0) {
+    if (merge.conflicts.length > 0) {
       return { status: 'conflict', merge, expectedVersion, remoteVersion, remoteDocument };
     }
 
+    // A loaded save slot can legitimately be older than the current
+    // authoritative version. If the three-way merge has no conflicts, rebase
+    // the commit onto the version we just read instead of treating the
+    // version mismatch itself as a user conflict.
+    const commitVersion = remoteVersion !== expectedVersion ? remoteVersion : expectedVersion;
     const persistence = createSupabaseMapMergePersistence(client);
     const committed = normalizeMergeCommitResponse(
       await persistence.commitResolvedMerge(
         local.id,
-        expectedVersion,
+        commitVersion,
         serializeResolvedMapSnapshot(merge.document),
         'map-editor-save',
       ),
@@ -44,7 +49,7 @@ export async function saveWithConflictDetection(
       return {
         status: 'conflict',
         merge: mergeMapDocumentsThreeWay(base, local, refreshed.document),
-        expectedVersion,
+        expectedVersion: commitVersion,
         remoteVersion: refreshedVersion,
         remoteDocument: refreshed.document,
       };
