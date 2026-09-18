@@ -61,7 +61,7 @@ No asset directory in this library may be glob-imported wholesale. Runtime/edito
 
 ## 7. Binary transfer note
 
-The current GitHub connector used for this project can create/update UTF-8 repository files but does not provide a suitable verified binary upload workflow for the supplied 120+ MB and 250+ MB ZIP libraries. Therefore this commit establishes the **folder structure, provenance registry, and storage contract**, while the original binary packages remain in the supplied project files/checkpoints. Individual binary assets will only be declared present in the repository after a verified binary transfer.
+The current GitHub connector used for this project can create/update UTF-8 repository files but does not provide a suitable verified binary upload workflow for the supplied large ZIP libraries. Individual binary assets are only declared repository-present after a verified binary transfer.
 
 ## 8. Map Editor terrain assets — verified originals
 
@@ -72,8 +72,28 @@ The following two originals were transferred individually from the audited `ASSE
 | `tile_grass.png` | `5786048f-8815-4b7e-8c11-9b0e1e973b1c` | approved | `TopDown_RPG_Mockup/tile_grass.png` | CC0 1.0 Universal | `07fc7b9678598db3ee9c9105954897415ef957df12a72def3478ec0ee85b8c0e` | `assets/map-editor/terrain/tile_grass.png` |
 | `tile_dirt.png` | `2bbe2076-fea6-4124-a679-7e6114de191c` | approved | `TopDown_RPG_Mockup/tile_dirt.png` | CC0 1.0 Universal | `59dabf609de751119922d06bcfd12cb758f3152ee97ccd628eed24b9299e788a` | `assets/map-editor/terrain/tile_dirt.png` |
 
-Both assets also have an approved terrain binding candidate in the live Supabase audit, with `transition_type=full` and `neighbor_mask=255`. No automatic map-scale assignment is made by this transfer; scope remains governed by the Map Editor Asset Scope Contract.
+Both assets have an approved terrain binding candidate, with `transition_type=full` and `neighbor_mask=255`.
 
-## 9. Transfer rule
+## 9. Sand and water — audit result 2026-09-18
+
+The live Supabase records confirm:
+
+| Asset | Registry | Binding | License | Attribution |
+|---|---|---|---|---|
+| `tile_sand.png` | approved | approved | CC-BY-SA 3.0 / GNU GPL 3.0 | required |
+| `tile_water.png` | approved | approved | CC-BY-SA 3.0 / GNU GPL 3.0 | required |
+
+The supplied LPC archive contains canonical LPC terrain sources including:
+
+- `02_TILES_AND_TERRAIN/lpc_terrain__sand.png`
+- `02_TILES_AND_TERRAIN/lpc_terrain__water.png`
+
+The accompanying `terrain__Attribution.txt` identifies the LPC licensing and contributors. The supplied audited libraries do **not** contain a separate universal/CC0 terrain variant for these two terrain types. Therefore we do not substitute an unrelated asset merely to obtain a permissive license.
+
+The canonical LPC source remains the selected source, with its required attribution preserved.
+
+**Binary repository status:** pending verified binary transfer. These files must not be marked repository-present until their binary blobs and checksums are verified.
+
+## 10. Transfer rule
 
 Binary assets are considered repository-present only after the binary blob, repository path, registry identity, provenance/license record, and checksum have all been verified. Future asset additions must follow the same sequence and must not modify the foundation contracts merely to accommodate an asset.
