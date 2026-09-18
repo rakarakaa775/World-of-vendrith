@@ -5,6 +5,7 @@ export type SaveSlot = {
   label: string;
   version_number: number;
   updated_at: string;
+  snapshot?: unknown;
 };
 
 type Props = {
@@ -45,6 +46,7 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
                     <span style={{ fontSize: 11, color: slot ? '#86efac' : '#64748b' }}>{slot ? 'SAVED' : 'EMPTY'}</span>
                   </div>
                   <div style={{ marginTop: 10, fontSize: 16 }}>{slot?.label || 'Empty Chronicle Slot'}</div>
+                  {slot && <MapThumbnail snapshot={slot.snapshot} />}
                   {slot && <div style={{ marginTop: 6, color: '#94a3b8', fontSize: 12 }}>Version {slot.version_number} · {new Date(slot.updated_at).toLocaleString()}</div>}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: slot ? '1fr 1fr' : '1fr', gap: 7, marginTop: 14 }}>
@@ -59,6 +61,41 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
       </section>
     </div>
   );
+}
+
+function MapThumbnail({ snapshot }: { snapshot?: unknown }) {
+  const document = extractDocument(snapshot);
+  if (!document) return <div style={{ marginTop: 10, height: 84, display: 'grid', placeItems: 'center', border: '1px solid #1e293b', borderRadius: 8, color: '#64748b', fontSize: 11 }}>Preview unavailable</div>;
+  const ground = document.layers?.find((layer: any) => layer.kind === 'ground') || document.layers?.[0];
+  const cells = Array.isArray(ground?.cells) ? ground.cells : [];
+  const width = Math.max(1, Number(document.width) || 1);
+  const height = Math.max(1, Number(document.height) || 1);
+  return <div aria-label={`Map preview: ${document.name || 'saved map'}`} style={{ marginTop: 10, height: 84, overflow: 'hidden', border: '1px solid #334155', borderRadius: 8, background: '#020617' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${width}, 1fr)`, gridTemplateRows: `repeat(${height}, 1fr)`, width: '100%', height: '100%' }}>
+      {Array.from({ length: width * height }, (_, index) => {
+        const tileId = cells[index]?.tileId ?? null;
+        const objectCount = Array.isArray(document.layers) ? document.layers.reduce((count: number, layer: any) => count + (Array.isArray(layer.objects) ? layer.objects.filter((o: any) => Math.floor(o.y) * width + Math.floor(o.x) === index).length : 0), 0) : 0;
+        return <span key={index} title={tileId || 'Empty'} style={{ background: tilePreviewColor(tileId), border: '1px solid rgba(15,23,42,.28)', position: 'relative' }}>{objectCount > 0 && <i style={{ position: 'absolute', inset: '18%', borderRadius: 2, background: '#f8fafc', opacity: .9 }} />}</span>;
+      })}
+    </div>
+  </div>;
+}
+
+function extractDocument(snapshot: unknown): any | null {
+  try {
+    const value = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+    if (!value || typeof value !== 'object') return null;
+    const candidate = value as any;
+    return candidate.document && typeof candidate.document === 'object' ? candidate.document : candidate;
+  } catch { return null; }
+}
+
+function tilePreviewColor(tileId: string | null): string {
+  if (!tileId) return '#111827';
+  let hash = 0;
+  for (let i = 0; i < tileId.length; i += 1) hash = ((hash << 5) - hash + tileId.charCodeAt(i)) | 0;
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue} 42% 38%)`;
 }
 
 function buttonStyle(primary: boolean): React.CSSProperties {
