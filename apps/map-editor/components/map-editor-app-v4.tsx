@@ -200,7 +200,9 @@ export function MapEditorAppV4() {
         }
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
-      setConnectedMapId(connection.mapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, connection.mapId);
+      const savedMapId = localCurrent.mapType === "world" ? connectedMapId : localCurrent.id;
+      setConnectedMapId(savedMapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document);
+      if (localCurrent.mapType === "world" && savedMapId) await refreshSlots(client, savedMapId);
       const savedVersion = Number(result.version) || 1;
       if (result.projectionStatus === "failed") setStatus(`Saved · version ${savedVersion} · projection failed: ${result.projectionError || "downstream projection failed"}`);
       else if (result.projectionStatus === "not_run") setStatus(`Saved · version ${savedVersion} · projection not run`);
