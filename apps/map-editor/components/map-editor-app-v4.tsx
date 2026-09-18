@@ -14,6 +14,7 @@ import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "..
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
+import { loadIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -45,13 +46,36 @@ export function MapEditorAppV4() {
     setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
   }, []);
 
-  const openMap = useCallback((nextMapId: string) => {
+  const openMap = useCallback(async (nextMapId: string) => {
+    const nextDocument = maps.find(m => m.id === nextMapId);
+    if (!nextDocument) return;
+    if (nextDocument.mapType !== "world") {
+      const client = createMapEditorSupabaseClient();
+      if (!client) { setStatus("Open failed: Supabase unavailable"); return; }
+      setActiveMapId(nextMapId);
+      try {
+        const loaded = await loadIdentityMapDocument(client, nextMapId);
+        const document = loaded.document || nextDocument;
+        setMaps(cur => cur.some(m => m.id === document.id) ? cur.map(m => m.id === document.id ? document : m) : [...cur, document]);
+        setConnectedMapId(nextMapId);
+        setBaseDocument(document);
+        setVersion(loaded.version);
+        setLoadRevision(v => v + 1);
+        setStatus(loaded.document ? `Loaded identity · version ${loaded.version}` : "Opened new identity · unsaved document");
+      } catch (e) {
+        setConnectedMapId(nextMapId);
+        setBaseDocument(nextDocument);
+        setVersion(0);
+        setStatus(`Open identity failed: ${msg(e)}`);
+      }
+      return;
+    }
     const next = resolveMapNavigationPersistence(nextMapId, { connectedMapId, baseDocument, version });
     setActiveMapId(nextMapId);
     setConnectedMapId(next.connectedMapId);
     setBaseDocument(next.baseDocument);
     setVersion(next.version);
-  }, [baseDocument, connectedMapId, version]);
+  }, [baseDocument, connectedMapId, maps, version]);
 
   const refreshSlots = useCallback(async (client: any, mapId: string) => {
     const { data, error } = await client.from("map_editor_save_slots").select("slot_number,label,version_number,updated_at,snapshot").eq("map_id", mapId).order("slot_number");
@@ -79,7 +103,7 @@ export function MapEditorAppV4() {
     await refreshSlots(client, mapId);
     setStatus(`Connected · version ${Number(loaded.result.version_number) || 0}`);
     return true;
-  }, [refreshSlots]);
+  }, [active, refreshSlots]);
 
   const ensureConnection = useCallback(async (client: any, forceReload = false): Promise<SaveConnection> => {
     if (!forceReload && connectedMapId && active?.mapType === "world" && active.id === connectedMapId && baseDocument) {
@@ -159,16 +183,21 @@ export function MapEditorAppV4() {
     const localCurrent = maps.find(m => m.id === activeMapId) || active;
     setBusy(true); setStatus("Saving to Supabase…");
     try {
-      const connection = await ensureConnection(client);
-      const current = localCurrent.id === connection.mapId
-        ? resolveSaveDocument(localCurrent, connection)
-        : connection.document;
       let result: any;
-      if (connection.version < 1) {
-        const boot = await bootstrap(client, current, connection.mapId);
-        result = { status: "committed", version: boot.version, document: current, projectionStatus: boot.projectionStatus, projectionError: boot.projectionError };
+      if (localCurrent.mapType !== "world") {
+        const base = baseDocument?.id === localCurrent.id ? baseDocument : localCurrent;
+        result = await saveIdentityWithConflictDetection(client, localCurrent, base, version);
       } else {
-        result = await saveWithConflictDetection(client, current, connection.document, connection.version);
+        const connection = await ensureConnection(client);
+        const current = localCurrent.id === connection.mapId
+          ? resolveSaveDocument(localCurrent, connection)
+          : connection.document;
+        if (connection.version < 1) {
+          const boot = await bootstrap(client, current, connection.mapId);
+          result = { status: "committed", version: boot.version, document: current, projectionStatus: boot.projectionStatus, projectionError: boot.projectionError };
+        } else {
+          result = await saveWithConflictDetection(client, current, connection.document, connection.version);
+        }
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
       setConnectedMapId(connection.mapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document); await refreshSlots(client, connection.mapId);
@@ -179,7 +208,7 @@ export function MapEditorAppV4() {
       return result;
     } catch (e) { setStatus(`Save failed: ${msg(e)}`); return null; }
     finally { setBusy(false); }
-  }, [active, activeMapId, bootstrap, ensureConnection, maps, refreshSlots, update]);
+  }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, maps, refreshSlots, update, version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
@@ -203,10 +232,28 @@ export function MapEditorAppV4() {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
-      // Prefer the durable authoritative row. If the browser session cannot
+      if (active.mapType !== "world") {
+        const loaded = await loadIdentityMapDocument(client, active.id);
+        if (!loaded.document) {
+          setVersion(0);
+          setConnectedMapId(active.id);
+          setBaseDocument(active);
+          setStatus("Load Latest · no authoritative identity version yet");
+          return;
+        }
+        setMaps(cur => cur.map(m => m.id === loaded.document!.id ? loaded.document! : m));
+        setActiveMapId(loaded.document.id);
+        setConnectedMapId(active.id);
+        setBaseDocument(loaded.document);
+        setVersion(loaded.version);
+        setLoadRevision(v => v + 1);
+        setStatus(`Loaded Latest · identity · version ${loaded.version}`);
+        return;
+      }
+
+      // Prefer the durable authoritative World row. If the browser session cannot
       // read map_versions directly, fall back to the existing runtime/durable
-      // loader, which uses the same authoritative map id and preserves the
-      // persistence foundation.
+      // loader without changing the World persistence foundation.
       let document: MapDocument | null = null;
       let loadedVersion = 0;
       let directReadError: unknown = null;
