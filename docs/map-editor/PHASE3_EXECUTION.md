@@ -96,3 +96,19 @@ Coordinate profiles are configuration only and do not establish hierarchy. Exist
 ### Gate result
 
 The semantic reconstruction is complete enough to proceed to a **concrete SQL design review**. The next implementation step is still not to alter `public.maps`: first define the exact physical editor identity/hierarchy schema, constraints, RLS, cycle/world-scope validation, RPC contract, and rollback. Only after that review should the first migration be applied.
+
+
+## 2026-09-19 — Migration A applied
+
+Migration `20260919120000_map_editor_hierarchy_identity_v1` was applied to Supabase.
+
+Created:
+- `public.editor_map_identity`
+- `public.editor_map_interior`
+- owner-scoped RLS/select policies
+- server-side validation triggers for hierarchy, world scope, legacy map semantics, and Interior/building consistency
+- unique legacy-map bridge constraint and hierarchy indexes
+
+Production data was intentionally not bootstrapped in this migration. Existing `maps`, World Map, `map_versions`, and save-slot rows were not rewritten.
+
+Post-migration audit confirms both tables exist with the designed columns. The canonical World Map remains the same legacy row and retains 12 versions. World identity bootstrap is deferred to the next controlled step so it can be independently verified.
