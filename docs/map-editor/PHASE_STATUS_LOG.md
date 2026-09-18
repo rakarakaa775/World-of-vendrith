@@ -174,3 +174,18 @@ Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992
 - No Region/Playable/Interior production identities have been created yet.
 
 **Next gate:** exercise the authenticated World bootstrap through the application boundary, then design the child-creation RPC with explicit Region → Playable and Playable → Interior semantics before enabling durable child creation.
+
+
+## 2026-09-19 — Map Browser identity bridge
+
+- Supabase-first audit before implementation: hierarchy identity rows = 0, interior relation rows = 0, legacy maps rows = 1, canonical World Map versions = 12.
+- Map Browser now calls the controlled authenticated RPCs for child identity creation instead of generating client-only IDs:
+  - World → Region via `map_editor_create_child_v1`.
+  - Region → Playable via `map_editor_create_child_v1`.
+  - Playable → Interior via `map_editor_create_interior_v1`.
+- The returned `editor_map_id` becomes the MapDocument identity before the child is opened in the UI.
+- No legacy `maps` row is created by these browser actions; no existing World Map/version/save-slot data was changed.
+- Child documents are explicitly reported as **unsaved document** because the persistence bridge for non-World MapDocument saves is not yet enabled.
+- GitHub commits: `11deb988fd2d048fa47cc5535e1b47e794895c32` (Map Browser RPC bridge), `22d2d322b1e111f5bcd21abfa13d15359450911c` (app client/status wiring).
+- CI status is not yet reported for these commits; no production child identity was created during implementation.
+- Next gate: implement the non-World authoritative load/save bridge against `editor_map_identity`, without changing the existing World persistence foundation.
