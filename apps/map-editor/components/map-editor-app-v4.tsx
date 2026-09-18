@@ -13,6 +13,7 @@ import { parseMapDocument } from "../editor/map-serialization";
 import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
+import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -86,11 +87,25 @@ export function MapEditorAppV4() {
     }
     if (active?.mapType !== "world") throw new Error("Only the persisted World Map can be saved in this phase");
 
-    const authoritative = await client.from("maps").select("id,name,width,height,tile_size,map_type,world_id").eq("id", AUTHORITATIVE_WORLD_MAP_ID).eq("world_id", WORLD_ID).eq("map_type", "world").maybeSingle();
-    if (authoritative.error) throw authoritative.error;
-    if (!authoritative.data?.id) throw new Error("Authoritative World Map is unavailable");
+    let authoritativeRow: any = null;
+    let id = AUTHORITATIVE_WORLD_MAP_ID;
+    try {
+      const resolved = await resolveAuthoritativeMap(client, AUTHORITATIVE_WORLD_MAP_ID, "world");
+      if (resolved.row.world_id !== WORLD_ID) throw new Error("MAP_RESOLUTION_ERROR: authoritative World Map belongs to a different world");
+      authoritativeRow = resolved.row;
+      id = resolved.row.id;
+      const connection = { mapId: id, document: resolved.document, version: resolved.version };
+      setMaps([resolved.document]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(resolved.document); setVersion(connection.version);
+      await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${connection.version}`);
+      return connection;
+    } catch (resolutionError) {
+      const rowResult = await client.from("maps").select("id,name,width,height,tile_size,map_type,world_id").eq("id", AUTHORITATIVE_WORLD_MAP_ID).eq("world_id", WORLD_ID).eq("map_type", "world").maybeSingle();
+      if (rowResult.error) throw rowResult.error;
+      if (!rowResult.data?.id) throw resolutionError;
+      authoritativeRow = rowResult.data;
+      id = rowResult.data.id as string;
+    }
 
-    const id = authoritative.data.id as string;
     const loaded = await loadMapDocumentSnapshot(client, id);
     if (loaded.document) {
       const connection = { mapId: id, document: loaded.document, version: Number(loaded.result.version_number) || 0 };
@@ -105,7 +120,7 @@ export function MapEditorAppV4() {
       throw new Error(`Authoritative snapshot is not loadable · version ${discoveredVersion} · ${loaded.result.code || "snapshot-parse-or-read-failure"}${detail}`);
     }
 
-    const doc = fromRow(authoritative.data);
+    const doc = fromRow(authoritativeRow);
     const boot = await bootstrap(client, doc, id);
     const connection = { mapId: id, document: doc, version: boot.version };
     setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version);
