@@ -80,3 +80,52 @@ Serialize → parse → compare tests plus malformed-payload tests for all three
 
 ### Lock boundary
 Phase 2 is now locked. Phase 3 must build on the existing MapDocument/serialization contract and the Phase 1 persistence foundation. No compatibility or persistence redesign is implied by this lock.
+
+## 2026-09-18 — Phase 2 final audit summary
+
+**Final status:** LOCKED COMPLETE.
+
+### Ringkasan pekerjaan Phase 2
+Phase 2 menetapkan dan memperkuat kontrak tunggal `MapDocument` pada batas serialisasi tanpa mengubah fondasi persistence Phase 1.
+
+1. **Contract baseline dipertahankan**
+   - Schema tetap `vandrith.map-document`.
+   - Document version tetap `1`.
+   - Model tetap mendukung `world | region | playable`.
+   - Tidak ditambahkan format penyimpanan baru atau field storage-specific untuk Supabase.
+
+2. **Parser validation diperkuat**
+   - Identity: `id`, `name`, dan `mapType`.
+   - Dimensions: `width`, `height`, dan `tileSize` harus positive integer.
+   - Layer: id, name, kind, visibility/lock/active flags, cells, dan objects.
+   - Cell: `tileId` harus null atau string non-empty.
+   - Object: struktur, tipe, koordinat/dimensi, asset identity, collision, dan playable-map reference.
+   - Relationship metadata: `parentMapId`, `playableSpace`, dan `parentPlayableMapId`.
+
+3. **Round-trip contract diuji**
+   - World, Region, dan Playable masing-masing memiliki deterministic serialize → parse → compare coverage.
+   - World Map authoritative identity yang sudah diaudit juga tetap diterima parser.
+
+4. **Malformed payload regression ditambahkan**
+   - Envelope schema/version.
+   - Missing document.
+   - Requested map identity mismatch.
+   - Invalid numeric dimensions.
+   - Invalid layer/cell/object payload.
+   - Cell-count mismatch.
+   - Invalid relationship metadata.
+
+5. **Build correction diselesaikan**
+   - TypeScript narrowing pada object dimensions diperbaiki pada `8459db277d188f13bf5adb035689b5ca726145c9`.
+   - Error-contract cell-count diperbaiki pada `5b74b7e8812516da2cddd290ad06b41cdde9b073`.
+   - Vercel pada commit terakhir tersebut terverifikasi **success**.
+
+6. **Persistence regression boundary diverifikasi**
+   - Supabase tetap `ACTIVE_HEALTHY`.
+   - Authoritative World Map tetap 20×12.
+   - Latest persisted map version terpantau **12**.
+   - `map_cells` tetap memiliki **68** persisted rows.
+   - Tidak ada migration Phase 2 dan tidak ada perubahan pada persistence RPC, ownership, save-slot, versioning, atau snapshot boundary.
+
+### Phase 2 conclusion
+Phase 2 memenuhi exit evidence yang ditetapkan pada `PHASE2_EXECUTION.md` dan telah dikunci untuk transisi ke Phase 3. Fondasi Map Editor dari Phase 1 tetap menjadi baseline yang tidak berubah.
