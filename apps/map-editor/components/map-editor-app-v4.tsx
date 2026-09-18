@@ -272,8 +272,10 @@ export function MapEditorAppV4() {
     finally { setBusy(false); }
   }, [ensureConnection, refreshSlots]);
 
+  const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
+
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
-    <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} />
+    <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
       <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 6, alignItems: "center", padding: 6, border: "1px solid #334155", borderRadius: 6, background: "#0f172a" }}>
         <button onClick={() => setShowSlots(true)} disabled={busy}>Save / Load</button>
