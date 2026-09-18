@@ -188,24 +188,43 @@ export function MapEditorAppV4() {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
-      // Load Latest is an authoritative read: bypass both the React connection
-      // cache and the runtime snapshot cache, then parse the newest durable
-      // map_versions row directly.
-      const latest = await client
-        .from("map_versions")
-        .select("version_number,snapshot")
-        .eq("map_id", AUTHORITATIVE_WORLD_MAP_ID)
-        .order("version_number", { ascending: false })
-        .limit(1);
-      if (latest.error) throw latest.error;
-      const row = latest.data?.[0];
-      if (!row?.snapshot) throw new Error("Authoritative durable snapshot is unavailable");
-      const document = parseMapDocument(
-        typeof row.snapshot === "string" ? row.snapshot : JSON.stringify(row.snapshot),
-        AUTHORITATIVE_WORLD_MAP_ID,
-      );
-      const loadedVersion = Number(row.version_number) || 0;
-      if (loadedVersion < 1) throw new Error("Authoritative durable version is invalid");
+      // Prefer the durable authoritative row. If the browser session cannot
+      // read map_versions directly, fall back to the existing runtime/durable
+      // loader, which uses the same authoritative map id and preserves the
+      // persistence foundation.
+      let document: MapDocument | null = null;
+      let loadedVersion = 0;
+      let directReadError: unknown = null;
+
+      try {
+        const latest = await client
+          .from("map_versions")
+          .select("version_number,snapshot")
+          .eq("map_id", AUTHORITATIVE_WORLD_MAP_ID)
+          .order("version_number", { ascending: false })
+          .limit(1);
+        if (latest.error) throw latest.error;
+        const row = latest.data?.[0];
+        if (!row?.snapshot) throw new Error("Authoritative durable snapshot is unavailable");
+        document = parseMapDocument(
+          typeof row.snapshot === "string" ? row.snapshot : JSON.stringify(row.snapshot),
+          AUTHORITATIVE_WORLD_MAP_ID,
+        );
+        loadedVersion = Number(row.version_number) || 0;
+      } catch (error) {
+        directReadError = error;
+        const fallback = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
+        if (!fallback.document) {
+          throw new Error(`Authoritative Load Latest failed: ${msg(error)}; fallback: ${fallback.result.error || fallback.result.code || "no snapshot"}`);
+        }
+        document = fallback.document;
+        loadedVersion = Number(fallback.result.version_number) || 0;
+      }
+
+      if (!document || loadedVersion < 1) {
+        throw new Error("Authoritative durable version is invalid");
+      }
+
       setMaps([document]);
       setActiveMapId(document.id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
@@ -213,7 +232,11 @@ export function MapEditorAppV4() {
       setVersion(loadedVersion);
       setLoadRevision(v => v + 1);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
-      setStatus("Loaded Latest · authoritative durable version " + loadedVersion);
+      setStatus(
+        directReadError
+          ? `Loaded Latest · authoritative fallback · version ${loadedVersion}`
+          : "Loaded Latest · authoritative durable version " + loadedVersion,
+      );
     } catch (e) { setStatus("Load failed: " + msg(e)); }
     finally { setBusy(false); }
   }, [refreshSlots]);
