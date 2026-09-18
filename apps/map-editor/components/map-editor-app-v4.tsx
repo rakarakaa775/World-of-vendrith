@@ -53,7 +53,7 @@ export function MapEditorAppV4() {
   }, [baseDocument, connectedMapId, version]);
 
   const refreshSlots = useCallback(async (client: any, mapId: string) => {
-    const { data, error } = await client.from("map_editor_save_slots").select("slot_number,label,version_number,updated_at").eq("map_id", mapId).order("slot_number");
+    const { data, error } = await client.from("map_editor_save_slots").select("slot_number,label,version_number,updated_at,snapshot").eq("map_id", mapId).order("slot_number");
     if (error) throw error;
     setSlots((data || []) as SaveSlot[]);
   }, []);
