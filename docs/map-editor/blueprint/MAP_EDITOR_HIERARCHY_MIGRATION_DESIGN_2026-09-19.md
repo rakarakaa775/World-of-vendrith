@@ -102,3 +102,47 @@ Then apply migrations one at a time, re-audit Supabase, run focused tests/build,
 ## 9. Current decision
 
 The contract mapping is now explicit. The earlier Phase 3 blocker is resolved at the **design-contract level**, but Phase 3 is **not complete**. Production schema/RPC implementation requires the migration-level verification gate above and must not be invented from the mapping alone.
+
+
+## 10. Legacy spatial/game contract reconstruction — 2026-09-19
+
+The live domain hierarchy was re-audited before any hierarchy SQL:
+
+```
+World (worlds)
+└── Continent (continents)
+    └── Region (regions)
+        └── Location (locations)
+            └── Settlement (settlements)
+                └── Building (buildings)
+```
+
+Verified live counts are: 1 world, 1 continent, 1 domain region, 2 locations, 1 settlement, 2 buildings, and 1 legacy `maps` row.
+
+The important boundary is that **domain Region is not automatically the same identity as Map Editor Region**. The database specification defines `regions` as geographic regions inside a continent, while the Map Editor contract defines `region` as an editor map scale. The hierarchy layer must therefore carry the editor identity explicitly and may later reference domain geography through an explicit mapping field/relationship if required; it must not infer the editor parent from names, locations, settlements, dimensions, or UI position.
+
+Likewise, a legacy `exterior` map is not enough by itself to establish whether the editor document is a Region or Playable. The editor identity layer remains authoritative for that distinction.
+
+For interiors, the live legacy constraint requires `maps.map_type = 'interior'` to have a non-null `building_id`. The two existing buildings are `Crescent Moon Tavern` and `Crescent Small Mine`. Any future editor interior mapping therefore needs an explicit owning Playable identity plus an explicit legacy building/map relation; it must not infer the Playable parent from the building alone.
+
+The live `maps` row remains the canonical World Map. Its `world_id` points to the single live Vandrith world, its legacy `map_type` is `world`, and its editor persistence history currently has versions 1–12. No existing exterior/interior map row is present to migrate.
+
+### Spatial support already present
+
+The live database also contains dedicated map-support structures including `map_coordinate_profiles`, `map_connections`, `map_building_placements`, `map_layers`, `map_cells`, navigation, object geometry, terrain-rule, environment-policy, annotation, and runtime-snapshot structures.
+
+`map_coordinate_profiles` currently has five enabled profiles: `world`, `overworld`, `room`, `top_down`, and `interior`. These profiles are coordinate-system configuration, not editor hierarchy identities.
+
+`map_connections` is owner-scoped through both source and target `maps` rows. `map_building_placements` currently has public read access. Neither table provides an acceptable implicit Region/Playable parent relationship.
+
+### Resulting concrete boundary
+
+1. `worlds/continents/regions/locations/settlements/buildings` remain the legacy/domain spatial graph.
+2. `maps` remains the legacy map identity used by the current persistence foundation.
+3. A new editor identity layer is still required to express `world | region | playable`.
+4. Editor Region may be editor-only and need not create a legacy `maps` row.
+5. Editor Playable may map explicitly to a legacy `exterior` row when such a row is required.
+6. Editor Interior is a child relation of Playable and may map explicitly to a legacy `interior` row tied to a building.
+7. No relationship may be inferred solely from legacy geography or coordinate-profile names.
+
+This reconstruction resolves the semantic question needed for the next SQL design, while preserving the existing legacy/game contract.
