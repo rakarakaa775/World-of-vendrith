@@ -35,9 +35,8 @@ function validateLayerSemantics(layer: unknown, expectedCellCount: number): void
   for (const field of ['visible', 'locked', 'active']) {
     if (typeof candidate[field] !== 'boolean') throw new Error(`Map layer ${field} flag is invalid`);
   }
-  if (!Array.isArray(candidate.cells) || candidate.cells.length !== expectedCellCount) {
-    throw new Error('Map layer cells are invalid');
-  }
+  if (!Array.isArray(candidate.cells)) throw new Error('Map layer cells are invalid');
+  if (candidate.cells.length !== expectedCellCount) throw new Error('Layer cell count must equal width × height');
   for (const cell of candidate.cells) {
     if (!cell || typeof cell !== 'object') throw new Error('Map cell is invalid');
     const tileId = (cell as Record<string, unknown>).tileId;
