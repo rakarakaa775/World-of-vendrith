@@ -62,3 +62,18 @@ No asset directory in this library may be glob-imported wholesale. Runtime/edito
 ## 7. Binary transfer note
 
 The current GitHub connector used for this project can create/update UTF-8 repository files but does not provide a suitable verified binary upload workflow for the supplied 120+ MB and 250+ MB ZIP libraries. Therefore this commit establishes the **folder structure, provenance registry, and storage contract**, while the original binary packages remain in the supplied project files/checkpoints. Individual binary assets will only be declared present in the repository after a verified binary transfer.
+
+## 8. Map Editor terrain assets — verified originals
+
+The following two originals were transferred individually from the audited `ASSET_GAME_MASTER_2026-08-25_CLEANED.zip` source into the repository:
+
+| Asset | Registry ID | Approval | Source | License | SHA-256 | Repository path |
+|---|---|---|---|---|---|---|
+| `tile_grass.png` | `5786048f-8815-4b7e-8c11-9b0e1e973b1c` | approved | `TopDown_RPG_Mockup/tile_grass.png` | CC0 1.0 Universal | `07fc7b9678598db3ee9c9105954897415ef957df12a72def3478ec0ee85b8c0e` | `assets/map-editor/terrain/tile_grass.png` |
+| `tile_dirt.png` | `2bbe2076-fea6-4124-a679-7e6114de191c` | approved | `TopDown_RPG_Mockup/tile_dirt.png` | CC0 1.0 Universal | `59dabf609de751119922d06bcfd12cb758f3152ee97ccd628eed24b9299e788a` | `assets/map-editor/terrain/tile_dirt.png` |
+
+Both assets also have an approved terrain binding candidate in the live Supabase audit, with `transition_type=full` and `neighbor_mask=255`. No automatic map-scale assignment is made by this transfer; scope remains governed by the Map Editor Asset Scope Contract.
+
+## 9. Transfer rule
+
+Binary assets are considered repository-present only after the binary blob, repository path, registry identity, provenance/license record, and checksum have all been verified. Future asset additions must follow the same sequence and must not modify the foundation contracts merely to accommodate an asset.
