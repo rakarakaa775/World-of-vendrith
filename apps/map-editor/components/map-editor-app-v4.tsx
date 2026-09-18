@@ -186,20 +186,34 @@ export function MapEditorAppV4() {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
-      // Load Latest must bypass the existing connection cache. The cache may
-      // represent an older Save Slot while the authoritative World Map has a
-      // newer durable version.
-      const connection = await ensureConnection(client, true);
-      setMaps([connection.document]);
-      setActiveMapId(connection.document.id);
-      setConnectedMapId(connection.mapId);
-      setBaseDocument(connection.document);
-      setVersion(connection.version);
-      await refreshSlots(client, connection.mapId);
-      setStatus(`Loaded Latest · authoritative World Map · version ${connection.version}`);
-    } catch (e) { setStatus(`Load failed: ${msg(e)}`); }
+      // Load Latest is an authoritative read: bypass both the React connection
+      // cache and the runtime snapshot cache, then parse the newest durable
+      // map_versions row directly.
+      const latest = await client
+        .from("map_versions")
+        .select("version_number,snapshot")
+        .eq("map_id", AUTHORITATIVE_WORLD_MAP_ID)
+        .order("version_number", { ascending: false })
+        .limit(1);
+      if (latest.error) throw latest.error;
+      const row = latest.data?.[0];
+      if (!row?.snapshot) throw new Error("Authoritative durable snapshot is unavailable");
+      const document = parseMapDocument(
+        typeof row.snapshot === "string" ? row.snapshot : JSON.stringify(row.snapshot),
+        AUTHORITATIVE_WORLD_MAP_ID,
+      );
+      const loadedVersion = Number(row.version_number) || 0;
+      if (loadedVersion < 1) throw new Error("Authoritative durable version is invalid");
+      setMaps([document]);
+      setActiveMapId(document.id);
+      setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
+      setBaseDocument(document);
+      setVersion(loadedVersion);
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+      setStatus("Loaded Latest · authoritative durable version " + loadedVersion);
+    } catch (e) { setStatus("Load failed: " + msg(e)); }
     finally { setBusy(false); }
-  }, [ensureConnection, refreshSlots]);
+  }, [refreshSlots]);
 
   const loadSlot = useCallback(async (slot: number) => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load Slot failed: Supabase unavailable"); return; }
