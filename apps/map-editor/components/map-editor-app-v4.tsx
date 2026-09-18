@@ -78,8 +78,8 @@ export function MapEditorAppV4() {
     return true;
   }, [refreshSlots]);
 
-  const ensureConnection = useCallback(async (client: any): Promise<SaveConnection> => {
-    if (connectedMapId && active?.mapType === "world" && active.id === connectedMapId && baseDocument) {
+  const ensureConnection = useCallback(async (client: any, forceReload = false): Promise<SaveConnection> => {
+    if (!forceReload && connectedMapId && active?.mapType === "world" && active.id === connectedMapId && baseDocument) {
       return { mapId: connectedMapId, document: baseDocument, version };
     }
     if (active?.mapType !== "world") throw new Error("Only the persisted World Map can be saved in this phase");
@@ -185,10 +185,21 @@ export function MapEditorAppV4() {
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
     setBusy(true);
-    try { const connection = await ensureConnection(client); if (!(await adopt(client, connection.mapId))) throw new Error("No authoritative snapshot"); }
-    catch (e) { setStatus(`Load failed: ${msg(e)}`); }
+    try {
+      // Load Latest must bypass the existing connection cache. The cache may
+      // represent an older Save Slot while the authoritative World Map has a
+      // newer durable version.
+      const connection = await ensureConnection(client, true);
+      setMaps([connection.document]);
+      setActiveMapId(connection.document.id);
+      setConnectedMapId(connection.mapId);
+      setBaseDocument(connection.document);
+      setVersion(connection.version);
+      await refreshSlots(client, connection.mapId);
+      setStatus(`Loaded Latest · authoritative World Map · version ${connection.version}`);
+    } catch (e) { setStatus(`Load failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [adopt, ensureConnection]);
+  }, [ensureConnection, refreshSlots]);
 
   const loadSlot = useCallback(async (slot: number) => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load Slot failed: Supabase unavailable"); return; }
