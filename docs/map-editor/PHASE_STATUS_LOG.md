@@ -42,5 +42,11 @@ Ordinary feature work must not redesign the locked persistence, ownership, versi
 - Existing parser already validates schema/version, identity, positive dimensions, layer presence, and cell-count consistency.
 - Existing tests already cover dimension allocation, World identity, object-shaped persisted snapshots, malformed numeric fields, and cell-count mismatch.
 
+### Phase 2 implementation checkpoint — 2026-09-18
+- Strengthened the parser to validate layer kind/flags, cell tile identity, object structure, and relationship metadata at the serialization boundary.
+- Added World/Region/Playable deterministic round-trip coverage and malformed envelope/layer/relationship regression cases.
+- Implementation commits: `f4a92a5aee3dce576b3399e9f80423c73712a403`, `80f3d9d01f940d9a1e48ff0dc40f6c46146e9fc6`.
+- Vercel deployment status for the latest test commit is currently `pending`; Phase 2 is therefore **in progress**, not locked complete.
+
 ### Phase 2 exit evidence
 Serialize → parse → compare tests plus malformed-payload tests for all three map types, with no regression to the locked editor/persistence foundation.
