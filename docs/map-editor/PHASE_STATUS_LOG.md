@@ -214,3 +214,19 @@ Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992
 - Current Supabase audit remains: identity rows = 0, identity version rows = 0, legacy maps = 1, World Map max version = 12.
 - Latest source commit: `bd8a91068a3ee66348409e02d2dd47fd688bd655`.
 - GitHub combined status currently reports no status entries for the latest commit; therefore build/test PASS is not claimed yet.
+
+
+## 2026-09-19 — Region creation RPC ambiguity fix
+
+**Status:** Fix applied; runtime retry pending.
+
+- User runtime showed **Create Region failed: column reference `editor_map_id` is ambiguous**.
+- Supabase-first reproduction isolated the failure to `map_editor_bootstrap_world_identity_v1`: its RETURNS TABLE output variables collided with unqualified `legacy_map_id` in the lookup query.
+- Audit also found the same class of unqualified-column hazard in the child/interior RPC existence checks.
+- Applied migration `20260919000449 / map_editor_hierarchy_identity_rpc_ambiguity_fix_v1` to Supabase.
+- Qualified hierarchy identity columns and moved bootstrap/insert result handling through local variables; no table schema or World persistence foundation was redesigned.
+- A controlled authenticated transaction reproduced World bootstrap + Region creation successfully and was rolled back, leaving **0** identity rows.
+- GitHub migration source commit: `9e51c51bb8aa4658fca0c1493fc925cd687e15cc`.
+- Map Browser now bootstraps the World identity before requesting World → Region creation, so a fresh editor session does not depend on a pre-existing World identity.
+- Map Browser source commit: `2faa9eb650bea227c53d68dc4e60cc0b4c110888`.
+- Next gate: retry **Create Region** in the deployed editor. Expected result is a new Region identity and opening the Region editor; no legacy `maps` row should be created.
