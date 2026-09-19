@@ -230,3 +230,16 @@ Implementation commits: ff2857fd0a027599eefdcd57a197e61a6996c152, af1e85571ce992
 - Map Browser now bootstraps the World identity before requesting World → Region creation, so a fresh editor session does not depend on a pre-existing World identity.
 - Map Browser source commit: `2faa9eb650bea227c53d68dc4e60cc0b4c110888`.
 - Next gate: retry **Create Region** in the deployed editor. Expected result is a new Region identity and opening the Region editor; no legacy `maps` row should be created.
+
+
+## 2026-09-19 — Non-World Save RPC ambiguity fix
+
+**Status:** Fix applied; runtime retry pending.
+
+- User runtime reached a newly created Region successfully, but Quick Save returned **Save error** at version 0.
+- Supabase-first authenticated reproduction isolated the error to `map_editor_commit_identity_v1`: `version_number` was ambiguous between the PL/pgSQL return variable and `editor_map_versions.version_number` in the MAX query.
+- Applied `map_editor_identity_persistence_rpc_ambiguity_fix_v1` to Supabase, qualifying the version-history table alias in both normal and conflict paths.
+- Controlled authenticated transaction now returns `committed`, `version_number = 1`, `projection_status = not_run`; the transaction was rolled back, so no test version row remains.
+- Post-test audit: `editor_map_versions` = 0 test rows; canonical World Map remains at version 12. The two existing identity rows are the real World + Region created during the runtime test.
+- GitHub migration source commit: `e6b177e69ffb0073bde0fa7fa1f0d2111d03eb28`.
+- Next gate: retry Quick Save on the currently opened Region. Expected status: **Saved · version 1 · projection not run**.
