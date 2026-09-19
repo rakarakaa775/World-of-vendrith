@@ -27,6 +27,13 @@ export async function saveIdentityMapDocument(client:SupabaseClient,document:Map
 
 export async function saveIdentityWithConflictDetection(client:SupabaseClient,local:MapDocument,base:MapDocument,expectedVersion:number){
  try{
+  // A new identity has no remote version yet. Commit directly at version 0 so
+  // first-save does not depend on a preceding Load RPC or stale schema state.
+  if(expectedVersion===0){
+   const commit=await saveIdentityMapDocument(client,local,0,'map-editor-save');
+   if(commit.status==='conflict')return {status:'conflict' as const,merge:null,expectedVersion:0,remoteVersion:commit.current_version,remoteDocument:null};
+   return {status:'committed' as const,document:local,version:Number(commit.version_number)||1,projectionStatus:commit.projection_status,projectionError:commit.projection_error};
+  }
   const remote=await loadIdentityMapDocument(client,local.id);
   if(!remote.document){
    const commit=await saveIdentityMapDocument(client,local,0,'map-editor-save');
