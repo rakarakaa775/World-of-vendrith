@@ -46,8 +46,8 @@ export function MapEditorAppV4() {
     setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
   }, []);
 
-  const openMap = useCallback(async (nextMapId: string) => {
-    const nextDocument = maps.find(m => m.id === nextMapId);
+  const openMap = useCallback(async (nextMapId: string, providedDocument?: MapDocument) => {
+    const nextDocument = providedDocument ?? maps.find(m => m.id === nextMapId);
     if (!nextDocument) return;
     if (nextDocument.mapType !== "world") {
       const client = createMapEditorSupabaseClient();
