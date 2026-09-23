@@ -216,7 +216,6 @@ export function PixiMapCanvas(props: Props) {
       }
 
       world.addChild(overlay);
-      world.hitArea = new Rectangle(-workspaceHalf, -workspaceHalf, workspaceSize, workspaceSize);
       app.stage.hitArea = app.screen;
       if (!viewportInitializedRef.current) {
         viewportRef.current = {
