@@ -93,3 +93,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
   .editor-body .sidebar>button{padding:6px 5px;font-size:11px}
   .editor-body .sidebar h2{font-size:10px}
 }
+
+/* Sidebar tile palette */
+.sidebar-tile-palette{display:grid;grid-template-columns:1fr;gap:4px;margin:4px 0 10px}
+.sidebar-tile-palette .tile-palette-card{width:100%;display:grid!important;grid-template-columns:32px minmax(0,1fr);grid-template-rows:auto!important;align-items:center;column-gap:6px;row-gap:0;padding:4px!important;text-align:left;min-height:34px}
+.sidebar-tile-palette .tile-preview{width:32px;height:32px;aspect-ratio:1;grid-row:1 / span 2}
+.sidebar-tile-palette .tile-palette-label{font-size:11px;line-height:1.2}
+.sidebar-tile-palette .tile-palette-asset{font-size:8px;line-height:1.1}
+.sidebar-tile-palette .tile-preview-missing{padding:2px;font-size:7px}
+@media(max-width:600px){
+  .sidebar-tile-palette .tile-palette-card{grid-template-columns:28px minmax(0,1fr);min-height:30px}
+  .sidebar-tile-palette .tile-preview{width:28px;height:28px}
+  .sidebar-tile-palette .tile-palette-asset{display:none}
+}
