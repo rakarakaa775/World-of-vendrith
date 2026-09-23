@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useAuthUser } from "../../editor/auth";
 import { MapEditorAppV4 } from "../../components/map-editor-app-v4";
 import { MapEditorErrorBoundary } from "../../components/map-editor-error-boundary";
 
-export default function EditorPage() {
+function EditorWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuthUser();
@@ -31,5 +31,13 @@ export default function EditorPage() {
       `}</style>
       <MapEditorAppV4 startMode={startMode} />
     </MapEditorErrorBoundary>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={<main className="vandrith-auth-loading">Memuat editor...</main>}>
+      <EditorWorkspace />
+    </Suspense>
   );
 }
