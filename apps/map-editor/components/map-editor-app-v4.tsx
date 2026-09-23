@@ -27,7 +27,9 @@ function fromRow(row: any): MapDocument {
   return { ...seed, id: row.id, name: row.name || "World Map", width: Number(row.width) || seed.width, height: Number(row.height) || seed.height, tileSize: Number(row.tile_size) || seed.tileSize };
 }
 
-export function MapEditorAppV4() {
+export type MapEditorStartMode = "load" | "create";
+
+export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorStartMode }) {
   const seed = useMemo(() => createMap("world"), []);
   const [maps, setMaps] = useState<MapDocument[]>([seed]);
   const [activeMapId, setActiveMapId] = useState(seed.id);
@@ -41,11 +43,12 @@ export function MapEditorAppV4() {
   const [showSlots, setShowSlots] = useState(false);
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
   const [terrainStatus, setTerrainStatus] = useState(`Loading terrain bindings… · ${BUILD_MARKER}`);
+  const [isNewMap, setIsNewMap] = useState(startMode === "create");
   const active = maps.find(m => m.id === activeMapId) || maps[0];
 
   const update = useCallback((next: MapDocument) => {
     setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
-  }, []);
+  }, [ensureConnection, seed, startMode]);
 
   const openMap = useCallback(async (nextMapId: string, providedDocument?: MapDocument) => {
     const nextDocument = providedDocument ?? maps.find(m => m.id === nextMapId);
@@ -172,7 +175,17 @@ export function MapEditorAppV4() {
           setTerrainBindings(result.bindings);
           setTerrainStatus(`Terrain runtime · ${result.diagnostics.accepted}/256 · ${result.rejected} rejected · ${BUILD_MARKER}`);
         }
-        await ensureConnection(client);
+        if (startMode === "create") {
+          setMaps([seed]);
+          setActiveMapId(seed.id);
+          setConnectedMapId(null);
+          setBaseDocument(null);
+          setVersion(0);
+          setStatus("New blank map · not saved yet");
+        } else {
+          await ensureConnection(client);
+          setShowSlots(true);
+        }
       } catch (e) { if (!cancelled) setStatus(`Connection failed: ${msg(e)}`); }
       finally { if (!cancelled) setBusy(false); }
     })();
@@ -203,6 +216,7 @@ export function MapEditorAppV4() {
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
       const savedMapId = localCurrent.mapType === "world" ? connectedMapId : localCurrent.id;
+      setIsNewMap(false);
       setConnectedMapId(savedMapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document);
       if (localCurrent.mapType === "world" && savedMapId) await refreshSlots(client, savedMapId);
       const savedVersion = Number(result.version) || 1;
@@ -212,7 +226,7 @@ export function MapEditorAppV4() {
       return result;
     } catch (e) { setStatus(`Save failed: ${msg(e)}`); return null; }
     finally { setBusy(false); }
-  }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, maps, refreshSlots, update, version]);
+  }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, isNewMap, maps, refreshSlots, update, version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
