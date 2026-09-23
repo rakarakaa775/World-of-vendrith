@@ -14,7 +14,8 @@ import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "..
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
-import { loadIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
+import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
+import { serializeGameSaveSnapshot } from "../editor/game-save";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -215,23 +216,64 @@ export function MapEditorAppV4() {
   }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, maps, refreshSlots, update, version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
-    if (active.mapType !== "world") { setStatus("Save Slot is currently available only for the persisted World Map"); return; }
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    const saved = await save(); if (!saved || saved.status !== "committed") return;
-    setBusy(true);
+    setBusy(true); setStatus(`Saving World + Exterior to Slot ${slot}…`);
     try {
-      const mapId = connectedMapId!;
-      const vr = await client.from("map_versions").select("id").eq("map_id", mapId).eq("version_number", saved.version).single();
+      const worldRemote = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
+      if (!worldRemote.document || worldRemote.result.error) throw new Error(worldRemote.result.error || worldRemote.result.code || "WORLD_SNAPSHOT_UNAVAILABLE");
+      let worldDocument = worldRemote.document;
+      let worldVersion = Number(worldRemote.result.version_number) || 0;
+
+      const localWorld = maps.find(m => m.mapType === "world" && m.id === AUTHORITATIVE_WORLD_MAP_ID) || (active.mapType === "world" ? active : null);
+      if (localWorld && JSON.stringify(serializeResolvedMapSnapshot(localWorld)) !== JSON.stringify(serializeResolvedMapSnapshot(worldDocument))) {
+        const worldSaved = await saveWithConflictDetection(client, localWorld, worldDocument, worldVersion);
+        if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
+        worldDocument = worldSaved.document;
+        worldVersion = Number(worldSaved.version) || worldVersion;
+        setMaps(cur => cur.some(m => m.id === worldDocument.id) ? cur.map(m => m.id === worldDocument.id ? worldDocument : m) : [...cur, worldDocument]);
+      }
+
+      const localExterior = active.mapType === "playable" && active.playableSpace !== "interior"
+        ? active
+        : maps.find(m => m.mapType === "playable" && m.playableSpace !== "interior") || null;
+
+      let exteriorDocument: MapDocument | null = null;
+      if (localExterior) {
+        const remoteExterior = await loadIdentityMapDocument(client, localExterior.id);
+        if (remoteExterior.document) {
+          const exteriorSaved = await saveIdentityWithConflictDetection(client, localExterior, remoteExterior.document, remoteExterior.version);
+          if (exteriorSaved.status === "error") throw exteriorSaved.error;
+          if (exteriorSaved.status !== "committed") throw new Error(`Exterior save ${exteriorSaved.status}`);
+          exteriorDocument = exteriorSaved.document;
+          setMaps(cur => cur.some(m => m.id === exteriorDocument!.id) ? cur.map(m => m.id === exteriorDocument!.id ? exteriorDocument! : m) : [...cur, exteriorDocument!]);
+        } else {
+          const firstSave = await saveIdentityMapDocument(client, localExterior, 0, "map-editor-save");
+          if (firstSave.status !== "committed") throw new Error(`Exterior save ${firstSave.status}`);
+          exteriorDocument = localExterior;
+        }
+      }
+
+      if (worldVersion < 1) throw new Error("WORLD_VERSION_UNAVAILABLE");
+      const vr = await client.from("map_versions").select("id").eq("map_id", AUTHORITATIVE_WORLD_MAP_ID).eq("version_number", worldVersion).single();
       if (vr.error) throw vr.error;
-      const rpc = await client.rpc("map_editor_save_slot_v1", { p_map_id: mapId, p_slot_number: slot, p_label: label.trim() || `Save Slot ${slot}`, p_version_id: vr.data?.id || null, p_version_number: Number(saved.version), p_snapshot: serializeResolvedMapSnapshot(saved.document) });
+      const snapshot = serializeGameSaveSnapshot(worldDocument, exteriorDocument);
+      const rpc = await client.rpc("map_editor_save_slot_v1", {
+        p_map_id: AUTHORITATIVE_WORLD_MAP_ID,
+        p_slot_number: slot,
+        p_label: label.trim() || `Save Slot ${slot}`,
+        p_version_id: vr.data?.id || null,
+        p_version_number: worldVersion,
+        p_snapshot: snapshot,
+      });
       if (rpc.error) throw rpc.error;
       const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
-      await refreshSlots(client, mapId); setStatus(`Game saved to Slot ${slot}`);
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+      setStatus(`Game saved to Slot ${slot} · World + Exterior`);
     } catch (e) { setStatus(`Save Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [active, connectedMapId, refreshSlots, save]);
+  }, [active, maps, refreshSlots]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
@@ -309,21 +351,37 @@ export function MapEditorAppV4() {
   }, [refreshSlots]);
 
   const loadSlot = useCallback(async (slot: number) => {
-    if (active.mapType !== "world") { setStatus("Load Slot is currently available only for the persisted World Map"); return; }
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load Slot failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
-      const connection = await ensureConnection(client);
-      const id = connection.mapId;
-      const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: id, p_slot_number: slot });
+      const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
       if (rpc.error) throw rpc.error;
       const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
-      const doc = parseMapDocument(typeof result.snapshot === "string" ? result.snapshot : JSON.stringify(result.snapshot), id);
-      setMaps([doc]); setActiveMapId(doc.id); setConnectedMapId(id); setBaseDocument(doc); setVersion(Number(result.version_number) || 1); setLoadRevision(v => v + 1); await refreshSlots(client, id); setShowSlots(false); setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · version ${result.version_number}`);
+
+      const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
+      const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
+      const worldDocument = gameSave?.world
+        ? parseMapDocument(JSON.stringify(gameSave.world), AUTHORITATIVE_WORLD_MAP_ID)
+        : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
+      const exteriorDocument = gameSave?.exterior
+        ? parseMapDocument(JSON.stringify(gameSave.exterior), gameSave.exterior.id)
+        : null;
+      const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
+
+      setMaps(restored);
+      const preferred = exteriorDocument || worldDocument;
+      setActiveMapId(preferred.id);
+      setConnectedMapId(preferred.mapType === "world" ? AUTHORITATIVE_WORLD_MAP_ID : preferred.id);
+      setBaseDocument(preferred);
+      setVersion(preferred.mapType === "world" ? Number(result.version_number) || 1 : 0);
+      setLoadRevision(v => v + 1);
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+      setShowSlots(false);
+      setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · World + Exterior`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [active, ensureConnection, refreshSlots]);
+  }, [refreshSlots]);
 
   const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
 
