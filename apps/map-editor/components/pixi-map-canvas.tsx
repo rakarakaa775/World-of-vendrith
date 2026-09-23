@@ -77,6 +77,21 @@ export function PixiMapCanvas(props: Props) {
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     }).then(() => {
       if (disposed) { app.destroy(true); return; }
+      const workspace = new Graphics();
+      workspace.eventMode = "none";
+      const drawWorkspace = () => {
+        workspace.clear();
+        const width = Math.max(host.clientWidth, 2000);
+        const height = Math.max(host.clientHeight, 1400);
+        workspace.rect(0, 0, width, height).fill({ color: 0xf5f7fa });
+        const spacing = 32;
+        for (let x = 0; x <= width; x += spacing) workspace.moveTo(x, 0).lineTo(x, height);
+        for (let y = 0; y <= height; y += spacing) workspace.moveTo(0, y).lineTo(width, y);
+        workspace.stroke({ width: 1, color: 0xe2e8f0 });
+      };
+      drawWorkspace();
+      app.stage.addChild(workspace);
+
       const world = new Container();
       world.eventMode = "static";
       worldRef.current = world;
@@ -203,9 +218,14 @@ export function PixiMapCanvas(props: Props) {
       world.hitArea = new Rectangle(0, 0, width, height);
       app.stage.hitArea = app.screen;
       if (!viewportInitializedRef.current) {
-        viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };
+        viewportRef.current = {
+          x: Math.max((host.clientWidth - width) / 2, 8),
+          y: Math.max((host.clientHeight - height) / 2, 8),
+          zoom: 1,
+        };
         viewportInitializedRef.current = true;
       }
+      drawWorkspace();
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
       propsRef.current.onViewportChange?.(viewportRef.current.zoom);
@@ -387,5 +407,5 @@ export function PixiMapCanvas(props: Props) {
     };
   }, [ready]);
 
-  return createElement("div", { ref: hostRef, style: { width: "100%", height: "100%", minHeight: 360, background: "#fff", touchAction: "none" } });
+  return createElement("div", { ref: hostRef, style: { width: "100%", height: "100%", minHeight: 360, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } });
 }
