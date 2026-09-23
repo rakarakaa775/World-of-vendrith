@@ -344,17 +344,12 @@ export function PixiMapCanvas(props: Props) {
     const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
     const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
 
-    const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
-    const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
-
     host.addEventListener("pointerdown", down);
     host.addEventListener("pointermove", move);
     host.addEventListener("pointerup", up);
     host.addEventListener("pointercancel", up);
     host.addEventListener("lostpointercapture", up);
     host.addEventListener("wheel", wheel, { passive: true });
-    window.addEventListener("keydown", keydown);
-    window.addEventListener("keyup", keyup);
     window.addEventListener("keydown", keydown);
     window.addEventListener("keyup", keyup);
     return () => {
@@ -364,8 +359,6 @@ export function PixiMapCanvas(props: Props) {
       host.removeEventListener("pointercancel", up);
       host.removeEventListener("lostpointercapture", up);
       host.removeEventListener("wheel", wheel);
-      window.removeEventListener("keydown", keydown);
-      window.removeEventListener("keyup", keyup);
       window.removeEventListener("keydown", keydown);
       window.removeEventListener("keyup", keyup);
     };
