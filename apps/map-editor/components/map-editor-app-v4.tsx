@@ -56,10 +56,10 @@ export function MapEditorAppV4() {
       setActiveMapId(nextMapId);
       try {
         const loaded = await loadIdentityMapDocument(client, nextMapId);
-        const document = loaded.document || nextDocument;
+        const document = providedDocument || loaded.document || nextDocument;
         setMaps(cur => cur.some(m => m.id === document.id) ? cur.map(m => m.id === document.id ? document : m) : [...cur, document]);
         setConnectedMapId(nextMapId);
-        setBaseDocument(document);
+        setBaseDocument(loaded.document || document);
         setVersion(loaded.version);
         setLoadRevision(v => v + 1);
         setStatus(loaded.document ? `Loaded identity · version ${loaded.version}` : "Opened new identity · unsaved document");
@@ -369,12 +369,15 @@ export function MapEditorAppV4() {
         : null;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
-      setMaps(restored);
-      const preferred = exteriorDocument || worldDocument;
-      setActiveMapId(preferred.id);
-      setConnectedMapId(preferred.mapType === "world" ? AUTHORITATIVE_WORLD_MAP_ID : preferred.id);
-      setBaseDocument(preferred);
-      setVersion(preferred.mapType === "world" ? Number(result.version_number) || 1 : 0);
+      setMaps(cur => {
+        const byId = new Map(cur.map(document => [document.id, document]));
+        for (const document of restored) byId.set(document.id, document);
+        return Array.from(byId.values());
+      });
+      setActiveMapId(worldDocument.id);
+      setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
+      setBaseDocument(worldDocument);
+      setVersion(Number(result.version_number) || 1);
       setLoadRevision(v => v + 1);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setShowSlots(false);
