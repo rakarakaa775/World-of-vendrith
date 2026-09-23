@@ -50,7 +50,8 @@ export function duplicateObjects(document: MapDocument, layerId: string, objectI
 export function selectAllObjectIds(document: MapDocument, layerId: string): string[] {
   return document.layers.find(l => l.id === layerId)?.objects.map(o => o.id) ?? [];
 }
-\nexport function selectObjectIdsByFilter(document: MapDocument, layerId: string, category?: string): string[] {
+
+export function selectObjectIdsByFilter(document: MapDocument, layerId: string, category?: string): string[] {
   const layer = document.layers.find(l => l.id === layerId);
   if (!layer || layer.kind !== 'objects') return [];
   return layer.objects.filter(o => !category || category === 'all' || o.category === category).map(o => o.id);
