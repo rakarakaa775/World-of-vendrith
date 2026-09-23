@@ -28,6 +28,8 @@ type Props = {
   onStamp: (point: GridPoint) => void;
   onObjectPlace: (point: GridPoint) => void;
   onObjectMove: (objectId: string, point: GridPoint) => void;
+  selectedObjectIds: string[];
+  onObjectSelectionChange: (objectIds: string[]) => void;
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
@@ -120,7 +122,7 @@ export function PixiMapCanvas(props: Props) {
       const app = appRef.current;
       const host = hostRef.current;
       if (!world || !app || !host) return;
-      const { document, activeLayerId, terrainBindings = {}, selectedObjectId } = propsRef.current;
+      const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds } = propsRef.current;
       world.removeChildren();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
@@ -210,7 +212,7 @@ export function PixiMapCanvas(props: Props) {
             const c = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
             g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
               .fill({ color: c, alpha: 0.9 })
-              .stroke({ width: 2, color: selectedObjectId === o.id ? 0x0ea5e9 : 0x334155 });
+              .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
             world.addChild(g);
           }
         }
@@ -232,7 +234,7 @@ export function PixiMapCanvas(props: Props) {
     };
     void render();
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime]);
 
   useEffect(() => {
     if (!ready) return;
@@ -405,6 +407,14 @@ export function PixiMapCanvas(props: Props) {
       if (current.activeTool === "Select" && !selectDragged) {
         const object = hit(p);
         current.onSelectionChange(object ? normalizeSelection({x: object.x, y: object.y}, {x: object.x + object.width - 1, y: object.y + object.height - 1}) : null);
+        if (object) {
+          const ids = current.selectedObjectIds.includes(object.id)
+            ? (e.shiftKey ? current.selectedObjectIds.filter(id => id !== object.id) : current.selectedObjectIds)
+            : (e.shiftKey ? [...current.selectedObjectIds, object.id] : [object.id]);
+          current.onObjectSelectionChange(ids);
+        } else if (!e.shiftKey) {
+          current.onObjectSelectionChange([]);
+        }
       }
       if (startPoint && (current.activeTool === "Line" || current.activeTool === "Rectangle") && valid(p)) {
         paint(current.activeTool === "Line" ? pointsInLine(startPoint, p) : pointsInRectangle(startPoint, p));
