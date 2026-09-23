@@ -13,6 +13,7 @@ import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
+import { boxSelectObjectIds } from "../editor/object-state";
 import { DEFAULT_VIEWPORT, nextZoomLevel, panBy, snapToCell, zoomAt, type Viewport } from "../editor/viewport";
 
 type Props = {
@@ -303,6 +304,7 @@ export function PixiMapCanvas(props: Props) {
     let selectDragged = false;
     let activePointerId: number | null = null;
     let spaceHeld = false;
+    let movingObjectId: string | null = null;
 
     // Use native pointer events at the host boundary for editing input. This
     // keeps touch input deterministic on mobile browsers while preserving the
@@ -351,6 +353,17 @@ export function PixiMapCanvas(props: Props) {
       gestureStartY = e.clientY;
       selectDragged = false;
       if (current.activeTool === "Select") {
+        const object = hit(p);
+        if (e.altKey && object) {
+          movingObjectId = object.id;
+          return;
+        }
+        if (e.shiftKey) {
+          selecting = true;
+          startPoint = p;
+          current.onSelectionChange(normalizeSelection(p, p));
+          return;
+        }
         panning = true;
         lastX = e.clientX;
         lastY = e.clientY;
@@ -389,6 +402,10 @@ export function PixiMapCanvas(props: Props) {
       }
       const p = pointAt(e);
       const current = propsRef.current;
+      if (movingObjectId && valid(p)) {
+        current.onObjectMove(movingObjectId, p);
+        return;
+      }
       if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
         paint([p]);
         return;
@@ -404,7 +421,18 @@ export function PixiMapCanvas(props: Props) {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
       const p = pointAt(e);
       const current = propsRef.current;
-      if (current.activeTool === "Select" && !selectDragged) {
+      if (current.activeTool === "Select" && selecting && startPoint) {
+        const box = normalizeSelection(startPoint, p);
+        const dragged = Math.abs(e.clientX - gestureStartX) > 4 || Math.abs(e.clientY - gestureStartY) > 4;
+        if (dragged) {
+          const ids = boxSelectObjectIds(current.document, "objects", box, e.shiftKey, current.selectedObjectIds);
+          current.onObjectSelectionChange(ids);
+        } else {
+          const object = hit(p);
+          if (object) current.onObjectSelectionChange(e.shiftKey ? (current.selectedObjectIds.includes(object.id) ? current.selectedObjectIds.filter(id => id !== object.id) : [...current.selectedObjectIds, object.id]) : [object.id]);
+          else if (!e.shiftKey) current.onObjectSelectionChange([]);
+        }
+      } else if (current.activeTool === "Select" && !selectDragged && !movingObjectId) {
         const object = hit(p);
         current.onSelectionChange(object ? normalizeSelection({x: object.x, y: object.y}, {x: object.x + object.width - 1, y: object.y + object.height - 1}) : null);
         if (object) {
@@ -421,6 +449,7 @@ export function PixiMapCanvas(props: Props) {
       }
       startPoint = null;
       selecting = false;
+      movingObjectId = null;
       panning = false;
       selectDragged = false;
       if (activePointerId === e.pointerId) {
