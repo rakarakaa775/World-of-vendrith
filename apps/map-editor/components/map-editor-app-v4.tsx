@@ -48,7 +48,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
 
   const update = useCallback((next: MapDocument) => {
     setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
-  });
+  }, []);
 
   const openMap = useCallback(async (nextMapId: string, providedDocument?: MapDocument) => {
     const nextDocument = providedDocument ?? maps.find(m => m.id === nextMapId);
