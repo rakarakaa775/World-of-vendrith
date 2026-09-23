@@ -391,7 +391,7 @@ export function MapEditorAppV4() {
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
-      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={() => setShowSlots(true)} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} />
+      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={() => setShowSlots(true)} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
     {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
