@@ -190,7 +190,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       finally { if (!cancelled) setBusy(false); }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [ensureConnection, seed, startMode]);
 
   const save = useCallback(async () => {
     const client = createMapEditorSupabaseClient();
