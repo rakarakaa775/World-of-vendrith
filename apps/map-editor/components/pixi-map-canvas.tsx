@@ -268,13 +268,15 @@ export function PixiMapCanvas(props: Props) {
         targetZoom = Math.min(4, Math.max(0.25, Math.min((rect.width - 96) / focusWidth, (rect.height - 96) / focusHeight)));
       } else if (action.type === "zoom-map") {
         targetZoom = 1;
-      } else {
+      } else if (action.type === "zoom") {
         targetZoom = Math.min(4, Math.max(0.25, action.zoom));
         const currentZoom = viewportRef.current.zoom || 1;
         viewportRef.current = zoomAt(viewportRef.current, targetZoom / currentZoom, rect.width / 2, rect.height / 2);
         world.position.set(viewportRef.current.x, viewportRef.current.y);
         world.scale.set(viewportRef.current.zoom);
         props.onViewportChange?.(viewportRef.current.zoom);
+        return;
+      } else {
         return;
       }
       viewportRef.current = { x: rect.width / 2 - focusX * targetZoom, y: rect.height / 2 - focusY * targetZoom, zoom: targetZoom };
