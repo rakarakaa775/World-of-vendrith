@@ -60,17 +60,17 @@ Target: **Incarnate-class world-building editor**.
 
 ## 1. Professional 2D Canvas
 
-- [~] Pan — GitHub UI
-- [~] Zoom — GitHub UI
-- [ ] Zoom-to-selection — GitHub UI
-- [ ] Zoom-to-map — GitHub UI
-- [ ] Fit canvas — GitHub UI
-- [ ] Minimap — GitHub UI
-- [ ] Coordinate ruler — GitHub UI
-- [~] Grid — GitHub + Supabase snap settings
-- [~] Snap-to-grid — GitHub UI + Supabase
-- [ ] Snap-to-cell — GitHub UI
-- [ ] Multi-resolution zoom — GitHub UI
+- [x] Pan — GitHub UI
+- [x] Zoom — GitHub UI
+- [x] Zoom-to-selection — GitHub UI
+- [x] Zoom-to-map — GitHub UI
+- [x] Fit canvas — GitHub UI
+- [x] Minimap — GitHub UI
+- [x] Coordinate ruler — GitHub UI
+- [x] Grid — GitHub + Supabase snap settings
+- [x] Snap-to-grid — GitHub UI + Supabase
+- [x] Snap-to-cell — GitHub UI
+- [x] Multi-resolution zoom — GitHub UI
 
 ## 2. Selection & Transform
 
