@@ -33,6 +33,7 @@ type Props = {
   environmentRuntime?: EnvironmentRuntimeState | null;
   viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number };
   onViewportChange?: (zoom: number) => void;
+  viewportResetKey?: string | number;
 };
 
 const COLORS: Record<string, number> = {
@@ -232,6 +233,11 @@ export function PixiMapCanvas(props: Props) {
     void render();
     return () => { cancelled = true; };
   }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
+
+  useEffect(() => {
+    if (!ready) return;
+    viewportInitializedRef.current = false;
+  }, [ready, props.viewportResetKey, props.document.id]);
 
   useEffect(() => {
     if (!ready || !props.viewportAction) return;
