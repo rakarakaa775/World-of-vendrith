@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorShell } from "./editor-shell";
 import { MapBrowser } from "./map-browser";
 import { SaveSlotsPanel, type SaveSlot } from "./save-slots-panel";
-import { createMap, type MapDocument } from "../editor/map-document";
+import { createMap, resizeMapDocument, type MapDocument } from "../editor/map-document";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import { loadMapDocumentSnapshot } from "../editor/map-persistence";
 import { saveWithConflictDetection } from "../editor/map-conflict-save-controller";
@@ -47,6 +47,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   const [isNewMap, setIsNewMap] = useState(startMode === "create");
   const [environmentValidation, setEnvironmentValidation] = useState<EnvironmentRuntimeValidation | null>(null);
   const active = maps.find(m => m.id === activeMapId) || maps[0];
+  const normalizeWorldCanvas = useCallback((document: MapDocument) => document.mapType === "world" ? resizeMapDocument(document, 128, 128) : document, []);
 
   const update = useCallback((next: MapDocument) => {
     setMaps(cur => {
@@ -68,7 +69,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       setActiveMapId(nextMapId);
       try {
         const loaded = await loadIdentityMapDocument(client, nextMapId);
-        const document = providedDocument || loaded.document || nextDocument;
+        const document = normalizeWorldCanvas(providedDocument || loaded.document || nextDocument);
         setMaps(cur => cur.some(m => m.id === document.id) ? cur.map(m => m.id === document.id ? document : m) : [...cur, document]);
         setConnectedMapId(nextMapId);
         setBaseDocument(loaded.document || document);
@@ -107,10 +108,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   const adopt = useCallback(async (client: any, mapId: string) => {
     const loaded = await loadMapDocumentSnapshot(client, mapId);
     if (!loaded.document) return false;
-    setMaps([loaded.document]);
-    setActiveMapId(loaded.document.id);
+    setMaps([normalizeWorldCanvas(loaded.document)]);
+    setActiveMapId(normalizeWorldCanvas(loaded.document).id);
     setConnectedMapId(mapId);
-    setBaseDocument(loaded.document);
+    setBaseDocument(normalizeWorldCanvas(loaded.document));
     setVersion(Number(loaded.result.version_number) || 0);
     setLoadRevision(v => v + 1);
     await refreshSlots(client, mapId);
@@ -366,10 +367,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         throw new Error("Authoritative durable version is invalid");
       }
 
-      setMaps([document]);
-      setActiveMapId(document.id);
+      setMaps([normalizeWorldCanvas(document)]);
+      setActiveMapId(normalizeWorldCanvas(document).id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
-      setBaseDocument(document);
+      setBaseDocument(normalizeWorldCanvas(document));
       setVersion(loadedVersion);
       setLoadRevision(v => v + 1);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
@@ -393,9 +394,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
 
       const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
       const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
-      const worldDocument = gameSave?.world
+      const worldDocumentRaw = gameSave?.world
         ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
         : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
+      const worldDocument = normalizeWorldCanvas(worldDocumentRaw);
       const exteriorDocument = gameSave?.exterior
         ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
         : null;
