@@ -283,7 +283,7 @@ export function PixiMapCanvas(props: Props) {
     }
     world.position.set(viewportRef.current.x, viewportRef.current.y);
     world.scale.set(viewportRef.current.zoom);
-    props.onViewportChange?.(viewportRef.current.zoom);
+    props.onViewportChange?.(viewportRef.current);
   }, [ready, props.viewportAction, props.onViewportChange]);
 
   useEffect(() => {
@@ -293,10 +293,12 @@ export function PixiMapCanvas(props: Props) {
     if (!host || !world) return;
     let startPoint: GridPoint | null = null;
     let selecting = false;
-    let movingId: string | null = null;
     let panning = false;
     let lastX = 0;
     let lastY = 0;
+    let gestureStartX = 0;
+    let gestureStartY = 0;
+    let selectDragged = false;
     let activePointerId: number | null = null;
     let spaceHeld = false;
 
@@ -343,6 +345,15 @@ export function PixiMapCanvas(props: Props) {
       }
       const p = pointAt(e);
       const current = propsRef.current;
+      gestureStartX = e.clientX;
+      gestureStartY = e.clientY;
+      selectDragged = false;
+      if (current.activeTool === "Select") {
+        panning = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        return;
+      }
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
         if (valid(p)) { current.onCellInspect?.(p); paint([p]); }
         startPoint = p;
@@ -356,12 +367,6 @@ export function PixiMapCanvas(props: Props) {
         if (valid(p)) { current.onCellInspect?.(p); startPoint = p; }
         return;
       }
-      if (current.activeTool === "Select") {
-        const o = hit(p);
-        if (o) movingId = o.id;
-        else if (valid(p)) { selecting = true; startPoint = p; current.onSelectionChange(normalizeSelection(p, p)); }
-        return;
-      }
       if (current.activeTool === "Stamp") { if (valid(p)) current.onStamp(p); return; }
       if (current.activeTool === "Building") { if (valid(p)) current.onObjectPlace(p); return; }
       panning = true;
@@ -373,6 +378,7 @@ export function PixiMapCanvas(props: Props) {
       if (panning) {
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
+        if (propsRef.current.activeTool === "Select" && (Math.abs(e.clientX - gestureStartX) > 4 || Math.abs(e.clientY - gestureStartY) > 4)) selectDragged = true;
         viewportRef.current = panBy(viewportRef.current, dx, dy);
         lastX = e.clientX;
         lastY = e.clientY;
@@ -386,7 +392,6 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
       if (selecting && startPoint && valid(p)) { current.onSelectionChange(normalizeSelection(startPoint, p)); return; }
-      if (movingId && valid(p)) { current.onObjectMove(movingId, p); return; }
       if (!panning) return;
       viewportRef.current = { ...viewportRef.current, x: viewportRef.current.x + e.clientX - lastX, y: viewportRef.current.y + e.clientY - lastY };
       lastX = e.clientX;
@@ -397,13 +402,17 @@ export function PixiMapCanvas(props: Props) {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
       const p = pointAt(e);
       const current = propsRef.current;
+      if (current.activeTool === "Select" && !selectDragged) {
+        const object = hit(p);
+        current.onSelectionChange(object ? normalizeSelection({x: object.x, y: object.y}, {x: object.x + object.width - 1, y: object.y + object.height - 1}) : null);
+      }
       if (startPoint && (current.activeTool === "Line" || current.activeTool === "Rectangle") && valid(p)) {
         paint(current.activeTool === "Line" ? pointsInLine(startPoint, p) : pointsInRectangle(startPoint, p));
       }
       startPoint = null;
       selecting = false;
-      movingId = null;
       panning = false;
+      selectDragged = false;
       if (activePointerId === e.pointerId) {
         try { host.releasePointerCapture(e.pointerId); } catch {}
         activePointerId = null;
