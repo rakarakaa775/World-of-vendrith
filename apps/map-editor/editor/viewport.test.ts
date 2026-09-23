@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_VIEWPORT, panBy, zoomAt } from "./viewport";
+import { DEFAULT_VIEWPORT, nearestZoomLevel, nextZoomLevel, panBy, snapToCell, zoomAt } from "./viewport";
 
 describe("viewport", () => {
   it("pans freely in all four directions without map-bound clamping", () => {
