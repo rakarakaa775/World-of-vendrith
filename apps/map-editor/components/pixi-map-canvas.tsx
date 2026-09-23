@@ -13,7 +13,7 @@ import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
-import { DEFAULT_VIEWPORT, zoomAt, type Viewport } from "../editor/viewport";
+import { DEFAULT_VIEWPORT, panBy, zoomAt, type Viewport } from "../editor/viewport";
 
 type Props = {
   document: MapDocument;
@@ -31,6 +31,9 @@ type Props = {
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
+  viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" } | { id: number; type: "zoom-selection" };
+  onViewportChange?: (zoom: number) => void;
+  viewportResetKey?: string | number;
 };
 
 const COLORS: Record<string, number> = {
@@ -55,6 +58,7 @@ export function PixiMapCanvas(props: Props) {
   const appRef = useRef<Application | null>(null);
   const worldRef = useRef<Container | null>(null);
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
+  const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
   const [ready, setReady] = useState(false);
   propsRef.current = props;
@@ -74,6 +78,21 @@ export function PixiMapCanvas(props: Props) {
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     }).then(() => {
       if (disposed) { app.destroy(true); return; }
+      const workspace = new Graphics();
+      workspace.eventMode = "none";
+      const drawWorkspace = () => {
+        workspace.clear();
+        const width = Math.max(host.clientWidth, 2000);
+        const height = Math.max(host.clientHeight, 1400);
+        workspace.rect(0, 0, width, height).fill({ color: 0xf5f7fa });
+        const spacing = 32;
+        for (let x = 0; x <= width; x += spacing) workspace.moveTo(x, 0).lineTo(x, height);
+        for (let y = 0; y <= height; y += spacing) workspace.moveTo(0, y).lineTo(width, y);
+        workspace.stroke({ width: 1, color: 0xe2e8f0 });
+      };
+      drawWorkspace();
+      app.stage.addChild(workspace);
+
       const world = new Container();
       world.eventMode = "static";
       worldRef.current = world;
@@ -106,6 +125,7 @@ export function PixiMapCanvas(props: Props) {
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
+
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
       grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
@@ -197,15 +217,74 @@ export function PixiMapCanvas(props: Props) {
       }
 
       world.addChild(overlay);
-      world.hitArea = new Rectangle(0, 0, width, height);
       app.stage.hitArea = app.screen;
-      if (!viewportRef.current.x && !viewportRef.current.y) viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };
+      if (!viewportInitializedRef.current) {
+        viewportRef.current = {
+          x: Math.max((host.clientWidth - width) / 2, 8),
+          y: Math.max((host.clientHeight - height) / 2, 8),
+          zoom: 1,
+        };
+        viewportInitializedRef.current = true;
+      }
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
+      propsRef.current.onViewportChange?.(viewportRef.current.zoom);
     };
     void render();
     return () => { cancelled = true; };
   }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
+
+  useEffect(() => {
+    if (!ready) return;
+    viewportInitializedRef.current = false;
+  }, [ready, props.viewportResetKey, props.document.id]);
+
+  useEffect(() => {
+    if (!ready || !props.viewportAction) return;
+    const host = hostRef.current;
+    const world = worldRef.current;
+    if (!host || !world) return;
+    const action = props.viewportAction;
+    if (action.type === "pan") {
+      viewportRef.current = panBy(viewportRef.current, action.dx, action.dy);
+    } else {
+      const rect = host.getBoundingClientRect();
+      const document = propsRef.current.document;
+      const mapWidth = document.width * document.tileSize;
+      const mapHeight = document.height * document.tileSize;
+      let targetZoom = 1;
+      let focusWidth = mapWidth;
+      let focusHeight = mapHeight;
+      let focusX = mapWidth / 2;
+      let focusY = mapHeight / 2;
+      if (action.type === "fit") {
+        targetZoom = Math.min(4, Math.max(0.25, Math.min((rect.width - 48) / mapWidth, (rect.height - 48) / mapHeight)));
+      } else if (action.type === "zoom-selection" && propsRef.current.selection) {
+        const selection = propsRef.current.selection;
+        focusWidth = Math.max(document.tileSize, selection.width * document.tileSize);
+        focusHeight = Math.max(document.tileSize, selection.height * document.tileSize);
+        focusX = selection.x * document.tileSize + focusWidth / 2;
+        focusY = selection.y * document.tileSize + focusHeight / 2;
+        targetZoom = Math.min(4, Math.max(0.25, Math.min((rect.width - 96) / focusWidth, (rect.height - 96) / focusHeight)));
+      } else if (action.type === "zoom-map") {
+        targetZoom = 1;
+      } else if (action.type === "zoom") {
+        targetZoom = Math.min(4, Math.max(0.25, action.zoom));
+        const currentZoom = viewportRef.current.zoom || 1;
+        viewportRef.current = zoomAt(viewportRef.current, targetZoom / currentZoom, rect.width / 2, rect.height / 2);
+        world.position.set(viewportRef.current.x, viewportRef.current.y);
+        world.scale.set(viewportRef.current.zoom);
+        props.onViewportChange?.(viewportRef.current.zoom);
+        return;
+      } else {
+        return;
+      }
+      viewportRef.current = { x: rect.width / 2 - focusX * targetZoom, y: rect.height / 2 - focusY * targetZoom, zoom: targetZoom };
+    }
+    world.position.set(viewportRef.current.x, viewportRef.current.y);
+    world.scale.set(viewportRef.current.zoom);
+    props.onViewportChange?.(viewportRef.current.zoom);
+  }, [ready, props.viewportAction, props.onViewportChange]);
 
   useEffect(() => {
     if (!ready) return;
@@ -219,6 +298,7 @@ export function PixiMapCanvas(props: Props) {
     let lastX = 0;
     let lastY = 0;
     let activePointerId: number | null = null;
+    let spaceHeld = false;
 
     // Use native pointer events at the host boundary for editing input. This
     // keeps touch input deterministic on mobile browsers while preserving the
@@ -254,6 +334,13 @@ export function PixiMapCanvas(props: Props) {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
       activePointerId = e.pointerId;
       try { host.setPointerCapture(e.pointerId); } catch {}
+      const panGesture = e.button === 1 || spaceHeld;
+      if (panGesture) {
+        panning = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        return;
+      }
       const p = pointAt(e);
       const current = propsRef.current;
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
@@ -283,6 +370,15 @@ export function PixiMapCanvas(props: Props) {
     };
     const move = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      if (panning) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        viewportRef.current = panBy(viewportRef.current, dx, dy);
+        lastX = e.clientX;
+        lastY = e.clientY;
+        world.position.set(viewportRef.current.x, viewportRef.current.y);
+        return;
+      }
       const p = pointAt(e);
       const current = propsRef.current;
       if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
@@ -318,7 +414,11 @@ export function PixiMapCanvas(props: Props) {
       viewportRef.current = zoomAt(viewportRef.current, e.deltaY < 0 ? 1.1 : 0.9, e.clientX - r.left, e.clientY - r.top);
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
+      propsRef.current.onViewportChange?.(viewportRef.current.zoom);
     };
+
+    const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
+    const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
 
     host.addEventListener("pointerdown", down);
     host.addEventListener("pointermove", move);
@@ -326,6 +426,8 @@ export function PixiMapCanvas(props: Props) {
     host.addEventListener("pointercancel", up);
     host.addEventListener("lostpointercapture", up);
     host.addEventListener("wheel", wheel, { passive: true });
+    window.addEventListener("keydown", keydown);
+    window.addEventListener("keyup", keyup);
     return () => {
       host.removeEventListener("pointerdown", down);
       host.removeEventListener("pointermove", move);
@@ -333,8 +435,10 @@ export function PixiMapCanvas(props: Props) {
       host.removeEventListener("pointercancel", up);
       host.removeEventListener("lostpointercapture", up);
       host.removeEventListener("wheel", wheel);
+      window.removeEventListener("keydown", keydown);
+      window.removeEventListener("keyup", keyup);
     };
   }, [ready]);
 
-  return createElement("div", { ref: hostRef, style: { width: "100%", height: "100%", minHeight: 360, background: "#fff", touchAction: "none" } });
+  return createElement("div", { ref: hostRef, style: { width: "100%", height: "100%", minHeight: 360, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } });
 }

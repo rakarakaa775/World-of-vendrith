@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorShell } from "./editor-shell";
 import { MapBrowser } from "./map-browser";
 import { SaveSlotsPanel, type SaveSlot } from "./save-slots-panel";
-import { createMap, type MapDocument } from "../editor/map-document";
+import { createMap, resizeMapDocument, type MapDocument } from "../editor/map-document";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import { loadMapDocumentSnapshot } from "../editor/map-persistence";
 import { saveWithConflictDetection } from "../editor/map-conflict-save-controller";
@@ -14,7 +14,9 @@ import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "..
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
-import { loadIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
+import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
+import { serializeGameSaveSnapshot } from "../editor/game-save";
+import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -26,7 +28,9 @@ function fromRow(row: any): MapDocument {
   return { ...seed, id: row.id, name: row.name || "World Map", width: Number(row.width) || seed.width, height: Number(row.height) || seed.height, tileSize: Number(row.tile_size) || seed.tileSize };
 }
 
-export function MapEditorAppV4() {
+export type MapEditorStartMode = "load" | "create";
+
+export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorStartMode }) {
   const seed = useMemo(() => createMap("world"), []);
   const [maps, setMaps] = useState<MapDocument[]>([seed]);
   const [activeMapId, setActiveMapId] = useState(seed.id);
@@ -40,10 +44,20 @@ export function MapEditorAppV4() {
   const [showSlots, setShowSlots] = useState(false);
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
   const [terrainStatus, setTerrainStatus] = useState(`Loading terrain bindings… · ${BUILD_MARKER}`);
+  const [isNewMap, setIsNewMap] = useState(startMode === "create");
+  const [environmentValidation, setEnvironmentValidation] = useState<EnvironmentRuntimeValidation | null>(null);
   const active = maps.find(m => m.id === activeMapId) || maps[0];
+  const normalizeWorldCanvas = useCallback((document: MapDocument) => document.mapType === "world" ? resizeMapDocument(document, 128, 128) : document, []);
 
   const update = useCallback((next: MapDocument) => {
-    setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
+    setMaps(cur => {
+      if (next.mapType === "world") {
+        return [next, ...cur.filter(m => m.mapType !== "world")];
+      }
+      return cur.some(m => m.id === next.id)
+        ? cur.map(m => m.id === next.id ? next : m)
+        : [...cur, next];
+    });
   }, []);
 
   const openMap = useCallback(async (nextMapId: string, providedDocument?: MapDocument) => {
@@ -55,10 +69,10 @@ export function MapEditorAppV4() {
       setActiveMapId(nextMapId);
       try {
         const loaded = await loadIdentityMapDocument(client, nextMapId);
-        const document = loaded.document || nextDocument;
+        const document = normalizeWorldCanvas(providedDocument || loaded.document || nextDocument);
         setMaps(cur => cur.some(m => m.id === document.id) ? cur.map(m => m.id === document.id ? document : m) : [...cur, document]);
         setConnectedMapId(nextMapId);
-        setBaseDocument(document);
+        setBaseDocument(loaded.document || document);
         setVersion(loaded.version);
         setLoadRevision(v => v + 1);
         setStatus(loaded.document ? `Loaded identity · version ${loaded.version}` : "Opened new identity · unsaved document");
@@ -94,10 +108,10 @@ export function MapEditorAppV4() {
   const adopt = useCallback(async (client: any, mapId: string) => {
     const loaded = await loadMapDocumentSnapshot(client, mapId);
     if (!loaded.document) return false;
-    setMaps([loaded.document]);
-    setActiveMapId(loaded.document.id);
+    setMaps([normalizeWorldCanvas(loaded.document)]);
+    setActiveMapId(normalizeWorldCanvas(loaded.document).id);
     setConnectedMapId(mapId);
-    setBaseDocument(loaded.document);
+    setBaseDocument(normalizeWorldCanvas(loaded.document));
     setVersion(Number(loaded.result.version_number) || 0);
     setLoadRevision(v => v + 1);
     await refreshSlots(client, mapId);
@@ -118,8 +132,9 @@ export function MapEditorAppV4() {
       if (resolved.row.world_id !== WORLD_ID) throw new Error("MAP_RESOLUTION_ERROR: authoritative World Map belongs to a different world");
       authoritativeRow = resolved.row;
       id = resolved.row.id;
-      const connection = { mapId: id, document: resolved.document, version: resolved.version };
-      setMaps([resolved.document]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(resolved.document); setVersion(connection.version);
+      const normalizedDocument = normalizeWorldCanvas(resolved.document);
+      const connection = { mapId: id, document: normalizedDocument, version: resolved.version };
+      setMaps([normalizedDocument]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(normalizedDocument); setVersion(connection.version);
       await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${connection.version}`);
       return connection;
     } catch (resolutionError) {
@@ -132,8 +147,9 @@ export function MapEditorAppV4() {
 
     const loaded = await loadMapDocumentSnapshot(client, id);
     if (loaded.document) {
-      const connection = { mapId: id, document: loaded.document, version: Number(loaded.result.version_number) || 0 };
-      setMaps([loaded.document]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(loaded.document); setVersion(connection.version);
+      const normalizedDocument = normalizeWorldCanvas(loaded.document);
+      const connection = { mapId: id, document: normalizedDocument, version: Number(loaded.result.version_number) || 0 };
+      setMaps([normalizedDocument]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(normalizedDocument); setVersion(connection.version);
       await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${connection.version}`);
       return connection;
     }
@@ -144,7 +160,7 @@ export function MapEditorAppV4() {
       throw new Error(`Authoritative snapshot is not loadable · version ${discoveredVersion} · ${loaded.result.code || "snapshot-parse-or-read-failure"}${detail}`);
     }
 
-    const doc = fromRow(authoritativeRow);
+    const doc = normalizeWorldCanvas(fromRow(authoritativeRow));
     const boot = await bootstrap(client, doc, id);
     const connection = { mapId: id, document: doc, version: boot.version };
     setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version);
@@ -159,10 +175,12 @@ export function MapEditorAppV4() {
       if (!client) throw new Error("Supabase client unavailable");
       const session = await client.auth.getSession();
       if (!session.data.session) {
-        const auth = await client.auth.signInAnonymously();
-        if (auth.error) throw auth.error;
+        throw new Error("AUTH_REQUIRED: Please sign in before opening the Map Editor.");
       }
       if (cancelled) return;
+      void loadEnvironmentRuntimeValidation(client).then(result => {
+        if (!cancelled) setEnvironmentValidation(result);
+      });
       try {
         const binding = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
         if (binding.error) {
@@ -172,12 +190,22 @@ export function MapEditorAppV4() {
           setTerrainBindings(result.bindings);
           setTerrainStatus(`Terrain runtime · ${result.diagnostics.accepted}/256 · ${result.rejected} rejected · ${BUILD_MARKER}`);
         }
-        await ensureConnection(client);
+        if (startMode === "create") {
+          setMaps([seed]);
+          setActiveMapId(seed.id);
+          setConnectedMapId(null);
+          setBaseDocument(null);
+          setVersion(0);
+          setStatus("New blank map · not saved yet");
+        } else {
+          await ensureConnection(client);
+          setShowSlots(true);
+        }
       } catch (e) { if (!cancelled) setStatus(`Connection failed: ${msg(e)}`); }
       finally { if (!cancelled) setBusy(false); }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [seed, startMode]);
 
   const save = useCallback(async () => {
     const client = createMapEditorSupabaseClient();
@@ -193,7 +221,11 @@ export function MapEditorAppV4() {
         const connection = await ensureConnection(client);
         const current = localCurrent.id === connection.mapId
           ? resolveSaveDocument(localCurrent, connection)
-          : connection.document;
+          : {
+              ...resolveSaveDocument(localCurrent, connection),
+              id: connection.mapId,
+              mapType: "world" as const,
+            };
         if (connection.version < 1) {
           const boot = await bootstrap(client, current, connection.mapId);
           result = { status: "committed", version: boot.version, document: current, projectionStatus: boot.projectionStatus, projectionError: boot.projectionError };
@@ -202,7 +234,8 @@ export function MapEditorAppV4() {
         }
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
-      const savedMapId = localCurrent.mapType === "world" ? connectedMapId : localCurrent.id;
+      const savedMapId = localCurrent.mapType === "world" ? (connectedMapId || AUTHORITATIVE_WORLD_MAP_ID) : localCurrent.id;
+      setIsNewMap(false);
       setConnectedMapId(savedMapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document);
       if (localCurrent.mapType === "world" && savedMapId) await refreshSlots(client, savedMapId);
       const savedVersion = Number(result.version) || 1;
@@ -212,26 +245,70 @@ export function MapEditorAppV4() {
       return result;
     } catch (e) { setStatus(`Save failed: ${msg(e)}`); return null; }
     finally { setBusy(false); }
-  }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, maps, refreshSlots, update, version]);
+  }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, isNewMap, maps, refreshSlots, update, version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
-    if (active.mapType !== "world") { setStatus("Save Slot is currently available only for the persisted World Map"); return; }
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    const saved = await save(); if (!saved || saved.status !== "committed") return;
-    setBusy(true);
+    setBusy(true); setStatus(`Saving World + Exterior to Slot ${slot}…`);
     try {
-      const mapId = connectedMapId!;
-      const vr = await client.from("map_versions").select("id").eq("map_id", mapId).eq("version_number", saved.version).single();
+      const worldRemote = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
+      if (!worldRemote.document || worldRemote.result.error) throw new Error(worldRemote.result.error || worldRemote.result.code || "WORLD_SNAPSHOT_UNAVAILABLE");
+      let worldDocument = worldRemote.document;
+      let worldVersion = Number(worldRemote.result.version_number) || 0;
+
+      const localWorldSource = maps.find(m => m.mapType === "world" && m.id === AUTHORITATIVE_WORLD_MAP_ID) || (active.mapType === "world" ? active : null);
+      const localWorld = localWorldSource
+        ? { ...localWorldSource, id: AUTHORITATIVE_WORLD_MAP_ID, mapType: "world" as const }
+        : null;
+      if (localWorld && JSON.stringify(serializeResolvedMapSnapshot(localWorld)) !== JSON.stringify(serializeResolvedMapSnapshot(worldDocument))) {
+        const worldSaved = await saveWithConflictDetection(client, localWorld, worldDocument, worldVersion);
+        if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
+        worldDocument = worldSaved.document;
+        worldVersion = Number(worldSaved.version) || worldVersion;
+        setMaps(cur => [worldDocument, ...cur.filter(m => m.mapType !== "world")]);
+      }
+
+      const localExterior = active.mapType === "playable" && active.playableSpace !== "interior"
+        ? active
+        : maps.find(m => m.mapType === "playable" && m.playableSpace !== "interior") || null;
+
+      let exteriorDocument: MapDocument | null = null;
+      if (localExterior) {
+        const remoteExterior = await loadIdentityMapDocument(client, localExterior.id);
+        if (remoteExterior.document) {
+          const exteriorSaved = await saveIdentityWithConflictDetection(client, localExterior, remoteExterior.document, remoteExterior.version);
+          if (exteriorSaved.status === "error") throw exteriorSaved.error;
+          if (exteriorSaved.status !== "committed") throw new Error(`Exterior save ${exteriorSaved.status}`);
+          exteriorDocument = exteriorSaved.document;
+          setMaps(cur => cur.some(m => m.id === exteriorDocument!.id) ? cur.map(m => m.id === exteriorDocument!.id ? exteriorDocument! : m) : [...cur, exteriorDocument!]);
+        } else {
+          const firstSave = await saveIdentityMapDocument(client, localExterior, 0, "map-editor-save");
+          if (firstSave.status !== "committed") throw new Error(`Exterior save ${firstSave.status}`);
+          exteriorDocument = localExterior;
+        }
+      }
+
+      if (worldVersion < 1) throw new Error("WORLD_VERSION_UNAVAILABLE");
+      const vr = await client.from("map_versions").select("id").eq("map_id", AUTHORITATIVE_WORLD_MAP_ID).eq("version_number", worldVersion).single();
       if (vr.error) throw vr.error;
-      const rpc = await client.rpc("map_editor_save_slot_v1", { p_map_id: mapId, p_slot_number: slot, p_label: label.trim() || `Save Slot ${slot}`, p_version_id: vr.data?.id || null, p_version_number: Number(saved.version), p_snapshot: serializeResolvedMapSnapshot(saved.document) });
+      const snapshot = serializeGameSaveSnapshot(worldDocument, exteriorDocument);
+      const rpc = await client.rpc("map_editor_save_slot_v1", {
+        p_map_id: AUTHORITATIVE_WORLD_MAP_ID,
+        p_slot_number: slot,
+        p_label: label.trim() || `Save Slot ${slot}`,
+        p_version_id: vr.data?.id || null,
+        p_version_number: worldVersion,
+        p_snapshot: snapshot,
+      });
       if (rpc.error) throw rpc.error;
       const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
-      await refreshSlots(client, mapId); setStatus(`Game saved to Slot ${slot}`);
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+      setStatus(`Game saved to Slot ${slot} · World + Exterior`);
     } catch (e) { setStatus(`Save Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [active, connectedMapId, refreshSlots, save]);
+  }, [active, maps, refreshSlots]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
@@ -246,10 +323,11 @@ export function MapEditorAppV4() {
           setStatus("Load Latest · no authoritative identity version yet");
           return;
         }
-        setMaps(cur => cur.map(m => m.id === loaded.document!.id ? loaded.document! : m));
-        setActiveMapId(loaded.document.id);
+        const normalizedDocument = normalizeWorldCanvas(loaded.document);
+        setMaps(cur => cur.map(m => m.id === normalizedDocument.id ? normalizedDocument : m));
+        setActiveMapId(normalizedDocument.id);
         setConnectedMapId(active.id);
-        setBaseDocument(loaded.document);
+        setBaseDocument(normalizedDocument);
         setVersion(loaded.version);
         setLoadRevision(v => v + 1);
         setStatus(`Loaded Latest · identity · version ${loaded.version}`);
@@ -292,10 +370,10 @@ export function MapEditorAppV4() {
         throw new Error("Authoritative durable version is invalid");
       }
 
-      setMaps([document]);
-      setActiveMapId(document.id);
+      setMaps([normalizeWorldCanvas(document)]);
+      setActiveMapId(normalizeWorldCanvas(document).id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
-      setBaseDocument(document);
+      setBaseDocument(normalizeWorldCanvas(document));
       setVersion(loadedVersion);
       setLoadRevision(v => v + 1);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
@@ -309,34 +387,48 @@ export function MapEditorAppV4() {
   }, [refreshSlots]);
 
   const loadSlot = useCallback(async (slot: number) => {
-    if (active.mapType !== "world") { setStatus("Load Slot is currently available only for the persisted World Map"); return; }
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load Slot failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
-      const connection = await ensureConnection(client);
-      const id = connection.mapId;
-      const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: id, p_slot_number: slot });
+      const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
       if (rpc.error) throw rpc.error;
       const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
-      const doc = parseMapDocument(typeof result.snapshot === "string" ? result.snapshot : JSON.stringify(result.snapshot), id);
-      setMaps([doc]); setActiveMapId(doc.id); setConnectedMapId(id); setBaseDocument(doc); setVersion(Number(result.version_number) || 1); setLoadRevision(v => v + 1); await refreshSlots(client, id); setShowSlots(false); setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · version ${result.version_number}`);
+
+      const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
+      const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
+      const worldDocumentRaw = gameSave?.world
+        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
+        : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
+      const worldDocument = normalizeWorldCanvas(worldDocumentRaw);
+      const exteriorDocument = gameSave?.exterior
+        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
+        : null;
+      const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
+
+      setMaps(cur => {
+        const byId = new Map(cur.map(document => [document.id, document]));
+        for (const document of restored) byId.set(document.id, document);
+        return Array.from(byId.values());
+      });
+      setActiveMapId(worldDocument.id);
+      setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
+      setBaseDocument(worldDocument);
+      setVersion(Number(result.version_number) || 1);
+      setLoadRevision(v => v + 1);
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+      setShowSlots(false);
+      setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · World + Exterior`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [active, ensureConnection, refreshSlots]);
+  }, [refreshSlots]);
 
   const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
 
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
-      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 6, alignItems: "center", padding: 6, border: "1px solid #334155", borderRadius: 6, background: "#0f172a" }}>
-        <button onClick={() => setShowSlots(true)} disabled={busy}>Save / Load</button>
-        <button onClick={save} disabled={busy}>Quick Save</button>
-        <button onClick={loadLatest} disabled={busy}>Load Latest</button>
-        <span style={{ fontSize: 11, opacity: .8 }}>v{version} · {status}</span>
-      </div>
-      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} />
+      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
     {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
