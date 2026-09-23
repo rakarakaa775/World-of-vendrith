@@ -77,11 +77,59 @@ export function PixiMapCanvas(props: Props) {
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     }).then(() => {
       if (disposed) { app.destroy(true); return; }
+      const workspace = new Graphics();
+      workspace.eventMode = "none";
+      const drawWorkspace = () => {
+        workspace.clear();
+        const width = Math.max(host.clientWidth, 2000);
+        const height = Math.max(host.clientHeight, 1400);
+        workspace.rect(0, 0, width, height).fill({ color: 0xf5f7fa });
+        const spacing = 32;
+        for (let x = 0; x <= width; x += spacing) workspace.moveTo(x, 0).lineTo(x, height);
+        for (let y = 0; y <= height; y += spacing) workspace.moveTo(0, y).lineTo(width, y);
+        workspace.stroke({ width: 1, color: 0xe2e8f0 });
+      };
+      drawWorkspace();
+      app.stage.addChild(workspace);
+
+      const world = new Container();
+      world.eventMode = "static";
+      worldRef.current = world;
+      host.replaceChildren(app.canvas);
+      app.stage.eventMode = "static";
+      app.stage.addChild(world);
+      setReady(true);
+    }).catch(error => console.error("Pixi map canvas initialization failed", error));
+
+    return () => {
+      disposed = true;
+      setReady(false);
+      worldRef.current = null;
+      appRef.current = null;
+      host.replaceChildren();
+      app.destroy(true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    const render = async () => {
+      const world = worldRef.current;
+      const app = appRef.current;
+      const host = hostRef.current;
+      if (!world || !app || !host) return;
+      const { document, activeLayerId, terrainBindings = {}, selectedObjectId } = propsRef.current;
+      world.removeChildren();
+      const overlay = new Graphics();
+      const width = document.width * document.tileSize;
+      const height = document.height * document.tileSize;
+
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
       grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
       for (let x = 1; x < document.width; x++) grid.moveTo(x * document.tileSize, 0).lineTo(x * document.tileSize, height);
-      for (let y = 1; y < document.height; y++) grid.moveTo(0, y * document.tileSize).lineTo(width, y);
+      for (let y = 1; y < document.height; y++) grid.moveTo(0, y * document.tileSize).lineTo(width, y * document.tileSize);
       grid.stroke({ width: 1, color: 0xcbd5e1 });
       world.addChild(grid);
 
