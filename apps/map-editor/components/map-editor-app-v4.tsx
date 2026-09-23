@@ -132,8 +132,9 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       if (resolved.row.world_id !== WORLD_ID) throw new Error("MAP_RESOLUTION_ERROR: authoritative World Map belongs to a different world");
       authoritativeRow = resolved.row;
       id = resolved.row.id;
-      const connection = { mapId: id, document: resolved.document, version: resolved.version };
-      setMaps([resolved.document]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(resolved.document); setVersion(connection.version);
+      const normalizedDocument = normalizeWorldCanvas(resolved.document);
+      const connection = { mapId: id, document: normalizedDocument, version: resolved.version };
+      setMaps([normalizedDocument]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(normalizedDocument); setVersion(connection.version);
       await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${connection.version}`);
       return connection;
     } catch (resolutionError) {
@@ -146,8 +147,9 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
 
     const loaded = await loadMapDocumentSnapshot(client, id);
     if (loaded.document) {
-      const connection = { mapId: id, document: loaded.document, version: Number(loaded.result.version_number) || 0 };
-      setMaps([loaded.document]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(loaded.document); setVersion(connection.version);
+      const normalizedDocument = normalizeWorldCanvas(loaded.document);
+      const connection = { mapId: id, document: normalizedDocument, version: Number(loaded.result.version_number) || 0 };
+      setMaps([normalizedDocument]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(normalizedDocument); setVersion(connection.version);
       await refreshSlots(client, id); setStatus(`Connected · authoritative World Map · version ${connection.version}`);
       return connection;
     }
@@ -158,7 +160,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       throw new Error(`Authoritative snapshot is not loadable · version ${discoveredVersion} · ${loaded.result.code || "snapshot-parse-or-read-failure"}${detail}`);
     }
 
-    const doc = fromRow(authoritativeRow);
+    const doc = normalizeWorldCanvas(fromRow(authoritativeRow));
     const boot = await bootstrap(client, doc, id);
     const connection = { mapId: id, document: doc, version: boot.version };
     setMaps([doc]); setActiveMapId(id); setConnectedMapId(id); setBaseDocument(doc); setVersion(boot.version);
@@ -321,10 +323,11 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
           setStatus("Load Latest · no authoritative identity version yet");
           return;
         }
-        setMaps(cur => cur.map(m => m.id === loaded.document!.id ? loaded.document! : m));
-        setActiveMapId(loaded.document.id);
+        const normalizedDocument = normalizeWorldCanvas(loaded.document);
+        setMaps(cur => cur.map(m => m.id === normalizedDocument.id ? normalizedDocument : m));
+        setActiveMapId(normalizedDocument.id);
         setConnectedMapId(active.id);
-        setBaseDocument(loaded.document);
+        setBaseDocument(normalizedDocument);
         setVersion(loaded.version);
         setLoadRevision(v => v + 1);
         setStatus(`Loaded Latest · identity · version ${loaded.version}`);
