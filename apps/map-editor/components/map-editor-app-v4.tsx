@@ -362,10 +362,10 @@ export function MapEditorAppV4() {
       const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
       const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
       const worldDocument = gameSave?.world
-        ? parseMapDocument(JSON.stringify(gameSave.world), AUTHORITATIVE_WORLD_MAP_ID)
+        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
         : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
       const exteriorDocument = gameSave?.exterior
-        ? parseMapDocument(JSON.stringify(gameSave.exterior), gameSave.exterior.id)
+        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
         : null;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
