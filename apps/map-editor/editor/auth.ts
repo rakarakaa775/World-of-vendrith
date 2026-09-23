@@ -46,6 +46,7 @@ export async function signInWithUsername(username: string, password: string) {
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
   const { error } = await client.auth.signInWithPassword({ email: authEmail(username), password });
   if (error) throw error;
+  await client.rpc("claim_vandrith_legacy_save_slots_v1");
 }
 
 export async function signUpWithUsername(username: string, password: string) {
