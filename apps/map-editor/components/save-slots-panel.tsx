@@ -86,6 +86,7 @@ function extractDocument(snapshot: unknown): any | null {
     const value = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
     if (!value || typeof value !== 'object') return null;
     const candidate = value as any;
+    if (candidate.schema === 'vandrith.game-save' && candidate.world) return candidate.world;
     return candidate.document && typeof candidate.document === 'object' ? candidate.document : candidate;
   } catch { return null; }
 }
