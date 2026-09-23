@@ -55,6 +55,32 @@ export function applyTerrainPaint(
   };
 }
 
+export function eraseTerrainPaint(
+  document: MapDocument,
+  layerId: string,
+  points: GridPoint[],
+  bindings: TerrainAssetBindingMap = {},
+): TerrainPaintResult {
+  const layer = document.layers.find(item => item.id === layerId);
+  if (!layer || layer.kind !== 'ground' || layer.locked || !layer.visible) {
+    return { document, affected: [], variants: [], validation: [] };
+  }
+  const validPoints = [...new Map(
+    points
+      .filter(point => Number.isInteger(point.x) && Number.isInteger(point.y))
+      .filter(point => point.x >= 0 && point.y >= 0 && point.x < document.width && point.y < document.height)
+      .map(point => [`${point.x}:${point.y}`, point] as const),
+  ).values()];
+  if (!validPoints.length) return { document, affected: [], variants: [], validation: [] };
+
+  let next = document;
+  for (const point of validPoints) next = paintCell(next, layerId, point, null);
+  const affected = affectedTerrainCells(document, validPoints);
+  const result = applyTerrainAutotile(next, layerId, affected, bindings);
+  const validation = affected.map(point => validateTerrainCell(result.document, layerId, point, bindings));
+  return { document: result.document, affected, variants: result.variants, validation };
+}
+
 export function terrainVariantsForPoints(
   document: MapDocument,
   layerId: string,
