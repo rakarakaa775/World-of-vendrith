@@ -234,7 +234,7 @@ export function PixiMapCanvas(props: Props) {
     };
     void render();
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime]);
 
   useEffect(() => {
     if (!ready) return;
