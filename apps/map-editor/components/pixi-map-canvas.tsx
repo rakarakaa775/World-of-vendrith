@@ -74,14 +74,22 @@ export function PixiMapCanvas(props: Props) {
     const app = new Application();
     appRef.current = app;
     let initialized = false;
+    let initTimer: ReturnType<typeof setTimeout> | null = null;
 
-    void app.init({
+    const initOptions = {
       resizeTo: host,
       background: "#ffffff",
+      preference: window.matchMedia("(pointer: coarse)").matches ? "canvas" as const : "webgl" as const,
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
-    }).then(() => {
+    });
+    const initPromise = app.init(initOptions);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      initTimer = setTimeout(() => reject(new Error("Renderer initialization timed out after 8 seconds")), 8000);
+    });
+    void Promise.race([initPromise, timeoutPromise]).then(() => {
+      if (initTimer) { clearTimeout(initTimer); initTimer = null; }
       initialized = true;
       if (disposed) { app.destroy(true); return; }
       const workspace = new Graphics();
@@ -108,6 +116,7 @@ export function PixiMapCanvas(props: Props) {
       setReady(true);
       setInitError(null);
     }).catch(error => {
+      if (initTimer) { clearTimeout(initTimer); initTimer = null; }
       const message = error instanceof Error ? error.message : String(error);
       console.error("Pixi map canvas initialization failed", error);
       setInitError(message || "Renderer initialization failed");
@@ -119,6 +128,7 @@ export function PixiMapCanvas(props: Props) {
       worldRef.current = null;
       appRef.current = null;
       host.replaceChildren();
+      if (initTimer) { clearTimeout(initTimer); initTimer = null; }
       if (initialized) app.destroy(true);
     };
   }, []);
@@ -241,7 +251,12 @@ export function PixiMapCanvas(props: Props) {
       world.scale.set(viewportRef.current.zoom);
       propsRef.current.onViewportChange?.(viewportRef.current);
     };
-    void render();
+    void render().catch(error => {
+      if (cancelled) return;
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Pixi map canvas scene render failed", error);
+      setInitError(message || "Canvas scene render failed");
+    });
     return () => { cancelled = true; };
   }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime]);
 
