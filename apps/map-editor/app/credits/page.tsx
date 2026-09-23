@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function CreditsPage() {
   return (
     <main className="vandrith-credits">
@@ -9,7 +11,7 @@ export default function CreditsPage() {
           <h2>Asset Library</h2>
           <p>Daftar asset akan diambil dari registry asset resmi proyek, termasuk informasi sumber dan lisensinya.</p>
         </div>
-        <button onClick={() => window.location.assign("/")}>Kembali</button>
+        <Link href="/" className="vandrith-back-button">Kembali</Link>
       </section>
     </main>
   );
