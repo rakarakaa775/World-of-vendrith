@@ -26,3 +26,17 @@
 .vandrith-credit-section h2{margin:0 0 8px;color:#e0cb82}
 .vandrith-back-button{display:inline-block;padding:10px 18px;border:1px solid #8f7e45;border-radius:8px;background:#242d2d;color:#f5f1df;text-decoration:none;cursor:pointer}
 @media(max-width:650px){.vandrith-home-card,.vandrith-credits-card{padding:34px 22px}.vandrith-home-actions{grid-template-columns:1fr}.vandrith-home-actions button{min-height:94px}}
+
+.vandrith-auth-panel{width:min(420px,100%);margin:24px auto 8px;padding:16px;border:1px solid rgba(196,168,94,.35);border-radius:12px;background:rgba(8,12,18,.72);box-shadow:0 12px 36px rgba(0,0,0,.3);text-align:left}
+.vandrith-auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.vandrith-auth-tabs button,.vandrith-auth-submit,.vandrith-logout{border:1px solid rgba(196,168,94,.45);border-radius:8px;background:#182124;color:#f3edda;padding:10px 12px;cursor:pointer}
+.vandrith-auth-tabs button.active{background:#51452a}
+.vandrith-auth-panel form{display:grid;gap:12px}
+.vandrith-auth-panel label{display:grid;gap:6px;color:#d9d1ba;font-size:12px;font-weight:700}
+.vandrith-auth-panel input{width:100%;box-sizing:border-box;border:1px solid #4a5050;border-radius:7px;background:#0b1013;color:#fff;padding:10px}
+.vandrith-auth-submit{font-weight:800;background:#263b3b}
+.vandrith-auth-message{margin:10px 0 0;font-size:12px;color:#d9d1ba}
+.vandrith-auth-note,.vandrith-auth-status{font-size:11px;color:var(--muted)}
+.vandrith-welcome{margin:14px 0 4px;color:#e8dfc7}
+.vandrith-logout{margin-top:12px;font-size:11px}
+.vandrith-auth-loading{min-height:100vh;display:grid;place-items:center;background:#080d12;color:#d9d1ba}
