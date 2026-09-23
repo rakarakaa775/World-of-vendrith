@@ -16,6 +16,7 @@ import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnecti
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { serializeGameSaveSnapshot } from "../editor/game-save";
+import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -44,6 +45,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
   const [terrainStatus, setTerrainStatus] = useState(`Loading terrain bindings… · ${BUILD_MARKER}`);
   const [isNewMap, setIsNewMap] = useState(startMode === "create");
+  const [environmentValidation, setEnvironmentValidation] = useState<EnvironmentRuntimeValidation | null>(null);
   const active = maps.find(m => m.id === activeMapId) || maps[0];
 
   const update = useCallback((next: MapDocument) => {
@@ -173,6 +175,9 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         throw new Error("AUTH_REQUIRED: Please sign in before opening the Map Editor.");
       }
       if (cancelled) return;
+      void loadEnvironmentRuntimeValidation(client).then(result => {
+        if (!cancelled) setEnvironmentValidation(result);
+      });
       try {
         const binding = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
         if (binding.error) {
@@ -418,7 +423,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
-      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
+      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
     {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
