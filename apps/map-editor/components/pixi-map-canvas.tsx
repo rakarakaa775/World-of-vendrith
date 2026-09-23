@@ -13,7 +13,7 @@ import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
-import { DEFAULT_VIEWPORT, panBy, zoomAt, type Viewport } from "../editor/viewport";
+import { DEFAULT_VIEWPORT, nextZoomLevel, panBy, snapToCell, zoomAt, type Viewport } from "../editor/viewport";
 
 type Props = {
   document: MapDocument;
@@ -32,7 +32,7 @@ type Props = {
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
   viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" } | { id: number; type: "zoom-selection" };
-  onViewportChange?: (zoom: number) => void;
+  onViewportChange?: (viewport: Viewport) => void;
   viewportResetKey?: string | number;
 };
 
@@ -228,7 +228,7 @@ export function PixiMapCanvas(props: Props) {
       }
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
-      propsRef.current.onViewportChange?.(viewportRef.current.zoom);
+      propsRef.current.onViewportChange?.(viewportRef.current);
     };
     void render();
     return () => { cancelled = true; };
@@ -274,7 +274,7 @@ export function PixiMapCanvas(props: Props) {
         viewportRef.current = zoomAt(viewportRef.current, targetZoom / currentZoom, rect.width / 2, rect.height / 2);
         world.position.set(viewportRef.current.x, viewportRef.current.y);
         world.scale.set(viewportRef.current.zoom);
-        props.onViewportChange?.(viewportRef.current.zoom);
+        props.onViewportChange?.(viewportRef.current);
         return;
       } else {
         return;
@@ -309,7 +309,7 @@ export function PixiMapCanvas(props: Props) {
       const zoom = viewportRef.current.zoom || 1;
       const localX = (e.clientX - rect.left - viewportRef.current.x) / zoom;
       const localY = (e.clientY - rect.top - viewportRef.current.y) / zoom;
-      return { x: Math.floor(localX / document.tileSize), y: Math.floor(localY / document.tileSize) };
+      return { x: snapToCell(localX, document.tileSize), y: snapToCell(localY, document.tileSize) };
     };
     const valid = (p: GridPoint) => {
       const { document } = propsRef.current;
@@ -414,7 +414,7 @@ export function PixiMapCanvas(props: Props) {
       viewportRef.current = zoomAt(viewportRef.current, e.deltaY < 0 ? 1.1 : 0.9, e.clientX - r.left, e.clientY - r.top);
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
-      propsRef.current.onViewportChange?.(viewportRef.current.zoom);
+      propsRef.current.onViewportChange?.(viewportRef.current);
     };
 
     const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
@@ -440,5 +440,5 @@ export function PixiMapCanvas(props: Props) {
     };
   }, [ready]);
 
-  return createElement("div", { ref: hostRef, style: { width: "100%", height: "100%", minHeight: 360, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } });
+  return createElement("div", { ref: hostRef, style: { position: "absolute", left: 40, top: 28, right: 0, bottom: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } });
 }
