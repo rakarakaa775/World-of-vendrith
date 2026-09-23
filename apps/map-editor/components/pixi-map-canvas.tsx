@@ -54,7 +54,8 @@ export function PixiMapCanvas(props: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const worldRef = useRef<Container | null>(null);
-  const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);\n  const viewportInitializedRef = useRef(false);
+  const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
+  const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
   const [ready, setReady] = useState(false);
   propsRef.current = props;
@@ -199,7 +200,10 @@ export function PixiMapCanvas(props: Props) {
       world.addChild(overlay);
       world.hitArea = new Rectangle(0, 0, width, height);
       app.stage.hitArea = app.screen;
-      if (!viewportInitializedRef.current) {\n        viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };\n        viewportInitializedRef.current = true;\n      }
+      if (!viewportInitializedRef.current) {
+        viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };
+        viewportInitializedRef.current = true;
+      }
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
     };
@@ -219,6 +223,7 @@ export function PixiMapCanvas(props: Props) {
     let lastX = 0;
     let lastY = 0;
     let activePointerId: number | null = null;
+    let spaceHeld = false;
 
     // Use native pointer events at the host boundary for editing input. This
     // keeps touch input deterministic on mobile browsers while preserving the
@@ -254,6 +259,13 @@ export function PixiMapCanvas(props: Props) {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
       activePointerId = e.pointerId;
       try { host.setPointerCapture(e.pointerId); } catch {}
+      const panGesture = e.button === 1 || spaceHeld;
+      if (panGesture) {
+        panning = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        return;
+      }
       const p = pointAt(e);
       const current = propsRef.current;
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
@@ -283,6 +295,15 @@ export function PixiMapCanvas(props: Props) {
     };
     const move = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      if (panning) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        viewportRef.current = panBy(viewportRef.current, dx, dy);
+        lastX = e.clientX;
+        lastY = e.clientY;
+        world.position.set(viewportRef.current.x, viewportRef.current.y);
+        return;
+      }
       const p = pointAt(e);
       const current = propsRef.current;
       if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
@@ -320,19 +341,33 @@ export function PixiMapCanvas(props: Props) {
       world.scale.set(viewportRef.current.zoom);
     };
 
-    const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };\n    const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };\n\n    host.addEventListener("pointerdown", down);
+    const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
+    const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
+
+    const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
+    const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
+
+    host.addEventListener("pointerdown", down);
     host.addEventListener("pointermove", move);
     host.addEventListener("pointerup", up);
     host.addEventListener("pointercancel", up);
     host.addEventListener("lostpointercapture", up);
-    host.addEventListener("wheel", wheel, { passive: true });\n    window.addEventListener("keydown", keydown);\n    window.addEventListener("keyup", keyup);
+    host.addEventListener("wheel", wheel, { passive: true });
+    window.addEventListener("keydown", keydown);
+    window.addEventListener("keyup", keyup);
+    window.addEventListener("keydown", keydown);
+    window.addEventListener("keyup", keyup);
     return () => {
       host.removeEventListener("pointerdown", down);
       host.removeEventListener("pointermove", move);
       host.removeEventListener("pointerup", up);
       host.removeEventListener("pointercancel", up);
       host.removeEventListener("lostpointercapture", up);
-      host.removeEventListener("wheel", wheel);\n      window.removeEventListener("keydown", keydown);\n      window.removeEventListener("keyup", keyup);
+      host.removeEventListener("wheel", wheel);
+      window.removeEventListener("keydown", keydown);
+      window.removeEventListener("keyup", keyup);
+      window.removeEventListener("keydown", keydown);
+      window.removeEventListener("keyup", keyup);
     };
   }, [ready]);
 
