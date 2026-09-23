@@ -60,7 +60,7 @@ function normalizeRegistryTile(row: RegistryTileRow): TileOption | null {
     assetName: row.name,
     assetPath: row.asset_path || undefined,
     previewPath: row.preview_path || undefined,
-    previewUrl: VERIFIED_PREVIEWS[terrain] || previewUrlFor(row),
+    previewUrl: (VERIFIED_PREVIEWS as Partial<Record<TileOption['terrain'], string>>)[terrain] || previewUrlFor(row),
   };
 }
 
