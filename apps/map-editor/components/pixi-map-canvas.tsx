@@ -79,7 +79,7 @@ export function PixiMapCanvas(props: Props) {
     const initOptions = {
       resizeTo: host,
       background: "#ffffff",
-      preference: window.matchMedia("(pointer: coarse)").matches ? "canvas" as const : "webgl" as const,
+      preference: ["webgl", "canvas"],
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
@@ -511,5 +511,5 @@ export function PixiMapCanvas(props: Props) {
     };
   }, [ready]);
 
-  return createElement("div", { ref: hostRef, style: { position: "absolute", left: 40, top: 28, right: 0, bottom: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
+  return createElement("div", { ref: hostRef, className: "pixi-map-canvas-host", style: { position: "absolute", left: 40, top: 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
