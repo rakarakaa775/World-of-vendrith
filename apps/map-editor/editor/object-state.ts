@@ -50,6 +50,28 @@ export function duplicateObjects(document: MapDocument, layerId: string, objectI
 export function selectAllObjectIds(document: MapDocument, layerId: string): string[] {
   return document.layers.find(l => l.id === layerId)?.objects.map(o => o.id) ?? [];
 }
+\nexport function selectObjectIdsByFilter(document: MapDocument, layerId: string, category?: string): string[] {
+  const layer = document.layers.find(l => l.id === layerId);
+  if (!layer || layer.kind !== 'objects') return [];
+  return layer.objects.filter(o => !category || category === 'all' || o.category === category).map(o => o.id);
+}
+
+export function scaleObjects(document: MapDocument, layerId: string, objectIds: string[], factor: number): MapDocument {
+  const layer = document.layers.find(l => l.id === layerId);
+  if (!layer || layer.locked || !Number.isFinite(factor) || factor <= 0) return document;
+  const selected = layer.objects.filter(o => objectIds.includes(o.id));
+  if (!selected.length) return document;
+  const next = selected.map(o => ({
+    ...o,
+    width: Math.max(1, Math.round(o.width * factor)),
+    height: Math.max(1, Math.round(o.height * factor)),
+  }));
+  if (next.some(o => o.x + o.width > document.width || o.y + o.height > document.height)) return document;
+  const occupied = next.some(a => layer.objects.some(b => b.id !== a.id && a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y));
+  if (occupied) return document;
+  return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: l.objects.map(o => next.find(n => n.id === o.id) ?? o) } : l) };
+}
+
 
 export function toggleObjectSelection(ids: string[], id: string): string[] {
   return ids.includes(id) ? ids.filter(value => value !== id) : [...ids, id];

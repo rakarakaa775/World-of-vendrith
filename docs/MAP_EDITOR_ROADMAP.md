@@ -78,11 +78,11 @@ Target: **Incarnate-class world-building editor**.
 - [x] Multi-select — GitHub + Supabase
 - [x] Box selection — GitHub UI
 - [x] Shift-add / toggle selection — GitHub UI
-- [~] Select by layer/type — GitHub UI
+- [x] Select by layer/type — GitHub UI
 - [x] Select all — GitHub UI
 - [x] Move — GitHub + Supabase
 - [x] Rotate — GitHub + Supabase
-- [~] Scale — GitHub + Supabase
+- [x] Scale — GitHub + Supabase
 - [x] Duplicate command foundation — GitHub + Supabase
 - [x] Align — GitHub UI
 - [x] Distribute — GitHub UI

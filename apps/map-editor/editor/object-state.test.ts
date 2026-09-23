@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStarterMap } from './map-document';
-import { placeBuilding, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform } from './object-state';
+import { placeBuilding, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects } from './object-state';
 
 describe('selection and transform operations', () => {
   function doc() {
