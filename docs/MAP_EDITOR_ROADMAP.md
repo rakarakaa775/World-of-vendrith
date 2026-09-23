@@ -12,7 +12,7 @@ Target: **Incarnate-class world-building editor**.
 - **Foundation & persistence:** COMPLETE for the currently verified editor flow.
 - **Terrain painting:** basic paint is working; advanced tools remain.
 - **Save / Load:** Save, update/overwrite, Load Latest, Save Slot and Load Slot are verified working in the current deployment test.
-- **Next implementation target:** Phase 1 Terrain Editing Tools, after completing Professional 2D Canvas camera foundations.\n\n**Professional 2D Canvas status — 2026-09-23:** COMPLETE. Pan, zoom, focus controls, minimap, coordinate ruler, grid/snap foundations, deterministic cell snapping, and multi-resolution zoom levels are implemented on GitHub. The roadmap is now ready to advance to the Terrain Painting Engine tool suite.
+- **Next implementation target:** Terrain Painting Engine verification and hardening.\n\n**Professional 2D Canvas status — 2026-09-23:** COMPLETE. Pan, zoom, focus controls, minimap, coordinate ruler, grid/snap foundations, deterministic cell snapping, and multi-resolution zoom levels are implemented on GitHub.\n\n**Terrain Painting Engine status — 2026-09-23:** Core Paint, Erase, Line, Rectangle, and Flood input paths are implemented. Deterministic geometry/flood-fill tests and erase coverage are now verified in GitHub Actions.
 
 **Storage / implementation locations**
 - **GitHub** — editor UI, engine, serializers, client-side interaction.
@@ -60,17 +60,17 @@ Target: **Incarnate-class world-building editor**.
 
 ## 1. Professional 2D Canvas
 
-- [~] Pan — GitHub UI
-- [~] Zoom — GitHub UI
-- [ ] Zoom-to-selection — GitHub UI
-- [ ] Zoom-to-map — GitHub UI
-- [ ] Fit canvas — GitHub UI
-- [ ] Minimap — GitHub UI
-- [ ] Coordinate ruler — GitHub UI
-- [~] Grid — GitHub + Supabase snap settings
-- [~] Snap-to-grid — GitHub UI + Supabase
-- [ ] Snap-to-cell — GitHub UI
-- [ ] Multi-resolution zoom — GitHub UI
+- [x] Pan — GitHub UI
+- [x] Zoom — GitHub UI
+- [x] Zoom-to-selection — GitHub UI
+- [x] Zoom-to-map — GitHub UI
+- [x] Fit canvas — GitHub UI
+- [x] Minimap — GitHub UI
+- [x] Coordinate ruler — GitHub UI
+- [x] Grid — GitHub + Supabase snap settings
+- [x] Snap-to-grid — GitHub UI + Supabase
+- [x] Snap-to-cell — GitHub UI
+- [x] Multi-resolution zoom — GitHub UI
 
 ## 2. Selection & Transform
 
@@ -95,10 +95,10 @@ Target: **Incarnate-class world-building editor**.
 - [x] Terrain resolver — Supabase
 - [x] Basic brush / paint — GitHub UI
 - [x] Basic terrain palette — GitHub UI
-- [ ] Eraser — GitHub UI
-- [ ] Line — GitHub UI
-- [ ] Rectangle — GitHub UI
-- [ ] Fill — GitHub UI
+- [x] Eraser — GitHub UI
+- [x] Line — GitHub UI
+- [x] Rectangle — GitHub UI
+- [x] Fill — GitHub UI
 - [ ] Gradient — GitHub UI
 - [ ] Stamp — GitHub UI
 - [ ] Terrain categories — GitHub + Supabase
@@ -420,16 +420,16 @@ Target: **Incarnate-class world-building editor**.
 # Current Priority Queue
 
 1. [x] Stabilize Save / Load and update / overwrite flow
-2. [~] Terrain tool suite: Line — implemented in editor input; verification/roadmap consolidation pending
-3. [~] Terrain tool suite: Rectangle — implemented in editor input; verification/roadmap consolidation pending
-4. [~] Terrain tool suite: Flood Fill — implemented in editor input; verification/roadmap consolidation pending
-5. [~] Robust Erase — basic erase path exists; hardening/verification pending
+2. [x] Terrain tool suite: Line — implemented and deterministically tested
+3. [x] Terrain tool suite: Rectangle — implemented and deterministically tested
+4. [x] Terrain tool suite: Flood Fill — implemented and deterministically tested
+5. [x] Robust Erase — implemented and tested
 6. [ ] Multi-cell brush validation
 7. [ ] Paint performance optimization
 8. [ ] Large-map stress test
-9. [ ] Professional canvas camera UX
-10. [ ] Selection + transform UX
-11. [ ] Layer system UX
+9. [x] Professional canvas camera UX
+10. [~] Selection + transform UX
+11. [~] Layer system UX
 12. [ ] Asset browser
 13. [ ] Object placement + inspector
 14. [ ] Navigation visualization
