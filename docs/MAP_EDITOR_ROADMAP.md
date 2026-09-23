@@ -12,7 +12,7 @@ Target: **Incarnate-class world-building editor**.
 - **Foundation & persistence:** COMPLETE for the currently verified editor flow.
 - **Terrain painting:** basic paint is working; advanced tools remain.
 - **Save / Load:** Save, update/overwrite, Load Latest, Save Slot and Load Slot are verified working in the current deployment test.
-- **Next implementation target:** Phase 1 Terrain Editing Tools, after completing Professional 2D Canvas camera foundations.\n\n**Professional 2D Canvas status — 2026-09-23:** COMPLETE. Pan, zoom, focus controls, minimap, coordinate ruler, grid/snap foundations, deterministic cell snapping, and multi-resolution zoom levels are implemented on GitHub. The roadmap is now ready to advance to the Terrain Painting Engine tool suite.
+- **Next implementation target:** Phase 2 Selection & Transform.\n\n**Professional 2D Canvas status — 2026-09-23:** COMPLETE. Pan, zoom, focus controls, minimap, coordinate ruler, grid/snap foundations, deterministic cell snapping, and multi-resolution zoom levels are implemented on GitHub.\n\n**Selection & Transform status — 2026-09-23:** Phase 2 foundation is implemented on GitHub: multi-object selection, Shift-toggle selection, Select All/Clear, numeric transform engine, rotation, alignment, distribution, mirror, duplicate foundation, and deterministic tests. Interaction batch adds Shift+drag box selection, Alt+drag object movement, numeric inspector controls, and duplicate action UI.
 
 **Storage / implementation locations**
 - **GitHub** — editor UI, engine, serializers, client-side interaction.
@@ -74,20 +74,20 @@ Target: **Incarnate-class world-building editor**.
 
 ## 2. Selection & Transform
 
-- [~] Single selection UI — GitHub UI
-- [~] Multi-select — GitHub + Supabase
-- [ ] Box selection — GitHub UI
-- [ ] Shift-add / toggle selection — GitHub UI
-- [ ] Select by layer/type — GitHub UI
-- [ ] Select all — GitHub UI
-- [~] Move — GitHub + Supabase
-- [~] Rotate — GitHub + Supabase
+- [x] Single selection UI — GitHub UI
+- [x] Multi-select — GitHub + Supabase
+- [x] Box selection — GitHub UI
+- [x] Shift-add / toggle selection — GitHub UI
+- [~] Select by layer/type — GitHub UI
+- [x] Select all — GitHub UI
+- [x] Move — GitHub + Supabase
+- [x] Rotate — GitHub + Supabase
 - [~] Scale — GitHub + Supabase
 - [x] Duplicate command foundation — GitHub + Supabase
-- [ ] Align — GitHub UI
-- [ ] Distribute — GitHub UI
-- [ ] Mirror — GitHub UI
-- [ ] Numeric transform — GitHub UI
+- [x] Align — GitHub UI
+- [x] Distribute — GitHub UI
+- [x] Mirror — GitHub UI
+- [x] Numeric transform — GitHub UI
 
 ## 3. Terrain Painting Engine
 
@@ -427,8 +427,8 @@ Target: **Incarnate-class world-building editor**.
 6. [ ] Multi-cell brush validation
 7. [ ] Paint performance optimization
 8. [ ] Large-map stress test
-9. [ ] Professional canvas camera UX
-10. [ ] Selection + transform UX
+9. [x] Professional canvas camera UX
+10. [~] Selection + transform UX — Phase 2 interaction batch in progress
 11. [ ] Layer system UX
 12. [ ] Asset browser
 13. [ ] Object placement + inspector
