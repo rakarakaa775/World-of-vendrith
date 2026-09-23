@@ -46,6 +46,7 @@ describe("Map save state boundary", () => {
   it("disconnects stale persistence context when navigation changes the map", () => {
     const connected = createMap("world");
     const next = createMap("world");
+    next.id = "different-world-map";
     const state = {
       connectedMapId: connected.id,
       baseDocument: connected,
