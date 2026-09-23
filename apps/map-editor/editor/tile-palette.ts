@@ -42,7 +42,7 @@ const ASSET_LIBRARY_RAW = 'https://raw.githubusercontent.com/rakarakaa775/Asset-
 function previewUrlFor(row: RegistryTileRow): string | undefined {
   const source = row.preview_path || row.asset_path;
   if (!source) return undefined;
-  if (/^https?:\\/\\//i.test(source)) return source;
+  if (/^https?:\/\//i.test(source)) return source;
   if (source.startsWith('ASSET_LIBRARY/')) {
     return `${ASSET_LIBRARY_RAW}/${source}`;
   }
