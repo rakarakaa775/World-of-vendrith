@@ -46,7 +46,8 @@ export async function signInWithUsername(username: string, password: string) {
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
   const { error } = await client.auth.signInWithPassword({ email: authEmail(username), password });
   if (error) throw error;
-  await client.rpc("claim_vandrith_legacy_save_slots_v1");
+  const { error: claimError } = await client.rpc("claim_vandrith_legacy_save_slots_v1");
+  if (claimError) throw claimError;
 }
 
 export async function signUpWithUsername(username: string, password: string) {
@@ -61,8 +62,9 @@ export async function signUpWithUsername(username: string, password: string) {
     options: { data: { username: clean } },
   });
   if (error) throw error;
-  if (data.user) {
-    await client.from("profiles").upsert({ user_id: data.user.id, display_name: clean });
+  if (data.session) {
+    const { error: claimError } = await client.rpc("claim_vandrith_legacy_save_slots_v1");
+    if (claimError) throw claimError;
   }
   return { sessionCreated: Boolean(data.session) };
 }
