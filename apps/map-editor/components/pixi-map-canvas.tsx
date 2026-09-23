@@ -31,6 +31,8 @@ type Props = {
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
+  viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number };
+  onViewportChange?: (zoom: number) => void;
 };
 
 const COLORS: Record<string, number> = {
@@ -206,10 +208,30 @@ export function PixiMapCanvas(props: Props) {
       }
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
+      propsRef.current.onViewportChange?.(viewportRef.current.zoom);
     };
     void render();
     return () => { cancelled = true; };
   }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.terrainBindings, props.environmentRuntime]);
+
+  useEffect(() => {
+    if (!ready || !props.viewportAction) return;
+    const host = hostRef.current;
+    const world = worldRef.current;
+    if (!host || !world) return;
+    const action = props.viewportAction;
+    if (action.type === "pan") {
+      viewportRef.current = panBy(viewportRef.current, action.dx, action.dy);
+    } else {
+      const rect = host.getBoundingClientRect();
+      const currentZoom = viewportRef.current.zoom || 1;
+      const targetZoom = Math.min(4, Math.max(0.25, action.zoom));
+      viewportRef.current = zoomAt(viewportRef.current, targetZoom / currentZoom, rect.width / 2, rect.height / 2);
+    }
+    world.position.set(viewportRef.current.x, viewportRef.current.y);
+    world.scale.set(viewportRef.current.zoom);
+    props.onViewportChange?.(viewportRef.current.zoom);
+  }, [ready, props.viewportAction, props.onViewportChange]);
 
   useEffect(() => {
     if (!ready) return;
@@ -339,6 +361,7 @@ export function PixiMapCanvas(props: Props) {
       viewportRef.current = zoomAt(viewportRef.current, e.deltaY < 0 ? 1.1 : 0.9, e.clientX - r.left, e.clientY - r.top);
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
+      propsRef.current.onViewportChange?.(viewportRef.current.zoom);
     };
 
     const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
