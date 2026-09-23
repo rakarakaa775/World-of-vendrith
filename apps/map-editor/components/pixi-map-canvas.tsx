@@ -13,7 +13,7 @@ import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
-import { DEFAULT_VIEWPORT, zoomAt, type Viewport } from "../editor/viewport";
+import { DEFAULT_VIEWPORT, panBy, zoomAt, type Viewport } from "../editor/viewport";
 
 type Props = {
   document: MapDocument;
@@ -54,7 +54,7 @@ export function PixiMapCanvas(props: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const worldRef = useRef<Container | null>(null);
-  const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
+  const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);\n  const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
   const [ready, setReady] = useState(false);
   propsRef.current = props;
@@ -199,7 +199,7 @@ export function PixiMapCanvas(props: Props) {
       world.addChild(overlay);
       world.hitArea = new Rectangle(0, 0, width, height);
       app.stage.hitArea = app.screen;
-      if (!viewportRef.current.x && !viewportRef.current.y) viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };
+      if (!viewportInitializedRef.current) {\n        viewportRef.current = { x: Math.max((host.clientWidth - width) / 2, 8), y: Math.max((host.clientHeight - height) / 2, 8), zoom: 1 };\n        viewportInitializedRef.current = true;\n      }
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
     };
@@ -320,19 +320,19 @@ export function PixiMapCanvas(props: Props) {
       world.scale.set(viewportRef.current.zoom);
     };
 
-    host.addEventListener("pointerdown", down);
+    const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };\n    const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };\n\n    host.addEventListener("pointerdown", down);
     host.addEventListener("pointermove", move);
     host.addEventListener("pointerup", up);
     host.addEventListener("pointercancel", up);
     host.addEventListener("lostpointercapture", up);
-    host.addEventListener("wheel", wheel, { passive: true });
+    host.addEventListener("wheel", wheel, { passive: true });\n    window.addEventListener("keydown", keydown);\n    window.addEventListener("keyup", keyup);
     return () => {
       host.removeEventListener("pointerdown", down);
       host.removeEventListener("pointermove", move);
       host.removeEventListener("pointerup", up);
       host.removeEventListener("pointercancel", up);
       host.removeEventListener("lostpointercapture", up);
-      host.removeEventListener("wheel", wheel);
+      host.removeEventListener("wheel", wheel);\n      window.removeEventListener("keydown", keydown);\n      window.removeEventListener("keyup", keyup);
     };
   }, [ready]);
 
