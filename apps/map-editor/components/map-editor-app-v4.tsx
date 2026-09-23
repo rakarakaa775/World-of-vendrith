@@ -165,7 +165,9 @@ export function MapEditorAppV4() {
       if (cancelled) return;
       try {
         const binding = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
-        if (!binding.error) {
+        if (binding.error) {
+          setTerrainStatus(`Terrain runtime unavailable · ${msg(binding.error)} · ${BUILD_MARKER}`);
+        } else {
           const result: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
           setTerrainBindings(result.bindings);
           setTerrainStatus(`Terrain runtime · ${result.diagnostics.accepted}/256 · ${result.rejected} rejected · ${BUILD_MARKER}`);
