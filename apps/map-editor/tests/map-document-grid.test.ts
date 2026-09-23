@@ -10,11 +10,11 @@ describe("MapDocument grid invariant", () => {
     }
   });
 
-  it("uses the expected default 20 × 12 grid without a hardcoded test count", () => {
+  it("uses the expected default 128 × 128 grid without a hardcoded test count", () => {
     const document = createMap("world");
 
-    expect(document.width).toBe(20);
-    expect(document.height).toBe(12);
+    expect(document.width).toBe(128);
+    expect(document.height).toBe(128);
     for (const layer of document.layers) {
       expect(layer.cells).toHaveLength(document.width * document.height);
     }
