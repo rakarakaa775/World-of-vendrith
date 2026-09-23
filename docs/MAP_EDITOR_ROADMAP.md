@@ -12,7 +12,7 @@ Target: **Incarnate-class world-building editor**.
 - **Foundation & persistence:** COMPLETE for the currently verified editor flow.
 - **Terrain painting:** basic paint is working; advanced tools remain.
 - **Save / Load:** Save, update/overwrite, Load Latest, Save Slot and Load Slot are verified working in the current deployment test.
-- **Next implementation target:** Phase 1 Terrain Editing Tools.
+- **Next implementation target:** Phase 1 Terrain Editing Tools, after completing Professional 2D Canvas camera foundations.\n\n**Professional 2D Canvas status — 2026-09-23:** COMPLETE. Pan, zoom, focus controls, minimap, coordinate ruler, grid/snap foundations, deterministic cell snapping, and multi-resolution zoom levels are implemented on GitHub. The roadmap is now ready to advance to the Terrain Painting Engine tool suite.
 
 **Storage / implementation locations**
 - **GitHub** — editor UI, engine, serializers, client-side interaction.
@@ -420,10 +420,10 @@ Target: **Incarnate-class world-building editor**.
 # Current Priority Queue
 
 1. [x] Stabilize Save / Load and update / overwrite flow
-2. [ ] Terrain tool suite: Line
-3. [ ] Terrain tool suite: Rectangle
-4. [ ] Terrain tool suite: Flood Fill
-5. [ ] Robust Erase
+2. [~] Terrain tool suite: Line — implemented in editor input; verification/roadmap consolidation pending
+3. [~] Terrain tool suite: Rectangle — implemented in editor input; verification/roadmap consolidation pending
+4. [~] Terrain tool suite: Flood Fill — implemented in editor input; verification/roadmap consolidation pending
+5. [~] Robust Erase — basic erase path exists; hardening/verification pending
 6. [ ] Multi-cell brush validation
 7. [ ] Paint performance optimization
 8. [ ] Large-map stress test
