@@ -215,7 +215,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         }
       }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
-      const savedMapId = localCurrent.mapType === "world" ? connectedMapId : localCurrent.id;
+      const savedMapId = localCurrent.mapType === "world" ? (connectedMapId || AUTHORITATIVE_WORLD_MAP_ID) : localCurrent.id;
       setIsNewMap(false);
       setConnectedMapId(savedMapId); setVersion(Number(result.version) || 1); setBaseDocument(result.document); update(result.document);
       if (localCurrent.mapType === "world" && savedMapId) await refreshSlots(client, savedMapId);
