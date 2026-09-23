@@ -244,7 +244,6 @@ export function PixiMapCanvas(props: Props) {
         };
         viewportInitializedRef.current = true;
       }
-      drawWorkspace();
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
       propsRef.current.onViewportChange?.(viewportRef.current.zoom);
