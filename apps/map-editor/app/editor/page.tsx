@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthUser } from "../../editor/auth";
-import { MapEditorAppV4 } from "../../../components/map-editor-app-v4";
-import { MapEditorErrorBoundary } from "../../../components/map-editor-error-boundary";
+import { MapEditorAppV4 } from "../../components/map-editor-app-v4";
+import { MapEditorErrorBoundary } from "../../components/map-editor-error-boundary";
 
 export default function EditorPage() {
   const router = useRouter();
