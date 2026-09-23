@@ -83,7 +83,7 @@ export function PixiMapCanvas(props: Props) {
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
-    });
+    };
     const initPromise = app.init(initOptions);
     const timeoutPromise = new Promise<never>((_, reject) => {
       initTimer = setTimeout(() => reject(new Error("Renderer initialization timed out after 8 seconds")), 8000);
