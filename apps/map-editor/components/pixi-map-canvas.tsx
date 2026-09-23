@@ -31,7 +31,7 @@ type Props = {
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
-  viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number };
+  viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" } | { id: number; type: "zoom-selection" };
   onViewportChange?: (zoom: number) => void;
   viewportResetKey?: string | number;
 };
@@ -249,9 +249,35 @@ export function PixiMapCanvas(props: Props) {
       viewportRef.current = panBy(viewportRef.current, action.dx, action.dy);
     } else {
       const rect = host.getBoundingClientRect();
-      const currentZoom = viewportRef.current.zoom || 1;
-      const targetZoom = Math.min(4, Math.max(0.25, action.zoom));
-      viewportRef.current = zoomAt(viewportRef.current, targetZoom / currentZoom, rect.width / 2, rect.height / 2);
+      const document = propsRef.current.document;
+      const mapWidth = document.width * document.tileSize;
+      const mapHeight = document.height * document.tileSize;
+      let targetZoom = 1;
+      let focusWidth = mapWidth;
+      let focusHeight = mapHeight;
+      let focusX = mapWidth / 2;
+      let focusY = mapHeight / 2;
+      if (action.type === "fit") {
+        targetZoom = Math.min(4, Math.max(0.25, Math.min((rect.width - 48) / mapWidth, (rect.height - 48) / mapHeight)));
+      } else if (action.type === "zoom-selection" && propsRef.current.selection) {
+        const selection = propsRef.current.selection;
+        focusWidth = Math.max(document.tileSize, selection.width * document.tileSize);
+        focusHeight = Math.max(document.tileSize, selection.height * document.tileSize);
+        focusX = selection.x * document.tileSize + focusWidth / 2;
+        focusY = selection.y * document.tileSize + focusHeight / 2;
+        targetZoom = Math.min(4, Math.max(0.25, Math.min((rect.width - 96) / focusWidth, (rect.height - 96) / focusHeight)));
+      } else if (action.type === "zoom-map") {
+        targetZoom = 1;
+      } else {
+        targetZoom = Math.min(4, Math.max(0.25, action.zoom));
+        const currentZoom = viewportRef.current.zoom || 1;
+        viewportRef.current = zoomAt(viewportRef.current, targetZoom / currentZoom, rect.width / 2, rect.height / 2);
+        world.position.set(viewportRef.current.x, viewportRef.current.y);
+        world.scale.set(viewportRef.current.zoom);
+        props.onViewportChange?.(viewportRef.current.zoom);
+        return;
+      }
+      viewportRef.current = { x: rect.width / 2 - focusX * targetZoom, y: rect.height / 2 - focusY * targetZoom, zoom: targetZoom };
     }
     world.position.set(viewportRef.current.x, viewportRef.current.y);
     world.scale.set(viewportRef.current.zoom);
