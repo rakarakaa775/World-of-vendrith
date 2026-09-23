@@ -55,7 +55,7 @@ function normalizeRegistryTile(row: RegistryTileRow): TileOption | null {
   const terrain = TERRAIN_BY_ASSET[row.name.toLowerCase()];
   if (!terrain || row.status !== 'approved') return null;
   return {
-    id: row.id,
+    id: terrain,
     label: LABEL_BY_TERRAIN[terrain],
     terrain,
     assetName: row.name,
