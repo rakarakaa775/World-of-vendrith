@@ -124,6 +124,25 @@ export function PixiMapCanvas(props: Props) {
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
+
+      // Phase 1A: large virtual workspace; MapDocument dimensions stay finite.
+      const workspaceSize = 20000;
+      const workspaceHalf = workspaceSize / 2;
+      const workspace = new Graphics();
+      workspace.rect(-workspaceHalf, -workspaceHalf, workspaceSize, workspaceSize)
+        .fill({ color: 0x0f141a });
+      for (let x = -workspaceHalf; x <= workspaceHalf; x += document.tileSize * 4) {
+        workspace.moveTo(x, -workspaceHalf).lineTo(x, workspaceHalf);
+      }
+      for (let y = -workspaceHalf; y <= workspaceHalf; y += document.tileSize * 4) {
+        workspace.moveTo(-workspaceHalf, y).lineTo(workspaceHalf, y);
+      }
+      workspace.stroke({ width: 1, color: 0x202832, alpha: 0.7 });
+      workspace.moveTo(-workspaceHalf, 0).lineTo(workspaceHalf, 0);
+      workspace.moveTo(0, -workspaceHalf).lineTo(0, workspaceHalf);
+      workspace.stroke({ width: 2, color: 0x334155, alpha: 0.8 });
+      world.addChild(workspace);
+
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
       grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
@@ -215,7 +234,7 @@ export function PixiMapCanvas(props: Props) {
       }
 
       world.addChild(overlay);
-      world.hitArea = new Rectangle(0, 0, width, height);
+      world.hitArea = new Rectangle(-workspaceHalf, -workspaceHalf, workspaceSize, workspaceSize);
       app.stage.hitArea = app.screen;
       if (!viewportInitializedRef.current) {
         viewportRef.current = {
