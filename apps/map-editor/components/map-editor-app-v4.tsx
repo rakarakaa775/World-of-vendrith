@@ -213,7 +213,11 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         const connection = await ensureConnection(client);
         const current = localCurrent.id === connection.mapId
           ? resolveSaveDocument(localCurrent, connection)
-          : connection.document;
+          : {
+              ...resolveSaveDocument(localCurrent, connection),
+              id: connection.mapId,
+              mapType: "world" as const,
+            };
         if (connection.version < 1) {
           const boot = await bootstrap(client, current, connection.mapId);
           result = { status: "committed", version: boot.version, document: current, projectionStatus: boot.projectionStatus, projectionError: boot.projectionError };
@@ -245,7 +249,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       let worldDocument = worldRemote.document;
       let worldVersion = Number(worldRemote.result.version_number) || 0;
 
-      const localWorld = maps.find(m => m.mapType === "world" && m.id === AUTHORITATIVE_WORLD_MAP_ID) || (active.mapType === "world" ? active : null);
+      const localWorldSource = maps.find(m => m.mapType === "world" && m.id === AUTHORITATIVE_WORLD_MAP_ID) || (active.mapType === "world" ? active : null);
+      const localWorld = localWorldSource
+        ? { ...localWorldSource, id: AUTHORITATIVE_WORLD_MAP_ID, mapType: "world" as const }
+        : null;
       if (localWorld && JSON.stringify(serializeResolvedMapSnapshot(localWorld)) !== JSON.stringify(serializeResolvedMapSnapshot(worldDocument))) {
         const worldSaved = await saveWithConflictDetection(client, localWorld, worldDocument, worldVersion);
         if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
