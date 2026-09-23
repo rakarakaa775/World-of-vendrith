@@ -37,7 +37,7 @@ const LABEL_BY_TERRAIN: Record<TileOption['terrain'], string> = {
   water: 'Water',
 };
 
-const ASSET_LIBRARY_RAW = 'https://raw.githubusercontent.com/rakarakaa775/Asset-library-LPC/main';
+const ASSET_LIBRARY_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main';
 
 function previewUrlFor(row: RegistryTileRow): string | undefined {
   const source = row.preview_path || row.asset_path;
