@@ -47,7 +47,14 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   const active = maps.find(m => m.id === activeMapId) || maps[0];
 
   const update = useCallback((next: MapDocument) => {
-    setMaps(cur => cur.some(m => m.id === next.id) ? cur.map(m => m.id === next.id ? next : m) : [...cur, next]);
+    setMaps(cur => {
+      if (next.mapType === "world") {
+        return [next, ...cur.filter(m => m.mapType !== "world")];
+      }
+      return cur.some(m => m.id === next.id)
+        ? cur.map(m => m.id === next.id ? next : m)
+        : [...cur, next];
+    });
   }, []);
 
   const openMap = useCallback(async (nextMapId: string, providedDocument?: MapDocument) => {
