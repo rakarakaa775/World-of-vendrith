@@ -64,6 +64,7 @@ export function PixiMapCanvas(props: Props) {
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
   const [ready, setReady] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   propsRef.current = props;
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export function PixiMapCanvas(props: Props) {
     if (!host) return;
     const app = new Application();
     appRef.current = app;
+    let initialized = false;
 
     void app.init({
       resizeTo: host,
@@ -80,6 +82,7 @@ export function PixiMapCanvas(props: Props) {
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     }).then(() => {
+      initialized = true;
       if (disposed) { app.destroy(true); return; }
       const workspace = new Graphics();
       workspace.eventMode = "none";
@@ -103,7 +106,12 @@ export function PixiMapCanvas(props: Props) {
       app.stage.eventMode = "static";
       app.stage.addChild(world);
       setReady(true);
-    }).catch(error => console.error("Pixi map canvas initialization failed", error));
+      setInitError(null);
+    }).catch(error => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Pixi map canvas initialization failed", error);
+      setInitError(message || "Renderer initialization failed");
+    });
 
     return () => {
       disposed = true;
@@ -111,7 +119,7 @@ export function PixiMapCanvas(props: Props) {
       worldRef.current = null;
       appRef.current = null;
       host.replaceChildren();
-      app.destroy(true);
+      if (initialized) app.destroy(true);
     };
   }, []);
 
@@ -488,5 +496,5 @@ export function PixiMapCanvas(props: Props) {
     };
   }, [ready]);
 
-  return createElement("div", { ref: hostRef, style: { position: "absolute", left: 40, top: 28, right: 0, bottom: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } });
+  return createElement("div", { ref: hostRef, style: { position: "absolute", left: 40, top: 28, right: 0, bottom: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
