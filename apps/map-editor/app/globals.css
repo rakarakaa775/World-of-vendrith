@@ -24,5 +24,5 @@
 .vandrith-credits-card p{font-family:system-ui,sans-serif;color:#bdc6c2;line-height:1.65}
 .vandrith-credit-section{margin:28px 0;padding:20px;border:1px solid rgba(205,190,126,.2);border-radius:10px;background:rgba(255,255,255,.025)}
 .vandrith-credit-section h2{margin:0 0 8px;color:#e0cb82}
-.vandrith-credits-card button{padding:10px 18px;border:1px solid #8f7e45;border-radius:8px;background:#242d2d;color:#f5f1df;cursor:pointer}
+.vandrith-back-button{display:inline-block;padding:10px 18px;border:1px solid #8f7e45;border-radius:8px;background:#242d2d;color:#f5f1df;text-decoration:none;cursor:pointer}
 @media(max-width:650px){.vandrith-home-card,.vandrith-credits-card{padding:34px 22px}.vandrith-home-actions{grid-template-columns:1fr}.vandrith-home-actions button{min-height:94px}}
