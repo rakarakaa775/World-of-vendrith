@@ -251,7 +251,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
         worldDocument = worldSaved.document;
         worldVersion = Number(worldSaved.version) || worldVersion;
-        setMaps(cur => cur.some(m => m.id === worldDocument.id) ? cur.map(m => m.id === worldDocument.id ? worldDocument : m) : [...cur, worldDocument]);
+        setMaps(cur => [worldDocument, ...cur.filter(m => m.mapType !== "world")]);
       }
 
       const localExterior = active.mapType === "playable" && active.playableSpace !== "interior"
