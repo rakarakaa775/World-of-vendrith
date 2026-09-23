@@ -160,8 +160,7 @@ export function MapEditorAppV4() {
       if (!client) throw new Error("Supabase client unavailable");
       const session = await client.auth.getSession();
       if (!session.data.session) {
-        const auth = await client.auth.signInAnonymously();
-        if (auth.error) throw auth.error;
+        throw new Error("AUTH_REQUIRED: Please sign in before opening the Map Editor.");
       }
       if (cancelled) return;
       try {
