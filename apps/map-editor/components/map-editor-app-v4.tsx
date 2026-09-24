@@ -16,6 +16,7 @@ import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnecti
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { serializeGameSaveSnapshot } from "../editor/game-save";
+import { parseSaveSlotSnapshot, validateSaveSlotRpcResult } from "../editor/map-save-slot";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
@@ -392,18 +393,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
     try {
       const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
       if (rpc.error) throw rpc.error;
-      const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-      if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
-
-      const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
-      const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
-      const worldDocumentRaw = gameSave?.world
-        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
-        : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
-      const worldDocument = normalizeWorldCanvas(worldDocumentRaw);
-      const exteriorDocument = gameSave?.exterior
-        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
-        : null;
+      const result = validateSaveSlotRpcResult(rpc.data, { mapId: AUTHORITATIVE_WORLD_MAP_ID, slotNumber: slot });
+      const gameSave = parseSaveSlotSnapshot(result);
+      const worldDocument = normalizeWorldCanvas(gameSave.world);
+      const exteriorDocument = gameSave.exterior;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
       setMaps(cur => {
