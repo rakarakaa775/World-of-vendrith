@@ -1,4 +1,5 @@
 import type { GameSaveSnapshot } from "./game-save";
+import { parseGameSaveSnapshot } from "./game-save";
 
 export type SaveSlotRpcResult = {
   ok: boolean;
@@ -32,9 +33,7 @@ export function validateSaveSlotRpcResult(
 }
 
 export function parseSaveSlotSnapshot(result: SaveSlotRpcResult): GameSaveSnapshot {
-  const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
-  if (!parsed || typeof parsed !== "object" || (parsed as any).schema !== "vandrith.game-save") {
-    throw new Error("INVALID_GAME_SAVE_SNAPSHOT");
-  }
-  return parsed as GameSaveSnapshot;
+  const parsed = parseGameSaveSnapshot(result.snapshot);
+  if (!parsed) throw new Error("INVALID_GAME_SAVE_SNAPSHOT");
+  return parsed;
 }
