@@ -2,6 +2,7 @@
 
 import { createElement, useEffect, useRef, useState } from "react";
 import { Application, Assets, Container, Graphics, Rectangle, Sprite } from "pixi.js";
+import type { RendererPreference } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
 import type { Selection } from "../editor/selection";
@@ -79,7 +80,7 @@ export function PixiMapCanvas(props: Props) {
     const initOptions = {
       resizeTo: host,
       background: "#ffffff",
-      preference: ["webgl", "canvas"],
+      preference: ["webgl", "canvas"] as RendererPreference[],
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
