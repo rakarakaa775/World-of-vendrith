@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStarterMap } from './map-document';
-import { placeBuilding, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects } from './object-state';
+import { placeBuilding, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject } from './object-state';
 
 describe('selection and transform operations', () => {
   function doc() {
@@ -42,6 +42,27 @@ describe('selection and transform operations', () => {
     const distributed = distributeObjects(value, 'objects', ids, 'horizontal');
     const xs = distributed.layers.find(l=>l.id==='objects')!.objects.map(o=>o.x);
     expect(xs).toEqual([...xs].sort((a,b)=>a-b));
+  });
+
+  it('duplicates selected objects without mutating the source document', () => {
+    const value = doc();
+    const layer = value.layers.find(l=>l.id==='objects')!;
+    const ids = layer.objects.map(o=>o.id);
+    const duplicated = duplicateObjects(value, 'objects', [ids[0]]);
+    expect(duplicated).not.toBe(value);
+    const next = duplicated.layers.find(l=>l.id==='objects')!;
+    expect(next.objects).toHaveLength(4);
+    expect(next.objects.filter(o=>!ids.includes(o.id))).toHaveLength(1);
+    expect(next.objects.find(o=>!ids.includes(o.id))!.x).toBe(layer.objects[0].x + 1);
+  });
+
+  it('rejects move and scale when the result overlaps another object', () => {
+    const value = doc();
+    const layer = value.layers.find(l=>l.id==='objects')!;
+    const first = layer.objects[0];
+    const second = layer.objects[1];
+    expect(moveObject(value, 'objects', first.id, { x: second.x, y: second.y })).toBe(value);
+    expect(scaleObjects(value, 'objects', [first.id], 5)).toBe(value);
   });
 
   it('mirrors selection inside its bounding box', () => {
