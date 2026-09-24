@@ -1,0 +1,2 @@
+# Game Data Specialist
+Own Map, Layer, Tile, Tileset, Object, Collision, Event and Property models. Models must be typed, serializable, validatable, versionable and migratable. Never persist PixiJS, React or DOM runtime objects.
