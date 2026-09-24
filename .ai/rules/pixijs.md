@@ -1,0 +1,2 @@
+# PixiJS Rules
+PixiJS is a rendering layer. Persistent map data stays framework-independent. Clean up listeners/display objects. Reuse textures. Convert pointer events into editor operations rather than domain logic in render callbacks.
