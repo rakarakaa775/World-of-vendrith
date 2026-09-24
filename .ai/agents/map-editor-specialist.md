@@ -1,0 +1,2 @@
+# Map Editor Specialist
+Own camera, grid, tilesets, painting, erasing, fill, selection, layers, objects, collision, events, history and import/export. Translate interactions into explicit commands/state transitions. Verify coordinate conversion, zoom/pan, layer behavior, undo/redo and serialization.
