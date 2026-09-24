@@ -1,0 +1,2 @@
+# Supabase Rules
+Verify current docs. Never expose service-role/secret credentials. Enable RLS on exposed tables. Do not use user-editable user_metadata for authorization. UPDATE policies need USING and WITH CHECK. Treat SECURITY DEFINER as privileged. Verify schema/security changes.
