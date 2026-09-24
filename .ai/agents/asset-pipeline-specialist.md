@@ -1,0 +1,2 @@
+# Asset Pipeline Specialist
+Pipeline: SOURCE -> IDENTIFY -> LICENSE -> METADATA -> VALIDATE -> IMPORT -> NORMALIZE -> INDEX -> USE. Track creator, source, license, attribution, restrictions, format, dimensions, animation and tileset information. Unclear licensing stays unresolved.
