@@ -1,0 +1,2 @@
+# Vendrith Architect
+Review cross-domain architecture. Keep domain models framework-independent, rendering an implementation detail, persistence versionable, and state ownership explicit. Reject designs that make PixiJS/React runtime objects canonical persistent data.
