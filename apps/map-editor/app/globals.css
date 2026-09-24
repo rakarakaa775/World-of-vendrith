@@ -94,6 +94,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
   .editor-body .sidebar h2{font-size:10px}
 }
 
+.sidebar-section-header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:10px 0 4px}.sidebar-section-header h2{flex:1;margin:0!important}.sidebar-section-toggle{width:28px!important;height:24px!important;padding:2px!important;font-size:12px;line-height:1;border-radius:5px}.sidebar-tile-palette{max-height:360px;overflow:auto;overscroll-behavior:contain;cursor:grab;padding:3px;margin:4px -3px 10px}.sidebar-tile-palette:active{cursor:grabbing}.sidebar-tile-palette::-webkit-scrollbar{width:7px}.sidebar-tile-palette::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}.sidebar-tile-palette .tile-palette-card{min-height:48px}.sidebar-tile-palette .tile-preview{width:42px;height:42px}.sidebar-tile-palette .tile-palette-label{font-size:11px}.sidebar-tile-palette .tile-palette-asset{font-size:8px}@media(max-width:600px){.sidebar-tile-palette{max-height:280px}.sidebar-tile-palette .tile-palette-card{min-height:40px}.sidebar-tile-palette .tile-preview{width:34px;height:34px}}
+
 /* Sidebar tile palette */
 .sidebar-tile-palette{display:grid;grid-template-columns:1fr;gap:4px;margin:4px 0 10px}
 .sidebar-tile-palette .tile-palette-card{width:100%;display:grid!important;grid-template-columns:32px minmax(0,1fr);grid-template-rows:auto!important;align-items:center;column-gap:6px;row-gap:0;padding:4px!important;text-align:left;min-height:34px}
