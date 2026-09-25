@@ -234,19 +234,24 @@ No `05_PORTS` binary is promoted to verified status yet. The source audit is suf
 
 ### 01_ROADS
 
-**[LPC] Streets**
+**[LPC] Streets — EXCLUDED**
 - OpenGameArt author: Baŝto.
-- The asset improves the streets from [LPC] Skorpio's SciFi Sprite Pack and includes separated streets, road markings, additional markings and street signs.
+- Although the source is tagged LPC, its own description says it improves streets from **[LPC] Skorpio's SciFi Sprite Pack** and includes asphalt, road markings and contemporary street signs.
 - License: CC-BY-SA 3.0 / GPL 3.0.
-- Copyright/attribution notice states it is based on Skorpio's SciFi Sprite Pack, which is dual licensed CC-BY-SA 3.0 and GPL 3.0.
-- REGION role: **01_ROADS**.
-- Important: street/road tiles and road markings belong here; street signs are regional props unless they become interactive.
-- Binary status: ⚠️ not individually verified against the asset library.
+- **Vandrith decision: exclude from REGION** because the visual/technological baseline is medieval-fantasy only.
+- This is a useful provenance/style warning: an LPC tag does not automatically make an asset medieval-fantasy compatible. citeturn0search0
 
-**LPC Modern Streets**
-- Identified as an LPC collection/source candidate.
-- REGION role: 01_ROADS when the asset represents exterior roadway infrastructure.
-- Binary/source identity: ⚠️ pending.
+**LPC Modern Streets — EXCLUDED**
+- OpenGameArt explicitly labels this source **Modern** and lists sidewalks, traffic lights, traffic cones, tires, manholes and contemporary road signage.
+- License: CC0.
+- **Vandrith decision: exclude from REGION** despite the permissive license, because it violates the medieval-fantasy visual/technological rule. citeturn0search1
+
+**Medieval road/path candidates**
+- **Cobblestone Tileset** by Cem Kalyoncu, with Lamoot as collaborator: CC-BY 3.0; explicitly tagged medieval/cobblestone/path. Attribution instructions identify Cem Kalyoncu and the texture contributors. Candidate for **01_ROADS / 02_PATHS**, subject to actual binary matching. citeturn1search0
+- **Stone Pavement Ground Tile** by Saroman: CC-BY 3.0; explicitly tagged road/stone/cobblestone/medieval. Candidate for **01_ROADS / 02_PATHS**, subject to binary matching. citeturn1search1
+- **tileable stone path** by forkart: CC0; candidate for **02_PATHS**, subject to binary matching. citeturn1search6
+
+Binary status for all candidates: ⚠️ not individually verified against the Vendrith asset library.
 
 ### 02_PATHS
 
