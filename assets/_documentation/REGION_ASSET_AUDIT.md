@@ -489,6 +489,101 @@ A single tent or barrel is not automatically a REGION location. It can remain a 
 
 This deep pass establishes **source candidates and classification rules**, not binary approval. No candidate is considered present in the Vendrith repository until the actual repository asset can be matched by path, filename, source metadata/credits and SHA-256 where available.
 
+## Deep audit: 15_REGION_PROPS
+
+REGION_PROPS is reserved for **static exterior regional infrastructure and scenery** that helps define a place. It is not a dumping ground for every medieval prop.
+
+### Regional markers / infrastructure
+
+**Medieval Well — Daniel Andersson**
+- Medieval village prop.
+- License: CC0.
+- Candidate: **15_REGION_PROPS** when placed as static regional infrastructure.
+- Attribution is not required; credit is appreciated.
+- Binary status: ⚠️ not individually verified. citeturn0search2
+
+**Medieval Props Pack 1 / 2 / 3 — Daniel Andersson**
+- Medieval village-oriented prop collections.
+- License: CC0.
+- Candidate static regional roles include fixed barrels, carts, market/farm scenery, village markers and similar exterior decoration, but each object must be classified individually.
+- Binary status: ⚠️ not individually verified. citeturn0search3turn0search5turn0search6
+
+**Medieval Props Pack — System G6**
+- License: CC0.
+- Includes cart, basket, crate, hay bundle, trough, barrel, hitching post, campfire and related props.
+- Candidate REGION_PROPS: fixed hitching posts, troughs, hay bundles, carts and other scenery when used to define an exterior regional location.
+- Generic inventory containers/items and interactive gameplay objects remain outside REGION.
+- Binary status: ⚠️ not individually verified. citeturn0search1
+
+### Fantasy regional decoration
+
+**50 fantasy-RPG asset models — rubberduck**
+- License: CC0.
+- Includes torches, fences, bridges, carts, gates, statues and other fantasy-RPG models.
+- Candidate REGION_PROPS: static torches, gates, statues and regional decorative elements.
+- Bridges remain **03_BRIDGES**; carts that become usable vehicles belong to PLAYABLE.
+- Binary status: ⚠️ not individually verified. citeturn0search11
+
+**isometric medieval props — rubberduck**
+- License: CC0.
+- Includes medieval/fantasy props such as barrels, crates, wagon, well, stand, sacks and containers.
+- Candidate REGION_PROPS: static regional stands, wagon/scenery and well where they function as place-defining exterior objects.
+- Generic containers/items remain outside REGION.
+- Binary status: ⚠️ not individually verified. citeturn0search4
+
+### REGION_PROPS boundary
+
+Use this category for fixed objects that communicate or support a **specific exterior regional place**:
+
+- signpost / regional marker
+- well / fountain
+- static cart or wagon
+- hitching post
+- trough
+- haystack / hay bundle as fixed farm scenery
+- statue / monument
+- torch / brazier / exterior light
+- fixed market stand
+- fixed barricade
+- gate decoration
+- regional shrine/marker
+- non-interactive decorative barrels/crates when clearly part of a location
+
+Do **not** automatically place these here:
+
+- generic inventory item → ITEM_ASSET
+- lootable chest/barrel → PLAYABLE
+- usable cart → PLAYABLE/VEHICLES
+- weapon → ITEM_ASSET
+- furniture → ITEM_ASSET
+- character/animal → LIFE_GENERATION
+- generic building component → BUILDING/Architecture
+- bridge → 03_BRIDGES
+- dock → 04_DOCKS
+- ship → 06_SHIPS
+- farm assembly → 13_FARMS
+- camp assembly → 14_CAMPS
+
+### Important: static vs interactive
+
+The same visual object can change system category depending on its function:
+
+| Object | Static exterior scenery | Interactive/gameplay |
+|---|---|---|
+| Barrel | 15_REGION_PROPS | PLAYABLE / ITEM |
+| Cart | 15_REGION_PROPS | PLAYABLE / VEHICLES |
+| Sign | 15_REGION_PROPS | PLAYABLE / INTERACTABLE |
+| Well | 15_REGION_PROPS | PLAYABLE / INTERACTABLE |
+| Chest | 15_REGION_PROPS only if purely decorative | PLAYABLE / ITEM |
+| Statue | 15_REGION_PROPS | PLAYABLE if it has a gameplay interaction |
+| Torch/brazier | 15_REGION_PROPS | PLAYABLE if mechanically interactive |
+
+### Style and provenance rule
+
+CC0 or another permissive license does not make an asset automatically suitable for Vandrith. The asset must also satisfy the **medieval-fantasy-only** visual/technological rule and the actual REGION role.
+
+Likewise, a source page does not prove that the same binary exists in the Vendrith repository. Every eventual promotion to verified status still requires repository path, filename, source/credit evidence, license, conditions and SHA-256 when the binary is available.
+
 ## Important classification rule for mixed tilesets
 
 A single source package may contain multiple REGION and non-REGION roles.
