@@ -223,3 +223,54 @@ Interior-only building content is excluded from BUILDINGS and belongs to INTERIO
 **Source coverage:** strong  
 **Repository binary match:** not yet established  
 **Approval:** ⚠️ pending until binary provenance is reconciled
+
+
+## ARCHITECTURE — initial source audit
+
+02_ARCHITECTURE is reserved for **exterior construction elements** that build playable medieval-fantasy locations.
+
+### Audit groups
+
+| Group | Examples |
+|---|---|
+| Castle fortification | castle walls, merlons, towers, battlements |
+| City fortification | city walls, gates, gatehouses, watchtowers |
+| House exterior | exterior walls, foundations, roofs, chimneys |
+| Openings | exterior doors, windows, arches |
+| Structural detail | columns, balconies, buttresses, exterior stairs |
+| Decorative architecture | pinnacles, facade details, exterior ornaments |
+
+Current source research provides direct examples:
+- **[LPC] Castle Mega-Pack** covers castle/tower/Gothic architecture, windows, churches/cathedrals and architectural features; its page states CC-BY-SA 3.0 and provides attribution to underlying contributors and source works. citeturn0search2turn0search7
+- **[LPC] Windows & Doors** provides exterior windows and doors. Its current page lists CC-BY-SA 3.0 and GPL 3.0 and explicitly requires the information in its credits file to accompany distribution. citeturn0search8
+- OpenGameArt's **LPC Tiles** collection lists Floors, Walls, Roofs, Windows & Doors, Medieval Village Decorations and Thatched-roof Cottage among the collected sources. citeturn0search0
+- A separate CC0 **pixel art castle tileset** includes walls, stone/brick elements, pillars, doors/gates and windows, making it a possible source candidate where the style matches Vandrith. citeturn0search11
+
+### Important provenance rule
+
+The sources above are **reference/source candidates, not repository matches**. A source page, even one with exact-looking filenames or previews, does not prove that the same binary exists in Vendrith.
+
+For each repository candidate we must reconcile:
+1. Repository path and filename
+2. Actual binary content
+3. Source package/page
+4. Creator/contributors
+5. License
+6. Attribution/conditions
+7. SHA-256 checksum
+
+### Architecture classification boundary
+
+- Exterior castle/city/house wall → PLAYABLE/02_ARCHITECTURE
+- Exterior gate/door/window → PLAYABLE/02_ARCHITECTURE
+- Interior wall/floor/door/window construction → INTERIOR
+- A complete house/tavern/castle building → PLAYABLE/01_BUILDINGS
+- A decorative regional location marker/context → REGION
+- A gameplay-enabled door/gate → PLAYABLE/02_ARCHITECTURE + PLAYABLE/03_INTERACTABLES binding
+- A purely decorative architectural piece remains PLAYABLE/02_ARCHITECTURE; gameplay interaction is not required
+
+### Current ARCHITECTURE result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
