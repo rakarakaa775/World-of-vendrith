@@ -819,13 +819,13 @@ The previous conditional **Classical Ruin Tiles** candidate remains conditional 
 
 1. BRIDGES — source research completed; binary matching pending
 2. DOCKS — source research completed; binary matching pending
-3. PORTS — pending
-4. SHIPS — source research started; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
 5. ROADS — medieval-fantasy source filtering completed; binary matching pending
 6. PATHS — source research completed; binary matching pending
-7. Regional infrastructure — medieval-fantasy source research added; binary matching pending
-8. Static regional locations — next research pass
-9. REGION_PROPS — continue after location pass
+7. Regional infrastructure — source research completed; binary matching pending
+8. Static regional locations (VILLAGES → CAMPS) — source research and classification completed; binary matching pending
+9. REGION_PROPS — **next deep audit pass**
 
 **Generic buildings remain excluded from this audit.**
 
