@@ -1,6 +1,6 @@
 # REGION Asset Audit
 
-Status: **STRUCTURE DEFINED / REGION-ONLY PROVENANCE AUDIT IN PROGRESS**
+Status: **STRUCTURE DEFINED / SOURCE AUDIT COMPLETE / BINARY VERIFICATION BLOCKED BY ARCHIVE CONTENT**
 
 ## Purpose
 
@@ -2141,9 +2141,36 @@ For REGION assets, a candidate can move from ⚠️ to 🟢 only after the actua
 
 Source-page similarity, collection membership, filename similarity, or a search-engine match alone is insufficient.
 
+### Direct archive extraction result
+
+The repository's CI workflow **did successfully extract and inspect** `archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip`.
+
+Workflow run:
+- Workflow: `Inspect Vandrith asset archive`
+- Run ID: `36165223132`
+- Commit: `668a0ebf0ab5314497dfc63df64785c6413f5571`
+- Result: **success**
+- Archive manifest: **129 members**
+- The extracted member list contains documentation, legacy project files, SQL implementation files, and project scaffolding.
+- **No REGION asset binaries were present in the extracted archive member list.**
+- The expected source fingerprints (`lpc-farm.zip`, `farm_tiles.png`, `props_tilesets.zip`, `Tent.png`, ship/ruin/castle/bridge fingerprints, etc.) did not appear as archive members.
+
+This is now a **positive archive-content finding**, not a code-search absence inference: the workflow actually enumerated the ZIP members and generated SHA-256 records for every extracted file.
+
+The implication is important: `VANDRITH_ALL_PROJECT_FILES_LATEST.zip` cannot currently be used to promote REGION source candidates to 🟢 verified repository binaries, because the REGION asset payloads are not contained in this archive.
+
 ### Current binary-pass status
 
-**REGION binary verification = BLOCKED/PENDING direct ZIP extraction.**
+**REGION binary verification = COMPLETE FOR THIS ARCHIVE / BLOCKED FOR REPOSITORY ASSET PROVENANCE.**
 
-All 15 REGION categories remain source-audited, but no new 🟢 provenance promotion is made by this checkpoint.
+All 15 REGION categories have completed source research and classification. The archive checkpoint has now been closed with the following decision:
+
+- 🟢 **Verified repository binary provenance:** none from this archive.
+- 🟡 **Source/provenance candidates:** retained where source and license evidence exists.
+- ⚠️ **Repository binary match:** unresolved because the inspected archive contains no REGION asset binaries.
+- 🔴 **Condition/license violations:** none established from the archive inspection itself.
+
+No candidate is promoted merely because a source page, filename, or visual description resembles a Vendrith asset.
+
+**Next binary evidence source:** the actual REGION asset payload/archive must be made available to the repository/CI inspection workflow. Until that happens, the source-audit classifications above are the final defensible state.
 
