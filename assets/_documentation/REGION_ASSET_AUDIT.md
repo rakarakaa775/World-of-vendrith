@@ -1067,3 +1067,46 @@ A ship source is not promoted merely because its preview looks medieval. Promoti
 **06_SHIPS remains ⚠️ source-researched / binary-unverified.** No ship candidate is promoted to 🟢 verified provenance in this pass. The repository archive archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip remains the primary binary-inspection target for the next verification step.
 
 **Next verification target:** inspect the archive manifest and match ship-related filenames/content against the source candidates above.
+
+## Source audit continuation: 06_SHIPS — expanded medieval-fantasy source pass
+
+### Additional source candidates
+
+**Ship tileset — Sevarihk**
+- CC-BY 4.0.
+- Modular 32x32 ship/boat construction kit with wooden planks, masts and sails.
+- Includes Viking ships and small boats, but also huge freighters and sand gliders; therefore only medieval-compatible elements may be considered for Vandrith.
+- Attribution requires credit and a link to the source or author's homepage.
+- Candidate role: **06_SHIPS** for static medieval/fantasy vessels.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search1turn0search5
+
+**16th century ship — twin_mice**
+- 3D ship model explicitly identified as a 16th-century ship.
+- Licenses listed: CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0, GPL 2.0 and CC0.
+- File: `ship2.obj`.
+- Candidate role: **06_SHIPS** for static regional scenery.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search7
+
+**3d medieval ship — aqrezes**
+- Medieval ship model, `ship.blend`.
+- Licenses: OGA-BY 3.0 and CC0.
+- Creator asks for credit but states it is not mandatory.
+- Candidate role: **06_SHIPS**.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search10
+
+**Medieval Boat — AnyRPG**
+- CC0 rowboat model, `medievalboatexport.blend`.
+- Described as a rowboat and identified as a derivative of `simple-wood-boat`.
+- Candidate role: **06_SHIPS** for static scenery.
+- Because it is derivative, the provenance chain should be retained if a matching Vendrith binary is discovered.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search11
+
+### Important mixed-pack filtering
+
+The Sevarihk package is not automatically accepted as a whole: its own description includes freighters and other non-medieval vessels. Vandrith should extract or use only medieval/fantasy-compatible vessel elements. citeturn0search1
+
+### 06_SHIPS current status
+
+**⚠️ Source-researched / binary-unverified.** The expanded source pass gives us stronger medieval-fantasy candidates, but no candidate is promoted until the actual Vendrith binary is matched and its provenance and SHA-256 are reconciled.
+
+**Next step remains binary inspection of `archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip`.**
