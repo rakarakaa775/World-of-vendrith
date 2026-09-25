@@ -439,3 +439,67 @@ Source discovery does not promote a repository binary. Verification requires rep
 **Source coverage:** strong  
 **Repository binary match:** not yet established  
 **Approval:** ⚠️ pending until binary provenance is reconciled
+
+
+## 06_COMBAT_INTERACTABLES — initial source audit
+
+06_COMBAT_INTERACTABLES covers exterior/playable-map objects that the player can actively operate for combat or defense.
+
+### Audit groups
+
+| Group | Examples |
+|---|---|
+| Siege weapons | ballista, catapult, trebuchet, scorpion/bolt thrower |
+| Defensive weapons | defensive cannon where appropriate to Vandrith's medieval-fantasy setting |
+| Traps | spike traps, pressure traps, defensive traps |
+| Training objects | training dummies or other combat-practice interactables |
+| Mounted defenses | wall-mounted or emplacement-style weapons |
+| Fantasy combat devices | magical defensive/combat devices consistent with the setting |
+
+OpenGameArt has a direct **[LPC] Siege Weapons** source by bluecarrot16. It includes medieval-era catapults and ballistae, plus a cannon, with CC-BY 4.0, CC-BY 3.0, GPL 3.0, GPL 2.0 and OGA-BY 3.0 listed as licenses. The source also documents how its layered tiles are assembled and animated. citeturn0search0
+
+The LPC collections independently list **Siege Weapons** among their collected assets, confirming it as a distinct medieval gameplay-art category. citeturn0search3turn0search5
+
+### Classification rule
+
+- Decorative ballista/catapult → PLAYABLE/07_GAMEPLAY_PROPS.
+- Operable ballista/catapult → PLAYABLE/06_COMBAT_INTERACTABLES.
+- Decorative trap → PLAYABLE/07_GAMEPLAY_PROPS.
+- Active/triggerable trap → PLAYABLE/06_COMBAT_INTERACTABLES.
+- Training dummy → PLAYABLE/06_COMBAT_INTERACTABLES when it has a training function.
+- Castle wall itself → PLAYABLE/02_ARCHITECTURE.
+- Weapon mounted on castle wall → PLAYABLE/06_COMBAT_INTERACTABLES.
+- A normal handheld weapon → assets/weapons/ with its gameplay binding; it is not duplicated into this category.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Ballistae
+- Catapults
+- Trebuchets
+- Scorpions / bolt throwers
+- Medieval defensive weapons
+- Traps
+- Training dummies
+- Fantasy/magical defensive devices
+
+Conditional:
+- Cannon/artillery can be considered only where it fits Vandrith's intended medieval-fantasy technology baseline and visual language.
+
+Excluded by default:
+- Modern firearms
+- Machine guns
+- Modern turrets
+- Explosive contemporary weapon systems
+- Sci-fi weapons
+- Futuristic automated defenses
+
+### Provenance rule
+
+Source discovery does not promote a repository binary. Verification requires repository path/filename, actual binary, source package/page, creator, license, attribution/conditions and SHA-256.
+
+### Current COMBAT INTERACTABLES result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
