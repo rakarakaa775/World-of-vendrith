@@ -1706,3 +1706,146 @@ No fortification source is promoted to verified Vendrith provenance from source-
 16. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Source audit continuation: 12_RUINS — deep medieval-fantasy pass
+
+12_RUINS is reserved for **exterior regional locations whose defining identity is a ruined, abandoned, destroyed, or partially collapsed site**. This includes ruined castles/fortifications, abandoned villages/towns, ancient stone ruins, broken towers and fantasy ruin sites. A generic intact building kit, a standalone decorative broken prop, or an interior dungeon is not automatically a REGION ruin.
+
+### Audited source candidates
+
+**old ruins tileset — rubberduck**
+- OpenGameArt source explicitly describes an isometric ruin tileset for Flare, with winter/frozen variants.
+- License: **CC-BY-SA 3.0**.
+- Source package: old_ruins_tileset.zip; source blend is also provided.
+- Attribution/credit must follow CREDITS.txt.
+- Strong 12_RUINS candidate for exterior ruined locations when a Vendrith binary is matched.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search16
+
+**Broken Tower — Clint Bellanger**
+- OpenGameArt describes a broken tower for a 2D isometric game and provides PNG layers plus a Blender/GIMP source package.
+- License: **CC-BY 3.0**.
+- Strong candidate for a ruined tower regional landmark.
+- File/package: broken_tower.zip.
+- Attribution to Clint Bellanger is required under CC-BY.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search9
+
+**[LPC] Desert Ruins — bluecarrot16**
+- OpenGameArt source describes desert ruins with temples, pyramids/ziggurats, glyphs, statues, walls and stone structures.
+- Licenses listed: CC-BY 4.0, CC-BY 3.0, GPL 3.0, GPL 2.0 and OGA-BY 3.0.
+- Medieval-fantasy compatibility is conditional: ancient/desert fantasy ruins are allowed only where they fit Vandrith's world style; explicitly non-medieval/culturally specific elements should not be assumed compatible merely from the license.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search12
+
+**Mythical Ruins Tileset — voec**
+- OpenGameArt describes a 32x32 exterior/interior ruins tileset with island/desert/adventure styling.
+- License: **CC0**.
+- Attribution is appreciated but not required.
+- Strong candidate for fantasy ruin scenery, but the source says it is not fully polished/complete; quality and exact binary match still require review.
+- File: myth.png.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search20
+
+**Nordic Tileset — Sevarihk**
+- OpenGameArt describes a Nordic/Viking ruin tileset with stone bridge, broken bridge and repair planks.
+- License: **CC-BY 4.0**.
+- Suitable for medieval/fantasy ruin review; broken bridge elements should remain 03_BRIDGES when their primary role is bridge infrastructure rather than a ruined regional site.
+- File: nordic_tiles-v2-recolorbridge.png.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search7
+
+**Toen's Medieval Strategy Sprite Pack v1.0**
+- OpenGameArt describes a medieval strategy/RPG pack containing abandoned ruins alongside towns, castles, roads, rivers and other assets.
+- License shown: CC-BY 3.0; the source attribution notice instructs users to credit the author and provide source links.
+- Mixed pack: only the abandoned-ruin elements belong to 12_RUINS; other elements must be split into their canonical categories.
+- File: Toen's Medieval Strategy Sprite Pack v.1.0 (16x16).zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search1turn0search3
+
+**Ancient ruins pixel art — CraftPix.net 2D Game Assets**
+- OpenGameArt lists 40 PNG ruin objects with medieval/fantasy/ancient/castle/destruction tags.
+- License: CC-BY 3.0.
+- Suitable only for individual exterior ruin objects/assemblies that fit the medieval-fantasy setting; attribution must be retained if matched.
+- File: ancient_ruins_pixel_art.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search2
+
+**Aztec Tileset — Sevarihk**
+- OpenGameArt describes Aztec temple/aqueduct/jungle ruins and requires attribution under CC-BY 4.0.
+- Because Vandrith's style rule is medieval-fantasy rather than a generic historical-world setting, this source is **not automatically approved**. Individual assets should be reviewed only if a fantasy/ancient-civilization visual direction is intentionally compatible with the world; otherwise exclude.
+- Binary status: ⚠️ source reviewed; not promoted. citeturn0search0
+
+### Ruin classification rules
+
+| Asset/source result | Classification |
+|---|---|
+| Ruined castle/keep whose ruin state is primary | 12_RUINS |
+| Ruined fortification/wall/tower | 12_RUINS |
+| Abandoned village/town location | 12_RUINS |
+| Ancient/fantasy exterior ruin site | 12_RUINS |
+| Broken tower as regional landmark | 12_RUINS |
+| Intact complete castle/keep/citadel | 10_CASTLES |
+| Intact defensive wall/tower/gate | 11_FORTIFICATIONS |
+| Generic intact building kit | BUILDING / Architecture |
+| Interior dungeon/ruin interior | INTERIOR |
+| Single decorative broken barrel/statue/stone | 15_REGION_PROPS unless part of a verified ruin assembly |
+| Interactive ruin object | PLAYABLE by gameplay function |
+| Modern/industrial ruins | EXCLUDED unless explicitly compatible with medieval-fantasy setting |
+| Sci-fi/futuristic ruins | EXCLUDED |
+
+### Important boundary: ruin vs ordinary prop
+
+A broken wall tile or damaged barrel does not automatically create a REGION ruin. The **ruin state must define the location/assembly**. A recognizable abandoned structure, collapsed tower, ruined settlement, or ancient ruin site is the stronger 12_RUINS candidate.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Abandoned medieval villages/towns
+- Ruined castles and fortifications
+- Broken stone towers
+- Ancient/fantasy ruins compatible with the setting
+- Frozen/snowy medieval ruins
+- Overgrown medieval ruins
+
+Excluded by default:
+- Modern abandoned buildings
+- Industrial ruins
+- Contemporary urban decay
+- Modern military ruins
+- Sci-fi/futuristic ruins
+- Modern roads/infrastructure merely shown as abandoned
+
+### Binary verification checkpoint
+
+Repository code/index checks must not be treated as proof of absence because binary archives are not fully exposed by text search. Principal fingerprints reviewed for this pass include:
+- old_ruins_tileset.zip
+- broken_tower.zip
+- myth.png
+- nordic_tiles-v2-recolorbridge.png
+- Toen's Medieval Strategy Sprite Pack v.1.0 (16x16).zip
+- ancient_ruins_pixel_art.zip
+- jungle-ruins_v3-2.png
+
+No indexed result is being promoted as an exact Vendrith binary match from source-page evidence alone.
+
+### Provenance decision
+
+No ruin source is promoted to 🟢 verified Vendrith provenance from source-page evidence alone. Promotion requires the actual repository/archive path, exact binary/content match, source/package provenance, creator/license, attribution/conditions, and SHA-256 where the binary is accessible.
+
+**Current status: 12_RUINS = ⚠️ source-researched / binary-unverified.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — source research completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. CITIES — source research completed; binary matching pending
+11. CASTLES — source research completed; binary matching pending
+12. FORTIFICATIONS — source research completed; binary matching pending
+13. **RUINS — source research completed; binary matching pending**
+14. FARMS — next source-audit target
+15. CAMPS
+16. REGION_PROPS — source research/deep classification completed; binary matching pending
+
+**Generic buildings remain excluded from this audit.**
