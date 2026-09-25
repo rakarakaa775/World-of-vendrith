@@ -1,30 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { createMap } from "./map-document";
 import {
   normalizeSaveSlotRpcResult,
   parseSaveSlotSnapshot,
   validateSaveSlotRpcResult,
 } from "./map-save-slot";
 
+const world = createMap("world");
+world.id = "world-1";
+world.name = "World";
 const validSnapshot = {
   schema: "vandrith.game-save" as const,
   version: 1 as const,
-  world: {
-    schema: "vandrith.map-document" as const,
-    version: 1 as const,
-    document: {
-      version: 1 as const,
-      id: "world-1",
-      name: "World",
-      mapType: "world" as const,
-      parentMapId: null,
-      width: 1,
-      height: 1,
-      tileSize: 32,
-      layers: [
-        { id: "ground", name: "Ground", kind: "ground" as const, visible: true, locked: false, active: true, cells: [{ tileId: null }] }
-      ],
-    },
-  },
+  world,
   exterior: null,
 };
 
