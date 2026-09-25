@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createStarterMap, createMap, resizeMapDocument, MAP_SIZES } from './map-document';
+import { createStarterMap, createMap, resizeMapDocument, MAP_SIZES, type MapDocument } from './map-document';
 import { parseMapDocument, serializeMapDocument } from './map-serialization';
 
 describe('MapDocument contract', () => {
