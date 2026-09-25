@@ -91,7 +91,7 @@ export async function resolveAuthoritativeMap(
 
   const { parseMapDocument } = await import('./map-serialization');
   const payload = typeof result.snapshot === 'string' ? result.snapshot : JSON.stringify(result.snapshot);
-  const document = parseMapDocument(payload, requestedMapId);
+  const document = parseMapDocument(payload, identityRow.editor_map_id);
   const version = Number(result.version_number) || 0;
 
   if (document.id !== row.id) {
