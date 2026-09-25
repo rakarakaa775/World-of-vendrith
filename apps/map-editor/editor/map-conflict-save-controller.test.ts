@@ -17,23 +17,29 @@ const client = (responses: unknown[]) => {
 };
 
 describe('saveWithConflictDetection', () => {
-  it('rebases an independent local change onto a newer authoritative version', async () => {
-    const remote = { ...map('base'), width: 2, height: 1, layers: map('base').layers.map(layer => ({ ...layer, cells: layer.cells.slice(0, 2) })) };
-    const local = { ...map('base'), width: 1, height: 2, layers: map('base').layers.map(layer => ({ ...layer, cells: layer.cells.slice(0, 2) })) };
+  it('rebases independent local and remote edits onto the newer authoritative version', async () => {
     const base = map('base');
+    const local = structuredClone(base);
+    const remote = structuredClone(base);
+    local.layers[0].cells[0] = { tileId: 'grass' };
+    remote.layers[0].cells[1] = { tileId: 'sand' };
+
     const rpc = client([
       { ok: true, found: true, version_number: 2, snapshot: serializeMapDocument(remote) },
       { status: 'committed', version_id: 'v3', version_number: 3, current_version: 3, projection_status: 'committed', projection_error: null },
     ]);
+
     const result = await saveWithConflictDetection(rpc as never, local, base, 1);
     expect(result.status).toBe('committed');
     if (result.status === 'committed') {
       expect(result.version).toBe(3);
-      expect(result.document.width).toBe(2);
-      expect(result.document.height).toBe(2);
+      expect(result.document.layers[0].cells[0].tileId).toBe('grass');
+      expect(result.document.layers[0].cells[1].tileId).toBe('sand');
     }
     expect(rpc.rpc).toHaveBeenNthCalledWith(2, 'map_editor_commit_merge_v1', expect.objectContaining({
-      p_map_id: 'm1', p_expected_version: 2, p_label: 'map-editor-save',
+      p_map_id: 'm1',
+      p_expected_version: 2,
+      p_label: 'map-editor-save',
     }));
   });
 
