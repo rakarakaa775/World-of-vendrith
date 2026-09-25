@@ -11,6 +11,7 @@ describe("map asset loader", () => {
       asset_path: "02_TILES_AND_TERRAIN/LPC_Overworld__Mountains.png",
       preview_path: null,
       status: "approved",
+      asset_license_registry: { verification_status: "verified", usage_status: "credit_required", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     });
     expect(asset).toMatchObject({
       family: "macro-terrain",
@@ -74,6 +75,19 @@ describe("map asset loader", () => {
       asset_path: "scene.png",
       preview_path: null,
       status: "approved",
+    })).toBeNull();
+  });
+
+  it("rejects approved rows whose license has unresolved requirements", () => {
+    expect(registryRowToMapAsset({
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Conditional Asset",
+      category: "decoration",
+      role: "tree",
+      asset_path: "tree.png",
+      preview_path: null,
+      status: "approved",
+      asset_license_registry: { verification_status: "verified", usage_status: "conditional", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     })).toBeNull();
   });
 
