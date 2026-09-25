@@ -428,6 +428,96 @@ The four map layers answer different questions:
 
 ---
 
+# CAVE / DUNGEON / BUILDING INTERIOR DECISION RULE
+
+The following decision tree is now canonical:
+
+1. Is the space primarily natural terrain?
+   - Natural cave, cavern, cliff opening, underground natural terrain → WORLD
+   - Natural underground water, rock, mud, sand, vegetation → WORLD
+2. Is the space primarily a constructed indoor/underground room?
+   - House, tavern, shop, castle room, workshop, temple, cellar → INTERIOR
+3. Is the underground space a deliberately constructed dungeon gameplay area?
+   - Prison, crypt, catacomb, dungeon corridor, torture room, dungeon chamber → INTERIOR/11_DUNGEON_INTERIORS
+4. Is it a natural cave that has been converted into a gameplay interior?
+   - Keep the natural terrain assets in WORLD
+   - Add INTERIOR/11_DUNGEON_INTERIORS when the cave is authored as a dungeon/interior gameplay space.
+5. Is it only the entrance or exterior approach to a cave?
+   - Exterior cave entrance/rock formation → WORLD
+   - Built gate/door/fortification around the entrance → PLAYABLE/02_ARCHITECTURE
+6. Is it a building shell seen from outside?
+   - Exterior building → PLAYABLE/01_BUILDINGS
+   - Interior room behind that shell → INTERIOR
+
+## Examples
+
+| Situation | Classification |
+|---|---|
+| Natural cave with rocks and natural floor | WORLD |
+| Natural cavern with underground river | WORLD |
+| Cave entrance visible on a mountain | WORLD |
+| Medieval cellar built under a house | INTERIOR |
+| Castle basement | INTERIOR |
+| Constructed dungeon corridor | INTERIOR/11_DUNGEON_INTERIORS |
+| Crypt/catacomb | INTERIOR/11_DUNGEON_INTERIORS |
+| Natural cave converted into a dungeon | WORLD assets + INTERIOR/11_DUNGEON_INTERIORS binding |
+| Dungeon gate/door | INTERIOR/04_DOORS_WINDOWS + INTERIOR/11_DUNGEON_INTERIORS |
+| Castle exterior | PLAYABLE/01_BUILDINGS or PLAYABLE/02_ARCHITECTURE |
+| Castle throne room | INTERIOR |
+| Tavern exterior | PLAYABLE/01_BUILDINGS |
+| Tavern interior | INTERIOR |
+
+This prevents the word cave in a filename from automatically moving a natural asset out of WORLD. OpenGameArt collections contain both cave/cavern material and constructed dungeon/interior sources, so filename/category names alone are insufficient for classification. citeturn0search0turn0search2
+
+# ROOM / BUILDING TYPE BINDING
+
+Room types are contextual metadata, not additional binary categories.
+
+Recommended context tags:
+
+- RESIDENTIAL
+- TAVERN_INN
+- SHOP
+- WORKSHOP
+- BLACKSMITH
+- WOODSHOP
+- TAILOR
+- ALCHEMY
+- KITCHEN
+- STORAGE
+- CASTLE
+- MANOR
+- TEMPLE_CHURCH
+- GUILD
+- LIBRARY
+- MILITARY
+- PRISON
+- CRYPT
+- CATACOMB
+- DUNGEON
+- CAVE_DUNGEON
+
+These tags describe the intended map context while the 11 canonical INTERIOR roles describe the actual asset role.
+
+Examples:
+- Blacksmith forge = 09_CRAFTING_STATIONS + BLACKSMITH
+- Tavern table = 06_FURNITURE + TAVERN_INN
+- Dungeon floor = 01_FLOORS + 11_DUNGEON_INTERIORS + DUNGEON
+- Castle torch = 10_LIGHTING + CASTLE
+- Natural cave rock = WORLD + CAVE, not INTERIOR by default
+
+# FINAL INTERIOR CLASSIFICATION PRINCIPLE
+
+Physical environment determines the primary map layer; gameplay role and room context are additional bindings.
+
+WORLD = natural environment
+REGION = regional/location context
+PLAYABLE = concrete exterior map content
+INTERIOR = concrete indoor/constructed underground map content
+Gameplay bindings = what the player can do with that content
+Context tags = what kind of room/location uses it
+
+No classification should be made solely from a filename, preview, collection membership, or visual resemblance. Actual asset content and provenance remain required for final binary approval.
 # MEDIEVAL-FANTASY STYLE RULE
 
 Vandrith uses a **medieval-fantasy only** visual and technological baseline.
