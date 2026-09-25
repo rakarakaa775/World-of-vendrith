@@ -16,6 +16,10 @@ function deletedVsEdited<T>(base: T | null, local: T | null, remote: T | null, i
     conflicts.push({ kind, id, base, local, remote: null });
     return local;
   }
+  if (base && local && remote) {
+    if (same(local, base) && !same(remote, base)) return remote;
+    if (same(remote, base) && !same(local, base)) return local;
+  }
   return local ?? remote;
 }
 
@@ -26,7 +30,7 @@ function reconcileLayerObjects(base: MapObject[], local: MapObject[], remote: Ma
   const ids = new Set([...bm.keys(), ...lm.keys(), ...rm.keys()]);
   const result: MapObject[] = [];
   for (const id of ids) {
-    const value = deletedVsEdited(bm.get(id) ?? null, lm.get(id) ?? null, rm.get(id) ?? null, `${layerId}:object:${id}`, 'object', conflicts);
+    const value = deletedVsEdited(bm.get(id) ?? null, lm.get(id) ?? null, rm.get(id) ?? null, layerId + ':object:' + id, 'object', conflicts);
     if (value) result.push(value as MapObject);
   }
   return result;
@@ -36,16 +40,13 @@ export function reconcileMapMerge(base: MapDocument, local: MapDocument, remote:
   const conflicts = [...merged.conflicts];
   const layers = new Map<string, MapLayer>();
   for (const layer of merged.document.layers) layers.set(layer.id, layer);
-
   const bm = new Map(base.layers.map(l => [l.id, l]));
   const lm = new Map(local.layers.map(l => [l.id, l]));
   const rm = new Map(remote.layers.map(l => [l.id, l]));
   const allLayerIds = new Set([...bm.keys(), ...lm.keys(), ...rm.keys()]);
 
   for (const id of allLayerIds) {
-    const b = bm.get(id) ?? null;
-    const l = lm.get(id) ?? null;
-    const r = rm.get(id) ?? null;
+    const b = bm.get(id) ?? null, l = lm.get(id) ?? null, r = rm.get(id) ?? null;
     if (b && (!l || !r)) {
       const value = deletedVsEdited(b, l, r, id, 'layer-metadata', conflicts);
       if (value) {
@@ -61,13 +62,5 @@ export function reconcileMapMerge(base: MapDocument, local: MapDocument, remote:
 
   const document = { ...merged.document, layers: [...layers.values()] };
   const changed = !same(base, document);
-  return {
-    document,
-    conflicts,
-    derived: {
-      navigationRequired: changed,
-      geometryRequired: changed,
-      occupancyRequired: changed,
-    },
-  };
+  return { document, conflicts, derived: { navigationRequired: changed, geometryRequired: changed, occupancyRequired: changed } };
 }
