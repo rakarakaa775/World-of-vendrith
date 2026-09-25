@@ -34,6 +34,7 @@ describe('createMapSaveController', () => {
     const store: MapDocumentStore = { save: async () => undefined, load: async () => serializeMapDocument(document) };
     const controller = createMapSaveController(store, createCrashRecoveryJournal(memoryStorage()));
     const loaded = await controller.load();
+    expect(loaded).toBeTruthy();
     expect(loaded?.id).toBe(document.id);
     expect(controller.getDocument()?.id).toBe(document.id);
     expect(controller.getState()).toBe('clean');
