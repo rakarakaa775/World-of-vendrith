@@ -67,8 +67,8 @@ describe('Source of Tales terrain adapter', () => {
     });
     expect(sourceOfTalesSandWaterTile(1, 'water')).toEqual({
       kind: 'sandwater',
-      tileId: 7,
-      pattern: [1, 1, 0, 0],
+      tileId: 14,
+      pattern: [0, 1, 1, 1],
     });
   });
 });
