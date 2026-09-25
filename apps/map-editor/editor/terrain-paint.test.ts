@@ -12,7 +12,7 @@ describe("terrain paint", () => {
       "starter-tile",
     );
     const ground = result.document.layers.find(layer => layer.id === "ground")!;
-    expect(ground.cells[2 + 2 * ground.width].tileId).toBe("starter-tile");
+    expect(ground.cells[2 + 2 * result.document.width].tileId).toBe("starter-tile");
     expect(result.affected).toContainEqual({ x: 2, y: 2 });
   });
 
