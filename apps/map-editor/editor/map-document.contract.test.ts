@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createStarterMap, createMap, resizeMapDocument } from './map-document';
+import { createStarterMap, createMap, resizeMapDocument, MAP_SIZES } from './map-document';
 import { parseMapDocument, serializeMapDocument } from './map-serialization';
 
 describe('MapDocument contract', () => {
@@ -38,6 +38,17 @@ describe('MapDocument contract', () => {
     const unsupportedVersion = JSON.parse(serializeMapDocument(document));
     unsupportedVersion.version = 999;
     expect(() => parseMapDocument(unsupportedVersion)).toThrow('Unsupported map document version');
+  });
+
+  it('supports the three editor map-size presets with matching layer cell counts', () => {
+    expect(MAP_SIZES).toEqual([32, 64, 128]);
+
+    for (const size of MAP_SIZES) {
+      const document = createMap('playable', null, 'exterior', null, size, size);
+      expect(document.width).toBe(size);
+      expect(document.height).toBe(size);
+      expect(document.layers.every(layer => layer.cells.length === size * size)).toBe(true);
+    }
   });
 
   it('keeps resize semantics deterministic for existing cells', () => {
