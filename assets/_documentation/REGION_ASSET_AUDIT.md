@@ -205,6 +205,73 @@ Status: ⚠️ pending.
 - Mine-cart itself is not REGION when usable; it belongs to the gameplay vehicle system.
 - Binary status: ⚠️ not individually verified.
 
+## Source research: REGIONAL INFRASTRUCTURE / REGION_PROPS
+
+The next pass focuses on **medieval-fantasy regional infrastructure and props**, while keeping generic buildings/architecture excluded.
+
+### Wells / fountains
+
+**Medieval Well — Daniel Andersson**
+- OpenGameArt source identified.
+- REGION role: **15_REGION_PROPS** when used as static regional scenery/infrastructure.
+- License: CC0.
+- Attribution: not required; source says crediting Daniel Andersson is appreciated.
+- Binary status: ⚠️ not individually verified against the asset library. citeturn1search8
+
+**Medieval Fountain (with animated water) — City Building Game Art**
+- OpenGameArt source identified.
+- REGION role: **15_REGION_PROPS** when used as a static regional landmark/decoration.
+- License: CC0.
+- Attribution: "CityBuildingKit.com" / "www.CityBuildingKit.com" is requested but not mandatory.
+- Binary status: ⚠️ not individually verified. citeturn1search14
+
+### Signs / regional markers
+
+**Post sign — nicubunu**
+- OpenGameArt source identified.
+- REGION role: **15_REGION_PROPS** for non-interactive roadside/signpost scenery.
+- License: CC0.
+- Binary status: ⚠️ not individually verified.
+- If a sign becomes readable/interactive in gameplay, the placed object crosses into the PLAYABLE interaction layer. citeturn1search15
+
+**Merchant Post — bobjh**
+- OpenGameArt source identified.
+- Medieval-era merchant-square marker.
+- REGION role: **15_REGION_PROPS** as a static regional marker.
+- License: CC-BY-SA 4.0.
+- Binary status: ⚠️ not individually verified; attribution/ShareAlike requirements must be retained if the actual binary is matched. citeturn1search17
+
+### Medieval regional prop packs
+
+**Medieval Props Pack 1 / 2 / 3 — Daniel Andersson**
+- OpenGameArt sources identified as medieval-themed village prop collections.
+- License: CC0.
+- Candidate REGION roles include static carts, barrels, crates, camp/farm scenery and other exterior regional props where the individual asset is genuinely regional rather than a generic item.
+- These packs must be split by individual asset role; the entire pack is not automatically REGION.
+- Binary status: ⚠️ not individually verified. citeturn1search3turn1search6turn1search10
+
+**Medieval Props Pack — System G6**
+- OpenGameArt source identified.
+- License: CC0.
+- Contains exterior-oriented medieval props such as cart, campfire, trough, hay bundle, barrel and hitching post.
+- Candidate REGION role: **13_FARMS / 14_CAMPS / 15_REGION_PROPS**, depending on the individual asset's actual use.
+- Generic inventory/furniture items remain outside REGION.
+- Binary status: ⚠️ not individually verified. citeturn1search1
+
+### Camps
+
+**isometric props and tents — rubberduck**
+- OpenGameArt source identified.
+- License: CC0.
+- Contains tents, fireplaces, cauldrons, boxes, barrels and other camp-oriented elements.
+- Candidate REGION role: **14_CAMPS** for static camp assemblies/props.
+- Individual generic props must still be classified by actual role.
+- Binary status: ⚠️ not individually verified. citeturn1search5
+
+### Style filtering rule
+
+Only medieval/fantasy-compatible elements from mixed packs may proceed to REGION review. Modern, contemporary, industrial or sci-fi elements remain excluded even when they appear in a CC0 collection. License permission does not override Vandrith's visual/technological setting rule.
+
 ## Important classification rule for mixed tilesets
 
 A single source package may contain multiple REGION and non-REGION roles.
