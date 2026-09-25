@@ -387,3 +387,55 @@ Source-page discovery does not promote a repository binary. Verification still r
 **Source coverage:** strong  
 **Repository binary match:** not yet established  
 **Approval:** ⚠️ pending until binary provenance is reconciled
+
+
+## 05_CRAFTING_STATIONS — initial source audit
+
+05_CRAFTING_STATIONS covers exterior/playable-map stations that provide a defined crafting or processing function.
+
+### Audit groups
+
+| Group | Examples |
+|---|---|
+| Blacksmithing | forge, anvil, furnace, smelter, grindstone |
+| Woodworking | workbench, saw/workbench, carpenter station |
+| Tailoring | loom, sewing/tailoring station |
+| Alchemy | alchemy table, cauldron, potion station |
+| Cooking | cooking fire, hearth, kitchen cooking station |
+| Farming/processing | mill, trough or other craft/processing station when player-operated |
+| Enchanting/fantasy | enchanting altar or magical crafting station compatible with Vandrith |
+
+OpenGameArt's LPC sources provide direct candidates: **[LPC] Blacksmith** includes forges, furnaces/smelters, anvils and blacksmith tools; **LPC Tiles** lists Blacksmith, Woodshop, Tailor, Alchemy and Ore and Forge; and the broader LPC collections include Meals and related food/crafting sources. citeturn0search0turn0search2turn0search5
+
+The [LPC] Blacksmith source currently lists CC-BY 4.0, CC-BY 3.0, GPL 3.0, GPL 2.0 and OGA-BY 3.0, and its attribution notice identifies the creator and source page. Its preview also incorporates assets from other sources, which reinforces the rule that package credits must be inspected rather than inferred from a preview. citeturn0search0
+
+### Classification rule
+
+- Decorative forge/anvil → PLAYABLE/07_GAMEPLAY_PROPS or canonical object storage.
+- Usable forge/anvil → PLAYABLE/05_CRAFTING_STATIONS.
+- Decorative cooking fire → PLAYABLE/07_GAMEPLAY_PROPS or effects.
+- Usable cooking station → PLAYABLE/05_CRAFTING_STATIONS.
+- Decorative loom → PLAYABLE/07_GAMEPLAY_PROPS.
+- Usable loom → PLAYABLE/05_CRAFTING_STATIONS.
+- A complete blacksmith building → PLAYABLE/01_BUILDINGS; its forge/anvil can additionally receive the 05_CRAFTING_STATIONS gameplay binding.
+- Interior-only crafting station → INTERIOR unless the same asset is intentionally used as an exterior playable station.
+
+### Storage rule
+
+The visual binary does not need to be copied into PLAYABLE. A crafting station can remain in assets/objects/ or another canonical library while PLAYABLE records its gameplay role.
+
+### Medieval-fantasy filter
+
+Allowed: forge, anvil, furnace, smelter, workbench, loom, tailoring station, alchemy table, cooking hearth/fire, mill, medieval processing stations and fantasy/magical crafting stations fitting the setting.
+
+Excluded by default: modern factories, electric industrial workstations, contemporary appliances, modern laboratory equipment and sci-fi crafting machinery.
+
+### Provenance rule
+
+Source discovery does not promote a repository binary. Verification requires repository path/filename, actual binary, source package/page, creator, license, attribution/conditions and SHA-256.
+
+### Current CRAFTING STATIONS result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
