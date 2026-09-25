@@ -56,7 +56,7 @@ function semanticFamily(row: RegistryRow): { family: MapAssetFamily; levels: Map
 }
 
 export function registryRowToMapAsset(row: RegistryRow): MapAssetDefinition | null {
-  if (!row.id || !row.name || row.status !== "approved") return null;
+  if (!row.id || !row.name || row.status !== "approved" || !row.asset_path) return null;
   const semantic = semanticFamily(row);
   if (!semantic) return null;
 
