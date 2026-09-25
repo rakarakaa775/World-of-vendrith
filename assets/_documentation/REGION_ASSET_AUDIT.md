@@ -1849,3 +1849,132 @@ No ruin source is promoted to 🟢 verified Vendrith provenance from source-page
 16. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Source audit continuation: 13_FARMS — deep medieval-fantasy pass
+
+13_FARMS is reserved for **recognizable exterior farm locations/assemblies** used as regional geography: farmyards, field-and-farmstead layouts, barns/stables as part of a farm, granaries, chicken coops, apiaries, windmills, water wheels and farm-specific fencing/irrigation when they form part of the regional farm setting.
+
+### Audited source candidates
+
+**[LPC] Farm — bluecarrot16, Wolthera van Hövell tot Westerflier (TheraHedwig), Ivan Voirol**
+- License: **CC-BY 4.0**.
+- Package: lpc-farm.zip.
+- Contains modular barns, silos/towers, granary, chicken coop, apiary/beehives, sheds/stables, fences, windmill blades and water wheels.
+- The source explicitly provides primitive thatched/wattlework variants suitable for medieval/pre-modern settings and separate early-industrial/Victorian variants.
+- **Vendrith rule:** only the medieval/pre-modern variants are eligible; Victorian/early-industrial variants are excluded.
+- Attribution chain must be retained, including the source's stated bases and contributors, if the binary is matched.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search0
+
+**Isometric Miniature Farm — Kenney**
+- License: **CC0**.
+- Package: kenney_isometricminiaturefarm.zip.
+- Contains isometric/top-down farm tiles, walls, floors and farm objects.
+- Strong candidate for farm-location assembly when the actual binary is matched.
+- Credit Kenney.nl is optional, not mandatory.
+- Generic walls/floors remain BUILDING/Architecture if separated from the farm-specific assembly.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search9
+
+**Basic Hex Tile Set - 16x16 — Dr. Jamgo**
+- License: **CC0**.
+- Contains farmhouse, wheat field and windmill among broader terrain/building material.
+- Only farm-specific elements are candidates for 13_FARMS; terrain and generic buildings must be split to canonical roles.
+- File: drjamgo_hex_16x16.png.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search1
+
+**Simple Farm Tiles — ChikenwingJJA**
+- License: **CC0**.
+- Contains grass/farmland tiles and crops.
+- Primarily a farming/terrain source rather than a complete REGION farm location; only a verified farm assembly would belong in 13_FARMS. Crop/ground tiles remain in their canonical asset systems.
+- File: farm_tiles.png.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search8
+
+**Top Down season/environment Tileset — marionline**
+- License: **CC0**.
+- Contains a farm-season tileset alongside desert and winter sets.
+- Candidate only when the farm portion is actually used as a recognizable regional farm assembly.
+- File: tileset_farm.png.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search12
+
+**LPC Sawmill — bluecarrot16, Lanea Zimmerman, Ivan Voirol, Sander Franken**
+- License: **CC-BY 4.0**.
+- Package: lpc-sawmill.zip.
+- Water-powered sawmill is a regional industrial/agricultural-support location and can be placed with a farm/river region, but it is not itself a generic farm. Therefore: farm-associated assembly → 13_FARMS only when actually part of a farm complex; otherwise it should be treated as a regional industrial/work location outside the farm category.
+- Attribution chain and README-sawmill.txt instructions must be retained.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search3
+
+### Farm classification rules
+
+| Asset/source result | Classification |
+|---|---|
+| Recognizable farmstead/farmyard | 13_FARMS |
+| Field + farm buildings + fencing as one regional assembly | 13_FARMS |
+| Barn/stable as part of a specific farm assembly | 13_FARMS |
+| Farm-specific granary/apiary/chicken coop | 13_FARMS |
+| Windmill/water wheel as farm infrastructure | 13_FARMS |
+| Generic farmhouse/building kit | BUILDING / Architecture |
+| Standalone crop/vegetable/seed asset | canonical crop/food/life system, not REGION |
+| Farm animal | LIFE_GENERATION |
+| Farm tool/item | ITEM_ASSET |
+| Generic barrel/crate/fence | 15_REGION_PROPS when static |
+| Interactive farm equipment | PLAYABLE |
+| Interior barn/house/workshop content | INTERIOR |
+| Modern/Victorian/industrial farm machinery or architecture | EXCLUDED unless clearly compatible with medieval-fantasy setting |
+
+### Medieval-fantasy filter
+
+Allowed:
+- Medieval/pre-modern farmsteads
+- Thatched/wattle-and-daub farm buildings
+- Wooden barns and stables
+- Granaries and chicken coops
+- Apiaries
+- Traditional windmills and water wheels
+- Medieval field/fence layouts
+- Fantasy farms compatible with medieval technology
+
+Excluded:
+- Victorian/industrial farm variants
+- Tractors and modern machinery
+- Modern greenhouses
+- Industrial silos/processing plants when visually modern
+- Modern agricultural infrastructure
+- Contemporary suburban/rural architecture
+
+### Binary verification checkpoint
+
+Principal source fingerprints reviewed:
+- lpc-farm.zip
+- kenney_isometricminiaturefarm.zip
+- drjamgo_hex_16x16.png
+- farm_tiles.png
+- tileset_farm.png
+- lpc-sawmill.zip
+
+No indexed repository result is being promoted as an exact Vendrith binary match. Binary archives remain subject to direct extraction/hash verification when accessible.
+
+### Provenance decision
+
+No farm source is promoted to 🟢 verified Vendrith provenance from source-page evidence alone. Promotion requires actual repository/archive path, exact binary/content match, source/package provenance, creator/license, attribution/conditions and SHA-256 where accessible.
+
+**Current status: 13_FARMS = ⚠️ source-researched / binary-unverified.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — source research completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. CITIES — source research completed; binary matching pending
+11. CASTLES — source research completed; binary matching pending
+12. FORTIFICATIONS — source research completed; binary matching pending
+13. FARMS — source research completed; binary matching pending
+14. **CAMPS — next source-audit target**
+15. REGION_PROPS — source research/deep classification completed; binary matching pending
+
+**Generic buildings remain excluded from this audit.**
