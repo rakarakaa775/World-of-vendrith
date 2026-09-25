@@ -1,9 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  MAP_ASSET_CATALOG,
-  type MapAssetDefinition,
-  type MapAssetFamily,
-} from "./map-tool-registry";
+import type { MapAssetDefinition, MapAssetFamily } from "./map-tool-registry";
 import { assetStorageUrl } from "./asset-resolver";
 
 type RegistryRow = {
@@ -105,11 +101,7 @@ export async function loadMapAssetCatalog(client: SupabaseClient): Promise<MapAs
     .map(row => registryRowToMapAsset(row as RegistryRow))
     .filter((asset): asset is MapAssetDefinition => Boolean(asset));
 
-  const seen = new Set(runtime.map(asset => asset.registryId).filter(Boolean));
-  return [
-    ...MAP_ASSET_CATALOG,
-    ...runtime.filter(asset => !seen.has(asset.registryId)),
-  ];
+  return runtime;
 }
 
 export function mapAssetCatalogSummary(catalog: readonly MapAssetDefinition[]): {
