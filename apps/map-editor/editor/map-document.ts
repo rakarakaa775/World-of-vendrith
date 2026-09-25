@@ -16,7 +16,11 @@ export const createEmptyCells = (width:number, height:number):TileCell[] => {
 
 const layer=(id:string,name:string,kind:MapLayerKind,width:number,height:number,active=false):MapLayer=>({id,name,kind,visible:true,locked:false,active,cells:createEmptyCells(width,height),objects:[]});
 export const MAP_CAPABILITIES={world:{buildings:false,collision:false,terrainDetail:false,regions:true},region:{buildings:true,collision:false,terrainDetail:true,regions:false},playable:{buildings:true,collision:true,terrainDetail:true,regions:false}} as const;
-export const createMap=(mapType:MapType='playable',parentMapId:string|null=null,playableSpace:PlayableSpaceType='exterior',parentPlayableMapId:string|null=null):MapDocument=>({version:1,id:`${mapType}-map-${Date.now()}`,name:`${mapType[0].toUpperCase()+mapType.slice(1)} Map`,mapType,parentMapId,width:128,height:128,tileSize:32,layers:[layer('ground','Ground','ground',128,128,true),layer('objects','Objects','objects',128,128),layer('collision','Collision','collision',128,128)],...(mapType==='playable'?{playableSpace,parentPlayableMapId}: {})});
+export type MapSize = 32 | 64 | 128;
+
+export const MAP_SIZES: readonly MapSize[] = [32, 64, 128];
+
+export const createMap=(mapType:MapType='playable',parentMapId:string|null=null,playableSpace:PlayableSpaceType='exterior',parentPlayableMapId:string|null=null,width:MapSize=128,height:MapSize=width):MapDocument=>({version:1,id:`${mapType}-map-${Date.now()}`,name:`${mapType[0].toUpperCase()+mapType.slice(1)} Map`,mapType,parentMapId,width,height,tileSize:32,layers:[layer('ground','Ground','ground',width,height,true),layer('objects','Objects','objects',width,height),layer('collision','Collision','collision',width,height)],...(mapType==='playable'?{playableSpace,parentPlayableMapId}: {})});
 export const createStarterMap=()=>createMap('playable');
 
 export function resizeMapDocument(document: MapDocument, width: number, height: number): MapDocument {
