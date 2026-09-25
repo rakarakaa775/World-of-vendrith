@@ -1402,3 +1402,162 @@ No source is promoted to 🟢 verified Vendrith provenance from source-page evid
 16. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Source audit continuation: 10_CASTLES — deep medieval-fantasy pass
+
+10_CASTLES is reserved for a recognizable castle/keep/citadel location or complete castle set piece used as a regional location. Generic walls, towers, gates, roofs, doors and modular construction pieces remain BUILDING/Architecture unless the source/binary itself represents a complete castle location.
+
+### Audited source candidates
+
+**Castle Set — Nia Mi**
+- OpenGameArt source explicitly tags the set as castle/medieval and describes medieval flags, tower and gate.
+- License: **CC0**.
+- Candidate role: **10_CASTLES** only when used as a recognizable castle location/assembly; individual wall/tower/gate components can remain BUILDING/Architecture or support 11_FORTIFICATIONS depending on actual assembly.
+- File listed by source: Castle Set.7z.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search0
+
+**Medieval Castle (Lvl 2) — City Building Game Art**
+- OpenGameArt describes a miniature medieval fortress with surrounding wall and waving flags and provides PNG plus Blender source.
+- License: **CC0**.
+- Strong candidate for **10_CASTLES** because the source explicitly presents it as a complete miniature castle/fortress set piece rather than only reusable wall pieces.
+- File listed by source: Medieval_Castle_Level02_sprites and source.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search12
+
+**Medieval Castles & Tiles — Sam**
+- OpenGameArt describes a 3D medieval castle set intended to build a castle.
+- License: **CC0**.
+- Candidate for 10_CASTLES only when the actual Vendrith use is a complete castle assembly; modular pieces alone should remain in Building/Architecture or Fortifications according to role.
+- File listed by source: Medieval Castles & Tiles.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search6
+
+**Castle / Dungeon — Gary Shaw**
+- OpenGameArt describes a 325-tile castle/dungeon set with walls, floors, doors, stairs, decorative pieces and other dungeon elements.
+- License: **CC-BY 4.0**.
+- Because it is primarily a modular tileset rather than a complete regional castle location, it is a conditional 10_CASTLES source; generic construction pieces should not be promoted to REGION automatically.
+- Credit to Gary Shaw is required when matched and used under the source terms.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search2
+
+**Castle / Dungeon 2 — Gary Shaw**
+- Second castle/dungeon tileset with the same general role and **CC-BY 4.0** license.
+- Candidate only where a complete castle/location assembly is actually represented; individual generic tiles remain outside REGION.
+- File listed by source: castle-dungeon2_tiles.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search7
+
+**pixel art castle tileset — rubberduck**
+- OpenGameArt source is a CC0 castle tileset containing walls, brick/stone pieces, pillars, gates, doors, windows, flags and decorative parts.
+- This is primarily a modular construction source, not automatically a complete castle location.
+- Candidate support: BUILDING/Architecture and, when assembled as defensive regional infrastructure, 11_FORTIFICATIONS; only a verified complete castle assembly belongs directly in 10_CASTLES.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search4turn0search11
+
+**OPP2017 - Castle tiles — Hapiel / Open Pixel Project**
+- OpenGameArt describes more than 400 32x32 castle tiles including floors, walls, waterfall, doors, windows and stairs.
+- Licenses listed: **CC-BY 3.0, CC-BY-SA 3.0 and GPL 3.0**; the page also describes the project as public-domain/free to use, so the exact applicable license for a matched asset must be preserved from the package/source metadata.
+- Primarily a modular castle construction source. Do not promote the entire package as a 10_CASTLES binary without a recognizable castle assembly.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search9
+
+**Castle Platformer 32x Tileset — Vicplay**
+- Medieval castle-themed 32x32 tileset, **CC0**, with inner decoration objects.
+- Primarily platformer construction tiles rather than a regional castle location; therefore conditional support only.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search10turn0search15
+
+**CastleTileset — Duasun**
+- 16x16 roguelike castle tileset in multiple visual variants.
+- License: **CC0**.
+- Primarily modular castle tiles; candidate support for castle construction but not automatically 10_CASTLES.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search3
+
+**WhiteFort castle set — destinedtodie**
+- 3D castle construction set containing gate, walls, towers, doors, stairs and a main building.
+- License: **CC-BY 3.0**.
+- Strong castle/fortification source, but the repository binary and exact source package would still need matching before classification.
+- Credit to destinedtodie is required under CC-BY when used.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search21
+
+### Castle classification rules
+
+| Asset/source result | Classification |
+|---|---|
+| Complete recognizable medieval/fantasy castle location/set piece | **10_CASTLES** |
+| Keep/citadel represented as a complete regional location | **10_CASTLES** |
+| Generic castle wall/tower/gate kit | **BUILDING / Architecture** |
+| Defensive wall/tower/gate system used as fortification | **11_FORTIFICATIONS** |
+| Ruined castle/keep whose primary role is ruin | **12_RUINS** |
+| Castle interior rooms/dungeon interiors | **INTERIOR** |
+| Decorative flags, barrels, statues, torches etc. as standalone scenery | **15_REGION_PROPS** |
+| Interactive gate/chest/lever/door etc. | **PLAYABLE** by gameplay function |
+| Modern/contemporary/industrial castle-like architecture | **EXCLUDED** |
+
+### Castle vs fortification boundary
+
+The distinction is based on regional location role:
+
+- **10_CASTLES** = a recognizable castle/keep/citadel destination or complete castle location.
+- **11_FORTIFICATIONS** = defensive infrastructure whose primary purpose is walls, towers, gates, ramparts, bastions, defensive lines or military perimeter systems.
+- A castle may contain fortifications, but a reusable wall/tower kit does not become a castle merely because it can be assembled into one.
+- A ruined castle is classified under **12_RUINS** when the ruin state is the defining regional role.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Medieval stone/wood castles
+- Keeps, citadels and royal fortresses compatible with medieval technology
+- Fantasy castles with medieval-compatible architecture
+- Defensive castle locations with towers, gates, walls and courtyards
+
+Excluded:
+- Modern military bases
+- Contemporary government compounds
+- Industrial/security complexes
+- Sci-fi/futuristic fortresses
+- Modern concrete megastructures whose visual language breaks the setting
+
+### Binary verification checkpoint
+
+Repository code search was performed for the principal source package/file fingerprints reviewed in this pass, including:
+
+- Medieval_Castle_Level02_sprites
+- Castle Set.7z
+- castle_tileset_part1.png
+- RoguelikeCastle.png
+- opp5_castle_tiles.zip
+- WhiteFort.7z
+- Medieval Castles & Tiles.zip
+
+No indexed repository result established an exact Vendrith binary match.
+
+**Important:** this is not proof that these binaries are absent from the project. The repository contains binary/archive material that is not fully exposed by text/code search. Therefore these remain **⚠️ source-researched / binary-unverified**, not 🟢 and not 🔴.
+
+### Provenance decision
+
+No castle source is promoted to verified Vendrith provenance from source-page evidence alone. Promotion still requires:
+
+1. actual repository/archive path;
+2. exact binary/content match;
+3. source/package provenance;
+4. creator and license;
+5. attribution and additional conditions;
+6. SHA-256 of the actual Vendrith binary when accessible.
+
+**Current status: 10_CASTLES = ⚠️ source-researched / binary-unverified.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — source research completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. CITIES — source research completed; binary matching pending
+11. CASTLES — source research completed; binary matching pending
+12. FORTIFICATIONS — next source-audit target
+13. RUINS
+14. FARMS
+15. CAMPS
+16. REGION_PROPS — source research/deep classification completed; binary matching pending
+
+**Generic buildings remain excluded from this audit.**
