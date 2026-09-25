@@ -67,7 +67,7 @@ export function registryRowToMapAsset(row: RegistryRow): MapAssetDefinition | nu
     family: semantic.family,
     levels: semantic.levels,
     assetPath: row.asset_path ?? undefined,
-    previewUrl: assetStorageUrl(row.preview_path || row.asset_path || ""),
+    previewUrl: assetStorageUrl(row.preview_path || row.asset_path || "") ?? undefined,
   };
 }
 
