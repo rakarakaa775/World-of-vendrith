@@ -1,0 +1,61 @@
+name: Inspect Vandrith asset archive
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip'
+      - '.github/workflows/inspect-vandrith-archive.yml'
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inspect archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip"
+          test -f "$ARCHIVE"
+          echo "ARCHIVE_SIZE=$(stat -c%s "$ARCHIVE")"
+          echo "ARCHIVE_SHA256=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"
+          echo "ZIP_ENTRIES=$(unzip -Z1 "$ARCHIVE" | wc -l)"
+
+          mkdir -p /tmp/vandrith_archive
+          unzip -q "$ARCHIVE" -d /tmp/vandrith_archive
+
+          find /tmp/vandrith_archive -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/vandrith-member-sha256.txt
+
+          echo "=== REGION-RELEVANT MEMBERS ==="
+          grep -Ei '(^|/)(road|roads|path|paths|bridge|bridges|dock|docks|port|ports|ship|ships|village|villages|town|towns|city|cities|castle|castles|fort|fortification|ruin|ruins|farm|farms|camp|camps|region_prop|region-prop|regionprops)(/|$)|lpc|medieval|cobble|windmill|water.?wheel|granary|apiary|tent|campfire' /tmp/vandrith-member-sha256.txt || true
+
+          echo "=== SOURCE FINGERPRINTS ==="
+          for p in \
+            'lpc-farm.zip' 'kenney_isometricminiaturefarm.zip' 'farm_tiles.png' 'tileset_farm.png' \
+            'props_tilesets.zip' 'props_tilesets_source.zip' 'Tent.png' 'idylwilds_chromatic_campfires.zip' \
+            'ship.png' 'lpc-ship.zip' 'Black Sail.zip' 'ship2.obj' 'medievalboatexport.blend' \
+            'old_ruins_tileset.zip' 'broken_tower.zip' 'myth.png' 'ancient_ruins_pixel_art.zip' \
+            'Medieval_CityBridge+Gate_sprites and source.zip' 'Castle Set.7z' 'fortress.svg'
+          do
+            echo "--- $p"
+            grep -F "$p" /tmp/vandrith-member-sha256.txt || true
+          done
+
+          echo "=== REGION DIRECTORY SUMMARY ==="
+          find /tmp/vandrith_archive -type f | grep -Ei '/(region|roads|paths|bridges|docks|ports|ships|villages|towns|cities|castles|fortifications|ruins|farms|camps|props)/' | sed 's#^/tmp/vandrith_archive/##' | head -n 500 || true
+
+          cp /tmp/vandrith-member-sha256.txt archive-member-sha256.txt
+          unzip -Z1 "$ARCHIVE" | sort > archive-member-list.txt
+
+      - name: Upload inspection manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: vandrith-region-binary-inspection
+          path: |
+            archive-member-sha256.txt
+            archive-member-list.txt
+          retention-days: 7
