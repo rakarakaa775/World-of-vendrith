@@ -1,12 +1,25 @@
 # REGION Asset Audit
 
-Status: **STRUCTURE DEFINED / PROVENANCE AUDIT PENDING BINARY VERIFICATION**
+Status: **STRUCTURE DEFINED / REGION-ONLY PROVENANCE AUDIT IN PROGRESS**
 
 ## Purpose
 
-REGION contains the physical, exterior, man-made geography and static locations that define a region of Vandrith World.
+REGION is the map-role layer for **exterior regional geography and locations**. This audit is intentionally limited to assets whose role is a REGION element.
 
-REGION is not the place for natural terrain, living entities, or gameplay-interactive assets.
+**Important scope rule: REGION is not the generic Building/Architecture library.**
+
+For this audit, standalone buildings, house kits, interior/building construction pieces, furniture, roofs, walls, doors/windows, and other generic building assets are **not promoted simply because they can appear in a region**. They stay in their canonical asset storage/category unless a future map-placement record explicitly identifies them as part of a REGION location.
+
+The current audit starts with:
+- Roads
+- Paths
+- Bridges
+- Docks
+- Ports
+- Static ships/boats
+- Regional infrastructure
+- Static exterior regional locations
+- Region props
 
 ## Canonical structure
 
@@ -29,127 +42,87 @@ REGION is not the place for natural terrain, living entities, or gameplay-intera
 └── 15_REGION_PROPS
 ```
 
-## Classification rule
+## REGION vs generic BUILDING
 
-The primary question is **what the asset represents in the world and whether the player can use it**.
+A building can physically exist inside a region, but that does **not** automatically make the asset a REGION asset.
 
 ### REGION
 
-Use REGION when an asset is a static exterior structure/location that forms the physical environment of a region.
-
+Use REGION for the regional/world-map role:
 - Roads
 - Paths
 - Bridges
 - Docks
 - Ports
 - Static ships/boats used as scenery
-- Villages
-- Towns
-- Cities
-- Castles
-- Fortifications
-- Ruins
-- Farms as static locations
-- Camps as static locations
-- Decorative regional props
+- Settlement/location assemblies when treated as a regional location
+- Fortifications and ruins as regional locations
+- Farms/camps as regional locations
+- Regional infrastructure and decorative props
 
-### PLAYABLE
+### NOT promoted as REGION just because it is a building
 
-Move an asset to PLAYABLE when it has direct gameplay interaction or use.
+Do not classify these as REGION assets during this audit:
+- Generic house/building tiles
+- Building wall kits
+- Roof kits
+- Windows and doors
+- Interior building tiles
+- Furniture
+- Generic architecture packs
+- Building construction components
 
-Examples:
+Those remain in their canonical asset libraries. If a future map document uses them to instantiate a specific village/town/city/castle, the **map placement/instance** can belong to REGION without duplicating the source binary.
 
-| Asset | Static/scenery | Interactive/gameplay |
+## Static vs gameplay boundary
+
+The primary question is also whether the asset is directly usable by the player.
+
+| Asset | REGION role | Gameplay role |
 |---|---|---|
-| Ship | REGION/06_SHIPS | PLAYABLE/07_VEHICLES |
-| Cannon | REGION/15_REGION_PROPS | PLAYABLE |
-| Ballista | REGION/15_REGION_PROPS | PLAYABLE |
-| Catapult | REGION/15_REGION_PROPS | PLAYABLE |
+| Ship/boat | Static scenery → REGION/06_SHIPS | Controllable → PLAYABLE/07_VEHICLES |
+| Cannon | Decorative/static → REGION/15_REGION_PROPS | Usable → PLAYABLE |
+| Ballista | Decorative/static → REGION/15_REGION_PROPS | Usable → PLAYABLE |
+| Catapult | Decorative/static → REGION/15_REGION_PROPS | Usable → PLAYABLE |
 | Mine-cart track | REGION/01_ROADS or 02_PATHS | — |
 | Mine cart | — | PLAYABLE/07_VEHICLES |
 | Barrel | REGION/15_REGION_PROPS | PLAYABLE/06_GAMEPLAY_PROPS |
 | Sign | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 | Well/fountain | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
-| Camp object | REGION/14_CAMPS | PLAYABLE when usable |
-| Farm object | REGION/13_FARMS | PLAYABLE when harvestable/usable |
 
 A visual duplicate may legitimately exist in both categories when one version is scenery and another is interactive.
 
-## Boundary with WORLD
+## Source candidates verified for REGION research
 
-WORLD is natural environment only.
+The following are **source candidates**, not binary-approved assets. A source page alone does not prove that a repository binary came from that source.
 
-Move these to REGION:
-- Bridges
-- Docks
-- Ports
-- Ships
-- Roads
-- Villages
-- Towns
-- Cities
-- Castles
-- Fortifications
-- Ruins
-- Farms
-- Camps
-- Other man-made structures
+### Bridges
 
-Keep these in WORLD:
-- Ground
-- Water
-- Mountains
-- Hills
-- Cliffs
-- Natural rock formations
-- Forest
-- Jungle
-- Desert
-- Swamp
-- Snow/ice biomes
+| Source candidate | REGION category | Source evidence | License / credit | Binary status |
+|---|---|---|---|---|
+| LPC Wooden Bridge Rework | 03_BRIDGES | OpenGameArt source identified | CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0; credit Xenodora | ⚠️ binary not individually verified |
+| Stone Bridge tiles 32x32 | 03_BRIDGES | OpenGameArt source identified | CC-BY 3.0; attribution: Tuomo Untinen | ⚠️ binary not individually verified |
+| LPC style wood bridges and steel flooring | 03_BRIDGES | OpenGameArt collection/source identified | Source-specific attribution must be retained | ⚠️ binary not individually verified |
 
-## Boundary with LIFE_GENERATION
+### Docks / Ports
 
-People, animals, monsters, NPCs, enemies and other living entities are not REGION assets. Their generation belongs to LIFE_GENERATION and SPAWN_LIFE.
+| Source candidate | REGION category | Source evidence | License / credit | Binary status |
+|---|---|---|---|---|
+| Dock tileset | 04_DOCKS | OpenGameArt LPC collections identify the source | Must verify source page/package before approval | ⚠️ binary not individually verified |
 
-A village or town building remains REGION; the villagers themselves are LIFE_GENERATION.
+### Ships
 
-## Boundary with INTERIOR
+| Source candidate | REGION category | Source evidence | License / credit | Binary status |
+|---|---|---|---|---|
+| LPC Wooden ship tiles | 06_SHIPS when used as static scenery | OpenGameArt LPC collections identify the source | Must verify exact source page/package before approval | ⚠️ binary not individually verified |
+| LPC Ship | 06_SHIPS when used as static scenery | OpenGameArt LPC collections identify the source | Must verify exact source page/package before approval | ⚠️ binary not individually verified |
+| LPC Misc tile atlas — boat/bridge elements | 06_SHIPS / 03_BRIDGES depending element | OpenGameArt source identifies derivative work | CC-BY-SA 3.0 / GPL 3.0; derivative attribution includes Sharm, Janna, Tuomo Untinen, Casper Nilsson, Barbara Rivera and Daneeklu | ⚠️ binary not individually verified |
 
-REGION stores the exterior location/structure.
+## Provenance rule
 
-INTERIOR stores the inside environment:
-- Interior floors
-- Interior walls
-- Ceilings
-- Furniture
-- Interior lighting
-- Kitchens
-- Shops
-- Taverns
-- Castles/dungeons interiors
+No binary asset is promoted to verified license/credit status solely because its filename or visual appearance resembles a known source.
 
-A castle exterior belongs REGION/10_CASTLES; its interior belongs INTERIOR/12_CASTLE.
-
-## Boundary with vehicles and weapons
-
-The repository already separates vehicle and weapon asset storage. Vehicle documentation explicitly includes carts and ships, while weapon documentation covers weapons, shields and weapon-related sprites. Therefore REGION may reference static scenery variants, but reusable/controllable vehicle and weapon assets remain in their dedicated gameplay asset systems.
-
-## Current repository evidence
-
-The current World-of-vendrith repository has dedicated top-level storage for:
-- `assets/objects` — general world props, buildings, furniture, structures and interactable object visuals.
-- `assets/vehicles` — carts, ships and other approved vehicle visuals.
-- `assets/weapons` — weapons, shields and weapon-related sprites; license/attribution records are mandatory.
-- `assets/environment` — terrain, vegetation, water, structures, climate/environment and world scenery.
-
-The REGION audit therefore acts as the **map-role classification layer**. It does not duplicate binaries merely to create a second copy of an asset. The same source asset should have one canonical storage location where possible, with map-role metadata/reference indicating that it is valid for REGION.
-
-## Provenance status
-
-No binary asset is promoted to a verified license/credit status solely because its filename or visual appearance resembles a known source.
-
-For each candidate asset, verification should record:
+For every candidate we must record:
 1. Repository/source path
 2. Filename
 3. Asset type
@@ -164,23 +137,31 @@ For each candidate asset, verification should record:
 
 Unknown provenance remains **⚠️ pending review**.
 
-## Audit workflow
+## Current audit order
 
-1. Inventory candidate exterior/man-made assets.
-2. Classify by REGION category.
-3. Check whether the asset is static or gameplay-interactive.
-4. Cross-check source package, README and metadata.
-5. Verify external source/license/credit where required.
-6. Record exact binary identity when available.
-7. Keep unresolved candidates pending.
-8. Only then promote the asset into an approved map library.
+1. BRIDGES
+2. DOCKS
+3. PORTS
+4. SHIPS
+5. ROADS / PATHS
+6. Regional infrastructure
+7. Static regional locations
+8. REGION_PROPS
+
+Generic buildings are excluded from this pass.
 
 ## Important rule
 
-**REGION is about the role of an asset in the exterior world, not about the asset's filename or visual style.**
+**REGION is about the role of an asset in the exterior world, not about its filename, visual style, or the fact that it could be placed near a building.**
 
-A ship that cannot be controlled is scenery; a controllable ship is gameplay.
+A building tile is not automatically a REGION asset.
 
-A barrel that only decorates a town is scenery; a lootable barrel is gameplay.
+A static bridge is REGION.
 
-A sign that is purely decorative is scenery; a readable/interactable sign is gameplay.
+A static dock is REGION.
+
+A static ship used as scenery is REGION.
+
+A controllable ship is PLAYABLE/VEHICLES.
+
+A generic house/building kit remains in the building/architecture asset library until it is instantiated as part of a specific regional location.
