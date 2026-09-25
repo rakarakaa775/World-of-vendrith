@@ -1,10 +1,10 @@
 ---
-applyTo: "**/*,.github/**/*,.gitignore"
+applyTo: ".github/**/*,.gitignore,**/package.json,**/pnpm-lock.yaml,**/package-lock.json,**/yarn.lock"
 ---
 
 # Vendrith Git and GitHub workflow instructions
 
-Before making repository-wide changes, inspect AGENTS.md, the relevant .github instructions, current branch, and existing CI status.
+Before making repository or workflow changes, inspect AGENTS.md, the relevant .github instructions, current branch, and existing CI status.
 
 ## Branch discipline
 - Work only on the requested feature/fix branch.
