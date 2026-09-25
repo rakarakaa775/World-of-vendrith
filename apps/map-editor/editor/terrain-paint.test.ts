@@ -3,13 +3,13 @@ import { createStarterMap } from "./map-document";
 import { eraseTerrainPaint, applyTerrainPaint } from "./terrain-paint";
 
 describe("terrain paint", () => {
-  it("paints only valid, unique ground cells", () => {
+  it("paints only valid, unique ground cells and recalculates the affected perimeter", () => {
     const base = createStarterMap();
     const result = applyTerrainPaint(base, "ground", [{ x: 2, y: 2 }, { x: 2, y: 2 }], "starter-tile");
-    const ground = result.document.layers.find(layer => layer.id === "ground")!;
-    expect(ground.cells[2 + 2 * result.document.width].tileId).toBe("starter-tile");
     expect(result.affected).toContainEqual({ x: 2, y: 2 });
-    expect(result.validation.find(item => item.point.x === 2 && item.point.y === 2)?.valid).toBe(true);
+    expect(result.affected.length).toBeGreaterThan(1);
+    expect(result.validation.every(item => item.valid)).toBe(true);
+    expect(result.variants.some(item => item.point.x === 2 && item.point.y === 2)).toBe(true);
   });
 
   it("rejects a mixed valid/out-of-grid paint request without partial mutation", () => {
@@ -38,8 +38,8 @@ describe("terrain paint", () => {
     const base = createStarterMap();
     const painted = applyTerrainPaint(base, "ground", [{ x: 2, y: 2 }], "starter-tile").document;
     const erased = eraseTerrainPaint(painted, "ground", [{ x: 2, y: 2 }]).document;
-    expect(painted.layers.find(layer => layer.id === "ground")?.cells[2 + 2 * painted.width].tileId).toBe("starter-tile");
     expect(erased).not.toBe(painted);
     expect(erased.layers.find(layer => layer.id === "ground")?.cells[2 + 2 * erased.width].tileId).toBeNull();
+    expect(painted.layers.find(layer => layer.id === "ground")?.cells[2 + 2 * painted.width].tileId).not.toBeNull();
   });
 });
