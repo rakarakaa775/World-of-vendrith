@@ -17,7 +17,9 @@ const worldDocument = {
 
 const clientFor = (row: Record<string, unknown>, snapshot: unknown, access = true) => ({
   rpc: vi.fn(async (name: string) => {
-    if (name === 'map_editor_resolve_identity_v1') return { data: [{ editor_map_id: row.id || 'world-1', legacy_map_id: row.id || 'world-1', world_id: row.world_id ?? 'world-id', map_type: row.map_type ?? 'world', parent_editor_map_id: null, created_by: 'owner-1' }], error: null };
+    if (name === 'map_editor_resolve_identity_v1') return access
+      ? { data: [{ editor_map_id: row.id || 'world-1', legacy_map_id: row.id || 'world-1', world_id: row.world_id ?? 'world-id', map_type: row.map_type ?? 'world', parent_editor_map_id: null, created_by: 'owner-1' }], error: null }
+      : { data: null, error: { message: 'map not found or not accessible' } };
     if (name === 'map_editor_can_access_v1') return { data: access, error: null };
     if (name === 'map_editor_bootstrap_world_identity_v1') return { data: [{ editor_map_id: 'world-1', legacy_map_id: 'world-1', world_id: 'world-id', map_type: 'world', parent_editor_map_id: null, created_by: 'owner-1' }], error: null };
     if (name === 'map_editor_load_identity_snapshot_v1') return { data: { ok: true, snapshot, version_number: 12 }, error: null };
@@ -33,9 +35,9 @@ const clientFor = (row: Record<string, unknown>, snapshot: unknown, access = tru
 }) as never;
 
 describe('authoritative map resolution', () => {
-  it('requires an accessible map before reading its snapshot', async () => {
+  it('requires an accessible identity before reading its snapshot', async () => {
     await expect(resolveAuthoritativeMap(clientFor({}, worldDocument, false), 'world-1'))
-      .rejects.toThrow('MAP_ACCESS_ERROR');
+      .rejects.toThrow('MAP_IDENTITY_ERROR');
   });
 
   it('resolves the authoritative world row and version', async () => {
