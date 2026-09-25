@@ -4,7 +4,27 @@ export type AssetRecord = {
   status?: string | null;
   tile_width?: number | null;
   tile_height?: number | null;
+  license?: {
+    verification_status?: string | null;
+    usage_status?: string | null;
+    commercial_use_allowed?: boolean | null;
+    modification_allowed?: boolean | null;
+    redistribution_allowed?: boolean | null;
+  } | null;
 };
+
+export function isRuntimeAssetUsable(asset: AssetRecord | null | undefined): boolean {
+  if (!asset?.asset_path) return false;
+  const status = String(asset.status ?? '').toLowerCase();
+  if (status && !['approved', 'verified', 'active'].includes(status)) return false;
+  const license = asset.license;
+  if (!license) return false;
+  return license.verification_status === 'verified'
+    && (license.usage_status === 'allowed' || license.usage_status === 'credit_required')
+    && license.commercial_use_allowed === true
+    && license.modification_allowed === true
+    && license.redistribution_allowed === true;
+}
 
 const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
 const ASSET_LIBRARY_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main';
@@ -47,8 +67,7 @@ export function assetRawUrl(assetPath: string): string | null { return assetStor
 
 export function resolveAssetUrl(asset: AssetRecord | null | undefined): string | null {
   if (!asset?.asset_path) return null;
-  const status = String(asset.status ?? '').toLowerCase();
-  if (status && !['approved', 'verified', 'active'].includes(status)) return null;
+  if (!isRuntimeAssetUsable(asset)) return null;
   return assetStorageUrl(asset.asset_path);
 }
 
@@ -63,7 +82,7 @@ export function clearAssetRecordCache(): void { assetCache.clear(); }
 
 export async function resolveAssetRecord(client: any, assetId: string): Promise<AssetRecord | null> {
   if (assetCache.has(assetId)) return assetCache.get(assetId) ?? null;
-  const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height').eq('id', assetId).maybeSingle();
+  const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height,license:license_registry_id(verification_status,usage_status,commercial_use_allowed,modification_allowed,redistribution_allowed)').eq('id', assetId).maybeSingle();
   if (error) throw error;
   if (!data) { assetCache.set(assetId, null); return null; }
   return cacheAssetRecord(data as AssetRecord);
