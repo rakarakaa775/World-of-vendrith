@@ -193,6 +193,8 @@ export function PixiMapCanvas(props: Props) {
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
+          const fallbackGraphics = new Graphics();
+          const fallbackAlpha = layer.kind === "collision" ? 0.35 : 1;
           for (let i = 0; i < document.width * document.height; i++) {
             const id = layer.cells[i]?.tileId;
             if (!id) continue;
@@ -214,18 +216,21 @@ export function PixiMapCanvas(props: Props) {
                 sprite.y = y * document.tileSize;
                 sprite.width = document.tileSize;
                 sprite.height = document.tileSize;
-                sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
+                sprite.alpha = fallbackAlpha;
                 world.addChild(sprite);
                 renderedTexture = true;
               }
             }
             if (!renderedTexture) {
-              const g = new Graphics();
-              g.rect(x * document.tileSize + 2, y * document.tileSize + 2, document.tileSize - 4, document.tileSize - 4)
-                .fill({ color: colorForTile(id), alpha: layer.kind === "collision" ? 0.35 : 1 });
-              world.addChild(g);
+              fallbackGraphics.rect(
+                x * document.tileSize + 2,
+                y * document.tileSize + 2,
+                document.tileSize - 4,
+                document.tileSize - 4,
+              ).fill({ color: colorForTile(id), alpha: fallbackAlpha });
             }
           }
+          if (fallbackGraphics.geometry) world.addChild(fallbackGraphics);
         } else {
           for (const o of layer.objects) {
             const g = new Graphics();
