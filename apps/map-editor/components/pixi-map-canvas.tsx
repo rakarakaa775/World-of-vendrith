@@ -611,13 +611,14 @@ export function PixiMapCanvas(props: Props) {
           current.onObjectSelectionChange(ids);
         } else {
           const object = hit(p);
-          if (object) current.onObjectSelectionChange(e.shiftKey ? (current.selectedObjectIds.includes(object.id) ? current.selectedObjectIds.filter(id => id !== object.id) : [...current.selectedObjectIds, object.id]) : [object.id]);
+          if (object) { if (e.detail === 2 && current.onOpenMapTarget) void current.onOpenMapTarget(object); current.onObjectSelectionChange(e.shiftKey ? (current.selectedObjectIds.includes(object.id) ? current.selectedObjectIds.filter(id => id !== object.id) : [...current.selectedObjectIds, object.id]) : [object.id]); }
           else if (!e.shiftKey) current.onObjectSelectionChange([]);
         }
       } else if (current.activeTool === "Select" && !selectDragged && !movingObjectId) {
         const object = hit(p);
         current.onSelectionChange(object ? normalizeSelection({x: object.x, y: object.y}, {x: object.x + object.width - 1, y: object.y + object.height - 1}) : null);
         if (object) {
+          if (e.detail === 2 && current.onOpenMapTarget) void current.onOpenMapTarget(object);
           const ids = current.selectedObjectIds.includes(object.id)
             ? (e.shiftKey ? current.selectedObjectIds.filter(id => id !== object.id) : current.selectedObjectIds)
             : (e.shiftKey ? [...current.selectedObjectIds, object.id] : [object.id]);
