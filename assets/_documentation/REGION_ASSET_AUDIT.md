@@ -8,7 +8,7 @@ REGION is the map-role layer for **exterior regional geography and locations**. 
 
 **Important scope rule: REGION is not the generic Building/Architecture library.**
 
-For this audit, standalone buildings, house kits, interior/building construction pieces, furniture, roofs, walls, doors/windows, and other generic building assets are **not promoted simply because they can appear in a region**. They stay in their canonical asset storage/category unless a future map-placement record explicitly identifies them as part of a REGION location.
+Standalone buildings, house kits, walls, roofs, doors/windows, furniture, interior construction pieces, and generic architecture packs are not promoted merely because they can appear inside a region. They remain in their canonical asset libraries; a future REGION map may reference their placement as part of a specific location without duplicating the binaries.
 
 ## Canonical structure
 
@@ -33,7 +33,7 @@ For this audit, standalone buildings, house kits, interior/building construction
 
 ## REGION vs generic BUILDING
 
-A building can physically exist inside a region, but that does **not** automatically make the asset a REGION asset.
+A building can physically exist inside a region, but that does **not** automatically make its source binary a REGION asset.
 
 ### REGION
 
@@ -44,14 +44,14 @@ Use REGION for the regional/world-map role:
 - Docks
 - Ports
 - Static ships/boats used as scenery
-- Settlement/location assemblies when treated as a regional location
+- Settlement/location assemblies when treated as regional locations
 - Fortifications and ruins as regional locations
 - Farms/camps as regional locations
 - Regional infrastructure and decorative props
 
 ### NOT promoted as REGION just because it is a building
 
-Do not classify these as REGION assets during this audit:
+Do not classify these as REGION binaries during this audit:
 - Generic house/building tiles
 - Building wall kits
 - Roof kits
@@ -60,8 +60,6 @@ Do not classify these as REGION assets during this audit:
 - Furniture
 - Generic architecture packs
 - Building construction components
-
-Those remain in their canonical asset libraries. If a future map document uses them to instantiate a specific village/town/city/castle, the **map placement/instance** can belong to REGION without duplicating the source binary.
 
 ## Static vs gameplay boundary
 
@@ -77,75 +75,112 @@ Those remain in their canonical asset libraries. If a future map document uses t
 | Sign | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 | Well/fountain | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 
-## Source research: first REGION pass
+## Source research: BRIDGES / DOCKS / PORTS / SHIPS
 
 These are **source candidates**, not binary-approved assets. A source page alone does not prove that a repository binary came from that source.
 
 ### 03_BRIDGES
 
 **LPC Wooden Bridge Rework**
-- OpenGameArt author: AntumDeluge.
-- The page states the tileset was originally by Xenodora and reworked as a drop-in replacement.
-- Licenses: CC-BY-SA 3.0, GPL 3.0, GPL 2.0.
-- Attribution instruction: credit Xenodora; the page says AntumDeluge's current changes are CC0.
-- REGION role: **03_BRIDGES**.
-- Binary status: ⚠️ not individually verified against our asset library. citeturn0search0
+- OpenGameArt source identified.
+- REGION role: 03_BRIDGES.
+- Source licenses: CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0.
+- Attribution: Xenodora; the rework page also identifies AntumDeluge's current changes as CC0.
+- Binary status: ⚠️ not individually verified.
 
 **LPC style wood bridges and steel flooring**
-- OpenGameArt author: Xenodora.
-- Wood bridge and steel-flooring tiles are designed for bridges/walkways.
-- Licenses: CC-BY-SA 3.0, GPL 3.0, GPL 2.0.
-- Attribution instruction: credit Xenodora.
-- REGION role: **03_BRIDGES** for bridge pieces; steel flooring only belongs here when actually used as regional bridge/walkway infrastructure.
-- Binary status: ⚠️ not individually verified. citeturn0search11
+- OpenGameArt source identified.
+- REGION role: 03_BRIDGES when the element is bridge/walkway infrastructure.
+- Source licenses: CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0.
+- Attribution: Xenodora.
+- Binary status: ⚠️ not individually verified.
 
 **Stone Bridge tiles 32x32**
-- Identified as a separate bridge source in OpenGameArt's LPC outdoor collections.
-- REGION role: **03_BRIDGES**.
-- Binary status: ⚠️ not individually verified. citeturn0search3
+- Identified in LPC collections as a bridge source.
+- REGION role: 03_BRIDGES.
+- Binary status: ⚠️ source/binary identity not individually verified.
 
 ### 04_DOCKS
 
 **Dock tileset**
-- OpenGameArt author: Reid.
-- Asset: `Artis_dock.png`.
-- License: CC-BY-SA 3.0.
-- REGION role: **04_DOCKS**.
-- This is a dock/infrastructure asset, not a generic building asset.
-- Binary status: ⚠️ not individually verified against our library. citeturn1search0
+- OpenGameArt source identified.
+- REGION role: 04_DOCKS.
+- The source is a dock/infrastructure asset, not a generic building.
+- Binary status: ⚠️ source/binary identity not individually verified.
 
 ### 05_PORTS
 
-No binary-approved PORT asset yet.
+No asset is promoted yet.
 
-A port should only be promoted when we have evidence that the asset represents **port infrastructure/location**, rather than merely a dock, ship, water tile, or generic building.
+A port must represent a broader **port infrastructure/location**, not merely a dock, ship, water tile, or generic building.
 
-Status: ⚠️ pending binary/source matching.
+Status: ⚠️ pending.
 
 ### 06_SHIPS
 
 **LPC Wooden ship tiles**
-- OpenGameArt author page: Reemax.
-- The page states the ship tiles themselves were made by Tuomo Untinen.
-- Licenses: CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0, GPL 2.0.
-- Attribution notice: “Wooden ship tiles by Tuomo Untinen.”
-- REGION role: **06_SHIPS only when used as static exterior scenery**.
-- Important: the page explicitly distinguishes the ship tiles from LPC water in the preview; RPG Maker sails shown in a later discussion are not automatically usable under the ship license.
-- Binary status: ⚠️ not individually verified against our library. citeturn0search7turn0search10
+- OpenGameArt source identified.
+- Ship tiles are attributed to Tuomo Untinen.
+- Licenses listed on the source include CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0 and GPL 2.0.
+- REGION role: 06_SHIPS only when used as static exterior scenery.
+- Controllable/usable ship → PLAYABLE/VEHICLES.
+- Binary status: ⚠️ not individually verified.
 
 **LPC Ship**
-- Identified in OpenGameArt LPC collections.
-- REGION role: **06_SHIPS only if the instance is static scenery**.
-- If controllable/usable, it belongs to the vehicle/gameplay system instead.
-- Binary/source identity: ⚠️ exact source package and binary not yet verified. citeturn0search5
+- Identified in LPC collections.
+- REGION role: 06_SHIPS only when the instance is static scenery.
+- Exact source package and binary identity: ⚠️ pending.
+
+## Source research: ROADS / PATHS
+
+### 01_ROADS
+
+**[LPC] Streets**
+- OpenGameArt author: Baŝto.
+- The asset improves the streets from [LPC] Skorpio's SciFi Sprite Pack and includes separated streets, road markings, additional markings and street signs.
+- License: CC-BY-SA 3.0 / GPL 3.0.
+- Copyright/attribution notice states it is based on Skorpio's SciFi Sprite Pack, which is dual licensed CC-BY-SA 3.0 and GPL 3.0.
+- REGION role: **01_ROADS**.
+- Important: street/road tiles and road markings belong here; street signs are regional props unless they become interactive.
+- Binary status: ⚠️ not individually verified against the asset library.
+
+**LPC Modern Streets**
+- Identified as an LPC collection/source candidate.
+- REGION role: 01_ROADS when the asset represents exterior roadway infrastructure.
+- Binary/source identity: ⚠️ pending.
+
+### 02_PATHS
+
+**RPG Tiles: Cobble stone paths & town objects**
+- OpenGameArt source contains cobblestone paths and is licensed CC-BY-SA 3.0.
+- The source attributes the work to Zabin, Daneeklu, Jetrel, Hyptosis, Redshrike and Bertram and provides a credit instruction linking back to the source page.
+- REGION role: **02_PATHS** for the cobblestone path elements.
+- The same tileset contains town objects, dock and boat elements; those must be split by actual role rather than importing the whole atlas into PATHS.
+- Binary status: ⚠️ not individually verified.
+
+### Regional rail infrastructure
+
+**LPC Mine Carts and Tracks**
+- OpenGameArt author: Xenodora.
+- Licenses: CC-BY-SA 3.0, GPL 3.0 and GPL 2.0.
+- Attribution: credit Xenodora.
+- REGION role: **01_ROADS / 02_PATHS** for the static rail/track infrastructure.
+- Mine-cart itself is not REGION when usable; it belongs to the gameplay vehicle system.
+- Binary status: ⚠️ not individually verified.
+
+## Important classification rule for mixed tilesets
+
+A single source package may contain multiple REGION and non-REGION roles.
+
+Example: **RPG Tiles: Cobble stone paths & town objects** contains path, dock, boat and town-object material. We do not classify the entire package as PATHS. We split individual assets/elements by their actual world role. citeturn0search0
+
+Likewise, LPC collections contain streets, bridges, ships, buildings, interiors and other assets together. Collection membership is not sufficient evidence for REGION classification. citeturn0search1turn0search2
 
 ## Important exclusion: buildings
 
-The LPC collections contain many entries such as Colonial Buildings, Victorian Buildings, Adobe Town Set, castles, cottages and other architecture. Their appearance in an LPC outdoor collection does **not** make them REGION assets for this audit.
+The LPC collections contain Colonial Buildings, Victorian Buildings, Adobe Town Set, cottages, castles and many other architecture assets. Their presence in an outdoor/LPC collection does **not** make them REGION binaries.
 
-They remain outside the REGION binary library unless we are later recording a **specific regional location instance**. The REGION system should reference the placement of a settlement/location rather than duplicate every building binary.
-
-OpenGameArt's LPC collections themselves mix outdoor, indoor, building, furniture and other assets, which is another reason we must classify by role instead of collection membership. citeturn0search3turn1search8
+The REGION system should reference a specific settlement/location instance rather than duplicate every generic building binary.
 
 ## Provenance rule
 
@@ -172,12 +207,12 @@ Unknown provenance remains **⚠️ pending review**.
 2. DOCKS — source research completed; binary matching pending
 3. PORTS — pending
 4. SHIPS — source research started; binary matching pending
-5. ROADS / PATHS
+5. ROADS / PATHS — source research started; binary matching pending
 6. Regional infrastructure
 7. Static regional locations
 8. REGION_PROPS
 
-**Generic buildings are excluded from this pass.**
+**Generic buildings remain excluded from this audit.**
 
 ## Important rule
 
@@ -191,6 +226,10 @@ A static dock is REGION.
 
 A static ship used as scenery is REGION.
 
+A road/path is REGION.
+
 A controllable ship is PLAYABLE/VEHICLES.
+
+A mine cart is PLAYABLE/VEHICLES while its static track infrastructure is REGION.
 
 A generic house/building kit remains in the building/architecture asset library until it is instantiated as part of a specific regional location.
