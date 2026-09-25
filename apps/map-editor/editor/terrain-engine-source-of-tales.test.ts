@@ -62,8 +62,8 @@ describe('Source of Tales terrain adapter', () => {
     );
     expect(sourceOfTalesSandWaterTile(1, 'sand')).toEqual({
       kind: 'sandwater',
-      tileId: 5,
-      pattern: [1, 0, 0, 0],
+      tileId: 7,
+      pattern: [1, 1, 0, 0],
     });
     expect(sourceOfTalesSandWaterTile(1, 'water')).toEqual({
       kind: 'sandwater',
