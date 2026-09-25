@@ -67,6 +67,7 @@ export function PixiMapCanvas(props: Props) {
   const propsRef = useRef(props);
   const objectGraphicsRef = useRef(new Map<string, Graphics>());
   const previousDocumentRef = useRef<MapDocument | null>(null);
+  const terrainLayerContainersRef = useRef(new Map<string, Container>());
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   propsRef.current = props;
@@ -149,6 +150,83 @@ export function PixiMapCanvas(props: Props) {
       const previousDocument = previousDocumentRef.current;
       const diff = diffMapDocuments(previousDocument, document);
 
+      // Fast path for terrain-only edits. Rebuild only the affected terrain layers;
+      // the grid and object scene remain mounted, preserving viewport and objects.
+      if (previousDocument && !diff.dimensionsChanged && !diff.layerStructureChanged && diff.changedTerrainByLayer.length > 0 && !diff.objectLayerChanged) {
+        const client = createMapEditorSupabaseClient();
+        const changedLayerIds = new Set(diff.changedTerrainByLayer.map(layer => layer.layerId));
+        const textureRequests = new Set<string>();
+        for (const layerDiff of diff.changedTerrainByLayer) {
+          const layer = document.layers.find(item => item.id === layerDiff.layerId);
+          if (!layer || layer.kind === "objects") continue;
+          for (const point of layerDiff.changedCells) {
+            const id = layer.cells[point.y * document.width + point.x]?.tileId;
+            const terrain = terrainFromTileId(id ?? null);
+            if (!terrain) continue;
+            const mask = neighborMask(document, layer.id, point, terrain);
+            const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
+            if (binding) textureRequests.add(binding.assetId);
+          }
+        }
+        let assetRecords = new Map<string, any>();
+        if (client && textureRequests.size) {
+          try { assetRecords = await resolveAssetRecords(client, [...textureRequests]); }
+          catch (error) { console.warn("Map editor incremental asset metadata lookup failed", error); }
+        }
+        const loadedTextures = new Map<string, any>();
+        for (const assetId of textureRequests) {
+          const asset = assetRecords.get(assetId);
+          const url = asset ? resolveAssetUrl(asset) : null;
+          if (!url) continue;
+          const texture = await mapEditorTextureCache.load(url, Assets);
+          if (texture) loadedTextures.set(assetId, texture);
+          if (cancelled || worldRef.current !== world) return;
+        }
+        for (const layerId of changedLayerIds) {
+          const layer = document.layers.find(item => item.id === layerId);
+          if (!layer || layer.kind === "objects") continue;
+          const previousContainer = terrainLayerContainersRef.current.get(layerId);
+          previousContainer?.removeFromParent();
+          previousContainer?.destroy({ children: true });
+          const container = new Container();
+          container.visible = layer.visible;
+          terrainLayerContainersRef.current.set(layerId, container);
+          const fallbackGraphics = new Graphics();
+          const fallbackAlpha = layer.kind === "collision" ? 0.35 : 1;
+          for (let i = 0; i < document.width * document.height; i++) {
+            const id = layer.cells[i]?.tileId;
+            if (!id) continue;
+            const x = i % document.width;
+            const y = Math.floor(i / document.width);
+            const terrain = terrainFromTileId(id);
+            let renderedTexture = false;
+            if (layer.id === activeLayerId && terrain) {
+              const mask = neighborMask(document, layer.id, { x, y }, terrain);
+              const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
+              const asset = binding ? assetRecords.get(binding.assetId) : null;
+              const url = asset ? resolveAssetUrl(asset) : null;
+              let texture = binding ? loadedTextures.get(binding.assetId) : null;
+              if (!texture && url) texture = await mapEditorTextureCache.load(url, Assets);
+              if (texture) {
+                const sprite = new Sprite(texture);
+                sprite.x = x * document.tileSize;
+                sprite.y = y * document.tileSize;
+                sprite.width = document.tileSize;
+                sprite.height = document.tileSize;
+                sprite.alpha = fallbackAlpha;
+                container.addChild(sprite);
+                renderedTexture = true;
+              }
+            }
+            if (!renderedTexture) fallbackGraphics.rect(x * document.tileSize + 2, y * document.tileSize + 2, document.tileSize - 4, document.tileSize - 4).fill({ color: colorForTile(id), alpha: fallbackAlpha });
+          }
+          if (fallbackGraphics.geometry) container.addChild(fallbackGraphics);
+          world.addChildAt(container, 0);
+        }
+        previousDocumentRef.current = document;
+        return;
+      }
+
       // Fast path for object-only edits. Terrain/grid rendering stays intact while
       // moved, added, or removed objects are patched in place.
       if (previousDocument && !diff.dimensionsChanged && diff.changedTerrainByLayer.length === 0 && diff.objectLayerChanged) {
@@ -209,6 +287,7 @@ export function PixiMapCanvas(props: Props) {
 
       world.removeChildren();
       objectGraphicsRef.current.clear();
+      terrainLayerContainersRef.current.clear();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
@@ -258,6 +337,9 @@ export function PixiMapCanvas(props: Props) {
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
+          const layerContainer = new Container();
+          layerContainer.visible = layer.visible;
+          terrainLayerContainersRef.current.set(layer.id, layerContainer);
           const fallbackGraphics = new Graphics();
           const fallbackAlpha = layer.kind === "collision" ? 0.35 : 1;
           for (let i = 0; i < document.width * document.height; i++) {
@@ -282,7 +364,7 @@ export function PixiMapCanvas(props: Props) {
                 sprite.width = document.tileSize;
                 sprite.height = document.tileSize;
                 sprite.alpha = fallbackAlpha;
-                world.addChild(sprite);
+                layerContainer.addChild(sprite);
                 renderedTexture = true;
               }
             }
@@ -295,7 +377,8 @@ export function PixiMapCanvas(props: Props) {
               ).fill({ color: colorForTile(id), alpha: fallbackAlpha });
             }
           }
-          if (fallbackGraphics.geometry) world.addChild(fallbackGraphics);
+          if (fallbackGraphics.geometry) layerContainer.addChild(fallbackGraphics);
+          world.addChild(layerContainer);
         } else {
           for (const o of layer.objects) {
             const g = new Graphics();
