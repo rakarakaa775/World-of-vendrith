@@ -565,7 +565,7 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
       if (current.activeTool === "Stamp") { if (valid(p)) current.onStamp(p); return; }
-      if (current.activeTool === "Building") { if (valid(p)) current.onObjectPlace(p); return; }
+      if (current.activeTool === "Building" || current.activeTool === "Asset") { if (valid(p)) current.onObjectPlace(p); return; }
       panning = true;
       lastX = e.clientX;
       lastY = e.clientY;
