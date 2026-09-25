@@ -92,7 +92,7 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
   const unique = [...new Set(assetIds.filter(Boolean))];
   const missing = unique.filter(id => !assetCache.has(id));
   if (missing.length) {
-    const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height').in('id', missing);
+    const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height,license:license_registry_id(verification_status,usage_status,commercial_use_allowed,modification_allowed,redistribution_allowed)').in('id', missing);
     if (error) throw error;
     const found = new Set<string>();
     for (const row of data ?? []) {
