@@ -272,6 +272,96 @@ The next pass focuses on **medieval-fantasy regional infrastructure and props**,
 
 Only medieval/fantasy-compatible elements from mixed packs may proceed to REGION review. Modern, contemporary, industrial or sci-fi elements remain excluded even when they appear in a CC0 collection. License permission does not override Vandrith's visual/technological setting rule.
 
+## Source research: STATIC REGIONAL LOCATIONS
+
+The next location pass distinguishes **regional location assemblies** from generic building assets. A medieval/fantasy building pack may be visually valid but is not promoted to REGION merely because it contains houses.
+
+### 07_VILLAGES / 08_TOWNS
+
+**[LPC] Medieval Village Decorations — bluecarrot16 and contributors**
+- OpenGameArt source explicitly targets a medieval/pre-industrial town.
+- Includes graveyard/cemetery, statues, signage, lighting, banners, farming, market, square, military camp and fences.
+- License: CC-BY-SA 4.0 and CC-BY-SA 3.0.
+- Required attribution information is contained in `CREDITS-decorations-medieval.txt` and must be retained.
+- Candidate REGION roles: **07_VILLAGES / 08_TOWNS / 14_CAMPS / 15_REGION_PROPS**, depending on the individual asset.
+- Generic furniture/building pieces remain outside REGION.
+- Binary status: ⚠️ not individually verified. citeturn0search4
+
+**Medieval Village MegaKit — quaternius**
+- OpenGameArt lists it as a CC0 medieval/fantasy modular environment pack.
+- It contains modular walls, roofs, stairs, doors and windows.
+- Because these are generic construction components, they remain in the Building/Architecture library.
+- A future **specific village assembly** created from those components may be represented as a REGION location instance, but the source binaries themselves are not promoted to REGION by default.
+- Binary status: ⚠️ not individually verified. citeturn0search2
+
+### 09_CITIES
+
+No city asset is promoted yet.
+
+A city REGION asset should represent a **specific city-scale exterior location/assembly or city infrastructure**, not a generic collection of buildings. Generic city/building kits remain in the Building/Architecture library.
+
+### 10_CASTLES
+
+**Medieval Castles & Tiles — Sam**
+- OpenGameArt source is explicitly medieval/castle themed.
+- License: CC0.
+- Candidate REGION role: **10_CASTLES** only when a castle exterior/location assembly is represented.
+- Individual generic wall/structure pieces should remain canonical building/architecture assets unless assembled into a specific regional castle location.
+- Binary status: ⚠️ not individually verified. citeturn0search3
+
+**Castle / Dungeon — Gary Shaw**
+- OpenGameArt source is explicitly medieval/fantasy.
+- License: CC-BY 4.0.
+- The source contains many castle/dungeon tiles, including walls, floors and decorative pieces.
+- Candidate REGION role: **10_CASTLES** only for a specific castle exterior/location assembly; individual generic tiles remain outside REGION.
+- Attribution to Gary Shaw is required.
+- Binary status: ⚠️ not individually verified. citeturn0search5
+
+### 11_FORTIFICATIONS
+
+**Basic Hex Tile Set Plus — pistachio**
+- OpenGameArt lists medieval village/castle elements, including castle, moat, road stone and bridge pieces.
+- License: CC0.
+- Candidate REGION roles: **11_FORTIFICATIONS** for specific fortification/location elements and **01_ROADS / 03_BRIDGES** for the corresponding infrastructure.
+- Individual house/building tiles remain outside REGION.
+- Binary status: ⚠️ not individually verified. citeturn0search7
+
+### 12_RUINS
+
+No source is promoted yet.
+
+Ruins should represent a **specific ruined regional location** or ruin-specific scenery. A generic damaged wall/building kit should not be promoted solely because it looks ruined.
+
+### 13_FARMS
+
+**[LPC] Medieval Village Decorations**
+- The source explicitly includes farming material and medieval/pre-industrial town scenery.
+- Candidate REGION role: **13_FARMS** for static farm/field/market infrastructure where the individual asset is part of a regional farm location.
+- Individual crops/items that belong to Item Asset or Life systems remain outside REGION.
+- Binary status: ⚠️ not individually verified. citeturn0search4
+
+### 14_CAMPS
+
+**[LPC] Medieval Village Decorations**
+- The source explicitly includes military camp material.
+- Candidate REGION role: **14_CAMPS** for static camp/location assemblies.
+- Interactive equipment or gameplay objects should be handled by PLAYABLE instead.
+- Binary status: ⚠️ not individually verified. citeturn0search4
+
+### Location classification rule
+
+A useful test is:
+
+**"Does this asset describe a regional place/location, or is it merely a reusable construction component?"**
+
+- Specific village/town/city/castle/ruin/farm/camp assembly → REGION.
+- Generic house → Building/Architecture.
+- Generic wall/roof/door/window → Building/Architecture.
+- Static road/path/bridge/dock → REGION.
+- Static regional decoration → REGION/REGION_PROPS.
+- Interactive gameplay object → PLAYABLE.
+- Living entity → LIFE_GENERATION / SPAWN_LIFE.
+
 ## Important classification rule for mixed tilesets
 
 A single source package may contain multiple REGION and non-REGION roles.
