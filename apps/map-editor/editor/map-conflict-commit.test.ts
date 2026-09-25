@@ -13,7 +13,8 @@ describe('commitResolvedConflict', () => {
     const session = chooseConflict(createConflictResolutionSession(result), 'name', 'local');
     const commitResolvedMerge = vi.fn().mockResolvedValue({ status: 'committed', version_id: 'v2', version_number: 2, current_version: 2, projection_status: 'committed', projection_error: null });
     const outcome = await commitResolvedConflict({ commitResolvedMerge }, base.id, 1, result, session);
-    expect(commitResolvedMerge).toHaveBeenCalledWith(base.id, 1, expect.objectContaining({ name: 'Local' }), 'conflict-resolution');
+    expect(commitResolvedMerge).toHaveBeenCalledWith(base.id, 1, expect.any(String), 'conflict-resolution');
+    expect(JSON.parse((commitResolvedMerge.mock.calls[0] as unknown[])[2] as string).document.name).toBe('Local');
     expect(outcome.status).toBe('committed');
   });
 
