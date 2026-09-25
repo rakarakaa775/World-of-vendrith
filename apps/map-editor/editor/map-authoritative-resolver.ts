@@ -10,6 +10,9 @@ export type AuthoritativeMapRow = {
   height: number | null;
   tile_size: number | string | null;
   metadata: Record<string, unknown> | null;
+  editor_map_id: string;
+  legacy_map_id: string | null;
+  parent_editor_map_id: string | null;
 };
 
 export type AuthoritativeMapResolution = {
@@ -34,6 +37,17 @@ export async function resolveAuthoritativeMap(
   expectedMapType?: MapType,
 ): Promise<AuthoritativeMapResolution> {
   if (!requestedMapId.trim()) throw new Error('MAP_RESOLUTION_ERROR: map id is required');
+
+  let identity = await client.rpc('map_editor_resolve_identity_v1', { p_editor_map_id: requestedMapId });
+  if (identity.error && expectedMapType === 'world') {
+    const bootstrap = await client.rpc('map_editor_bootstrap_world_identity_v1', { p_legacy_map_id: requestedMapId });
+    if (bootstrap.error) throw new Error('MAP_IDENTITY_ERROR: ' + bootstrap.error.message);
+    identity = await client.rpc('map_editor_resolve_identity_v1', { p_editor_map_id: requestedMapId });
+  }
+  if (identity.error) throw new Error('MAP_IDENTITY_ERROR: ' + identity.error.message);
+  const identityRow = Array.isArray(identity.data) ? identity.data[0] : identity.data;
+  if (!identityRow?.editor_map_id) throw new Error('MAP_IDENTITY_ERROR: authoritative identity is unavailable');
+  if (expectedMapType && identityRow.map_type !== expectedMapType) throw new Error('IDENTITY_ERROR: requested map type does not match authoritative identity');
 
   const access = await client.rpc('map_editor_can_access_v1', { p_map_id: requestedMapId });
   if (access.error) throw new Error(`MAP_ACCESS_ERROR: ${access.error.message}`);
