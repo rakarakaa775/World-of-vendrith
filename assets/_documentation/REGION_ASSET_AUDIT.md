@@ -1021,3 +1021,49 @@ A verified 05_PORTS asset must represent a recognizable port/harbor location or 
 No commercial asset is being copied into the approved free-asset pool merely because it visually matches the category.
 
 **Next source target: 06_SHIPS.**
+
+
+## Source audit continuation: 06_SHIPS — direct source pass
+
+### 06_SHIPS scope
+
+06_SHIPS is limited to **static exterior ships/boats used as regional scenery**. A controllable or gameplay-usable vessel belongs to PLAYABLE / VEHICLES. Modern cruise ships, container ships, yachts, industrial vessels and futuristic craft are excluded by the medieval-fantasy-only rule.
+
+### Source candidates reviewed
+
+**[LPC] Wooden ship tiles — Tuomo Untinen**
+- OpenGameArt source explicitly describes wooden sailing ship tiles with decks, helm, cabins and stairs.
+- Creator attribution: **Wooden ship tiles by Tuomo Untinen**; the OGA submission uploader is Reemax.
+- Licenses listed: **CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0 and GPL 2.0**.
+- File listed: **ship.png**.
+- REGION role: **06_SHIPS** when static exterior scenery; controllable vessel → PLAYABLE / VEHICLES.
+- Vandrith binary status: ⚠️ source verified, repository binary not individually matched. citeturn0search0turn0search5
+
+**[LPC] Ship — bluecarrot16**
+- OpenGameArt source identifies **[LPC] Ship** by bluecarrot16.
+- License family includes **CC-BY 4.0, GPL 3.0, GPL 2.0 and OGA-BY 3.0**.
+- Candidate REGION role: **06_SHIPS** only when used as static scenery.
+- Binary status: ⚠️ source identified, exact Vendrith binary/package match still pending.
+
+**Black Sail Ship — Bleed's Game Art**
+- OpenGameArt source describes a top-down 16-direction pirate ship and tags it medieval/pirate/fantasy.
+- License: **CC-BY 3.0**.
+- Attribution notice says credit is optional and provides Bleed's attribution text.
+- File listed: **Black Sail.zip**.
+- Candidate role: **06_SHIPS**, subject to actual binary match.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search3
+
+**3d medieval ship — aqrezes**
+- Identified as a medieval ship candidate in OpenGameArt collections.
+- Candidate role: **06_SHIPS** for static regional scenery.
+- Binary status: ⚠️ source/package and Vendrith binary still require direct matching.
+
+### Ship provenance and classification rule
+
+A ship source is not promoted merely because its preview looks medieval. Promotion requires the actual Vendrith binary to be matched by repository path/filename/content and then reconciled with the source creator, license, attribution/conditions and SHA-256. Mixed ship packs must also be filtered: modern/freighter/cruise/yacht content is excluded even when the package license is permissive.
+
+### Current 06_SHIPS decision
+
+**06_SHIPS remains ⚠️ source-researched / binary-unverified.** No ship candidate is promoted to 🟢 verified provenance in this pass. The repository archive archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip remains the primary binary-inspection target for the next verification step.
+
+**Next verification target:** inspect the archive manifest and match ship-related filenames/content against the source candidates above.
