@@ -68,14 +68,22 @@ function validateObjectSemantics(object: unknown): void {
   }
   if (typeof candidate.assetId !== 'string' || candidate.assetId.trim() === '') throw new Error('Map object assetId is invalid');
   if (typeof candidate.collision !== 'boolean') throw new Error('Map object collision is invalid');
-  if (candidate.playableMapId !== undefined && candidate.playableMapId !== null && typeof candidate.playableMapId !== 'string') {
-    throw new Error('Map object playableMapId is invalid');
+  if (candidate.interiorMapId !== undefined && candidate.interiorMapId !== null && typeof candidate.interiorMapId !== 'string') {
+    throw new Error('Map object interiorMapId is invalid');
   }
 }
 
 function validateRelationshipMetadata(document: Partial<MapDocument>): void {
   if (document.parentMapId !== null && typeof document.parentMapId !== 'string') {
     throw new Error('Map parentMapId is invalid');
+  }
+  if (document.parentBounds !== undefined && document.parentBounds !== null) {
+    const bounds = document.parentBounds;
+    if (!bounds || typeof bounds !== 'object') throw new Error('Map parentBounds is invalid');
+    for (const field of ['x', 'y', 'width', 'height'] as const) {
+      if (typeof bounds[field] !== 'number' || !Number.isFinite(bounds[field])) throw new Error(`Map parentBounds ${field} is invalid`);
+    }
+    if (bounds.width <= 0 || bounds.height <= 0) throw new Error('Map parentBounds dimensions must be positive');
   }
   if (document.playableSpace !== undefined && document.playableSpace !== 'exterior' && document.playableSpace !== 'interior') {
     throw new Error('Playable space type is invalid');
