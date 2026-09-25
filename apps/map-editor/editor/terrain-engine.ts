@@ -19,25 +19,22 @@ export function terrainVariantKey(mask:TerrainMask):string{return'mask_'+mask.to
 export type SourceOfTalesCornerPattern = [number,number,number,number];
 
 /**
- * Bridge Vendrith's 8-neighbor mask to the four corner labels used by the
- * Source of Tales / Tiled corner-terrain tilesets.
- *
- * Each corner covers the center cell plus its two cardinal neighbors and
- * diagonal neighbor. The center terrain is used as the tie-breaker, so the
- * corner gets the center terrain when at least two of those three neighbors
- * also match the center terrain.
- *
- * This is an explicit Vendrith adapter rule, not a claim that the legacy
- * Source of Tales TSX format itself defines an 8-neighbor mask.
+ * Explicit adapter from Vendrith's 8-neighbor mask to Source of Tales'
+ * four-corner terrain representation. Each corner votes from the center,
+ * its two cardinal neighbors and its diagonal neighbor. At least two of
+ * these four positions matching the center terrain selects the center
+ * terrain for that corner; otherwise the opposite terrain is selected.
  */
 export function sourceOfTalesCornerPattern(mask:TerrainMask,centerTerrain:'water'|'sand'):SourceOfTalesCornerPattern{
   const same=(bit:number)=>((mask & bit)!==0 ? 1 : 0);
   const n=same(TERRAIN_MASK_BITS.n),e=same(TERRAIN_MASK_BITS.e),s=same(TERRAIN_MASK_BITS.s),w=same(TERRAIN_MASK_BITS.w);
   const ne=same(TERRAIN_MASK_BITS.ne),se=same(TERRAIN_MASK_BITS.se),sw=same(TERRAIN_MASK_BITS.sw),nw=same(TERRAIN_MASK_BITS.nw);
-  const majority=(a:number,b:number,c:number)=>a+b+c>=2;
-  const sameTerrain=centerTerrain==='sand'?1:0;
-  const otherTerrain=sameTerrain===1?0:1;
-  const corner=(a:number,b:number,c:number)=>majority(a,b,c)?sameTerrain:otherTerrain;
+  const center=centerTerrain==='sand'?1:0;
+  const opposite=center===1?0:1;
+  const corner=(a:number,b:number,c:number)=>{
+    const votes=center+a+b+c;
+    return votes>=2?center:opposite;
+  };
   return [corner(n,w,nw),corner(n,e,ne),corner(s,w,sw),corner(s,e,se)];
 }
 
@@ -54,9 +51,9 @@ export type SourceOfTalesTerrainTileRef =
 export function sourceOfTalesSandWaterTile(mask:TerrainMask,centerTerrain:'water'|'sand'):SourceOfTalesTerrainTileRef{
   const pattern=sourceOfTalesCornerPattern(mask,centerTerrain);
   const key=pattern.join(',');
+  if(centerTerrain==='water' && key==='0,0,0,0')return{kind:'base',terrain:'water',tileId:10,pattern};
+  if(centerTerrain==='sand' && key==='1,1,1,1')return{kind:'base',terrain:'sand',tileId:10,pattern};
   const tileId=SOURCE_OF_TALES_SANDWATER_TILE_BY_PATTERN[key];
   if(tileId!==undefined)return{kind:'sandwater',tileId,pattern};
-  if(centerTerrain==='sand' && key==='1,1,1,1')return{kind:'base',terrain:'sand',tileId:10,pattern};
-  if(centerTerrain==='water' && key==='0,0,0,0')return{kind:'base',terrain:'water',tileId:10,pattern};
   throw new Error('Unsupported Source of Tales sand/water corner pattern: '+key);
 }
