@@ -11,6 +11,7 @@ on:
     paths:
       - "apps/map-editor/**"
       - ".github/workflows/map-editor-ci.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
