@@ -31,7 +31,13 @@ export function canCreateChildMap(parent:MapDocument,childType:MapType):boolean{
 
 export function createChildMap(parent:MapDocument,child:MapDocument):MapDocument{
   if(!canCreateChildMap(parent,child.mapType)) throw new Error(`Invalid map hierarchy: ${parent.mapType} -> ${child.mapType}`);
-  return {...child,parentMapId:parent.id};
+  return {
+    ...child,
+    parentMapId:parent.id,
+    ...(child.mapType==='region'
+      ? {parentBounds:{x:0,y:0,width:parent.width,height:parent.height}}
+      : {}),
+  };
 }
 
 export function getMapPath(map:MapDocument,maps:MapDocument[]):MapSummary[]{
