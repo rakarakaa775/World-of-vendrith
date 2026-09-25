@@ -54,4 +54,20 @@ describe('authoritative map resolution', () => {
       width: 20, height: 12, tile_size: 32, metadata: null,
     }, snapshot), 'exterior-1', 'region')).rejects.toThrow('MAP_TYPE_CONTRACT_ERROR');
   });
+
+  it('fails closed for a playable map even when the database row says exterior', async () => {
+    const snapshot = { schema: 'vandrith.map-document', version: 1, document: { ...worldDocument, id: 'playable-1', mapType: 'playable', playableSpace: 'exterior' } };
+    await expect(resolveAuthoritativeMap(clientFor({
+      id: 'playable-1', name: 'Exterior Playable', map_type: 'exterior', world_id: null,
+      width: 20, height: 12, tile_size: 32, metadata: null,
+    }, snapshot), 'playable-1', 'playable')).rejects.toThrow('MAP_TYPE_CONTRACT_ERROR');
+  });
+
+  it('rejects a world document whose authoritative row is not world', async () => {
+    const snapshot = { schema: 'vandrith.map-document', version: 1, document: { ...worldDocument, id: 'world-2', mapType: 'world' } };
+    await expect(resolveAuthoritativeMap(clientFor({
+      id: 'world-2', name: 'World', map_type: 'interior', world_id: null,
+      width: 20, height: 12, tile_size: 32, metadata: null,
+    }, snapshot), 'world-2', 'world')).rejects.toThrow('IDENTITY_ERROR');
+  });
 });
