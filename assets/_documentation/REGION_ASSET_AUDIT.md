@@ -956,3 +956,29 @@ No candidate in this pass is promoted to 🟢 verified provenance. Promotion sti
 6. SHA-256 of the actual Vendrith binary when accessible.
 
 **Next verification target:** direct inspection of the asset workspace/source archives rather than additional OpenGameArt collection searching.
+
+
+## Binary container discovery: repository archive
+
+A direct repository tree inspection found the project archive:
+
+- `archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip`
+- Repository blob SHA: `92511976469c101d428d47f16bf43ee81364ad6d`
+- Reported archive size: 3,258,487 bytes
+
+This is a **real repository binary/archive**, so the earlier conclusion that the repository exposed no binary container was incomplete. However, the connected GitHub file reader can identify the archive and its blob metadata but does not expose its ZIP members as readable UTF-8 content. Therefore the archive's internal asset paths, filenames and checksums are **not yet verified** from this interface.
+
+### Consequence for provenance audit
+
+The archive is now the primary binary-inspection target for the next pass. We must inspect its ZIP manifest and, where relevant, individual files before promoting any REGION candidate.
+
+Until the archive contents are directly inspected:
+
+- no bridge source is promoted to 🟢;
+- no dock source is promoted to 🟢;
+- no port assembly is promoted to 🟢;
+- no ship source is promoted to 🟢;
+- no road/path source is promoted to 🟢;
+- existing ⚠️ provenance status remains unchanged.
+
+**Next binary step:** inspect `VANDRITH_ALL_PROJECT_FILES_LATEST.zip` itself, map its internal asset paths against the REGION source candidates, then compute SHA-256 for matched binaries.
