@@ -425,6 +425,6 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
     <div style={{ position: "relative", minHeight: 0 }}>
       <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
-    {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
+    {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
 }
