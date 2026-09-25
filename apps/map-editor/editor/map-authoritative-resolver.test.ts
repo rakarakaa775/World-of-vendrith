@@ -61,12 +61,14 @@ describe('authoritative map resolution', () => {
     await expect(resolveAuthoritativeMap(client, 'exterior-1', 'playable')).rejects.toThrow('IDENTITY_ERROR');
   });
 
-  it('fails closed for a playable map even when the database row says exterior', async () => {
+  it('accepts a playable identity backed by a legacy exterior row', async () => {
     const snapshot = { schema: 'vandrith.map-document', version: 1, document: { ...worldDocument, id: 'playable-1', mapType: 'playable', playableSpace: 'exterior' } };
-    await expect(resolveAuthoritativeMap(clientFor({
+    const result = await resolveAuthoritativeMap(clientFor({
       id: 'playable-1', name: 'Exterior Playable', map_type: 'exterior', world_id: null,
       width: 20, height: 12, tile_size: 32, metadata: null,
-    }, snapshot), 'playable-1', 'playable')).rejects.toThrow('IDENTITY_ERROR');
+    }, snapshot), 'playable-1', 'playable');
+    expect(result.document.playableSpace).toBe('exterior');
+    expect(result.row.map_type).toBe('exterior');
   });
 
   it('rejects a world document whose authoritative row is not world', async () => {
