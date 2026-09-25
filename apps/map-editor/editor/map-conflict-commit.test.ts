@@ -18,8 +18,6 @@ describe('commitResolvedConflict', () => {
       version: 1,
       document: expect.objectContaining({ name: 'Local' }),
     }), 'conflict-resolution');
-    const snapshot = (commitResolvedMerge.mock.calls[0] as unknown[])[2] as { document: { name: string } };
-    expect(snapshot.document.name).toBe('Local');
     expect(outcome.status).toBe('committed');
   });
 
