@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyMapDocument } from './map-document';
+import { createMap } from './map-document';
 import { parseGameSaveSnapshot, serializeGameSaveSnapshot } from './game-save';
 
 function map(id: string, mapType: 'world' | 'playable' = 'world') {
-  return createEmptyMapDocument({
-    id,
-    name: id,
-    mapType,
-    width: 2,
-    height: 2,
-    tileSize: 32,
-  });
+  const document = createMap(mapType);
+  document.id = id;
+  document.name = id;
+  return document;
 }
 
 describe('game save contract', () => {
