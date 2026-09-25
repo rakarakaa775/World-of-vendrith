@@ -29,6 +29,7 @@ describe("map asset loader", () => {
       asset_path: "building.png",
       preview_path: null,
       status: "approved",
+      asset_license_registry: { verification_status: "verified", usage_status: "credit_required", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     });
     const floor = registryRowToMapAsset({
       id: "33333333-3333-4333-8333-333333333333",
@@ -38,6 +39,7 @@ describe("map asset loader", () => {
       asset_path: "floor.png",
       preview_path: null,
       status: "approved",
+      asset_license_registry: { verification_status: "verified", usage_status: "allowed", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     });
     expect(building?.family).toBe("playable-building");
     expect(building?.levels).toEqual(["playable"]);
@@ -101,6 +103,7 @@ describe("map asset loader", () => {
         asset_path: "grass.png",
         preview_path: null,
         status: "approved",
+        asset_license_registry: { verification_status: "verified", usage_status: "allowed", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
       }),
       registryRowToMapAsset({
         id: "77777777-7777-4777-8777-777777777777",
@@ -110,6 +113,7 @@ describe("map asset loader", () => {
         asset_path: "floor.png",
         preview_path: null,
         status: "approved",
+        asset_license_registry: { verification_status: "verified", usage_status: "allowed", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
       }),
     ].filter(Boolean);
     expect(mapAssetCatalogSummary(catalog)).toMatchObject({
