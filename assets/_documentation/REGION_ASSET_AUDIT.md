@@ -380,6 +380,64 @@ The next pass focuses on **medieval-fantasy regional infrastructure and props**,
 
 Only medieval/fantasy-compatible elements from mixed packs may proceed to REGION review. Modern, contemporary, industrial or sci-fi elements remain excluded even when they appear in a CC0 collection. License permission does not override Vandrith's visual/technological setting rule.
 
+## Deep audit: REGIONAL INFRASTRUCTURE / REGION_PROPS
+
+### Verified source candidates
+
+**Medieval Well — Daniel Andersson**
+- OpenGameArt source: 55087_well.zip.
+- License: **CC0**.
+- Explicitly a medieval village well.
+- REGION role: **15_REGION_PROPS** when used as fixed exterior infrastructure.
+- Credit is not required; Daniel Andersson credit is appreciated.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search0
+
+**Medieval Props Pack 1 — Daniel Andersson**
+- Source package: 55083_props1.zip.
+- License: **CC0**.
+- Medieval village prop collection.
+- Candidate roles: **15_REGION_PROPS**, **13_FARMS**, **14_CAMPS**, depending on the individual object's regional function.
+- Generic inventory/furniture objects must be separated from REGION.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search1
+
+**Medieval Props Pack 2 — Daniel Andersson**
+- Source package: 55181_props2.zip.
+- License: **CC0**.
+- Medieval village prop collection.
+- Candidate roles: **15_REGION_PROPS**, **13_FARMS**, **14_CAMPS**, subject to individual role.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search3
+
+**Medieval Props Pack 3 — Daniel Andersson**
+- Source package: 55189_props3.zip.
+- License: **CC0**.
+- Medieval village prop collection.
+- Candidate roles: **15_REGION_PROPS**, **13_FARMS**, **14_CAMPS**, subject to individual role.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search4
+
+**isometric medieval props — rubberduck**
+- License: **CC0**.
+- Contains medieval/fantasy props including wagon, well, stand, barrels, crates and sacks.
+- The author states that the work uses other CC0 assets, including Daniel Andersson's Medieval Props Packs. If a Vendrith binary matches this derivative sheet rather than an original package, the provenance chain must be recorded accordingly.
+- Candidate role: **15_REGION_PROPS** for static exterior place-defining objects.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search5
+
+### Function boundary
+
+| Object | Regional static use | Gameplay/other system |
+|---|---|---|
+| Well | 15_REGION_PROPS | PLAYABLE if interactive |
+| Wagon/cart | 15_REGION_PROPS | PLAYABLE/VEHICLES if usable |
+| Barrel/crate | 15_REGION_PROPS when decorative | PLAYABLE/ITEM if lootable/usable |
+| Market stand | 15_REGION_PROPS | PLAYABLE if interactive |
+| Trough/hay | 15_REGION_PROPS when fixed scenery | ITEM/LIFE when functional |
+| Blacksmith equipment | 15_REGION_PROPS when scenery | ITEM/CRAFTING when usable |
+| Generic furniture | — | ITEM_ASSET |
+| Weapon/tool | — | ITEM_ASSET |
+| Character/animal | — | LIFE_GENERATION |
+
+### Important provenance finding
+
+The Daniel Andersson packages have stable source filenames and CC0 licensing, giving us strong fingerprints for later binary matching. However, a filename/source-page match is still not proof that the same bytes are present in Vendrith. A binary is promoted only after repository path, filename/content, provenance and SHA-256 can be reconciled.
 ## Source research: STATIC REGIONAL LOCATIONS
 
 The next location pass distinguishes **regional location assemblies** from generic building assets. A medieval/fantasy building pack may be visually valid but is not promoted to REGION merely because it contains houses.
