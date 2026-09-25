@@ -54,3 +54,36 @@ describe("map editor tool registry", () => {
     ]);
   });
 });
+
+describe("map asset catalog", () => {
+  it("keeps macro forest at World/Region scale but individual trees at Playable scale", () => {
+    const world = createMap("World", "world", 64, 64);
+    const region = createMap("Region", "region", 32, 32);
+    const playable = createMap("Village", "playable", 24, 24);
+
+    expect(isMapAssetAllowed(world, "forest")).toBe(true);
+    expect(isMapAssetAllowed(world, "tree")).toBe(false);
+    expect(isMapAssetAllowed(region, "forest")).toBe(true);
+    expect(isMapAssetAllowed(region, "tree")).toBe(false);
+    expect(isMapAssetAllowed(playable, "tree")).toBe(true);
+    expect(isMapAssetAllowed(playable, "forest")).toBe(false);
+  });
+
+  it("keeps settlements and roads at Region scale", () => {
+    const region = createMap("Region", "region", 32, 32);
+    const playable = createMap("Village", "playable", 24, 24);
+
+    expect(isMapAssetAllowed(region, "village")).toBe(true);
+    expect(isMapAssetAllowed(region, "road")).toBe(true);
+    expect(isMapAssetAllowed(playable, "village")).toBe(false);
+    expect(isMapAssetAllowed(playable, "road")).toBe(false);
+  });
+
+  it("keeps interior assets isolated from exterior palettes", () => {
+    const interior = createMap("House Interior", "playable", 16, 16, 32, "interior");
+    expect(isMapAssetAllowed(interior, "floor")).toBe(true);
+    expect(isMapAssetAllowed(interior, "furniture")).toBe(true);
+    expect(isMapAssetAllowed(interior, "tree")).toBe(false);
+    expect(isMapAssetAllowed(interior, "house")).toBe(false);
+  });
+});
