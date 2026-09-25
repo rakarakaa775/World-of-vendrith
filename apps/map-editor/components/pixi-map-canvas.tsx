@@ -68,6 +68,7 @@ export function PixiMapCanvas(props: Props) {
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
   const objectGraphicsRef = useRef(new Map<string, Graphics>());
+  const objectTextureRef = useRef(new Map<string, any>());
   const previousDocumentRef = useRef<MapDocument | null>(null);
   const terrainLayerContainersRef = useRef(new Map<string, Container>());
   const terrainCellGraphicsRef = useRef(new Map<string, Map<number, Sprite>>());
@@ -223,64 +224,6 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
 
-      // Fast path for object-only edits. Terrain/grid rendering stays intact while
-      // moved, added, or removed objects are patched in place.
-      if (previousDocument && !diff.dimensionsChanged && diff.changedTerrainByLayer.length === 0 && diff.objectLayerChanged) {
-        const objectsLayer = document.layers.find(layer => layer.kind === "objects");
-        const objectsById = new Map((objectsLayer?.objects ?? []).map(object => [object.id, object]));
-        const selected = new Set(selectedObjectIds);
-        const renderObject = (object: MapDocument["layers"][number]["objects"][number]) => {
-          const g = new Graphics();
-          const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
-          g.roundRect(
-            object.x * document.tileSize + 2,
-            object.y * document.tileSize + 2,
-            object.width * document.tileSize - 4,
-            object.height * document.tileSize - 4,
-            4,
-          )
-            .fill({ color: c, alpha: 0.9 })
-            .stroke({ width: 2, color: selected.has(object.id) ? 0x0ea5e9 : 0x334155 });
-          g.visible = objectsLayer?.visible ?? true;
-          objectGraphicsRef.current.set(object.id, g);
-          world.addChild(g);
-        };
-
-        for (const id of diff.changedObjectIds) {
-          const existing = objectGraphicsRef.current.get(id);
-          const object = objectsById.get(id);
-          if (!object) {
-            existing?.removeFromParent();
-            existing?.destroy();
-            objectGraphicsRef.current.delete(id);
-            continue;
-          }
-          existing?.removeFromParent();
-          existing?.destroy();
-          objectGraphicsRef.current.delete(id);
-          renderObject(object);
-        }
-
-        for (const [id, graphic] of objectGraphicsRef.current) {
-          const object = objectsById.get(id);
-          if (!object) continue;
-          const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
-          graphic.visible = objectsLayer?.visible ?? true;
-          graphic.clear();
-          graphic.roundRect(
-            object.x * document.tileSize + 2,
-            object.y * document.tileSize + 2,
-            object.width * document.tileSize - 4,
-            object.height * document.tileSize - 4,
-            4,
-          )
-            .fill({ color: c, alpha: 0.9 })
-            .stroke({ width: 2, color: selected.has(id) ? 0x0ea5e9 : 0x334155 });
-        }
-        previousDocumentRef.current = document;
-        return;
-      }
-
       world.removeChildren();
       objectGraphicsRef.current.clear();
       terrainLayerContainersRef.current.clear();
@@ -298,6 +241,11 @@ export function PixiMapCanvas(props: Props) {
       world.addChild(grid);
 
       const textureRequests = new Set<string>();
+      const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+      const objectsLayerForAssets = document.layers.find(layer => layer.kind === "objects");
+      for (const object of objectsLayerForAssets?.objects ?? []) {
+        if (isUuid(object.assetId)) textureRequests.add(object.assetId);
+      }
       for (const terrain of ["grass", "sand", "dirt", "pavement", "water"] as const) {
         const binding = getTerrainAssetBinding(terrainBindings, terrain, 255);
         if (binding) textureRequests.add(binding.assetId);
@@ -367,10 +315,21 @@ export function PixiMapCanvas(props: Props) {
         } else {
           for (const o of layer.objects) {
             const g = new Graphics();
-            const c = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
-            g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
-              .fill({ color: c, alpha: 0.9 })
-              .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            const fallbackColor = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
+            const asset = assetRecords.get(o.assetId);
+            const url = asset ? resolveAssetUrl(asset) : null;
+            const texture = url ? loadedTextures.get(o.assetId) ?? null : null;
+            if (texture) {
+              objectTextureRef.current.set(o.id, texture);
+              g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
+                .fill({ texture, textureSpace: "local", alpha: 1 })
+                .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            } else {
+              objectTextureRef.current.delete(o.id);
+              g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
+                .fill({ color: fallbackColor, alpha: 0.9 })
+                .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            }
             objectGraphicsRef.current.set(o.id, g);
             world.addChild(g);
           }
@@ -413,10 +372,12 @@ export function PixiMapCanvas(props: Props) {
       const object = objectsById.get(id);
       if (!object) continue;
       const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
+      const texture = objectTextureRef.current.get(id);
       graphic.clear();
-      graphic.roundRect(object.x * props.document.tileSize + 2, object.y * props.document.tileSize + 2, object.width * props.document.tileSize - 4, object.height * props.document.tileSize - 4, 4)
-        .fill({ color: c, alpha: 0.9 })
-        .stroke({ width: 2, color: selected.has(id) ? 0x0ea5e9 : 0x334155 });
+      graphic.roundRect(object.x * props.document.tileSize + 2, object.y * props.document.tileSize + 2, object.width * props.document.tileSize - 4, object.height * props.document.tileSize - 4, 4);
+      if (texture) graphic.fill({ texture, textureSpace: "local", alpha: 1 });
+      else graphic.fill({ color: c, alpha: 0.9 });
+      graphic.stroke({ width: 2, color: selected.has(id) ? 0x0ea5e9 : 0x334155 });
     }
   }, [ready, props.selectedObjectIds, props.document]);
 
