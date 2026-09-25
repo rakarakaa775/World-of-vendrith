@@ -73,12 +73,12 @@ export async function resolveAuthoritativeMap(
       editor_map_id: identityRow.editor_map_id,
       legacy_map_id: null,
       parent_editor_map_id: identityRow.parent_editor_map_id ?? null,
-      name: document.name,
+      name: 'Unnamed Map',
       map_type: identityRow.map_type,
       world_id: identityRow.world_id ?? null,
-      width: document.width,
-      height: document.height,
-      tile_size: document.tileSize,
+      width: null,
+      height: null,
+      tile_size: null,
       metadata: null,
     };
   }
