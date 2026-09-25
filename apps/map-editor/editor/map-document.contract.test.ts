@@ -51,6 +51,29 @@ describe('MapDocument contract', () => {
     }
   });
 
+
+  it('enforces world, region, exterior playable, and interior hierarchy semantics', () => {
+    const world = createMap('world', null);
+    expect(parseMapDocument(serializeMapDocument(world), world.id).mapType).toBe('world');
+
+    const region = createMap('region', 'world-1');
+    expect(parseMapDocument(serializeMapDocument(region), region.id).parentMapId).toBe('world-1');
+
+    const exterior = createMap('playable', 'region-1', 'exterior');
+    expect(parseMapDocument(serializeMapDocument(exterior), exterior.id).playableSpace).toBe('exterior');
+
+    const interior = createMap('playable', null, 'interior', 'playable-1');
+    expect(parseMapDocument(serializeMapDocument(interior), interior.id).parentPlayableMapId).toBe('playable-1');
+
+    const invalidRegion = { ...region, parentMapId: null };
+    expect(() => parseMapDocument(serializeMapDocument(invalidRegion), invalidRegion.id))
+      .toThrow('Region map must reference a parent world map');
+
+    const invalidInterior = { ...interior, parentPlayableMapId: null };
+    expect(() => parseMapDocument(serializeMapDocument(invalidInterior), invalidInterior.id))
+      .toThrow('Interior playable map must reference a parent playable map');
+  });
+
   it('keeps resize semantics deterministic for existing cells', () => {
     const document = createMap('playable');
     const resized = resizeMapDocument(document, 2, 2);
