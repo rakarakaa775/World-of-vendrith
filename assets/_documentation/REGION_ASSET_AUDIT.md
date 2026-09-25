@@ -815,6 +815,73 @@ The previous conditional **Classical Ruin Tiles** candidate remains conditional 
 
 **No new binary is promoted to verified provenance in this pass.** OpenGameArt source pages establish source/licensing facts, but they do not prove that the same binary is present in Vendrith. Promotion still requires repository path + filename/content + source/creator/license/credit/conditions + SHA-256 when the binary is available.
 
+## Deep audit: 15_REGION_PROPS
+
+REGION_PROPS is a strict static exterior place-defining category. Reusable inventory objects, furniture, weapons/tools and gameplay-interactive objects remain in their canonical systems.
+
+### Source candidates
+
+**Medieval Props Pack — System G6**
+- 19 medieval props including chest, bench, brazier, campfire, cart, crate, hay bundle, trough, barrel and hitching post.
+- License: CC0.
+- Candidate REGION_PROPS: fixed hitching posts, troughs, hay bundles, carts and similar exterior scenery.
+- Interactive chest/barrel/cart → PLAYABLE/ITEM/VEHICLES.
+- Source package: medieval_props_pack.7z.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search0
+
+**isometric medieval props — rubberduck**
+- Medieval/fantasy isometric props including barrel, crate, wagon, well, stand and sacks.
+- License: CC0.
+- Candidate REGION_PROPS: static well, stand, wagon/scenery and other place-defining exterior elements.
+- The author states that the work uses other CC0 assets including Daniel Andersson's Medieval Props Packs; derivative provenance must be preserved if matched.
+- Source package: medieval_props_sheets.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search1
+
+**50 fantasy-RPG asset models — rubberduck**
+- CC0 pack containing torches, fences, bridges, carts, gates and statues.
+- Candidate REGION_PROPS: static torches, gates, statues and regional decoration.
+- Bridges → 03_BRIDGES; usable carts → PLAYABLE/VEHICLES.
+- Source package: 50_rpg_asset_models.blend.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search9
+
+**Medieval Props Pack 1 / 2 / 3 — Daniel Andersson**
+- Medieval village prop collections, all CC0.
+- Source packages: 55083_props1.zip, 55181_props2.zip, 55189_props3.zip.
+- No credit required; crediting Daniel Andersson is appreciated.
+- Candidate REGION_PROPS depends on each object's exterior regional role.
+- Binary status: ⚠️ source verified; Vendrith binaries not individually matched. citeturn0search3turn0search4turn0search6
+
+**Medieval Smith Pack — Daniel Andersson**
+- Medieval blacksmith prop collection.
+- License: CC0.
+- Source package: 75579_Smith1Upload_blend.zip.
+- Static exterior smithing equipment can support 15_REGION_PROPS; usable crafting equipment belongs to gameplay/crafting systems.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search11
+
+### Strict function split
+
+| Asset | Static exterior role | Interactive/gameplay role |
+|---|---|---|
+| Well/fountain | 15_REGION_PROPS | PLAYABLE / INTERACTABLE |
+| Sign/marker | 15_REGION_PROPS | PLAYABLE / INTERACTABLE |
+| Barrel/crate | 15_REGION_PROPS if decorative | PLAYABLE / ITEM |
+| Cart/wagon | 15_REGION_PROPS if scenery | PLAYABLE / VEHICLES |
+| Hitching post/trough | 15_REGION_PROPS | PLAYABLE if functional |
+| Hay bundle | 15_REGION_PROPS when fixed scenery | ITEM/LIFE when functional |
+| Statue/monument | 15_REGION_PROPS | PLAYABLE if interactive |
+| Torch/brazier | 15_REGION_PROPS when decorative | PLAYABLE if mechanically interactive |
+| Blacksmith prop | 15_REGION_PROPS when scenery | ITEM/CRAFTING when usable |
+| Chest | 15_REGION_PROPS only when decorative | PLAYABLE / ITEM |
+| Furniture | — | ITEM_ASSET |
+| Weapon/tool | — | ITEM_ASSET |
+| Character/animal | — | LIFE_GENERATION |
+
+### Provenance decision
+
+These candidates are source-verified but not binary-approved. Promotion requires repository path, filename/content, source, creator, license, credit/conditions and SHA-256 where the binary is available.
+
+**Current decision:** 15_REGION_PROPS source audit and deep classification are complete; binary verification remains pending.
+
 ## Current audit order
 
 1. BRIDGES — source research completed; binary matching pending
@@ -825,7 +892,7 @@ The previous conditional **Classical Ruin Tiles** candidate remains conditional 
 6. PATHS — source research completed; binary matching pending
 7. Regional infrastructure — source research completed; binary matching pending
 8. Static regional locations (VILLAGES → CAMPS) — source research and classification completed; binary matching pending
-9. REGION_PROPS — **next deep audit pass**
+9. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
 
