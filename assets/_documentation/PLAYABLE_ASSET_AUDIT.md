@@ -323,3 +323,67 @@ Source-page discovery does not promote a repository binary. Verification still r
 **Source coverage:** strong  
 **Repository binary match:** not yet established  
 **Approval:** ⚠️ pending until binary provenance is reconciled
+
+
+## 04_RESOURCE_NODES — initial source audit
+
+04_RESOURCE_NODES covers exterior world objects that exist as **gameplay resource sources**. The visual can remain in WORLD, OBJECTS or another canonical library; the PLAYABLE role records that the node is harvestable/minable/collectable.
+
+### Audit groups
+
+| Group | Examples |
+|---|---|
+| Forestry | harvestable trees, fruit trees, wood/log nodes |
+| Mining | ore veins, mineral nodes, mineable rocks |
+| Agriculture | harvestable crops, farm resource plants |
+| Foraging | flowers, herbs, fungi, wild plants |
+| Stone/material | quarry rocks, stone deposits, clay/mud resource nodes |
+| Water/fishing | fishing spots or other resource-bearing water points when represented as map objects |
+
+### Source evidence
+
+OpenGameArt's LPC collections explicitly list resource-oriented sources such as **LPC Crops, LPC Fruit Trees, LPC Rocks, LPC Ore and Forge, and LPC Flowers / Plants / Fungi / Wood**. citeturn0search0turn0search2
+
+**[LPC] Trees** is a dedicated outdoor tree collection under CC-BY-SA 3.0 and requires attribution of the authors listed in its credits file plus a link to the OpenGameArt page. citeturn0search1
+
+The LPC ecosystem therefore provides clear source candidates for forests, fruit trees, rocks, crops, ore and harvestable plants. Source discovery remains separate from repository provenance verification.
+
+### Classification rule
+
+- Decorative tree → WORLD/07_FOREST or another natural WORLD biome role.
+- Harvestable tree → WORLD natural asset + PLAYABLE/04_RESOURCE_NODES gameplay binding.
+- Decorative rock → WORLD/06_NATURAL_ROCK_FORMATIONS.
+- Mineable ore/rock → PLAYABLE/04_RESOURCE_NODES.
+- Decorative crop/plant → WORLD/biome role.
+- Harvestable crop/herb/plant → PLAYABLE/04_RESOURCE_NODES.
+- Fruit tree → WORLD/biome role + PLAYABLE/04_RESOURCE_NODES when harvestable.
+- Fishing/resource spot → PLAYABLE/04_RESOURCE_NODES when it has a defined resource gameplay function.
+
+A resource node does **not** need to be moved physically out of WORLD. PLAYABLE records the gameplay role.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Trees and wood resources
+- Fruit trees
+- Crops and farm plants
+- Herbs, flowers and fungi
+- Stone and ore deposits
+- Clay/mud material nodes
+- Fantasy resource nodes consistent with Vandrith
+
+Excluded by default:
+- Modern industrial resource machines
+- Oil pumps and modern extraction machinery
+- Mining machinery as the resource itself
+- Sci-fi/futuristic resource nodes
+
+### Provenance rule
+
+Source-page discovery does not promote a repository binary. Verification still requires repository path/filename, actual binary, source package/page, creator, license, attribution/conditions and SHA-256.
+
+### Current RESOURCE NODES result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
