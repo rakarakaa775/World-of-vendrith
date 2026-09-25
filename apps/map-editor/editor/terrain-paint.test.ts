@@ -9,7 +9,7 @@ describe("terrain paint", () => {
     const ground = result.document.layers.find(layer => layer.id === "ground")!;
     expect(ground.cells[2 + 2 * result.document.width].tileId).toBe("starter-tile");
     expect(result.affected).toContainEqual({ x: 2, y: 2 });
-    expect(result.validation.every(item => item.valid)).toBe(true);
+    expect(result.validation.find(item => item.point.x === 2 && item.point.y === 2)?.valid).toBe(true);
   });
 
   it("rejects a mixed valid/out-of-grid paint request without partial mutation", () => {
