@@ -187,3 +187,39 @@ Classification without binary provenance remains ⚠️ pending.
 8. VEHICLES
 
 Each group will be checked against the existing canonical asset libraries before any new binary folder is created.
+
+
+## BUILDINGS — initial source audit
+
+The BUILDINGS role is now explicitly included in PLAYABLE. Current external source research confirms that medieval-fantasy building categories are broad enough to warrant their own role rather than being treated as generic props.
+
+Relevant source candidates include:
+- [LPC] Tavern — taverns, inns, bars, kitchens and breweries; CC-BY-SA 3.0. The source page also notes that its preview scenes can contain tiles from other submissions, so attribution must be checked from the package credits rather than inferred from the preview. 
+- [LPC] Thatched-roof Cottage and [LPC] Adobe Town Set — listed in OpenGameArt's LPC collections as building-related sources.
+- [LPC] Blacksmith, Woodshop, Tailor, Floors, Walls, Roofs, and Windows & Doors — listed together in the LPC Tiles collection and useful for constructing exterior building sets.
+- [LPC] Revised Base Structure Kit — structural elements including floors, walls, doors, windows, roofs and arched castle doors; CC-BY-SA 3.0.
+- OpenGameArt's medieval-building collections also list medieval houses, blacksmiths, stables, barracks, castles and other building types.
+
+These are **source candidates only**. They do not establish that any binary currently stored in the Vendrith repository originated from them.
+
+### BUILDINGS audit rule
+
+For each candidate found in the repository, verify:
+
+1. Complete/exterior building role
+2. Medieval-fantasy compatibility
+3. Repository path and filename
+4. Actual binary content
+5. Source package/page
+6. Creator
+7. License
+8. Attribution/conditions
+9. SHA-256 checksum
+
+Interior-only building content is excluded from BUILDINGS and belongs to INTERIOR. Exterior construction pieces such as walls, roofs, gates and exterior doors are audited under ARCHITECTURE.
+
+### Current BUILDINGS result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
