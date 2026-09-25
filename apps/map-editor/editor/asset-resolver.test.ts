@@ -7,6 +7,11 @@ describe("asset resolver", () => {
       .toBe("https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main/ASSET_LIBRARY/02_TILES_AND_TERRAIN/TilesDungeon/Tile.png");
   });
 
+  it("passes through audited external image URLs", () => {
+    expect(assetStorageUrl("https://opengameart.org/sites/default/files/cottage.png"))
+      .toBe("https://opengameart.org/sites/default/files/cottage.png");
+  });
+
   it("keeps approved asset resolution fail-closed for pending registry status", () => {
     expect(resolveAssetUrl({
       id: "asset-1",
