@@ -65,15 +65,15 @@ Do not classify these as REGION binaries during this audit:
 
 | Asset | REGION role | Gameplay role |
 |---|---|---|
-| Ship/boat | Static scenery → REGION/06_SHIPS | Controllable → PLAYABLE/07_VEHICLES |
+| Ship/boat | Static scenery → REGION/06_SHIPS | Controllable → PLAYABLE/08_VEHICLES |
 | Cannon | Decorative/static → REGION/15_REGION_PROPS | Usable → PLAYABLE |
 | Ballista | Decorative/static → REGION/15_REGION_PROPS | Usable → PLAYABLE |
 | Catapult | Decorative/static → REGION/15_REGION_PROPS | Usable → PLAYABLE |
 | Mine-cart track | REGION/01_ROADS or 02_PATHS | — |
-| Mine cart | — | PLAYABLE/07_VEHICLES |
-| Barrel | REGION/15_REGION_PROPS | PLAYABLE/06_GAMEPLAY_PROPS |
-| Sign | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
-| Well/fountain | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
+| Mine cart | — | PLAYABLE/08_VEHICLES |
+| Barrel | REGION/15_REGION_PROPS | PLAYABLE/07_GAMEPLAY_PROPS |
+| Sign | REGION/15_REGION_PROPS | PLAYABLE/03_INTERACTABLES |
+| Well/fountain | REGION/15_REGION_PROPS | PLAYABLE/03_INTERACTABLES |
 
 
 ## World style rule: MEDIEVAL FANTASY ONLY
