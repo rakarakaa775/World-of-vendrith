@@ -168,6 +168,68 @@ Status: ⚠️ pending.
 - REGION role: 06_SHIPS only when the instance is static scenery.
 - Exact source package and binary identity: ⚠️ pending.
 
+## Port audit: 05_PORTS
+
+**05_PORTS remains source-level defined but binary-unverified.** A port is treated as a regional location/assembly that combines shoreline access with port-specific infrastructure. A dock, ship, warehouse, barrel, or water tile by itself is not a port.
+
+### Candidate port roles
+
+Conceptual subroles for future placement metadata:
+
+```text
+05_PORTS
+├── 01_FISHING_PORTS
+├── 02_TRADE_PORTS
+├── 03_RIVER_PORTS
+├── 04_MILITARY_PORTS
+├── 05_SHIPYARDS
+├── 06_FORTIFIED_PORTS
+├── 07_FANTASY_PORTS
+└── 08_PORT_PROPS
+```
+
+These are **map-role concepts**, not physical repository folders yet. Physical folders should only be introduced when the binary library contains enough verified assets to justify the split.
+
+### Source candidates reviewed
+
+**Medieval Seaport Top-Down Pixel Art Tileset — Cute SCKR**
+- Explicitly depicts medieval coastal harbour scenes with docks, fishing boats, cargo crates and waterfront buildings.
+- Personal and commercial game use is allowed under the publisher's stated terms, but the pack must be purchased and its standalone redistribution restriction must be respected.
+- This is a **commercial source candidate**, not a freely verified Vendrith source.
+- It is useful as a visual/category reference for `01_FISHING_PORTS` and `02_TRADE_PORTS`, but it must not be recorded as an approved free asset without the actual purchase/license evidence.
+
+**Medieval Coastal Fishing Village Port — Cute SCKR**
+- Explicitly targets a medieval coastal fishing-village port and contains piers, fishing equipment, sailboats and shoreline scenery.
+- Personal and commercial game use is allowed under the stated terms, with a restriction against standalone redistribution.
+- This is also a **commercial source candidate**, not a repository-binary match.
+
+**Medieval Dark Fantasy / RPG dock collections**
+- OpenGameArt collections expose medieval/fantasy dock and boat candidates, but collection membership alone is not provenance proof.
+- Any individual dock/port binary must be traced to its actual source page/package and license before approval.
+- If the individual element is only a dock, classify it as `04_DOCKS`; only a broader port/location assembly belongs in `05_PORTS`.
+
+### Port component split
+
+| Component | Canonical role |
+|---|---|
+| Dock / pier | `04_DOCKS` |
+| Static ship / boat | `06_SHIPS` |
+| Controllable ship | PLAYABLE / VEHICLES |
+| Warehouse / generic building | BUILDING / Architecture |
+| Barrel / crate | `15_REGION_PROPS` when static regional scenery |
+| Fishing equipment | `15_REGION_PROPS` when static; PLAYABLE when interactive |
+| Complete port / harbor assembly | `05_PORTS` |
+
+### Medieval-fantasy filter
+
+Allowed port forms include medieval fishing ports, river ports, trading harbors, military harbors, shipyards, fortified harbors and fantasy ports that remain visually and technologically compatible with the setting.
+
+Excluded by default: modern marinas, cruise terminals, container ports, industrial cargo terminals, modern cranes, yacht marinas and futuristic/sci-fi waterfront infrastructure.
+
+### Current decision
+
+No `05_PORTS` binary is promoted to verified status yet. The source audit is sufficient to define the category and filtering rules, but actual repository binaries still require path/filename/source/creator/license/credit/conditions and SHA-256 verification before promotion.
+
 ## Source research: ROADS / PATHS
 
 ### 01_ROADS
