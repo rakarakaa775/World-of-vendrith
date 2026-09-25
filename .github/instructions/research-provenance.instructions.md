@@ -1,5 +1,5 @@
 ---
-applyTo: "assets/**/*,**/*.{ts,tsx,json,md,tsx},database/**/*,supabase/**/*"
+applyTo: "assets/**/*,**/*.{ts,tsx,json,md},database/**/*,supabase/**/*
 ---
 
 # Vendrith research-first and external provenance instructions
