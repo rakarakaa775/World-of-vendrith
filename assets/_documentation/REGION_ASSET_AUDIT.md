@@ -1110,3 +1110,22 @@ The Sevarihk package is not automatically accepted as a whole: its own descripti
 **⚠️ Source-researched / binary-unverified.** The expanded source pass gives us stronger medieval-fantasy candidates, but no candidate is promoted until the actual Vendrith binary is matched and its provenance and SHA-256 are reconciled.
 
 **Next step remains binary inspection of `archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip`.**
+
+## Binary verification checkpoint: 06_SHIPS
+
+A repository-level search was performed against the known ship source fingerprints, including `ship.png`, `lpc-ship.zip`, `Black Sail.zip`, `ship_bases.zip`, `ship_rework-body.png`, `ship_rework-sailsmasts.png`, `ship_rework-bows.png`, `ship_rework-misc.png`, `steuer-schiff.png`, `medievalboatexport.blend`, and `ship2.obj`.
+
+No indexed repository result established an exact Vendrith binary match for these fingerprints. This does **not** prove that the files are absent: the project archive `archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip` is a binary container whose internal members are not exposed by the connected GitHub text reader.
+
+### Provenance conclusion
+
+- **No 06_SHIPS asset is promoted to 🟢 verified provenance.**
+- Source/license facts remain recorded as candidate evidence only.
+- The Sevarihk pack requires element-level filtering because it contains both medieval-compatible vessels and non-medieval vessels such as freighters. citeturn0search0
+- The AnyRPG Medieval Boat is CC0 but is explicitly derivative of `simple-wood-boat`; any future binary match must preserve that provenance chain. citeturn0search1
+- The LPC Ship source is explicitly CC-BY 4.0 / GPL 3.0 / GPL 2.0 / OGA-BY 3.0 and provides `lpc-ship.zip`; this remains source evidence until a Vendrith binary match is established. citeturn0search9
+- The LPC Wooden ship tiles source provides `ship.png` and identifies Tuomo Untinen as the ship-tile creator under the listed licenses. citeturn0search11
+
+**Status: `06_SHIPS = ⚠️ source-researched / binary-unverified`.**
+
+**Next target:** continue with the archive/binary inspection path rather than adding more ship sources unless a new source is needed to resolve a concrete filename/provenance match.
