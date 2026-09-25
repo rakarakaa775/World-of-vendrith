@@ -5,10 +5,34 @@ import {
 } from './terrain-engine';
 
 describe('Source of Tales terrain adapter', () => {
-  it('maps all 256 Vendrith masks to a valid sand/water tile reference', () => {
+  it('maps every Vendrith mask to a supported or explicitly unsupported corner pattern', () => {
     for (let mask = 0; mask <= 255; mask += 1) {
-      expect(() => sourceOfTalesSandWaterTile(mask, 'water')).not.toThrow();
-      expect(() => sourceOfTalesSandWaterTile(mask, 'sand')).not.toThrow();
+      for (const centerTerrain of ['water', 'sand'] as const) {
+        const pattern = sourceOfTalesCornerPattern(mask, centerTerrain);
+        const isCenterHomogeneous =
+          centerTerrain === 'water'
+            ? pattern.every((value) => value === 0)
+            : pattern.every((value) => value === 1);
+        const isOppositeHomogeneous =
+          centerTerrain === 'water'
+            ? pattern.every((value) => value === 1)
+            : pattern.every((value) => value === 0);
+
+        if (isCenterHomogeneous) {
+          expect(sourceOfTalesSandWaterTile(mask, centerTerrain)).toMatchObject({
+            kind: 'base',
+            terrain: centerTerrain,
+            tileId: 10,
+            pattern,
+          });
+        } else if (isOppositeHomogeneous) {
+          expect(() => sourceOfTalesSandWaterTile(mask, centerTerrain)).toThrow(
+            /Unsupported Source of Tales sand\/water corner pattern/,
+          );
+        } else {
+          expect(() => sourceOfTalesSandWaterTile(mask, centerTerrain)).not.toThrow();
+        }
+      }
     }
   });
 
