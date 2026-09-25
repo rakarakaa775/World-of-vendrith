@@ -10,17 +10,6 @@ REGION is the map-role layer for **exterior regional geography and locations**. 
 
 For this audit, standalone buildings, house kits, interior/building construction pieces, furniture, roofs, walls, doors/windows, and other generic building assets are **not promoted simply because they can appear in a region**. They stay in their canonical asset storage/category unless a future map-placement record explicitly identifies them as part of a REGION location.
 
-The current audit starts with:
-- Roads
-- Paths
-- Bridges
-- Docks
-- Ports
-- Static ships/boats
-- Regional infrastructure
-- Static exterior regional locations
-- Region props
-
 ## Canonical structure
 
 ```text
@@ -76,8 +65,6 @@ Those remain in their canonical asset libraries. If a future map document uses t
 
 ## Static vs gameplay boundary
 
-The primary question is also whether the asset is directly usable by the player.
-
 | Asset | REGION role | Gameplay role |
 |---|---|---|
 | Ship/boat | Static scenery → REGION/06_SHIPS | Controllable → PLAYABLE/07_VEHICLES |
@@ -90,33 +77,75 @@ The primary question is also whether the asset is directly usable by the player.
 | Sign | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 | Well/fountain | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 
-A visual duplicate may legitimately exist in both categories when one version is scenery and another is interactive.
+## Source research: first REGION pass
 
-## Source candidates verified for REGION research
+These are **source candidates**, not binary-approved assets. A source page alone does not prove that a repository binary came from that source.
 
-The following are **source candidates**, not binary-approved assets. A source page alone does not prove that a repository binary came from that source.
+### 03_BRIDGES
 
-### Bridges
+**LPC Wooden Bridge Rework**
+- OpenGameArt author: AntumDeluge.
+- The page states the tileset was originally by Xenodora and reworked as a drop-in replacement.
+- Licenses: CC-BY-SA 3.0, GPL 3.0, GPL 2.0.
+- Attribution instruction: credit Xenodora; the page says AntumDeluge's current changes are CC0.
+- REGION role: **03_BRIDGES**.
+- Binary status: ⚠️ not individually verified against our asset library. citeturn0search0
 
-| Source candidate | REGION category | Source evidence | License / credit | Binary status |
-|---|---|---|---|---|
-| LPC Wooden Bridge Rework | 03_BRIDGES | OpenGameArt source identified | CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0; credit Xenodora | ⚠️ binary not individually verified |
-| Stone Bridge tiles 32x32 | 03_BRIDGES | OpenGameArt source identified | CC-BY 3.0; attribution: Tuomo Untinen | ⚠️ binary not individually verified |
-| LPC style wood bridges and steel flooring | 03_BRIDGES | OpenGameArt collection/source identified | Source-specific attribution must be retained | ⚠️ binary not individually verified |
+**LPC style wood bridges and steel flooring**
+- OpenGameArt author: Xenodora.
+- Wood bridge and steel-flooring tiles are designed for bridges/walkways.
+- Licenses: CC-BY-SA 3.0, GPL 3.0, GPL 2.0.
+- Attribution instruction: credit Xenodora.
+- REGION role: **03_BRIDGES** for bridge pieces; steel flooring only belongs here when actually used as regional bridge/walkway infrastructure.
+- Binary status: ⚠️ not individually verified. citeturn0search11
 
-### Docks / Ports
+**Stone Bridge tiles 32x32**
+- Identified as a separate bridge source in OpenGameArt's LPC outdoor collections.
+- REGION role: **03_BRIDGES**.
+- Binary status: ⚠️ not individually verified. citeturn0search3
 
-| Source candidate | REGION category | Source evidence | License / credit | Binary status |
-|---|---|---|---|---|
-| Dock tileset | 04_DOCKS | OpenGameArt LPC collections identify the source | Must verify source page/package before approval | ⚠️ binary not individually verified |
+### 04_DOCKS
 
-### Ships
+**Dock tileset**
+- OpenGameArt author: Reid.
+- Asset: `Artis_dock.png`.
+- License: CC-BY-SA 3.0.
+- REGION role: **04_DOCKS**.
+- This is a dock/infrastructure asset, not a generic building asset.
+- Binary status: ⚠️ not individually verified against our library. citeturn1search0
 
-| Source candidate | REGION category | Source evidence | License / credit | Binary status |
-|---|---|---|---|---|
-| LPC Wooden ship tiles | 06_SHIPS when used as static scenery | OpenGameArt LPC collections identify the source | Must verify exact source page/package before approval | ⚠️ binary not individually verified |
-| LPC Ship | 06_SHIPS when used as static scenery | OpenGameArt LPC collections identify the source | Must verify exact source page/package before approval | ⚠️ binary not individually verified |
-| LPC Misc tile atlas — boat/bridge elements | 06_SHIPS / 03_BRIDGES depending element | OpenGameArt source identifies derivative work | CC-BY-SA 3.0 / GPL 3.0; derivative attribution includes Sharm, Janna, Tuomo Untinen, Casper Nilsson, Barbara Rivera and Daneeklu | ⚠️ binary not individually verified |
+### 05_PORTS
+
+No binary-approved PORT asset yet.
+
+A port should only be promoted when we have evidence that the asset represents **port infrastructure/location**, rather than merely a dock, ship, water tile, or generic building.
+
+Status: ⚠️ pending binary/source matching.
+
+### 06_SHIPS
+
+**LPC Wooden ship tiles**
+- OpenGameArt author page: Reemax.
+- The page states the ship tiles themselves were made by Tuomo Untinen.
+- Licenses: CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0, GPL 2.0.
+- Attribution notice: “Wooden ship tiles by Tuomo Untinen.”
+- REGION role: **06_SHIPS only when used as static exterior scenery**.
+- Important: the page explicitly distinguishes the ship tiles from LPC water in the preview; RPG Maker sails shown in a later discussion are not automatically usable under the ship license.
+- Binary status: ⚠️ not individually verified against our library. citeturn0search7turn0search10
+
+**LPC Ship**
+- Identified in OpenGameArt LPC collections.
+- REGION role: **06_SHIPS only if the instance is static scenery**.
+- If controllable/usable, it belongs to the vehicle/gameplay system instead.
+- Binary/source identity: ⚠️ exact source package and binary not yet verified. citeturn0search5
+
+## Important exclusion: buildings
+
+The LPC collections contain many entries such as Colonial Buildings, Victorian Buildings, Adobe Town Set, castles, cottages and other architecture. Their appearance in an LPC outdoor collection does **not** make them REGION assets for this audit.
+
+They remain outside the REGION binary library unless we are later recording a **specific regional location instance**. The REGION system should reference the placement of a settlement/location rather than duplicate every building binary.
+
+OpenGameArt's LPC collections themselves mix outdoor, indoor, building, furniture and other assets, which is another reason we must classify by role instead of collection membership. citeturn0search3turn1search8
 
 ## Provenance rule
 
@@ -139,16 +168,16 @@ Unknown provenance remains **⚠️ pending review**.
 
 ## Current audit order
 
-1. BRIDGES
-2. DOCKS
-3. PORTS
-4. SHIPS
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — pending
+4. SHIPS — source research started; binary matching pending
 5. ROADS / PATHS
 6. Regional infrastructure
 7. Static regional locations
 8. REGION_PROPS
 
-Generic buildings are excluded from this pass.
+**Generic buildings are excluded from this pass.**
 
 ## Important rule
 
