@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStarterMap } from './map-document';
-import { placeBuilding, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject } from './object-state';
+import { placeBuilding, placePaletteAsset, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject } from './object-state';
 
 describe('selection and transform operations', () => {
   function doc() {
@@ -70,5 +70,41 @@ describe('selection and transform operations', () => {
     const ids = value.layers.find(l=>l.id==='objects')!.objects.map(o=>o.id);
     const mirrored = mirrorObjects(value, 'objects', ids, 'horizontal');
     expect(mirrored).not.toBe(value);
+  });
+});
+
+
+describe('level-aware palette asset placement', () => {
+  it('places a catalog asset as a map object without changing the document hierarchy', () => {
+    const document = createStarterMap();
+    const next = placePaletteAsset(document, 'objects', { x: 2, y: 2 }, {
+      id: 'tree',
+      label: 'Tree',
+      family: 'playable-nature',
+    });
+    const object = next.layers.find(layer => layer.id === 'objects')?.objects.at(-1);
+    expect(object).toMatchObject({
+      kind: 'decoration',
+      category: 'tree',
+      assetId: 'tree',
+      x: 2,
+      y: 2,
+      collision: false,
+    });
+  });
+
+  it('does not place an asset on a blocked object cell', () => {
+    const document = createStarterMap();
+    const first = placePaletteAsset(document, 'objects', { x: 2, y: 2 }, {
+      id: 'tree',
+      label: 'Tree',
+      family: 'playable-nature',
+    });
+    const second = placePaletteAsset(first, 'objects', { x: 2, y: 2 }, {
+      id: 'rock',
+      label: 'Rock',
+      family: 'playable-nature',
+    });
+    expect(second).toBe(first);
   });
 });
