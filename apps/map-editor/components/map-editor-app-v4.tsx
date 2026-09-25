@@ -16,6 +16,7 @@ import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnecti
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { serializeGameSaveSnapshot } from "../editor/game-save";
+import { canOpenObjectTarget } from "../editor/map-navigation";
 import { parseSaveSlotSnapshot, validateSaveSlotRpcResult } from "../editor/map-save-slot";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
@@ -419,11 +420,21 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   }, [refreshSlots]);
 
   const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
+  const openObjectMapTarget = useCallback(async (object: MapDocument["layers"][number]["objects"][number]) => {
+    const targetId = active.mapType === "region" ? object.childMapId : object.interiorMapId;
+    if (!targetId) return;
+    const target = maps.find(document => document.id === targetId);
+    if (!target || !canOpenObjectTarget(active, object, target)) {
+      setStatus("Open failed: linked map does not match the current hierarchy");
+      return;
+    }
+    await openMap(target.id, target);
+  }, [active, maps, openMap]);
 
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
-      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
+      <EditorShell onOpenMapTarget={openObjectMapTarget} initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
     {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
