@@ -256,11 +256,52 @@ Binary status for all candidates: ⚠️ not individually verified against the V
 ### 02_PATHS
 
 **RPG Tiles: Cobble stone paths & town objects**
-- OpenGameArt source contains cobblestone paths and is licensed CC-BY-SA 3.0.
-- The source attributes the work to Zabin, Daneeklu, Jetrel, Hyptosis, Redshrike and Bertram and provides a credit instruction linking back to the source page.
+- OpenGameArt source contains cobblestone paths and is licensed **CC-BY-SA 3.0**.
+- Authors/collaborators listed by the source: **Zabin, Daneeklu, Jetrel, Hyptosis, Redshrike and Bertram**.
 - REGION role: **02_PATHS** for the cobblestone path elements.
-- The same tileset contains town objects, dock and boat elements; those must be split by actual role rather than importing the whole atlas into PATHS.
-- Binary status: ⚠️ not individually verified.
+- The same atlas also contains water, dock, boat and town-object material, so only the path elements belong here. citeturn0search0
+- Credit for the listed contributors and source license must be retained.
+- Binary status: ⚠️ source verified; repository binary not individually verified.
+
+**Cobblestone Tileset**
+- OpenGameArt source by **Cem Kalyoncu**, collaborator **Lamoot**.
+- License: **CC-BY 3.0**.
+- Explicitly tagged cobblestone, path and medieval; attribution instructions name Cem Kalyoncu and texture contributors Lamoot and West. citeturn0search12turn0search13
+- Candidate role: **02_PATHS**, and potentially 01_ROADS when assembled as a medieval regional road.
+- Binary status: ⚠️ source verified; repository binary not individually verified.
+
+**tileable stone path**
+- OpenGameArt source by **forkart**.
+- License: **CC0**.
+- File listed by the source: stone.png.
+- Candidate role: **02_PATHS**. citeturn0search14
+- Binary status: ⚠️ source verified; repository binary not individually verified.
+
+**Stone Pavement Ground Tile**
+- OpenGameArt source by **Saroman**.
+- License: **CC-BY 3.0**.
+- Source tags include road, stone, cobblestone and medieval; file is Cobblestone.png. citeturn0search15
+- Candidate role: **01_ROADS / 02_PATHS**, depending on actual use.
+- Binary status: ⚠️ source verified; repository binary not individually verified.
+
+**cobble path texture**
+- OpenGameArt source by **OgreofWart**.
+- License: **CC0**.
+- Candidate role: **02_PATHS** only if used as a medieval-compatible path texture rather than a generic texture library asset. citeturn0search16
+- Binary status: ⚠️ source verified; repository binary not individually verified.
+
+**Top-down Pebble Path**
+- OpenGameArt source by **Vaight**.
+- License: **CC0**.
+- 16x16 top-down cobblestone/road texture; candidate for **01_ROADS / 02_PATHS**. citeturn0search20
+- Binary status: ⚠️ source verified; repository binary not individually verified.
+
+### Path exclusion / filtering
+
+- Modern asphalt roads, traffic infrastructure and contemporary streets remain excluded even when their licenses are permissive.
+- A generic stone texture is not automatically a REGION path; it must function as a path/road asset in the map system.
+- A source collection is not provenance proof for any repository binary.
+- When a mixed atlas contains paths plus docks/boats/town objects, split the roles instead of placing the entire package under PATHS.
 
 ### Regional rail infrastructure
 
@@ -690,10 +731,11 @@ Unknown provenance remains **⚠️ pending review**.
 2. DOCKS — source research completed; binary matching pending
 3. PORTS — pending
 4. SHIPS — source research started; binary matching pending
-5. ROADS / PATHS — source research started; binary matching pending
-6. Regional infrastructure — medieval-fantasy source research added; binary matching pending
-7. Static regional locations — next research pass
-8. REGION_PROPS — continue after location pass
+5. ROADS — medieval-fantasy source filtering completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — medieval-fantasy source research added; binary matching pending
+8. Static regional locations — next research pass
+9. REGION_PROPS — continue after location pass
 
 **Generic buildings remain excluded from this audit.**
 
