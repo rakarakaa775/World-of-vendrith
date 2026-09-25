@@ -12,7 +12,7 @@ const document: MapDocument = {
   height: 2,
   tileSize: 32,
   layers: [
-    { id: 'ground', name: 'Ground', kind: 'ground', active: true, visible: true, locked: false, cells: [], objects: [] },
+    { id: 'ground', name: 'Ground', kind: 'ground', active: true, visible: true, locked: false, cells: [{ tileId: null }, { tileId: null }, { tileId: null }, { tileId: null }], objects: [] },
   ],
 };
 
