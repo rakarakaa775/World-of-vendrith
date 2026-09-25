@@ -49,11 +49,6 @@ export async function resolveAuthoritativeMap(
   if (!identityRow?.editor_map_id) throw new Error('MAP_IDENTITY_ERROR: authoritative identity is unavailable');
   if (expectedMapType && identityRow.map_type !== expectedMapType) throw new Error('IDENTITY_ERROR: requested map type does not match authoritative identity');
 
-  const access = await client.rpc('map_editor_can_access_v1', { p_map_id: requestedMapId });
-  if (access.error) throw new Error(`MAP_ACCESS_ERROR: ${access.error.message}`);
-  if (access.data !== true && access.data?.[0] !== true) {
-    throw new Error('MAP_ACCESS_ERROR: map not found or not accessible');
-  }
 
   // Phase 3: the existing World Map is idempotently registered in the
   // explicit editor identity layer. No legacy maps row is created or changed.
