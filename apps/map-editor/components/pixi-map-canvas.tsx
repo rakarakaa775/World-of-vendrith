@@ -15,6 +15,7 @@ import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
 import { boxSelectObjectIds } from "../editor/object-state";
+import { diffMapDocuments } from "../editor/map-render-diff";
 import { DEFAULT_VIEWPORT, nextZoomLevel, panBy, snapToCell, zoomAt, type Viewport } from "../editor/viewport";
 
 type Props = {
@@ -65,6 +66,7 @@ export function PixiMapCanvas(props: Props) {
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
   const objectGraphicsRef = useRef(new Map<string, Graphics>());
+  const previousDocumentRef = useRef<MapDocument | null>(null);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   propsRef.current = props;
@@ -144,6 +146,67 @@ export function PixiMapCanvas(props: Props) {
       const host = hostRef.current;
       if (!world || !app || !host) return;
       const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds } = propsRef.current;
+      const previousDocument = previousDocumentRef.current;
+      const diff = diffMapDocuments(previousDocument, document);
+
+      // Fast path for object-only edits. Terrain/grid rendering stays intact while
+      // moved, added, or removed objects are patched in place.
+      if (previousDocument && !diff.dimensionsChanged && diff.changedTerrainByLayer.length === 0 && diff.objectLayerChanged) {
+        const objectsLayer = document.layers.find(layer => layer.kind === "objects");
+        const objectsById = new Map((objectsLayer?.objects ?? []).map(object => [object.id, object]));
+        const selected = new Set(selectedObjectIds);
+        const renderObject = (object: MapDocument["layers"][number]["objects"][number]) => {
+          const g = new Graphics();
+          const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
+          g.roundRect(
+            object.x * document.tileSize + 2,
+            object.y * document.tileSize + 2,
+            object.width * document.tileSize - 4,
+            object.height * document.tileSize - 4,
+            4,
+          )
+            .fill({ color: c, alpha: 0.9 })
+            .stroke({ width: 2, color: selected.has(object.id) ? 0x0ea5e9 : 0x334155 });
+          g.visible = objectsLayer?.visible ?? true;
+          objectGraphicsRef.current.set(object.id, g);
+          world.addChild(g);
+        };
+
+        for (const id of diff.changedObjectIds) {
+          const existing = objectGraphicsRef.current.get(id);
+          const object = objectsById.get(id);
+          if (!object) {
+            existing?.removeFromParent();
+            existing?.destroy();
+            objectGraphicsRef.current.delete(id);
+            continue;
+          }
+          existing?.removeFromParent();
+          existing?.destroy();
+          objectGraphicsRef.current.delete(id);
+          renderObject(object);
+        }
+
+        for (const [id, graphic] of objectGraphicsRef.current) {
+          const object = objectsById.get(id);
+          if (!object) continue;
+          const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
+          graphic.visible = objectsLayer?.visible ?? true;
+          graphic.clear();
+          graphic.roundRect(
+            object.x * document.tileSize + 2,
+            object.y * document.tileSize + 2,
+            object.width * document.tileSize - 4,
+            object.height * document.tileSize - 4,
+            4,
+          )
+            .fill({ color: c, alpha: 0.9 })
+            .stroke({ width: 2, color: selected.has(id) ? 0x0ea5e9 : 0x334155 });
+        }
+        previousDocumentRef.current = document;
+        return;
+      }
+
       world.removeChildren();
       objectGraphicsRef.current.clear();
       const overlay = new Graphics();
@@ -259,6 +322,7 @@ export function PixiMapCanvas(props: Props) {
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
       propsRef.current.onViewportChange?.(viewportRef.current);
+      previousDocumentRef.current = document;
     };
     void render().catch(error => {
       if (cancelled) return;
