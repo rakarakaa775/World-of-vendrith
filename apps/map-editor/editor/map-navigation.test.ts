@@ -21,7 +21,7 @@ describe('map hierarchy navigation', () => {
     const world = { ...createMap('world'), id: 'world-1' };
     const region = { ...createMap('region', world.id), id: 'region-1' };
     const playable = { ...createMap('playable', region.id, 'exterior'), id: 'playable-1' };
-    const interior = { ...createMap('playable', null, 'interior', playable.id), id: 'interior-1' };
+    const interior = { ...createMap('playable', 'region-1', 'interior', playable.id), id: 'interior-1' };
 
     expect(canOpenChildMap(world, region)).toBe(true);
     expect(canOpenChildMap(region, playable)).toBe(true);
@@ -50,7 +50,7 @@ describe('map hierarchy navigation', () => {
 
   it('opens a Playable building into its linked Interior map', () => {
     const playable = { ...createMap('playable', 'region-1', 'exterior'), id: 'village-1' };
-    const interior = { ...createMap('playable', null, 'interior', playable.id), id: 'house-1' };
+    const interior = { ...createMap('playable', 'region-1', 'interior', playable.id), id: 'house-1' };
     const house: MapObject = {
       id: 'house-object',
       kind: 'building',
@@ -86,7 +86,7 @@ describe('map hierarchy navigation', () => {
     const world = { ...createMap('world'), id: 'world-1' };
     const region = { ...createMap('region', world.id), id: 'region-1' };
     const playable = { ...createMap('playable', region.id, 'exterior'), id: 'playable-1' };
-    const interior = { ...createMap('playable', null, 'interior', playable.id), id: 'interior-1' };
+    const interior = { ...createMap('playable', 'region-1', 'interior', playable.id), id: 'interior-1' };
     const docs = new Map([world, region, playable, interior]);
 
     expect(getNavigationPath(interior, docs).map(document => document.id))
