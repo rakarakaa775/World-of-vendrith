@@ -56,11 +56,11 @@ describe("map save-slot RPC contract", () => {
   });
 
   it("rejects snapshots with invalid world or exterior identity", () => {
-    const regionWorld = { ...world, mapType: "region" as const };
+    const regionWorld = { ...world, mapType: "region" as const, parentMapId: "parent-world" };
     expect(() => parseSaveSlotSnapshot({ ok: true, snapshot: { ...validSnapshot, world: regionWorld } }, "world-1"))
       .toThrow("SAVE_SLOT_WORLD_TYPE_INVALID");
 
-    const interior = createMap("playable", world.id, "interior");
+    const interior = createMap("playable", world.id, "interior", world.id);
     expect(() => parseSaveSlotSnapshot({ ok: true, snapshot: { ...validSnapshot, exterior: interior } }, "world-1"))
       .toThrow("SAVE_SLOT_EXTERIOR_SPACE_INVALID");
   });
