@@ -274,3 +274,52 @@ For each repository candidate we must reconcile:
 **Source coverage:** strong  
 **Repository binary match:** not yet established  
 **Approval:** ⚠️ pending until binary provenance is reconciled
+
+
+## 03_INTERACTABLES — initial source audit
+
+03_INTERACTABLES covers exterior map objects that the player can directly operate, activate, open, read, enter, toggle or otherwise interact with.
+
+### Audit groups
+
+| Group | Examples |
+|---|---|
+| Access | usable doors, gates, portcullises, entrance mechanisms |
+| Containers | chests, crates, barrels and other loot/storage containers |
+| World utilities | wells, fountains, switches, levers, handles |
+| Information | readable signs, notice boards, interactive markers |
+| World objects | usable furniture/props when interaction is a distinct gameplay action |
+| Animated interaction | doors, gates and similar animated map mechanisms |
+
+Source research confirms suitable medieval/fantasy candidates:
+- OpenGameArt's LPC collections include **LPC Windows & Doors**, **LPC Animated Doors**, **LPC Animated Castle Doors**, **LPC Style Well**, **LPC Water Fountain**, containers and similar world-interaction assets. citeturn0search0turn0search8
+- **[LPC] Windows & Doors** is CC-BY-SA 3.0 / GPL 3.0 and requires the complete attribution information from its credits file when distributing the images. citeturn0search9
+- **[LPC] Containers** is CC-BY-SA 4.0 and includes chests, crates, barrels, sacks, baskets, pots and related containers. Its page explicitly warns that preview images contain assets from other submissions and those must be attributed separately. citeturn0search3
+- OpenGameArt's fantasy/RPG collection also lists wells, treasure chests, animated castle doors, traps, training objects and other interaction-oriented assets. citeturn0search2
+
+### Classification rule
+
+An object receives the 03_INTERACTABLES role when interaction is part of its intended gameplay behavior.
+
+Examples:
+- Decorative door → PLAYABLE/02_ARCHITECTURE only
+- Openable door → PLAYABLE/02_ARCHITECTURE + PLAYABLE/03_INTERACTABLES
+- Decorative chest → PLAYABLE/07_GAMEPLAY_PROPS
+- Lootable chest → PLAYABLE/07_GAMEPLAY_PROPS + PLAYABLE/03_INTERACTABLES
+- Decorative well → PLAYABLE/07_GAMEPLAY_PROPS
+- Usable well → PLAYABLE/07_GAMEPLAY_PROPS + PLAYABLE/03_INTERACTABLES
+- Decorative sign → PLAYABLE/07_GAMEPLAY_PROPS
+- Readable sign → PLAYABLE/07_GAMEPLAY_PROPS + PLAYABLE/03_INTERACTABLES
+- Gate with gameplay access control → PLAYABLE/02_ARCHITECTURE + PLAYABLE/03_INTERACTABLES
+
+03_INTERACTABLES is therefore a **gameplay-role binding**, not a reason to duplicate the underlying visual binary.
+
+### Provenance rule
+
+Source-page discovery does not promote a repository binary. Verification still requires repository path/filename, actual binary, source package/page, creator, license, attribution/conditions and SHA-256.
+
+### Current INTERACTABLES result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
