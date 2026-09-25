@@ -362,6 +362,133 @@ A useful test is:
 - Interactive gameplay object → PLAYABLE.
 - Living entity → LIFE_GENERATION / SPAWN_LIFE.
 
+## Deep audit: 12_RUINS / 13_FARMS / 14_CAMPS
+
+This pass applies a stricter role test: the asset must represent a **regional exterior location or its fixed regional infrastructure**. Generic architecture, generic inventory objects, crops as resources, animals, characters and interactive gameplay objects remain outside REGION.
+
+### 12_RUINS
+
+#### Candidate: Classical Ruin Tiles
+- OpenGameArt source: **Classical Ruin Tiles** by surt.
+- License: **CC0**.
+- Role candidate: **12_RUINS** when individual tiles form a ruined exterior landmark/location.
+- Medieval-fantasy compatibility: **conditional**. The source is classical rather than explicitly medieval, so it must pass a visual review before use in Vandrith.
+- Do not promote generic stone/wall tiles merely because they can be damaged or arranged as ruins.
+- Binary status: ⚠️ source identified; repository binary not individually verified. citeturn0search21
+
+#### Ruin classification rule
+A ruin qualifies as REGION when it communicates a recognizable **regional ruined place**, for example:
+- ruined tower
+- collapsed fortress section
+- abandoned shrine
+- ruined gate
+- destroyed village/farm site
+- ancient regional landmark
+
+A generic cracked wall texture, broken brick tile or reusable damaged construction piece remains a Building/Architecture asset unless it is part of a specific ruin assembly.
+
+**Current decision:** no ruin binary is promoted to verified REGION yet.
+
+### 13_FARMS
+
+#### Candidate: [LPC] Farm
+- OpenGameArt source: **[LPC] Farm** by bluecarrot16, Wolthera van Hövell tot Westerflier (TheraHedwig), and Ivan Voirol.
+- License: **CC-BY 4.0**.
+- Contains barns, granary, chicken coop, apiary/beehives, sheds/stables, fences, windmill and water wheel elements.
+- The source explicitly provides both primitive medieval/pre-modern styling and a more modern early-industrial styling.
+- **Vandrith rule:** only the medieval/pre-modern elements may proceed; early-industrial variants are excluded.
+- Role candidates: **13_FARMS** for fixed farm infrastructure/location assemblies.
+- Generic construction components should remain Building/Architecture.
+- Farm crafting machines that are gameplay-interactive may belong to PLAYABLE/Item/Crafting systems rather than REGION.
+- Binary status: ⚠️ source identified; repository binary not individually verified. citeturn0search11
+
+#### Candidate: Pixel farm and shack
+- OpenGameArt source: **Pixel farm and shack** by pixel32.
+- License: **CC0**.
+- Contains crops, farm tiles and a shack.
+- Role candidate: farm terrain/location scenery can support **13_FARMS**.
+- The shack itself is a generic building component and should not be promoted to REGION merely because it is bundled with farm assets.
+- Crops/resources may belong to Item Asset / Life Generation depending on their function; only fixed regional farm scenery belongs here.
+- Binary status: ⚠️ source identified; repository binary not individually verified. citeturn0search4
+
+#### Candidate: Simple Farm Tiles
+- OpenGameArt source: **Simple Farm Tiles** by ChikenwingJJA.
+- License: **CC0**.
+- Contains grass, farmland tiles and crops.
+- Role candidate: **13_FARMS** only for fixed farmland/field terrain used as regional scenery.
+- Individual crop/resource assets are not automatically REGION.
+- Binary status: ⚠️ source identified; repository binary not individually verified. citeturn0search13
+
+#### Farm boundary rule
+A farm is REGION when it describes **where farming happens in the world**:
+- fields
+- irrigation/water-wheel infrastructure
+- fences
+- barns/stables as part of a specific farm location
+- granary
+- apiary
+- windmill
+- farmyard assembly
+
+It is not REGION merely because an asset is agriculturally themed:
+- seeds → ITEM_ASSET
+- crops as inventory/resources → ITEM_ASSET
+- animals → LIFE_GENERATION
+- farming tools → ITEM_ASSET
+- generic farmhouse → BUILDING/ARCHITECTURE
+
+### 14_CAMPS
+
+#### Candidate: isometric props and tents
+- OpenGameArt source: **isometric props and tents** by rubberduck.
+- License: **CC0**.
+- Contains tents, fireplaces, cauldrons, boxes, barrels, barricades and other camp-oriented props.
+- Role candidate: **14_CAMPS** for fixed camp assemblies and exterior camp infrastructure.
+- Generic boxes/barrels/cauldrons should not automatically become REGION; classify them by actual role.
+- Interactive containers/equipment can move to PLAYABLE or Item systems.
+- Binary status: ⚠️ source identified; repository binary not individually verified. citeturn0search18
+
+#### Candidate: [LPC] Medieval Village Decorations
+- The source explicitly includes military camp material within a medieval/pre-industrial town decoration set.
+- Role candidate: **14_CAMPS** for fixed military/civilian camp scenery.
+- License: CC-BY-SA 4.0 / CC-BY-SA 3.0 with required credit information in the included credits file.
+- Only the actual camp/location elements should be extracted from the package; unrelated town decorations remain in their own REGION categories.
+- Binary status: ⚠️ source identified; repository binary not individually verified. citeturn0search10turn0search6
+
+#### Camp boundary rule
+A camp qualifies as REGION when it represents a recognizable **fixed exterior camp/location**:
+- tent cluster
+- campfire area
+- military encampment
+- caravan camp
+- hunter/gatherer camp
+- temporary field camp
+- barricade/perimeter as part of the camp assembly
+
+A single tent or barrel is not automatically a REGION location. It can remain a reusable prop until placed/assembled as part of a specific camp.
+
+### Deep-audit decision matrix
+
+| Asset/function | REGION category | Decision |
+|---|---|---|
+| Ruined tower/location assembly | 12_RUINS | REGION |
+| Generic cracked wall tile | — | BUILDING/Architecture |
+| Fixed farm fields | 13_FARMS | REGION |
+| Barn/stable in a specific farm assembly | 13_FARMS | REGION |
+| Generic barn kit | — | BUILDING/Architecture |
+| Crop resource | — | ITEM_ASSET |
+| Farm animal | — | LIFE_GENERATION |
+| Fixed tent camp assembly | 14_CAMPS | REGION |
+| Single reusable tent | — | REGION_PROPS / source-specific until placed |
+| Interactive chest/barrel | — | PLAYABLE / ITEM |
+| Static camp barrel as scenery | 15_REGION_PROPS when appropriate | REGION_PROPS |
+| Military camp assembly | 14_CAMPS | REGION |
+| Generic medieval house | — | BUILDING/Architecture |
+
+### Verification status
+
+This deep pass establishes **source candidates and classification rules**, not binary approval. No candidate is considered present in the Vendrith repository until the actual repository asset can be matched by path, filename, source metadata/credits and SHA-256 where available.
+
 ## Important classification rule for mixed tilesets
 
 A single source package may contain multiple REGION and non-REGION roles.
