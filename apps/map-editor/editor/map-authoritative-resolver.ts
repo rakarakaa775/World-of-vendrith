@@ -83,11 +83,8 @@ export async function resolveAuthoritativeMap(
   const document = parseMapDocument(payload, identityRow.editor_map_id);
   const version = Number(result.version_number) || 0;
 
-  if (document.id !== row.id) {
-    throw new Error('IDENTITY_ERROR: authoritative snapshot identity does not match map row');
-  }
-  if (document.mapType === 'world' && row.map_type !== 'world') {
-    throw new Error(`IDENTITY_ERROR: World Map row has incompatible database map_type "${row.map_type}"`);
+  if (document.id !== identityRow.editor_map_id) {
+    throw new Error('IDENTITY_ERROR: authoritative snapshot identity does not match editor identity');
   }
   if (expectedMapType && document.mapType !== expectedMapType) {
     throw new Error(`IDENTITY_ERROR: requested map type "${expectedMapType}" does not match authoritative document "${document.mapType}"`);
@@ -96,5 +93,5 @@ export async function resolveAuthoritativeMap(
     throw new Error('IDENTITY_ERROR: authoritative snapshot map type does not match editor identity');
   }
 
-  return { row: { ...row, editor_map_id: identityRow.editor_map_id, legacy_map_id: identityRow.legacy_map_id ?? null, parent_editor_map_id: identityRow.parent_editor_map_id ?? null }, document, version };
+  return { row: { ...row, id: identityRow.editor_map_id, editor_map_id: identityRow.editor_map_id, legacy_map_id: identityRow.legacy_map_id ?? null, parent_editor_map_id: identityRow.parent_editor_map_id ?? null }, document, version };
 }
