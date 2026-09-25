@@ -312,9 +312,9 @@ Unknown provenance remains **⚠️ pending review**.
 3. PORTS — pending
 4. SHIPS — source research started; binary matching pending
 5. ROADS / PATHS — source research started; binary matching pending
-6. Regional infrastructure
-7. Static regional locations
-8. REGION_PROPS
+6. Regional infrastructure — medieval-fantasy source research added; binary matching pending
+7. Static regional locations — next research pass
+8. REGION_PROPS — continue after location pass
 
 **Generic buildings remain excluded from this audit.**
 
