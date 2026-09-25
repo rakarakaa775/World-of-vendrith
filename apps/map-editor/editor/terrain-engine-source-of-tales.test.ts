@@ -54,16 +54,12 @@ describe('Source of Tales terrain adapter', () => {
   });
 
   it('preserves the Source of Tales sand/water tile IDs for known patterns', () => {
-    expect(sourceOfTalesSandWaterTile(0, 'sand')).toEqual({
-      kind: 'sandwater',
-      tileId: 10,
-      pattern: [0, 0, 0, 0],
-    });
-    expect(sourceOfTalesSandWaterTile(0, 'water')).toEqual({
-      kind: 'sandwater',
-      tileId: 10,
-      pattern: [1, 1, 1, 1],
-    });
+    expect(() => sourceOfTalesSandWaterTile(0, 'sand')).toThrow(
+      /Unsupported Source of Tales sand\/water corner pattern/,
+    );
+    expect(() => sourceOfTalesSandWaterTile(0, 'water')).toThrow(
+      /Unsupported Source of Tales sand\/water corner pattern/,
+    );
     expect(sourceOfTalesSandWaterTile(1, 'sand')).toEqual({
       kind: 'sandwater',
       tileId: 5,
