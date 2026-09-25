@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { MapDocument } from './map-document';
+import { createStarterMap } from './map-document';
 import { createMapSaveController, type MapDocumentStore } from './map-save-controller';
 import { createCrashRecoveryJournal } from './map-crash-recovery';
 import { serializeMapDocument } from './map-serialization';
 
-const document: MapDocument = {
-  version: 1, id: 'test-map', name: 'Test Map', mapType: 'playable', width: 2, height: 2, tileSize: 32,
-  layers: [{ id: 'ground', name: 'Ground', kind: 'ground', active: true, visible: true, locked: false,
-    cells: [{ tileId: null }, { tileId: null }, { tileId: null }, { tileId: null }], objects: [] }],
-};
+const document = createStarterMap();
 
 function memoryStorage() {
   const values = new Map<string, string>();
