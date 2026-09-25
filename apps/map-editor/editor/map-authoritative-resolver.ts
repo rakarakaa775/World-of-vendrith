@@ -74,10 +74,10 @@ export async function resolveAuthoritativeMap(
   const row = rowResult.data as AuthoritativeMapRow | null;
   if (!row?.id) throw new Error('MAP_RESOLUTION_ERROR: authoritative map row is unavailable');
 
-  const loaded = await client.rpc('map_editor_load_document_snapshot_v1', { p_map_id: requestedMapId });
+  const loaded = await client.rpc('map_editor_load_identity_snapshot_v1', { p_editor_map_id: identityRow.editor_map_id });
   if (loaded.error) throw new Error(`MAP_SNAPSHOT_ERROR: ${loaded.error.message}`);
   const result = Array.isArray(loaded.data) ? loaded.data[0] : loaded.data;
-  if (!result?.snapshot) throw new Error(`MAP_SNAPSHOT_ERROR: authoritative snapshot is unavailable`);
+  if (!result?.ok || !result.snapshot) throw new Error(`MAP_SNAPSHOT_ERROR: ${result?.code || 'authoritative snapshot is unavailable'}`);
 
   const { parseMapDocument } = await import('./map-serialization');
   const payload = typeof result.snapshot === 'string' ? result.snapshot : JSON.stringify(result.snapshot);
@@ -93,9 +93,9 @@ export async function resolveAuthoritativeMap(
   if (expectedMapType && document.mapType !== expectedMapType) {
     throw new Error(`IDENTITY_ERROR: requested map type "${expectedMapType}" does not match authoritative document "${document.mapType}"`);
   }
-  if (expectedMapType && expectedMapType !== 'world') {
-    throw new Error(`MAP_TYPE_CONTRACT_ERROR: database map_type "${row.map_type}" does not uniquely identify editor map type "${expectedMapType}"`);
+  if (document.mapType !== identityRow.map_type) {
+    throw new Error('IDENTITY_ERROR: authoritative snapshot map type does not match editor identity');
   }
 
-  return { row, document, version };
+  return { row: { ...row, editor_map_id: identityRow.editor_map_id, legacy_map_id: identityRow.legacy_map_id ?? null, parent_editor_map_id: identityRow.parent_editor_map_id ?? null }, document, version };
 }
