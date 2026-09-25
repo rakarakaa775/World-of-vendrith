@@ -303,8 +303,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         p_snapshot: snapshot,
       });
       if (rpc.error) throw rpc.error;
-      const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-      if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
+      validateSaveSlotRpcResult(rpc.data, {
+        mapId: AUTHORITATIVE_WORLD_MAP_ID,
+        slotNumber: slot,
+      });
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setStatus(`Game saved to Slot ${slot} · World + Exterior`);
     } catch (e) { setStatus(`Save Slot ${slot} failed: ${msg(e)}`); }
