@@ -793,3 +793,63 @@ All eight PLAYABLE map-role categories are now defined:
 8. VEHICLES — defined
 
 The next phase is therefore **repository-wide binary reconciliation** against these roles. No source candidate is promoted to 🟢 merely because a visually similar source page exists.
+
+
+## BINARY RECONCILIATION — HANDOFF ARCHIVE INSPECTION
+
+### Inspection artifact
+
+The CI-produced inspection archive supplied for this audit was inspected locally:
+
+- Artifact file: `vandrith-map-binary-inspection.zip`
+- Manifest files: `archive-member-sha256.txt`, `archive-member-list.txt`
+- Inspected original archive member count: **129**
+- Inspection scope: PLAYABLE / REGION / map-related paths and source fingerprints
+- Result: **no actual PLAYABLE binary asset files were present in the inspected handoff archive**
+
+The 129 members are predominantly documentation, project source/configuration files, and two nested project ZIP packages. The legacy project asset directories in that archive contain only `.gitkeep` placeholders.
+
+### Consequence
+
+This inspection does **not** prove that the canonical repository asset libraries are empty. It proves only that the specific handoff archive inspected here does not contain the PLAYABLE binary payload needed for filename/content/SHA-256 reconciliation.
+
+Therefore:
+
+- PLAYABLE structure remains **defined**
+- PLAYABLE source research remains **available**
+- PLAYABLE binary provenance remains **⚠️ PENDING**
+- No binary is promoted to 🟢, 🟡, or 🔴 from this archive alone
+- No duplicate `assets/playable/` binary library should be created merely to satisfy the map-role structure
+
+### Vehicles source verification
+
+Two relevant OpenGameArt sources were independently checked during the PLAYABLE vehicle audit:
+
+1. **LPC Mine Carts and Tracks — Xenodora**
+   - Files include `lpc-mine-cart-carts.png` and `lpc-mine-cart-tracks-sample.zip`
+   - Licenses listed by the source: CC-BY-SA 3.0, GPL 3.0 and GPL 2.0 on the current source page
+   - Attribution instruction: credit Xenodora
+   - This is a **source candidate**, not a repository-binary match. citeturn0search2
+
+2. **16x16 fantasy pixel art vehicles — DualR**
+   - Includes canoe, ship, airship, cart, buggy and covered wagon
+   - Licenses listed: CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0 and GPL 2.0
+   - The source explicitly requires a link to OpenGameArt.org and credit to DualR
+   - This is a **source candidate**, not a repository-binary match. citeturn0search0
+
+OpenGameArt's own FAQ also notes that CC-BY/CC-BY-SA/GPL usage can require attribution and, depending on the selected license and distribution context, additional conditions such as share-alike or compatibility considerations. citeturn0search10
+
+### Current PLAYABLE binary status
+
+| Category | Role audit | Source research | Binary reconciliation |
+|---|---|---|---|
+| 01_BUILDINGS | Defined | Started | ⚠️ Pending |
+| 02_ARCHITECTURE | Defined | Started | ⚠️ Pending |
+| 03_INTERACTABLES | Defined | Started | ⚠️ Pending |
+| 04_RESOURCE_NODES | Defined | Started | ⚠️ Pending |
+| 05_CRAFTING_STATIONS | Defined | Started | ⚠️ Pending |
+| 06_COMBAT_INTERACTABLES | Defined | Started | ⚠️ Pending |
+| 07_GAMEPLAY_PROPS | Defined | Started | ⚠️ Pending |
+| 08_VEHICLES | Defined | Verified source candidates | ⚠️ Pending |
+
+**Audit conclusion:** the PLAYABLE MAP taxonomy and source-audit rules are complete, but binary-level approval cannot be completed until the actual canonical asset packages/binaries are available for SHA-256 and content reconciliation.
