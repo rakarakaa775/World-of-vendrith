@@ -8,6 +8,7 @@ import type { GridPoint } from "../editor/grid";
 import type { Selection } from "../editor/selection";
 import { normalizeSelection } from "../editor/selection";
 import { pointsInFloodFill, pointsInLine, pointsInRectangle, pointsInSquare } from "../editor/paint-tools";
+import { COLLISION_BLOCKED_TILE_ID } from "../editor/map-state";
 import { neighborMask, terrainFromTileId } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
@@ -516,7 +517,7 @@ export function PixiMapCanvas(props: Props) {
     const paint = (pts: GridPoint[]) => {
       const { brushSize, activeTool, selectedTileId, onPaint } = propsRef.current;
       const validPts = expandBrush(pts.filter(valid), brushSize).filter(valid);
-      if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : selectedTileId);
+      if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : activeTool === "Collision" ? COLLISION_BLOCKED_TILE_ID : selectedTileId);
     };
     const down = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
@@ -551,7 +552,7 @@ export function PixiMapCanvas(props: Props) {
         lastY = e.clientY;
         return;
       }
-      if (current.activeTool === "Paint" || current.activeTool === "Erase") {
+      if (current.activeTool === "Paint" || current.activeTool === "Erase" || current.activeTool === "Collision") {
         if (valid(p)) { current.onCellInspect?.(p); paint([p]); }
         startPoint = p;
         return;
@@ -588,7 +589,7 @@ export function PixiMapCanvas(props: Props) {
         current.onObjectMove(movingObjectId, p);
         return;
       }
-      if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
+      if ((current.activeTool === "Paint" || current.activeTool === "Erase" || current.activeTool === "Collision") && startPoint && valid(p)) {
         paint([p]);
         return;
       }
