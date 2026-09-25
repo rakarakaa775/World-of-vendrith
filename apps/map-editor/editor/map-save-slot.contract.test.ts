@@ -47,8 +47,21 @@ describe("map save-slot RPC contract", () => {
   });
 
   it("parses the canonical game-save envelope with the existing strict parser", () => {
-    expect(parseSaveSlotSnapshot({ ok: true, snapshot: validSnapshot }).schema).toBe("vandrith.game-save");
+    expect(parseSaveSlotSnapshot({ ok: true, snapshot: validSnapshot }, "world-1").schema).toBe("vandrith.game-save");
+
+    expect(() => parseSaveSlotSnapshot({ ok: true, snapshot: validSnapshot }, "other-world"))
+      .toThrow("SAVE_SLOT_WORLD_MAP_MISMATCH");
     expect(() => parseSaveSlotSnapshot({ ok: true, snapshot: { schema: "other", version: 1 } }))
       .toThrow("INVALID_GAME_SAVE_SNAPSHOT");
+  });
+
+  it("rejects snapshots with invalid world or exterior identity", () => {
+    const regionWorld = { ...world, mapType: "region" as const };
+    expect(() => parseSaveSlotSnapshot({ ok: true, snapshot: { ...validSnapshot, world: regionWorld } }, "world-1"))
+      .toThrow("SAVE_SLOT_WORLD_TYPE_INVALID");
+
+    const interior = createMap("playable", world.id, "interior");
+    expect(() => parseSaveSlotSnapshot({ ok: true, snapshot: { ...validSnapshot, exterior: interior } }, "world-1"))
+      .toThrow("SAVE_SLOT_EXTERIOR_SPACE_INVALID");
   });
 });
