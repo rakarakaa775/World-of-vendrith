@@ -1289,3 +1289,116 @@ Promotion still requires:
 16. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Source audit continuation: 09_CITIES — deep medieval-fantasy pass
+
+09_CITIES is reserved for **city-scale exterior regional locations**. It is not a generic container for medieval buildings. A city candidate should show a recognizable urban settlement role: dense multi-structure footprint, districts, major civic/urban infrastructure, or an explicitly city-scale source. Generic houses and modular building kits remain BUILDING/Architecture.
+
+### Audited source candidates
+
+**Medieval city set — VladimirSlavik**
+- OpenGameArt source explicitly describes settlement progression from village to city.
+- License: **GPL 2.0**.
+- Complete 128x128 settlement sprites are provided for each level, making this one of the strongest city-scale candidates reviewed.
+- Provenance is mixed/derivative: the author identifies Freeciv amplio2-derived buildings plus original work. Any matched Vendrith binary must preserve that chain.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search16
+
+**Isometric Medieval City Sim Assets — SketchyLogic**
+- OpenGameArt source describes assets made for an abandoned fantasy/medieval city simulation game.
+- License: **CC-BY 3.0**.
+- Contains building sprites and other material, but not a complete city map; therefore individual buildings remain BUILDING/Architecture unless a matched binary is actually a city-specific assembly.
+- The author notes substantial borrowing from Yar's outside tileset and Seth Galbraith's medieval tileset, so provenance must be retained as a derivative chain.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search6turn0search13
+
+**16x16 RPG Town / Town Tiles — Surt and derivatives**
+- Surt's **Town Tiles** are CC0 and explicitly fantasy town tiles; this is primarily a town-scale source, not automatically a city source. citeturn0search7
+- The enlarged JRPG collection documents that Town tiles are by Surt, modified by Blarumyrran, with snow-town modifications by Sharm; if these are used together, the source attribution chain and OpenGameArt link must be retained. citeturn0search15
+- Classification: **08_TOWNS** unless a larger city assembly is actually present.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**RPG Town Tileset — 2DPIXX**
+- 32x32 tiles for classic RPG village/town use; license **CC-BY 3.0**.
+- Strong 08_TOWNS candidate, but not inherently 09_CITIES. citeturn0search2turn0search11
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**RPG Town Pixel Art Assets — ansimuz**
+- License: **CC0**.
+- Source states the pack contains the tiles necessary to build a complete RPG town, including roads, river, pond, buildings, trees and props.
+- Classification: primarily **08_TOWNS**; it should only enter 09_CITIES if a Vendrith map assembly actually uses it at city scale.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search12
+
+**American / Asian / European city tilesets — MirceaKitsune — EXCLUDED**
+- Although licensed **CC0**, the source explicitly describes modern city tiles and includes contemporary infrastructure such as stop signs and street lights.
+- Vandrith decision: **EXCLUDED** under the medieval-fantasy-only rule. License permission does not override setting compatibility. citeturn0search8
+
+**City Pixel Tileset — software_atelier — EXCLUDED**
+- CC0, but the source contains modern urban objects including street lamps, street signs, traffic-cone/trash-bin elements and contemporary city presentation.
+- Vandrith decision: **EXCLUDED** from REGION despite the permissive license. citeturn0search10
+
+### 09_CITIES classification rules
+
+| Asset/source result | Classification |
+|---|---|
+| Explicit medieval city-scale settlement assembly | **09_CITIES** |
+| Dense multi-district medieval/fantasy city location | **09_CITIES** |
+| Major medieval civic/urban infrastructure belonging to a city | **09_CITIES** when city-specific |
+| Compact market/walled/river settlement | **08_TOWNS** unless clearly city-scale |
+| Generic medieval houses/buildings | **BUILDING / Architecture** |
+| Modular walls/roofs/doors/windows | **BUILDING / Architecture** |
+| Market props, signs, barrels, fences | **15_REGION_PROPS** |
+| Castle/fortress primary role | **10_CASTLES / 11_FORTIFICATIONS** |
+| Ruined urban location | **12_RUINS** |
+| Interior-only buildings/rooms | **INTERIOR** |
+| Interactive city objects | **PLAYABLE** by function |
+| Modern/contemporary/industrial city assets | **EXCLUDED** |
+
+### Town vs city rule
+
+The distinction is based on **map role and settlement scale**, not historical population counts. A pack containing many buildings is not automatically a city. A source becomes a 09_CITIES candidate when the asset itself or the verified Vendrith assembly represents a city-scale regional location.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Medieval/fantasy walled cities
+- Dense medieval urban districts
+- Medieval city squares and civic areas
+- River cities and fortified medieval urban settlements
+- Fantasy cities compatible with medieval technology
+
+Excluded:
+- Modern city blocks
+- Asphalt automobile networks
+- Traffic-light streets
+- Skyscrapers
+- Contemporary street furniture/signage
+- Industrial/factory city infrastructure
+- Modern vehicles
+- Sci-fi/futuristic cities
+
+### Provenance decision
+
+No source is promoted to 🟢 verified Vendrith provenance from source-page evidence alone. Binary promotion still requires the actual repository/archive path, exact binary/content match, source/package provenance, creator, license, attribution/conditions and SHA-256 when accessible.
+
+**Current status: `09_CITIES = ⚠️ source-researched / binary-unverified`.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — source research completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. **CITIES — source research completed; binary matching pending**
+11. CASTLES — next source-audit target
+12. FORTIFICATIONS
+13. RUINS
+14. FARMS
+15. CAMPS
+16. REGION_PROPS — source research/deep classification completed; binary matching pending
+
+**Generic buildings remain excluded from this audit.**
