@@ -801,3 +801,93 @@ An asset source page is not sufficient to prove that a repository binary came fr
 The INTERIOR taxonomy, boundaries, medieval-fantasy filter, gameplay bindings, cave/dungeon decision tree, room context tags, transition rules, multi-floor rules, and mixed natural/constructed rules are now defined.
 
 Binary verification remains intentionally deferred until the project conversation supplies or imports the actual asset binaries.
+
+
+# INTERIOR ASSET BINDING MODEL
+
+INTERIOR classifications should be represented as bindings rather than duplicated files.
+
+Recommended conceptual record:
+
+```text
+asset_id
+canonical_asset_path
+primary_role
+secondary_roles
+room_contexts
+gameplay_bindings
+building_id
+floor_level
+parent_region
+source_id
+license
+attribution_required
+source_url
+sha256
+verification_status
+```
+
+## Binding rules
+
+- `primary_role` identifies the main physical INTERIOR role.
+- `secondary_roles` records additional physical/contextual roles when necessary.
+- `room_contexts` identifies where the asset is intended to be used.
+- `gameplay_bindings` identifies player actions such as interact, craft, open, read or traverse.
+- `building_id` links an interior space to its exterior building when applicable.
+- `floor_level` identifies vertical placement without creating new asset folders.
+- `parent_region` links the interior to its REGION location.
+- `source_id`, `license`, `attribution_required`, `source_url` and `sha256` preserve provenance.
+- `verification_status` must remain pending until the binary and provenance are reconciled.
+
+## Example records
+
+```text
+asset_id: forge_001
+canonical_asset_path: assets/objects/forge.png
+primary_role: INTERIOR/09_CRAFTING_STATIONS
+room_contexts: [BLACKSMITH, WORKSHOP]
+gameplay_bindings: [CRAFT, SMELT]
+building_id: blacksmith_01
+floor_level: 0
+parent_region: village_blacksmith_quarter
+verification_status: PENDING
+```
+
+```text
+asset_id: dungeon_floor_001
+canonical_asset_path: assets/objects/dungeon_floor.png
+primary_role: INTERIOR/01_FLOORS
+secondary_roles: [INTERIOR/11_DUNGEON_INTERIORS]
+room_contexts: [DUNGEON, CAVE_DUNGEON]
+gameplay_bindings: []
+floor_level: -1
+parent_region: castle_underkeep
+verification_status: PENDING
+```
+
+## No binary duplication rule
+
+The same canonical binary must not be copied into multiple INTERIOR folders merely to satisfy different roles or contexts.
+
+For example, a forge used in a blacksmith, castle workshop and mobile workshop remains one canonical asset. Its map records can reference different room contexts and gameplay bindings.
+
+Source and license records travel with the canonical asset/provenance record, not with every map-role folder copy.
+
+# MAP INSTANCE VS ASSET DEFINITION
+
+An **asset definition** describes the reusable visual/resource and its provenance.
+An **interior map instance** describes how that asset is placed in a specific building or room.
+
+Therefore, the same chair can appear in:
+
+- `blacksmith_01`
+- `tavern_07`
+- `castle_02`
+
+without creating three binary copies.
+
+Map instance metadata may include:
+
+`instance_id`, `asset_id`, `building_id`, `room_id`, `floor_level`, `position`, `rotation`, `scale`, `room_context`, `gameplay_state`
+
+This separation is the intended foundation for later Vendrith World Builder implementation.
