@@ -1,8 +1,48 @@
 import type { MapDocument, MapType, PlayableSpaceType } from './map-document';
+import { getParentMapId } from './map-navigation';
+
 export type MapSummary={id:string;name:string;mapType:MapType;parentMapId:string|null;width:number;height:number;playableSpace?:PlayableSpaceType;parentPlayableMapId?:string|null};
 export type MapTreeNode=MapSummary&{children:MapTreeNode[]};
-export function summarizeMap(map:MapDocument):MapSummary{return{id:map.id,name:map.name,mapType:map.mapType,parentMapId:map.parentMapId,width:map.width,height:map.height,playableSpace:map.playableSpace,parentPlayableMapId:map.parentPlayableMapId}}
-export function buildMapTree(maps:MapDocument[]):MapTreeNode[]{const byParent=new Map<string|null,MapDocument[]>();for(const map of maps){const key=map.parentMapId??null;const list=byParent.get(key)??[];list.push(map);byParent.set(key,list)}const build=(parent:string|null):MapTreeNode[]=>{const children=byParent.get(parent)??[];return children.map(map=>({...summarizeMap(map),children:build(map.id)}))};return build(null)}
-export function canCreateChildMap(parent:MapDocument,childType:MapType):boolean{return parent.mapType==='world'?childType==='region':parent.mapType==='region'&&childType==='playable'}
-export function createChildMap(parent:MapDocument,child:MapDocument):MapDocument{if(!canCreateChildMap(parent,child.mapType))throw new Error(`Invalid map hierarchy: ${parent.mapType} -> ${child.mapType}`);return{...child,parentMapId:parent.id}}
-export function getMapPath(map:MapDocument,maps:MapDocument[]):MapSummary[]{const path:MapSummary[]=[];let current:MapDocument|undefined=map;const seen=new Set<string>();while(current&&!seen.has(current.id)){seen.add(current.id);path.unshift(summarizeMap(current));current=current.parentMapId?maps.find(m=>m.id===current!.parentMapId):undefined}return path}
+
+export function summarizeMap(map:MapDocument):MapSummary{
+  return {id:map.id,name:map.name,mapType:map.mapType,parentMapId:map.parentMapId,width:map.width,height:map.height,playableSpace:map.playableSpace,parentPlayableMapId:map.parentPlayableMapId};
+}
+
+export function buildMapTree(maps:MapDocument[]):MapTreeNode[]{
+  const byParent=new Map<string|null,MapDocument[]>();
+  for(const map of maps){
+    const key=getParentMapId(map);
+    const list=byParent.get(key)??[];
+    list.push(map);
+    byParent.set(key,list);
+  }
+  const build=(parent:string|null):MapTreeNode[]=>{
+    const children=byParent.get(parent)??[];
+    return children.map(map=>({...summarizeMap(map),children:build(map.id)}));
+  };
+  return build(null);
+}
+
+export function canCreateChildMap(parent:MapDocument,childType:MapType):boolean{
+  return parent.mapType==='world'
+    ? childType==='region'
+    : parent.mapType==='region' && childType==='playable';
+}
+
+export function createChildMap(parent:MapDocument,child:MapDocument):MapDocument{
+  if(!canCreateChildMap(parent,child.mapType)) throw new Error(`Invalid map hierarchy: ${parent.mapType} -> ${child.mapType}`);
+  return {...child,parentMapId:parent.id};
+}
+
+export function getMapPath(map:MapDocument,maps:MapDocument[]):MapSummary[]{
+  const path:MapSummary[]=[];
+  let current:MapDocument|undefined=map;
+  const seen=new Set<string>();
+  while(current&&!seen.has(current.id)){
+    seen.add(current.id);
+    path.unshift(summarizeMap(current));
+    const parentId=getParentMapId(current);
+    current=parentId?maps.find(m=>m.id===parentId):undefined;
+  }
+  return path;
+}
