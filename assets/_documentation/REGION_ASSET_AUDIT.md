@@ -915,3 +915,44 @@ A controllable ship is PLAYABLE/VEHICLES.
 A mine cart is PLAYABLE/VEHICLES while its static track infrastructure is REGION.
 
 A generic house/building kit remains in the building/architecture asset library until it is instantiated as part of a specific regional location.
+
+
+## Binary verification pass: BRIDGES → DOCKS → PORTS → SHIPS → ROADS → PATHS
+
+### Repository matching result
+
+A repository-level filename/content search was performed for the currently identified source fingerprints, including:
+
+- 003_bridge.zip — JamesWhite / Wooden Bridge
+- 005_stone_bridge.zip — JamesWhite / Stone Bridge
+- FLARE_Bridge.zip — Lamoot / Isometric Bridge
+- Bridging.zip — FacadeGaikan / Bridges and Stuff
+- merchant_post.zip — bobjh / Merchant Post
+- kenney_roadTextures_2.zip — Kenney / Road Textures
+- ship.png — LPC Wooden ship tiles
+- lpc-ship.zip — [LPC] Ship
+- Docks / bridge-related repository terms
+
+No indexed repository result was returned for these exact package/file fingerprints. This is **not proof that the binaries are absent**, because GitHub code search does not reliably index binary/archive contents.
+
+### Current decisions
+
+- **03_BRIDGES:** ⚠️ source candidates remain unverified in Vendrith. Wooden Bridge (JamesWhite, CC0), Stone Bridge (JamesWhite, CC0), Isometric Bridge (Lamoot, CC-BY-SA 3.0 + GPL 3.0/2.0), and Bridges and Stuff (FacadeGaikan, CC0) remain candidates pending direct binary inspection. citeturn0search9turn0search11turn0search5turn0search2
+- **04_DOCKS:** ⚠️ no Vendrith binary was individually matched in this pass. Source/collection references are not sufficient to promote a binary.
+- **05_PORTS:** ⚠️ no complete port/harbor binary was individually matched. Component assets such as docks, ships and props must not be promoted as a complete port assembly.
+- **06_SHIPS:** ⚠️ no exact Vendrith binary match was established for the previously researched ship sources. A source page alone remains insufficient for promotion.
+- **01_ROADS:** ⚠️ no exact Vendrith binary match was established for the researched road candidates. Medieval-fantasy compatibility remains mandatory; modern asphalt/street infrastructure stays excluded.
+- **02_PATHS:** ⚠️ no exact Vendrith binary match was established for the researched path candidates. Generic stone textures remain unclassified unless their actual function as path/road material is proven.
+
+### Provenance gate
+
+No candidate in this pass is promoted to 🟢 verified provenance. Promotion still requires:
+
+1. actual repository path;
+2. exact filename/content match;
+3. source/package provenance;
+4. creator and license;
+5. credit and additional conditions;
+6. SHA-256 of the actual Vendrith binary when accessible.
+
+**Next verification target:** direct inspection of the asset workspace/source archives rather than additional OpenGameArt collection searching.
