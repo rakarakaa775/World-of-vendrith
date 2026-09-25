@@ -503,3 +503,139 @@ Source discovery does not promote a repository binary. Verification requires rep
 **Source coverage:** strong  
 **Repository binary match:** not yet established  
 **Approval:** ⚠️ pending until binary provenance is reconciled
+
+
+## 07_GAMEPLAY_PROPS — initial source audit
+
+07_GAMEPLAY_PROPS covers **exterior/playable-map props that populate the actual game space but do not require their own specialized gameplay category**. The visual can be purely decorative, or it can receive an additional gameplay-role binding when the object becomes usable/interactable.
+
+### Audit groups
+
+| Group | Examples |
+|---|---|
+| Containers | barrels, crates, boxes, chests, sacks, baskets, tubs |
+| Signs & markers | signposts, hanging signs, notice boards, readable markers |
+| Water/utility props | wells, fountains, troughs, buckets |
+| Fire/light props | campfires, braziers, exterior fireplaces, torches |
+| Settlement props | benches, tables, stools, market props, carts used as static props |
+| Farm props | scarecrows, hay/straw props, troughs and farm decoration |
+| Decorative props | pots, jars, barrels, piles, tools and other exterior dressing |
+| Memorial/landmark props | graves, tombstones, statues and similar exterior markers when used as map dressing |
+
+### Source evidence
+
+OpenGameArt provides strong medieval-fantasy/LPC source candidates for this category:
+
+- **[LPC] Containers** includes boxes, crates, barrels, tubs, sacks, bags, chests, baskets, pots, jars and related glassware. Its current source page lists **CC-BY-SA 4.0** and requires the information in its credits file. The page also explicitly warns that some preview elements come from other submissions and must be attributed separately. citeturn0search0
+- OpenGameArt's LPC RPG collection lists **LPC Style Well**, **[LPC] Signposts, graves, line cloths and scare crow**, **[LPC] Hanging signs**, **[LPC] Medieval Village Decorations** and other directly relevant exterior-prop sources. citeturn0search14
+- The current LPC collection **Nearly all the LPC assets in one place** also lists **LPC Fireplace**, **[LPC] Signposts, graves, line cloths and scare crow**, **[LPC] Hanging signs**, **LPC Sign Post** and **[LPC] Medieval Village Decorations**. The collection warns that automatically generated credits are not guaranteed to be accurate, so attribution still has to be checked against each original source. citeturn0search12
+- An LPC-compatible RPG collection lists **Camp Fire Animation for RPGs**, **[LPC] Water Fountain** and **LPC Sign Post**, providing additional source candidates for fire, water and signage props. citeturn0search13
+- A 2026 OpenGameArt medieval-dark-fantasy collection groups medieval containers, covered wells, treasure chests, fountains and medieval props together, confirming these as common medieval-fantasy environmental prop roles. This is a source-discovery reference, not proof of Vendrith provenance. citeturn0search2
+
+### Classification rule
+
+07_GAMEPLAY_PROPS is the **default exterior prop role** when an object does not belong to a more specific PLAYABLE gameplay category.
+
+Examples:
+
+- Decorative barrel/crate → PLAYABLE/07_GAMEPLAY_PROPS.
+- Lootable/openable barrel/crate/chest → PLAYABLE/07_GAMEPLAY_PROPS + PLAYABLE/03_INTERACTABLES.
+- Decorative sign → PLAYABLE/07_GAMEPLAY_PROPS.
+- Readable/interactive sign → PLAYABLE/07_GAMEPLAY_PROPS + PLAYABLE/03_INTERACTABLES.
+- Decorative well/fountain → PLAYABLE/07_GAMEPLAY_PROPS.
+- Usable well/fountain → PLAYABLE/07_GAMEPLAY_PROPS + PLAYABLE/03_INTERACTABLES.
+- Decorative campfire/brazier → PLAYABLE/07_GAMEPLAY_PROPS and/or canonical effects storage.
+- Usable cooking fire → PLAYABLE/05_CRAFTING_STATIONS.
+- Decorative forge/anvil → PLAYABLE/07_GAMEPLAY_PROPS.
+- Usable forge/anvil → PLAYABLE/05_CRAFTING_STATIONS.
+- Decorative ballista/catapult → PLAYABLE/07_GAMEPLAY_PROPS.
+- Operable ballista/catapult → PLAYABLE/06_COMBAT_INTERACTABLES.
+- Decorative tree/rock → WORLD, not PLAYABLE/07_GAMEPLAY_PROPS.
+- Harvestable tree/resource node → WORLD + PLAYABLE/04_RESOURCE_NODES.
+- Complete house/tavern/building → PLAYABLE/01_BUILDINGS.
+- Exterior wall/roof/gate/door architecture → PLAYABLE/02_ARCHITECTURE.
+- Static regional road/bridge/dock/port context → REGION.
+- Interior-only props → INTERIOR.
+
+### REGION vs PLAYABLE boundary for props
+
+The deciding question is **what the asset represents in the map**:
+
+- REGION = the regional/location context or infrastructure classification.
+- PLAYABLE = the concrete exterior visual prop used to populate the playable map.
+- Therefore a market/town can be a REGION context while its barrels, signs, benches, stalls and decorative props are PLAYABLE.
+- A dock can be REGION context while a barrel or crate placed on the playable dock is PLAYABLE.
+- A farm can be REGION context while its scarecrow, trough, hay props and usable farming objects are PLAYABLE.
+- A cemetery can be REGION context while individual graves/statues/markers used to populate the playable exterior are PLAYABLE.
+
+### Medieval-fantasy filter
+
+Allowed:
+
+- Wooden barrels, crates, chests and sacks
+- Medieval/fantasy signs and hanging signs
+- Wells, fountains and water troughs
+- Campfires, braziers and exterior fireplaces
+- Benches, tables, stools and market props
+- Farm props such as scarecrows and hay/straw objects
+- Graves, tombstones and medieval/fantasy memorial props
+- Pots, jars, baskets and other period-appropriate containers
+- Fantasy/magical props consistent with Vandrith
+
+Excluded by default:
+
+- Modern plastic bins and contemporary waste containers
+- Modern street signs and traffic signage
+- Modern benches/street furniture
+- Electrical utility boxes and modern infrastructure props
+- Vending machines and contemporary appliances
+- Modern industrial containers/equipment
+- Sci-fi/futuristic props
+- Contemporary urban decoration
+
+### Storage rule
+
+07_GAMEPLAY_PROPS is a **map-role classification**, not a duplicate asset library.
+
+Examples:
+
+- A container can remain in `assets/objects/` and receive a PLAYABLE/07_GAMEPLAY_PROPS binding.
+- A fire visual can remain in `assets/effects/` while its exterior map placement is recorded as PLAYABLE/07_GAMEPLAY_PROPS.
+- A sign asset can remain in the canonical object/source library and receive the PLAYABLE role.
+- An inventory item inside a chest remains in `assets/inventory/`; the chest itself is the PLAYABLE prop.
+- A weapon placed as a decorative exterior prop remains in `assets/weapons/` if that is its canonical source, with a map-role binding rather than a duplicate binary.
+
+### Provenance rule
+
+The source pages above establish **source candidates and licensing/attribution requirements**, not repository provenance.
+
+A repository asset can become 🟢 verified only when the following are reconciled:
+
+1. Repository path and filename
+2. Actual binary content
+3. Source package/page
+4. Creator/contributors
+5. License
+6. Attribution/conditions
+7. SHA-256 checksum
+
+In particular, the [LPC] Containers page demonstrates why a filename or visual resemblance is insufficient: the package contains contributions from multiple artists and explicitly requires the complete credits information. citeturn0search0
+
+### Current GAMEPLAY PROPS result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
+
+### Audit conclusion
+
+07_GAMEPLAY_PROPS is now defined as the **general exterior dressing and prop layer** for playable locations. Specialized gameplay behavior is layered on top rather than creating duplicate visual assets:
+
+- interaction → + PLAYABLE/03_INTERACTABLES
+- resource harvesting → + PLAYABLE/04_RESOURCE_NODES
+- crafting → + PLAYABLE/05_CRAFTING_STATIONS
+- combat operation → + PLAYABLE/06_COMBAT_INTERACTABLES
+- vehicle control → PLAYABLE/08_VEHICLES
+
+This keeps the PLAYABLE architecture role-based and prevents unnecessary binary duplication.
+
