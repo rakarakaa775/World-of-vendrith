@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "./map-document";
-import { getMapEditorPalette, isMapEditorToolAllowed, mapEditorLevelKey } from "./map-tool-registry";
+import {
+  getMapEditorPalette,
+  isMapAssetAllowed,
+  isMapEditorToolAllowed,
+  mapEditorLevelKey,
+} from "./map-tool-registry";
 
 describe("map editor tool registry", () => {
   it("keeps World focused on macro terrain tools", () => {
-    const world = createMap("World", "world", 64, 64);
+    const world = createMap("world", null, "exterior", null, 64, 64);
     expect(mapEditorLevelKey(world)).toBe("world");
     expect(isMapEditorToolAllowed(world, "terrain")).toBe(true);
     expect(isMapEditorToolAllowed(world, "building")).toBe(false);
@@ -13,7 +18,7 @@ describe("map editor tool registry", () => {
   });
 
   it("gives Region settlement, infrastructure, and nature landmark tools", () => {
-    const region = createMap("Region", "region", 32, 32);
+    const region = createMap("region", "world-1", "exterior", null, 32, 32);
     expect(mapEditorLevelKey(region)).toBe("region");
     expect(isMapEditorToolAllowed(region, "terrain")).toBe(true);
     expect(isMapEditorToolAllowed(region, "settlement")).toBe(true);
@@ -24,7 +29,7 @@ describe("map editor tool registry", () => {
   });
 
   it("keeps individual trees and buildings in Playable exterior", () => {
-    const playable = createMap("Village", "playable", 24, 24);
+    const playable = createMap("playable", "region-1", "exterior", null, 24, 24);
     expect(mapEditorLevelKey(playable)).toBe("playable");
     expect(isMapEditorToolAllowed(playable, "building")).toBe(true);
     expect(isMapEditorToolAllowed(playable, "nature")).toBe(true);
@@ -33,7 +38,7 @@ describe("map editor tool registry", () => {
   });
 
   it("separates Interior tools from exterior tools", () => {
-    const interior = createMap("House Interior", "playable", 16, 16, 32, "interior");
+    const interior = createMap("playable", "region-1", "interior", "playable-1", 16, 16);
     expect(mapEditorLevelKey(interior)).toBe("interior");
     expect(isMapEditorToolAllowed(interior, "floor")).toBe(true);
     expect(isMapEditorToolAllowed(interior, "wall")).toBe(true);
@@ -45,7 +50,7 @@ describe("map editor tool registry", () => {
   });
 
   it("returns human-readable level sections", () => {
-    const region = createMap("Region", "region", 16, 16);
+    const region = createMap("region", "world-1", "exterior", null, 16, 16);
     expect(getMapEditorPalette(region).map(section => section.label)).toEqual([
       "Navigation",
       "Region Terrain",
@@ -57,9 +62,9 @@ describe("map editor tool registry", () => {
 
 describe("map asset catalog", () => {
   it("keeps macro forest at World/Region scale but individual trees at Playable scale", () => {
-    const world = createMap("World", "world", 64, 64);
-    const region = createMap("Region", "region", 32, 32);
-    const playable = createMap("Village", "playable", 24, 24);
+    const world = createMap("world", null, "exterior", null, 64, 64);
+    const region = createMap("region", "world-1", "exterior", null, 32, 32);
+    const playable = createMap("playable", "region-1", "exterior", null, 24, 24);
 
     expect(isMapAssetAllowed(world, "forest")).toBe(true);
     expect(isMapAssetAllowed(world, "tree")).toBe(false);
@@ -70,8 +75,8 @@ describe("map asset catalog", () => {
   });
 
   it("keeps settlements and roads at Region scale", () => {
-    const region = createMap("Region", "region", 32, 32);
-    const playable = createMap("Village", "playable", 24, 24);
+    const region = createMap("region", "world-1", "exterior", null, 32, 32);
+    const playable = createMap("playable", "region-1", "exterior", null, 24, 24);
 
     expect(isMapAssetAllowed(region, "village")).toBe(true);
     expect(isMapAssetAllowed(region, "road")).toBe(true);
@@ -80,7 +85,7 @@ describe("map asset catalog", () => {
   });
 
   it("keeps interior assets isolated from exterior palettes", () => {
-    const interior = createMap("House Interior", "playable", 16, 16, 32, "interior");
+    const interior = createMap("playable", "region-1", "interior", "playable-1", 16, 16);
     expect(isMapAssetAllowed(interior, "floor")).toBe(true);
     expect(isMapAssetAllowed(interior, "furniture")).toBe(true);
     expect(isMapAssetAllowed(interior, "tree")).toBe(false);
