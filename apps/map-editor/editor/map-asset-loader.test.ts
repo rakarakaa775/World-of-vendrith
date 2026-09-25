@@ -44,6 +44,18 @@ describe("map asset loader", () => {
     expect(floor?.levels).toEqual(["interior"]);
   });
 
+  it("fails closed when an approved registry row has no physical path", () => {
+    expect(registryRowToMapAsset({
+      id: "99999999-9999-4999-8999-999999999999",
+      name: "Unextracted decoration pack",
+      category: "exterior.decoration",
+      role: "decoration",
+      asset_path: null,
+      preview_path: null,
+      status: "approved",
+    })).toBeNull();
+  });
+
   it("fails closed for non-approved or semantically unknown registry rows", () => {
     expect(registryRowToMapAsset({
       id: "44444444-4444-4444-8444-444444444444",
