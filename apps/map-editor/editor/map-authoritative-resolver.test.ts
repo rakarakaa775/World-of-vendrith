@@ -66,7 +66,7 @@ describe('authoritative map resolution', () => {
     await expect(resolveAuthoritativeMap(clientFor({
       id: 'playable-1', name: 'Exterior Playable', map_type: 'exterior', world_id: null,
       width: 20, height: 12, tile_size: 32, metadata: null,
-    }, snapshot), 'playable-1', 'playable')).rejects.toThrow('MAP_TYPE_CONTRACT_ERROR');
+    }, snapshot), 'playable-1', 'playable')).rejects.toThrow('IDENTITY_ERROR');
   });
 
   it('rejects a world document whose authoritative row is not world', async () => {
