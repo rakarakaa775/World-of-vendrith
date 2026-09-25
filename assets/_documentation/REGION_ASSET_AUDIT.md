@@ -1157,3 +1157,135 @@ The village category is treated as a **regional location/assembly**, not as a ge
 ### Provenance status
 
 No 07_VILLAGES source above is promoted to 🟢 solely from source-page evidence. Binary matching against the Vendrith archive is still required before a repository asset can be marked provenance-verified. **Status: 07_VILLAGES = ⚠️ source-researched / binary-unverified.**
+
+## Source audit continuation: 08_TOWNS — deep medieval-fantasy pass
+
+08_TOWNS is treated as a **regional settlement/location layer**, not as a generic Building/Architecture library. A source qualifies as a town candidate only when it can represent a recognizable town-scale exterior/location or provide town-scale settlement assemblies. Generic houses, walls, roofs, doors, windows and modular building pieces remain in their canonical Building/Architecture library.
+
+### Audited source candidates
+
+**Medieval city set — VladimirSlavik**
+- OpenGameArt source explicitly describes a progression in settlement size and complexity from village to city.
+- License: **GPL 2.0**.
+- The source uses complete 128x128 settlement sprites plus modular parts and is suitable for settlement-scale map representation.
+- Provenance note: the author states that the buildings are derivatives of Freeciv amplio2 pieces, with additional original work; farms/mines are also described as mixed-origin material. Any Vendrith binary match must preserve the derivative provenance chain.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**Medieval town — Keith Karnage**
+- OpenGameArt source explicitly identifies a half-finished medieval town tileset.
+- License: **CC-BY 3.0**.
+- Tags include medieval, town, fantasy and 32x32.
+- Candidate role: **08_TOWNS** when the actual binary is used as a town/location assembly; isolated houses/roofs/walls remain Building/Architecture.
+- Attribution: Keith Karnage.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search2
+
+**Medieval Tileset — Calciumtrice**
+- OpenGameArt source describes exterior medieval buildings that can be stacked and combined, with interiors for shops, taverns and blacksmiths.
+- License: **CC-BY 3.0**.
+- Individual building components remain Building/Architecture; a constructed town-scale placement can support 08_TOWNS at map-instance level, but the source binary itself should not be promoted as a town assembly unless such an assembly is actually present.
+- Attribution: Medieval Tileset by Calciumtrice.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search0
+
+**Medieval Town (base) 3D assets — Kenney**
+- OpenGameArt source describes a modular 3D pack containing walls, roofs, floors and roads for creating a medieval town.
+- License: **CC0**.
+- Modular building components remain Building/Architecture; the pack can support 08_TOWNS when assembled into a recognizable regional town.
+- Attribution is not mandatory; the source suggests crediting Kenney.nl.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search3turn0search15
+
+**Isometric Medieval City Sim Assets**
+- OpenGameArt source describes assets created for an abandoned fantasy/medieval city simulation game and includes roughly a dozen building sprites.
+- The source notes that many sprites borrow heavily from other tilesets, including Yar and Seth Galbraith material, so provenance must be treated as a derivative chain rather than inferred from the submission uploader alone.
+- Candidate role: 08_TOWNS / 09_CITIES only when an actual settlement assembly or city-specific exterior asset is matched; individual generic buildings remain Building/Architecture.
+- Binary status: ⚠️ source identified; Vendrith binary and complete license/provenance chain require direct matching. citeturn0search8
+
+**Toen's Medieval Strategy Sprite Pack v.1.0**
+- OpenGameArt source describes a medieval-style RPG/strategy pack containing towns, villages, castles, houses, roads, rivers and bridges.
+- License shown on the source: **CC-BY 3.0**; the attribution notice states that credit and source links are required according to the included license/attribution information.
+- This is a mixed pack and must be split by actual role. Town/village exterior assets may support 08_TOWNS / 07_VILLAGES, while roads, bridges, terrain, sea and GUI remain in their canonical categories.
+- The entire ZIP must never be promoted as a single REGION/TOWN binary.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search5turn0search10
+
+**Village (Tiled Environment | Isometric) — 2DPIXX**
+- Isometric village environment, CC-BY 3.0.
+- Primarily a 07_VILLAGES candidate; it can inform town-scale isometric settlement classification only if actual Vendrith use expands beyond village scale.
+- Binary status: ⚠️ not individually matched. citeturn0search4
+
+### 08_TOWNS classification rules
+
+| Asset/source result | Classification |
+|---|---|
+| Recognizable medieval town/location assembly | **08_TOWNS** |
+| Town-scale settlement scene with streets/squares and multiple structures | **08_TOWNS** |
+| Generic modular medieval house kit | **BUILDING / Architecture** |
+| Generic walls/roofs/doors/windows | **BUILDING / Architecture** |
+| Market stalls/signs/barrels/fences as standalone scenery | **15_REGION_PROPS** |
+| Farm-specific settlement assembly | **13_FARMS** |
+| Camp-specific settlement assembly | **14_CAMPS** |
+| Castle/fortified settlement whose primary role is fortress | **10_CASTLES / 11_FORTIFICATIONS** |
+| Ruined town/location | **12_RUINS** when ruin is the primary regional role |
+| Interior-only town/shop/tavern assets | **INTERIOR** |
+| Interactive shop/chest/sign/door/etc. | **PLAYABLE** by gameplay function |
+| Modern city streets, asphalt, cars, contemporary architecture | **EXCLUDED** |
+
+### Town vs city boundary
+
+Use **08_TOWNS** for a recognizable regional settlement below the city scale: compact medieval market towns, walled towns, river towns, crossroads towns and fantasy settlements that function as town-scale locations.
+
+Use **09_CITIES** when the source or assembled location is explicitly city-scale: dense multi-district settlement, large urban footprint, major city infrastructure or a source explicitly designed around a city-scale settlement.
+
+This is a map-role distinction, not a strict historical population number. A source does not become 09_CITIES merely because it contains many buildings.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Medieval market towns
+- Walled medieval towns
+- River/crossroads towns
+- Fantasy towns compatible with medieval technology
+- Medieval town squares, streets and settlement infrastructure
+
+Excluded:
+- Modern suburbs
+- Contemporary city blocks
+- Asphalt automobile streets
+- Traffic-light systems
+- Skyscrapers
+- Industrial city infrastructure
+- Modern vehicles and urban furniture
+- Sci-fi/futuristic settlements
+
+### Provenance decision
+
+The 08_TOWNS source pass is complete for this audit stage, but **no source is promoted to 🟢 verified Vendrith provenance** solely from OpenGameArt evidence.
+
+Promotion still requires:
+1. actual repository/archive path;
+2. exact binary filename/content match;
+3. source/package provenance;
+4. creator and license;
+5. attribution and additional conditions;
+6. SHA-256 of the actual Vendrith binary when accessible.
+
+**Current status: 08_TOWNS = ⚠️ source-researched / binary-unverified.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — medieval-fantasy source filtering completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. CITIES — next source-audit target
+11. CASTLES
+12. FORTIFICATIONS
+13. RUINS
+14. FARMS
+15. CAMPS
+16. REGION_PROPS — source research/deep classification completed; binary matching pending
+
+**Generic buildings remain excluded from this audit.**
