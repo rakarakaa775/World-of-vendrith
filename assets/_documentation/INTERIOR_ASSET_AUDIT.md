@@ -714,3 +714,90 @@ The project can therefore proceed with:
 5. Later binary reconciliation when the original source packages are brought into the project conversation
 
 No INTERIOR binary should be promoted to 🟢 until repository content and SHA-256 provenance are available.
+
+
+# EXTERIOR / INTERIOR TRANSITION RULES
+
+Transitions are classified by the side and function they represent.
+
+| Asset / space | Classification |
+|---|---|
+| Outdoor approach to a house | PLAYABLE |
+| Exterior facade | PLAYABLE/01_BUILDINGS |
+| Exterior wall, roof, balcony | PLAYABLE/02_ARCHITECTURE |
+| Exterior doorway/threshold | PLAYABLE/02_ARCHITECTURE |
+| Interior side of doorway | INTERIOR/04_DOORS_WINDOWS |
+| Entry hall/foyer | INTERIOR |
+| Interior staircase | INTERIOR/05_STAIRS |
+| Porch/veranda treated as exterior space | PLAYABLE |
+| Enclosed veranda/sunroom treated as indoor space | INTERIOR |
+
+Do not create a separate TRANSITIONS binary category. A transition is a map relationship between existing layers.
+
+# MULTI-FLOOR BUILDINGS
+
+Each floor is classified by the space it represents rather than by the building as a whole.
+
+- Ground-floor room → INTERIOR
+- Second-floor room → INTERIOR
+- Attic → INTERIOR
+- Basement/cellar → INTERIOR
+- Exterior staircase/balcony → PLAYABLE/02_ARCHITECTURE
+- Interior staircase → INTERIOR/05_STAIRS
+- Exterior roof → PLAYABLE/02_ARCHITECTURE
+- Interior ceiling → INTERIOR/03_CEILINGS
+
+A multi-floor building does not require a new asset category. Floor number should be map metadata, not a physical asset folder.
+
+Recommended map metadata:
+
+`building_id`, `floor_level`, `room_type`, `interior_role`, `parent_region`
+
+Example:
+
+`building_id=blacksmith_01` + `floor_level=0` + `room_type=BLACKSMITH`
+`building_id=blacksmith_01` + `floor_level=1` + `room_type=STORAGE`
+`building_id=blacksmith_01` + `floor_level=-1` + `room_type=CELLAR`
+
+# MIXED NATURAL / CONSTRUCTED SPACES
+
+Some locations contain both natural terrain and constructed interior elements.
+
+Examples:
+- Mine tunnel carved into natural rock
+- Cave settlement
+- Temple built inside a cavern
+- Fortress constructed around a natural cave
+- Dungeon using natural cave walls
+
+Classification rule:
+
+1. Natural terrain remains WORLD.
+2. Constructed indoor architecture is INTERIOR.
+3. Exterior constructed architecture is PLAYABLE.
+4. Regional/location identity remains REGION.
+5. Gameplay functions receive additional bindings where applicable.
+
+Example: a fortress built around a cave can simultaneously use REGION for the fortress location, PLAYABLE for exterior walls/gates, WORLD for natural cave rock, and INTERIOR for constructed underground rooms.
+
+# ROOM CONTEXT DOES NOT OVERRIDE PHYSICAL ROLE
+
+Context tags must never replace the physical map-role category.
+
+Examples:
+- A BLACKSMITH room still uses FLOORS, WALLS, FURNITURE, LIGHTING and CRAFTING_STATIONS as appropriate.
+- A CASTLE room does not become a new CASTLE asset folder.
+- A DUNGEON floor keeps its physical FLOOR role and additionally receives the DUNGEON_INTERIORS binding.
+- A KITCHEN table remains FURNITURE; it does not become a KITCHEN binary category.
+
+# SOURCE / PROVENANCE SAFETY
+
+OpenGameArt's LPC indoor collection is a discovery index containing many different packages, including house interiors, castle interiors, dungeon elements, furniture, doors, floors and blacksmith assets. The collection itself warns that its generated credits file is not guaranteed accurate, so final provenance must be checked against the individual source package/page and its included credits. citeturn0search0
+
+An asset source page is not sufficient to prove that a repository binary came from that source. Final binary approval still requires reconciliation of the repository path/filename, actual binary content, source package/page, creator, license/attribution conditions, and SHA-256 where available.
+
+# INTERIOR AUDIT STATUS
+
+The INTERIOR taxonomy, boundaries, medieval-fantasy filter, gameplay bindings, cave/dungeon decision tree, room context tags, transition rules, multi-floor rules, and mixed natural/constructed rules are now defined.
+
+Binary verification remains intentionally deferred until the project conversation supplies or imports the actual asset binaries.
