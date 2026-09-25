@@ -33,6 +33,12 @@ export type MapAssetDefinition = {
   family: MapAssetFamily;
   /** The editor levels where this asset is semantically valid. */
   levels: Array<MapType | "interior">;
+  /** Physical registry identity. When present, placed objects persist this UUID in assetId. */
+  registryId?: string;
+  assetPath?: string;
+  previewUrl?: string;
+  usageStatus?: string | null;
+  attributionRequired?: boolean | null;
 };
 
 /**
@@ -126,23 +132,26 @@ export function getMapEditorPalette(
 
 export function getMapAssetsForLevel(
   document: Pick<MapDocument, "mapType" | "playableSpace">,
+  catalog: readonly MapAssetDefinition[] = MAP_ASSET_CATALOG,
 ): MapAssetDefinition[] {
   const level = mapEditorLevelKey(document);
-  return MAP_ASSET_CATALOG.filter(asset => asset.levels.includes(level));
+  return catalog.filter(asset => asset.levels.includes(level));
 }
 
 export function getMapAssetsByFamily(
   document: Pick<MapDocument, "mapType" | "playableSpace">,
   family: MapAssetFamily,
+  catalog: readonly MapAssetDefinition[] = MAP_ASSET_CATALOG,
 ): MapAssetDefinition[] {
-  return getMapAssetsForLevel(document).filter(asset => asset.family === family);
+  return getMapAssetsForLevel(document, catalog).filter(asset => asset.family === family);
 }
 
 export function isMapAssetAllowed(
   document: Pick<MapDocument, "mapType" | "playableSpace">,
   assetId: string,
+  catalog: readonly MapAssetDefinition[] = MAP_ASSET_CATALOG,
 ): boolean {
-  return getMapAssetsForLevel(document).some(asset => asset.id === assetId);
+  return getMapAssetsForLevel(document, catalog).some(asset => asset.id === assetId || asset.registryId === assetId);
 }
 
 export function mapEditorToolIds(
