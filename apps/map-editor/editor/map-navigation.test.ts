@@ -92,7 +92,7 @@ describe('map hierarchy navigation', () => {
     const region = { ...createMap('region', world.id), id: 'region-1' };
     const playable = { ...createMap('playable', region.id, 'exterior'), id: 'playable-1' };
     const interior = { ...createMap('playable', 'region-1', 'interior', playable.id), id: 'interior-1' };
-    const docs = new Map([world, region, playable, interior]);
+    const docs = new Map([[world.id, world], [region.id, region], [playable.id, playable], [interior.id, interior]]);
 
     expect(getNavigationPath(interior, docs).map(document => document.id))
       .toEqual(['world-1', 'region-1', 'playable-1', 'interior-1']);
@@ -101,7 +101,7 @@ describe('map hierarchy navigation', () => {
     expect(() => getNavigationPath(broken, docs)).toThrow('Missing parent map: missing-map');
 
     const cyclic = { ...region, parentMapId: region.id };
-    const cyclicDocs = new Map([world, cyclic, playable, interior]);
+    const cyclicDocs = new Map([[world.id, world], [cyclic.id, cyclic], [playable.id, playable], [interior.id, interior]]);
     expect(() => getNavigationPath(interior, cyclicDocs)).toThrow('Map hierarchy contains a cycle');
   });
 });
