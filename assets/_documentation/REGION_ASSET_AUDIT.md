@@ -783,6 +783,38 @@ For every candidate we must record:
 
 Unknown provenance remains **⚠️ pending review**.
 
+## Static-location audit closure
+
+The static-location pass for **07_VILLAGES → 14_CAMPS** is now considered **source-researched and classification-defined**.
+
+### New/confirmed source findings
+
+- **[LPC] Medieval Village Decorations** — medieval/pre-industrial town material; CC-BY-SA 4.0 and CC-BY-SA 3.0; retain the included `CREDITS-decorations-medieval.txt`. Suitable candidate roles include village/town decoration, camps, farms and regional props depending on the individual element. citeturn0search0
+- **Medieval Village MegaKit** — Quaternius, CC0; useful as a medieval village visual reference, but its modular walls, roofs, stairs, doors and windows are generic construction components and therefore remain in Building/Architecture rather than becoming REGION binaries automatically. citeturn0search6
+- **[LPC] Farm** — CC-BY 4.0; contains barns, granary, coop, apiary, sheds/stables, fences, windmill and water-wheel elements. Only medieval/pre-modern variants fit Vandrith; early-industrial variants remain excluded. citeturn0search2
+- **Castle Set** — Nia Mi, CC0; explicitly medieval castle/tower/wall/gate material. Candidate for 10_CASTLES only when used as a specific castle/location assembly; reusable wall/tower components remain Building/Architecture. citeturn1search0
+- **Medieval Castle (Lvl 2)** — City Building Game Art, CC0; a complete miniature medieval fortress set piece with surrounding wall, suitable as a strong 10_CASTLES candidate if the repository binary is later matched. citeturn1search14
+- **Castle / Dungeon** — Gary Shaw, CC-BY 4.0; medieval/fantasy castle/dungeon tiles. Credit is required; generic tiles remain Building/Architecture unless assembled into a specific regional castle. citeturn1search13
+- **old ruins tileset** — rubberduck, CC-BY-SA 3.0; explicitly an outdoor/isometric ruins set with winter/frozen variant. Candidate for 12_RUINS, subject to visual/style and binary verification; retain `CREDITS.txt`. citeturn1search6
+- **[LPC] Cavern and ruin tiles** — Reemax with collaborators, CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0; candidate for ruin-specific exterior elements, but the package is mixed with caves, mines and other roles, so elements must be split by function. citeturn1search19
+- **Free isometric ruins** — rubberduck, CC0; explicit isometric ruins pack. Candidate for 12_RUINS when the projection/style fits the chosen REGION rendering. citeturn1search20
+
+### City decision
+
+**09_CITIES remains source-defined but binary-unverified.** The audit will not promote a generic city/building tileset merely because it depicts a medieval city. A city candidate must represent a recognizable city-scale exterior/location assembly or city-specific regional infrastructure. Generic houses, walls, roofs, doors and windows remain Building/Architecture.
+
+### Fortification decision
+
+**11_FORTIFICATIONS remains source-defined but binary-unverified.** Castle walls, gates, towers and moats can contribute to a fortification location, but reusable construction tiles are not automatically REGION. A complete fortress/fortification assembly is the stronger promotion target.
+
+### Ruins decision
+
+The previous conditional **Classical Ruin Tiles** candidate remains conditional because its source is explicitly classical rather than medieval. New medieval/fantasy-compatible candidates such as **old ruins tileset** provide stronger candidates for future verification, but no repository binary is promoted yet. citeturn1search6turn1search17
+
+### Binary verification status
+
+**No new binary is promoted to verified provenance in this pass.** OpenGameArt source pages establish source/licensing facts, but they do not prove that the same binary is present in Vendrith. Promotion still requires repository path + filename/content + source/creator/license/credit/conditions + SHA-256 when the binary is available.
+
 ## Current audit order
 
 1. BRIDGES — source research completed; binary matching pending
