@@ -1129,3 +1129,31 @@ No indexed repository result established an exact Vendrith binary match for thes
 **Status: `06_SHIPS = ⚠️ source-researched / binary-unverified`.**
 
 **Next target:** continue with the archive/binary inspection path rather than adding more ship sources unless a new source is needed to resolve a concrete filename/provenance match.
+
+## Source audit continuation: 07_VILLAGES — deep medieval-fantasy pass
+
+The village category is treated as a **regional location/assembly**, not as a generic Building/Architecture bucket. A source is a 07_VILLAGES candidate only when its content can establish a recognizable village-scale exterior/location; standalone houses, wall/roof kits, furniture, and isolated props remain in their canonical libraries.
+
+### Audited source candidates
+
+- **[LPC] Medieval Village Decorations** — bluecarrot16 and contributors. CC-BY-SA 4.0 and CC-BY-SA 3.0. Contains medieval/pre-industrial town decorations including farming, market, square, camp, fences, signage and lighting. The source requires retaining the complete attribution information in `CREDITS-decorations-medieval.txt`. It is primarily a decoration/region-props source; individual pieces may support a village assembly but the package itself is not proof of a complete village binary in Vendrith. citeturn0search1turn0search4
+- **OPP2017 - Village and room** — Hapiel/Open Pixel Project. CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0, GPL 2.0, OGA-BY 3.0 and CC0 are listed. The package explicitly contains village tiles, houses, fountain and market stands. It is a strong village-source candidate, but it is mixed with room/interior content and must be split by actual role. citeturn0search2turn0search5
+- **Village (Tiled Environment | Isometric)** — 2DPIXX/Jana Ochse. CC-BY 3.0. Isometric village environment with 49 frames. Candidate only if the Vendrith projection/style and binary can be matched. citeturn0search3
+- **Medieval Tileset** — Calciumtrice. CC-BY 3.0. Medieval exterior/interior tiles with combinable buildings. This is useful as a medieval architectural source, but generic stackable buildings do not automatically become 07_VILLAGES; they remain Building/Architecture unless a recognizable village assembly is actually present. citeturn0search0turn0search7
+- **Medieval town** — Keith Karnage. CC-BY 3.0. Explicit medieval town tileset, but described as half-finished; therefore a candidate for town/village visual reference rather than automatic regional promotion. citeturn0search8
+- **[LPC] Farm** — bluecarrot16, Wolthera van Hövell tot Westerflier and Ivan Voirol. CC-BY 4.0. Contains barns, granary, coop, apiary, sheds/stables, fences, windmill and water wheel. Only the primitive/thatched/wattlework variants are compatible with the medieval-fantasy baseline; the source explicitly includes more modern early-industrial variants that must be excluded. It is primarily a 13_FARMS source, with farm elements usable when constructing a village. citeturn0search6
+
+### Classification rules
+
+- Complete/recognizable village location → **07_VILLAGES**.
+- Generic house/building kit → **Building/Architecture**, not 07_VILLAGES.
+- Market/fence/well/sign/barrel as standalone scenery → **15_REGION_PROPS**.
+- Farm-specific assembly → **13_FARMS**.
+- Camp-specific assembly → **14_CAMPS**.
+- Interior room assets → **INTERIOR**.
+- Interactive objects → **PLAYABLE** according to function.
+- Modern/contemporary/industrial variants → excluded by the medieval-fantasy-only rule.
+
+### Provenance status
+
+No 07_VILLAGES source above is promoted to 🟢 solely from source-page evidence. Binary matching against the Vendrith archive is still required before a repository asset can be marked provenance-verified. **Status: 07_VILLAGES = ⚠️ source-researched / binary-unverified.**
