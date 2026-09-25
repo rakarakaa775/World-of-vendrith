@@ -2095,3 +2095,55 @@ No 14_CAMPS candidate is promoted to 🟢 verified Vendrith provenance from sour
 15. **REGION_PROPS — source research/deep classification completed; binary matching pending**
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Binary verification pass — REGION archive checkpoint
+
+A repository-level binary verification pass was started after completing all 15 REGION source audits.
+
+### Repository archive confirmed
+
+The repository contains:
+
+- `archive/VANDRITH_ALL_PROJECT_FILES_LATEST.zip`
+- Git blob SHA: `92511976469c101d428d47f16bf43ee81364ad6d`
+- Archive size: 3,258,487 bytes
+
+The archive is therefore confirmed to exist in the repository. However, the connected GitHub file reader cannot decode/read the ZIP payload itself. Consequently, ZIP-member filenames, embedded README/CREDITS files, and member SHA-256 values cannot be asserted from the archive blob alone.
+
+### Indexed binary/source fingerprint search
+
+The following representative REGION fingerprints were searched against the indexed repository content:
+
+- `lpc-farm.zip`
+- `decoration_medieval.zip`
+- `submission_daneeklu.zip`
+- `windmill`
+- `water wheel`
+- `camp`
+- `tent`
+- `farm`
+
+No indexed text result established an exact binary match.
+
+This is **not an absence claim**. The archive is binary and its internal members are not exposed to the repository text/code index. Therefore an asset can exist inside `VANDRITH_ALL_PROJECT_FILES_LATEST.zip` without producing a code-search result.
+
+### Verification rule
+
+For REGION assets, a candidate can move from ⚠️ to 🟢 only after the actual binary/member is accessible and can be reconciled against:
+
+1. repository/archive path;
+2. exact filename and/or content;
+3. source package/provenance;
+4. creator and license;
+5. attribution/condition requirements;
+6. SHA-256 where technically available.
+
+Source-page similarity, collection membership, filename similarity, or a search-engine match alone is insufficient.
+
+### Current binary-pass status
+
+**REGION binary verification = BLOCKED/PENDING direct ZIP extraction.**
+
+All 15 REGION categories remain source-audited, but no new 🟢 provenance promotion is made by this checkpoint.
+
