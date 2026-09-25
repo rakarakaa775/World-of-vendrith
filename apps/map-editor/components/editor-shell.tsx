@@ -21,7 +21,6 @@ import type { EnvironmentCatalog, EnvironmentReadiness } from "../editor/supabas
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
 import { environmentTerrainContextReady, resolveEnvironmentTerrainAsset } from "../editor/environment-terrain-bridge";
-import { canOpenObjectTarget } from "../editor/map-navigation";
 import { terrainFromTileId } from "../editor/terrain-engine";
 
 const tools = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Stamp", "Building", "Collision"];
