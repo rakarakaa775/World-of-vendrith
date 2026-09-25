@@ -17,8 +17,11 @@ const worldDocument = {
 
 const clientFor = (row: Record<string, unknown>, snapshot: unknown, access = true) => ({
   rpc: vi.fn(async (name: string) => {
+    if (name === 'map_editor_resolve_identity_v1') return { data: [{ editor_map_id: row.id || 'world-1', legacy_map_id: row.id || 'world-1', world_id: row.world_id ?? 'world-id', map_type: row.map_type ?? 'world', parent_editor_map_id: null, created_by: 'owner-1' }], error: null };
     if (name === 'map_editor_can_access_v1') return { data: access, error: null };
-    if (name === 'map_editor_bootstrap_world_identity_v1') return { data: [{ editor_map_id: 'world-1', legacy_map_id: 'world-1', world_id: 'world-id', map_type: 'world', parent_editor_map_id: null, created_by: 'owner-1' }], error: null };    return { data: { snapshot, version_number: 12 }, error: null };
+    if (name === 'map_editor_bootstrap_world_identity_v1') return { data: [{ editor_map_id: 'world-1', legacy_map_id: 'world-1', world_id: 'world-id', map_type: 'world', parent_editor_map_id: null, created_by: 'owner-1' }], error: null };
+    if (name === 'map_editor_load_identity_snapshot_v1') return { data: { ok: true, snapshot, version_number: 12 }, error: null };
+    return { data: { snapshot, version_number: 12 }, error: null };
   }),
   from: vi.fn(() => ({
     select: vi.fn(() => ({
@@ -49,10 +52,11 @@ describe('authoritative map resolution', () => {
 
   it('does not silently map an exterior database row to region/playable', async () => {
     const snapshot = { schema: 'vandrith.map-document', version: 1, document: { ...worldDocument, id: 'exterior-1', mapType: 'region' } };
-    await expect(resolveAuthoritativeMap(clientFor({
-      id: 'exterior-1', name: 'Region', map_type: 'exterior', world_id: null,
+    const client = clientFor({
+      id: 'exterior-1', name: 'Region', map_type: 'region', world_id: null,
       width: 20, height: 12, tile_size: 32, metadata: null,
-    }, snapshot), 'exterior-1', 'region')).rejects.toThrow('MAP_TYPE_CONTRACT_ERROR');
+    }, snapshot);
+    await expect(resolveAuthoritativeMap(client, 'exterior-1', 'playable')).rejects.toThrow('IDENTITY_ERROR');
   });
 
   it('fails closed for a playable map even when the database row says exterior', async () => {
