@@ -853,3 +853,53 @@ OpenGameArt's own FAQ also notes that CC-BY/CC-BY-SA/GPL usage can require attri
 | 08_VEHICLES | Defined | Verified source candidates | ⚠️ Pending |
 
 **Audit conclusion:** the PLAYABLE MAP taxonomy and source-audit rules are complete, but binary-level approval cannot be completed until the actual canonical asset packages/binaries are available for SHA-256 and content reconciliation.
+
+
+## SOURCE COVERAGE EXPANSION — PLAYABLE GAMEPLAY ROLES
+
+The external source matrix has been expanded for the gameplay-oriented PLAYABLE roles. These entries remain **source candidates only** until an actual Vendrith binary can be reconciled by content and SHA-256.
+
+### 01_BUILDINGS / 02_ARCHITECTURE
+
+- **[LPC] Tavern** — medieval-fantasy taverns, inns, bars, kitchens and breweries. Current OpenGameArt page lists CC-BY-SA 3.0 and provides a multi-contributor attribution notice. The page warns that preview scenes include tiles from other submissions, so preview similarity alone is insufficient for provenance. citeturn0search0
+- **LPC castle** — castle walls, towers, portcullis, drawbridge and related exterior architecture. Current page lists CC-BY 3.0 and asks for credit plus a link back to the source; it also identifies reused LPC wood elements and rounded towers. citeturn0search1
+- **[LPC] Castle Mega-Pack** — castle/tower/Gothic architecture, windows, churches and cathedrals. Current page lists CC-BY-SA 3.0 and identifies multiple underlying source works/contributors, making the credits chain important. citeturn0search4
+- **[LPC Revised] Base Structure Kit!** — structural floors, walls, doors, windows, roofs and castle doors. Current page lists CC-BY-SA 3.0 and requires preserving the source links in Credits.txt. citeturn0search3
+
+### 04_RESOURCE_NODES
+
+- **[LPC] Ore and Forge** — ore, ingot and resource visuals including coal, iron, tin, copper, silver, gold, bronze and steel, plus forge/smelter content. Current source lists CC-BY 4.0, CC-BY 3.0, GPL 3.0 and OGA-BY 3.0. The page notes the forge was later updated in [LPC] Blacksmith, while ore/ingot content remains in the original submission. citeturn1search2
+- **[LPC] Farming tilesets, magic animations and UI elements** — contains plants, crops, fences and village/market objects, with attribution instructions to Daniel Eddeland and a link to OpenGameArt. This is a candidate for harvestable/farm resource roles, subject to binary-level verification. citeturn1search11
+
+### 05_CRAFTING_STATIONS
+
+- **[LPC] Blacksmith** — forge, furnace/smelter, anvil, grindstone and workshop tools. The current page lists CC-BY 4.0, CC-BY 3.0, GPL 3.0, GPL 2.0 and OGA-BY 3.0, and its attribution notice identifies bluecarrot16 and the applicable license family. Preview elements can include assets from other submissions, so the actual package credits remain authoritative. citeturn1search1turn1search5
+- **[LPC] Ore and Forge** — forge/smelter and ore/ingot content; the page recommends the later Blacksmith version for new forge work. citeturn1search2
+
+### 06_COMBAT_INTERACTABLES
+
+- **[LPC] Siege Weapons** — medieval catapult, ballista/scorpion and cannon assets. Current page lists CC-BY 4.0, CC-BY 3.0, GPL 3.0, GPL 2.0 and OGA-BY 3.0. This is a strong source candidate for operational siege equipment, but the cannon and other elements require their own gameplay/license review. citeturn1search0
+
+### 07_GAMEPLAY_PROPS / 03_INTERACTABLES
+
+- LPC farming/community packages contain village and marketplace objects such as sacks, tables and stalls and therefore provide source candidates for decorative or interactive exterior props. citeturn1search11
+- OpenGameArt LPC collections contain many medieval prop candidates, but collection pages explicitly warn that generated credits may not be fully accurate. Individual source packages and their Credits files must therefore be preferred over collection-level attribution. citeturn0search2
+
+### Medieval-fantasy exclusion check
+
+The source research also confirms that not every LPC collection is suitable for Vandrith. For example, OpenGameArt's LPContemporary collection includes Victorian, modern-street, police-car and sci-fi extensions. These must remain excluded from Vandrith's medieval-fantasy baseline even when they are technically LPC-compatible. citeturn0search5
+
+### Updated source-coverage status
+
+| PLAYABLE role | External source coverage | Vendrith binary match |
+|---|---|---|
+| BUILDINGS | Strong | ⚠️ Pending |
+| ARCHITECTURE | Strong | ⚠️ Pending |
+| INTERACTABLES | Candidate sources identified | ⚠️ Pending |
+| RESOURCE_NODES | Candidate sources identified | ⚠️ Pending |
+| CRAFTING_STATIONS | Strong | ⚠️ Pending |
+| COMBAT_INTERACTABLES | Strong | ⚠️ Pending |
+| GAMEPLAY_PROPS | Candidate sources identified | ⚠️ Pending |
+| VEHICLES | Strong | ⚠️ Pending |
+
+**Rule remains unchanged:** source-page discovery, visual similarity, filename similarity, or collection membership is not sufficient for a 🟢 Vendrith approval. The binary, source package, creator/license information, attribution conditions and SHA-256 must all reconcile.
