@@ -38,87 +38,32 @@ Living entities are handled by the separate Life Generation system and are not c
 └── 11_SNOW_BIOMES
 ```
 
-## Optional extension: FANTASY / ISEKAI WORLD
 
-These categories are **optional** and must only be used when the actual Vandrith setting requires fantasy/isekai phenomena. They do not replace the normal WORLD categories.
+## World style rule: MEDIEVAL FANTASY ONLY
 
-```text
-01_WORLD
-├── 01_GROUND
-├── 02_WATER
-├── 03_MOUNTAINS
-├── 04_HILLS
-├── 05_CLIFFS
-├── 06_NATURAL_ROCK_FORMATIONS
-├── 07_FOREST
-├── 08_JUNGLE
-├── 09_DESERT
-├── 10_SWAMP
-├── 11_SNOW_BIOMES
-└── 12_FANTASY_NATURE                 [OPTIONAL]
-    ├── 01_MAGIC_CRYSTALS
-    ├── 02_ENCHANTED_FOREST
-    ├── 03_MAGICAL_GROUND
-    ├── 04_MAGICAL_WATER
-    ├── 05_FLOATING_ISLANDS
-    ├── 06_MAGICAL_CAVERNS
-    ├── 07_MAGICAL_ROCK_FORMATIONS
-    └── 08_FANTASY_NATURAL_PHENOMENA
-```
+Vandrith World uses a **medieval-fantasy visual and technological baseline**. Fantasy elements may be added when they fit the setting, but modern/industrial-world assets are excluded unless the project explicitly changes this rule.
 
-### What belongs here
+### Allowed
 
-- **Magic crystals** when they are naturally occurring environmental formations.
-- **Enchanted forests** when the asset changes the natural environment rather than representing a building/location.
-- **Magical ground** such as corrupted, glowing, rune-like or mana-infused terrain.
-- **Magical water** when the effect is part of the natural environment.
-- **Floating islands** when they are terrain/island formations.
-- **Magical caverns** when the asset represents natural cave/environmental formations.
-- **Fantasy natural phenomena** such as unusual glowing terrain, magical vegetation or other non-constructed environmental formations.
+- Medieval natural environments and terrain
+- Fantasy natural environments
+- Magical natural phenomena
+- Medieval/fantasy materials and scenery
+- Floating islands, magical crystals, enchanted forests and similar fantasy nature when appropriate
 
-A source such as *The Field of the Floating Islands* is a useful provenance candidate because it explicitly provides floating-island terrain and is CC0; however, it remains a **source candidate**, not a verified repository binary. citeturn1search8
+### Excluded from WORLD
 
-OpenGameArt also has CC0 crystal assets that can be candidates for naturally occurring fantasy crystals. citeturn1search2turn1search9
+- Modern city terrain
+- Asphalt highways and modern road surfaces
+- Modern urban landscaping
+- Industrial/sci-fi terrain
+- Airport/runway environments
+- Modern infrastructure
+- Contemporary urban props
+- Modern vehicles and machines
+- Modern/industrial watercraft
 
-### Important boundary
-
-Do **not** put the following into WORLD merely because they look magical:
-
-- Teleport circles
-- Summoning circles
-- Shrines
-- Altars
-- Magic gates
-- Portals
-- Towers
-- Temples
-- Fantasy houses
-- Villages/cities
-- Dungeon entrances built by civilization
-
-Those are constructed/location elements and belong to REGION, PLAYABLE, INTERIOR, or another appropriate system according to their actual role.
-
-### Isekai-specific rule
-
-An **isekai setting does not automatically require modern-world assets**. Modern cars, roads, streetlights, power infrastructure, phones, computers, buildings and other Earth-origin objects should only be added when the setting explicitly contains them.
-
-They should remain classified by their actual asset role rather than being placed into WORLD simply because they are "isekai".
-
-## Fantasy/isekai provenance candidates
-
-The following are research candidates only:
-
-| Candidate | Possible role | Evidence | Status |
-|---|---|---|---|
-| The Field of the Floating Islands | WORLD/12_FANTASY_NATURE/05_FLOATING_ISLANDS | CC0; terrain includes grass, rock, water and trees | ⚠️ source candidate |
-| Crystals | WORLD/12_FANTASY_NATURE/01_MAGIC_CRYSTALS | CC0 | ⚠️ source candidate |
-| [LPC] Cavern and ruin tiles | Extract only natural cave/crystal/environment elements | CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0; includes crystals and magical circles | ⚠️ source candidate; mixed-role pack |
-| Mythical Ruins Tileset | Natural/exterior fantasy terrain where applicable | CC0 | ⚠️ source candidate; mixed exterior/interior/ruins |
-| Forest Tilemap | WORLD fantasy forest/natural environment | CC0 | ⚠️ source candidate |
-
-The *[LPC] Cavern and ruin tiles* package is especially important to split carefully: its source contains caves, water/lava, crystals, magical circles, statues, tracks and coffins, so only the natural environmental elements can enter WORLD. citeturn0search3
-
-**No fantasy/isekai candidate becomes repository-approved until the same provenance rules used for normal WORLD assets are satisfied: source/package match, binary identity, license/credit verification and checksum where the binary is available.**
+Fantasy does **not** mean "anything unusual is allowed". The asset must still fit the medieval-fantasy world and the WORLD natural-environment role.
 
 ## Provenance register
 
