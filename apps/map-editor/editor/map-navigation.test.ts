@@ -21,7 +21,12 @@ describe('map hierarchy navigation', () => {
     const world = { ...createMap('world'), id: 'world-1' };
     const region = { ...createMap('region', world.id), id: 'region-1' };
     const playable = { ...createMap('playable', region.id, 'exterior'), id: 'playable-1' };
-    const interior = { ...createMap('playable', 'region-1', 'interior', playable.id), id: 'interior-1' };
+    const interior = {
+      ...createMap('playable', region.id, 'interior', playable.id),
+      id: 'interior-1',
+      parentMapId: region.id,
+      parentPlayableMapId: playable.id,
+    };
 
     expect(canOpenChildMap(world, region)).toBe(true);
     expect(canOpenChildMap(region, playable)).toBe(true);
