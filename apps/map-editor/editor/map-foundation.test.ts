@@ -85,7 +85,12 @@ describe('MapDocument foundation invariants', () => {
   });
 
   it.each(['world', 'region', 'playable'] as const)('round-trips %s MapDocument deterministically', (mapType) => {
-    const document = createMap(mapType);
+    const document = createMap(
+      mapType,
+      mapType === 'world' ? null : mapType === 'region' ? 'world-roundtrip' : 'region-roundtrip',
+      'exterior',
+      null,
+    );
     document.id = `${mapType}-roundtrip`;
     document.name = `${mapType} test map`;
     const parsed = parseMapDocument(serializeMapDocument(document), document.id);
