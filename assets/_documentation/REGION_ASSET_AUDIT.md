@@ -1978,3 +1978,120 @@ No farm source is promoted to 🟢 verified Vendrith provenance from source-page
 15. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Source audit continuation: 14_CAMPS — deep medieval-fantasy pass
+
+14_CAMPS is reserved for a **recognizable fixed exterior camp/location assembly** within a region. The defining feature is the camp as a place, not merely an individual camping prop.
+
+### Audited source candidates
+
+**isometric props and tents — rubberduck**
+- License: **CC0**.
+- Package: `props_tilesets.zip` and source package `props_tilesets_source.zip`.
+- Contains tents, fireplace, cauldron, boxes, barrels, barricades and other RPG/camp props.
+- Strong source for camp assemblies, but the complete pack is mixed-purpose; individual assets must be split by role.
+- The source also states that some items derive from other CC0 sources, so provenance chains must be preserved when a binary is matched.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search2turn0search5
+
+**Tent — xhunterko**
+- Licenses: CC-BY 3.0, GPL 3.0, GPL 2.0, OGA-BY 3.0, CC0 for the submitted asset/credit trail.
+- A small adventurer tent; source explicitly identifies its Adobe Town-derived credit chain.
+- A **single tent is not automatically 14_CAMPS**. It becomes a CAMPS candidate only when used as part of a recognizable camp assembly.
+- If matched, preserve the stated Adobe Town/LPC credit trail. citeturn0search12turn0search13
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**Tents: Hunter, Lumberjack, Pavilion, Storage — Unknown Horizons 2D**
+- Listed as a source in an OpenGameArt collection of medieval/fantasy-compatible assets.
+- Candidate for hunter/lumberjack/caravan-style camp assemblies, subject to direct source/package and license verification before promotion.
+- Collection membership alone is not provenance proof. citeturn0search9
+- Binary status: ⚠️ candidate only; source/package verification still required.
+
+**Outdoor Tileset — Calciumtrice**
+- CC-BY 3.0.
+- Contains grass/path tiles, trees, miscellaneous outdoor objects and an animated campfire.
+- Useful as camp environmental support, but a campfire alone is a REGION_PROP/FX asset, not a camp location.
+- Attribution required if matched. citeturn0search8
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**Idylwild's Chromatic Campfires — Idylwild**
+- CC0.
+- Animated torches/campfires and smoke; attribution appreciated but not required.
+- Useful for camp atmosphere/effects, but **not 14_CAMPS by itself**; campfire assets belong effects/region props according to implementation.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched. citeturn0search7
+
+### Camp role classification
+
+| Asset/source result | Classification |
+|---|---|
+| Recognizable fixed camp location | 14_CAMPS |
+| Tent cluster + campfire + camp equipment | 14_CAMPS |
+| Military field camp assembly | 14_CAMPS |
+| Hunter/trapper camp assembly | 14_CAMPS |
+| Caravan/traveler camp assembly | 14_CAMPS |
+| Lumberjack/work camp assembly | 14_CAMPS when regional location is the role |
+| Single tent | REGION_PROPS / source-specific placement; not automatically CAMPS |
+| Single campfire | REGION_PROPS / EFFECTS |
+| Barrel/crate/cauldron | REGION_PROPS when static; PLAYABLE when interactive |
+| Camp bed/sleeping item | INTERIOR / ITEM depending function |
+| Character/animal | LIFE_GENERATION |
+| Weapon/tool | ITEM_ASSET |
+| Interactive camp equipment | PLAYABLE |
+| Modern camping gear/vehicles | EXCLUDED |
+
+### Medieval-fantasy filter
+
+Allowed:
+- Medieval field camps
+- Hunter/trapper camps
+- Caravan/traveler camps
+- Lumber camps compatible with medieval technology
+- Military camps and siege camps
+- Fantasy adventurer camps
+- Wooden/cloth tents, campfires, carts and traditional camp equipment
+
+Excluded:
+- Modern camping equipment
+- RV/camper-van camps
+- Contemporary military bases
+- Modern utility tents and synthetic contemporary infrastructure
+- Modern vehicles/machinery
+- Industrial/futuristic camps
+
+### Binary verification checkpoint
+
+Fingerprints reviewed:
+- `props_tilesets.zip`
+- `props_tilesets_source.zip`
+- `Tent.png`
+- Unknown Horizons tent-pack references
+- `tileset.png`
+- `idylwilds_chromatic_campfires.zip`
+
+No indexed repository result is being promoted as an exact Vendrith binary match. As with previous REGION audits, lack of an indexed result does **not** prove that a candidate is absent from the repository's binary archive.
+
+### Provenance decision
+
+No 14_CAMPS candidate is promoted to 🟢 verified Vendrith provenance from source-page evidence alone. Promotion requires an actual repository/archive match plus provenance/license/attribution and SHA-256 reconciliation where accessible.
+
+**Current status: 14_CAMPS = ⚠️ source-researched / binary-unverified.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — source research completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. CITIES — source research completed; binary matching pending
+11. CASTLES — source research completed; binary matching pending
+12. FORTIFICATIONS — source research completed; binary matching pending
+13. FARMS — source research completed; binary matching pending
+14. CAMPS — source research completed; binary matching pending
+15. **REGION_PROPS — source research/deep classification completed; binary matching pending**
+
+**Generic buildings remain excluded from this audit.**
