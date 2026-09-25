@@ -16,7 +16,7 @@ export const createEmptyCells = (width:number, height:number):TileCell[] => {
 };
 
 const layer=(id:string,name:string,kind:MapLayerKind,width:number,height:number,active=false):MapLayer=>({id,name,kind,visible:true,locked:false,active,cells:createEmptyCells(width,height),objects:[]});
-export const MAP_CAPABILITIES={world:{buildings:false,collision:false,terrainDetail:false,regions:true},region:{buildings:true,collision:false,terrainDetail:true,regions:false},playable:{buildings:true,collision:true,terrainDetail:true,regions:false}} as const;
+export const MAP_CAPABILITIES={world:{buildings:false,collision:false,terrainDetail:false,regions:true},region:{buildings:false,collision:false,terrainDetail:true,regions:false},playable:{buildings:true,collision:true,terrainDetail:true,regions:false}} as const;
 export type MapSize = 32 | 64 | 128;
 
 export const MAP_SIZES: readonly MapSize[] = [32, 64, 128];
