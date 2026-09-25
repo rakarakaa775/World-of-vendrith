@@ -71,7 +71,7 @@ export function mergeMapDocumentsThreeWay(base: MapDocument, local: MapDocument,
   const conflicts: MergeConflict[] = [];
   const merged = { ...remote } as MapDocument;
 
-  const metadataKeys: (keyof MapDocument)[] = ['name', 'mapType', 'parentMapId', 'width', 'height', 'tileSize', 'playableSpace', 'parentPlayableMapId'];
+  const metadataKeys: (keyof MapDocument)[] = ['name', 'mapType', 'parentMapId', 'parentBounds', 'width', 'height', 'tileSize', 'playableSpace', 'parentPlayableMapId'];
   for (const key of metadataKeys) {
     const result = threeWay(base[key], local[key], remote[key]);
     if (result.conflict) conflicts.push({ kind: 'map-metadata', id: String(key), base: base[key], local: local[key], remote: remote[key] });
