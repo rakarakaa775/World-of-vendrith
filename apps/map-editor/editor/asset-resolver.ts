@@ -7,6 +7,7 @@ export type AssetRecord = {
 };
 
 const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
+const ASSET_LIBRARY_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main';
 const assetCache = new Map<string, AssetRecord | null>();
 
 /** Canonical bundled terrain textures. Supabase remains the registry/provenance source. */
@@ -32,6 +33,10 @@ export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCK
   if (!assetPath) return null;
   const localUrl = localTerrainUrl(assetPath);
   if (localUrl) return localUrl;
+  const normalized = assetPath.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (normalized.startsWith('ASSET_LIBRARY/')) {
+    return `${ASSET_LIBRARY_RAW}/${normalized.split('/').map(encodeURIComponent).join('/')}`;
+  }
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!supabaseUrl) return null;
   return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${encodeURIComponent(bucket)}/${normalizeAssetPath(assetPath)}`;
