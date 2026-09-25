@@ -639,3 +639,157 @@ In particular, the [LPC] Containers page demonstrates why a filename or visual r
 
 This keeps the PLAYABLE architecture role-based and prevents unnecessary binary duplication.
 
+
+
+## 08_VEHICLES — initial source audit
+
+08_VEHICLES covers **vehicles that are part of actual playable exterior gameplay**: the player can control, ride, drive, steer, mount, or otherwise use the vehicle as a gameplay vehicle.
+
+The visual binary remains in its canonical library, normally `assets/vehicles/`; PLAYABLE records the map/gameplay role and does not require a duplicate copy.
+
+### Audit groups
+
+| Group | Examples | PLAYABLE treatment |
+|---|---|---|
+| Land transport | carts, wagons, horse carts, carriages | PLAYABLE/08_VEHICLES when controllable/rideable |
+| Mine transport | mine carts | PLAYABLE/08_VEHICLES when controllable/rideable |
+| Water transport | rowboats, canoes, rafts, sailing boats | PLAYABLE/08_VEHICLES when controllable/rideable |
+| Ships | medieval/fantasy ships, sailing vessels | PLAYABLE/08_VEHICLES when controllable/rideable |
+| Mounted transport | horse/cart combinations or other fantasy mounts represented as vehicles | PLAYABLE/08_VEHICLES when the vehicle role is controllable |
+| Fantasy transport | setting-compatible magical vehicles | PLAYABLE/08_VEHICLES when actually playable |
+
+### Important REGION boundary
+
+A vehicle visual is **not automatically PLAYABLE** merely because it appears on the exterior map.
+
+- Static wagon parked in a town → REGION/settlement context or PLAYABLE/07_GAMEPLAY_PROPS depending on how it is used as map dressing.
+- Static ship tied to a dock → REGION/port/ship context when it is only regional scenery.
+- Controllable wagon/cart → PLAYABLE/08_VEHICLES.
+- Controllable boat/ship → PLAYABLE/08_VEHICLES.
+- Controllable mine cart → PLAYABLE/08_VEHICLES.
+- Vehicle prop that is only decorative → not promoted to 08_VEHICLES.
+- A vehicle that is both scenery and controllable may have both regional context and PLAYABLE vehicle binding without duplicating the binary.
+
+This keeps REGION focused on **where/what the location is** while PLAYABLE records the actual gameplay role.
+
+### Source evidence
+
+OpenGameArt provides direct medieval/fantasy vehicle source candidates:
+
+- **LPC Mine Carts and Tracks** by Xenodora contains mine-cart graphics and track assets. Its page lists **CC-BY-SA 3.0, GPL 3.0 and GPL 2.0**, and specifically instructs users to credit Xenodora. citeturn0search0turn0search3
+- **16x16 fantasy pixel art vehicles** contains a canoe, ship, airship, cart, buggy, covered wagon, horse and donkey. It lists **CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0 and GPL 2.0**, and explicitly requires a link to OpenGameArt and credit to DualR. This is a broader fantasy source candidate rather than an LPC-only source. citeturn0search2
+- OpenGameArt's **LPC RPG Assets** collection includes LPC Mine Carts and Tracks, a wooden ship tileset, LPC Ship and other compatible fantasy/RPG material. The collection warns that its automatically generated credits file is not guaranteed to be accurate, so original source pages and special attribution instructions must still be checked. citeturn0search1
+- The LPC collection also lists **LPC Rowboat Recolor**, **LPC Ship**, **Animated Pixel Art Raft Sprite**, **Wooden Boat**, and **LPC Mine Carts and Tracks**, providing additional vehicle source candidates. citeturn0search6turn0search5
+
+### Vehicle classification rules
+
+#### Land vehicles
+
+- Controllable cart → PLAYABLE/08_VEHICLES.
+- Controllable wagon → PLAYABLE/08_VEHICLES.
+- Controllable carriage → PLAYABLE/08_VEHICLES.
+- Static cart/wagon used only as town dressing → PLAYABLE/07_GAMEPLAY_PROPS or REGION context, depending on whether it is a concrete playable prop or merely regional scenery.
+- Modern car/bus/truck → excluded by the medieval-fantasy filter.
+
+#### Mine carts
+
+- Mine cart itself, when rideable/controllable → PLAYABLE/08_VEHICLES.
+- Mine-cart track as location infrastructure → REGION when it primarily defines mine/industrial route context.
+- Mine-cart track required specifically for vehicle gameplay can additionally receive a PLAYABLE gameplay binding, but the underlying track remains infrastructure rather than a vehicle.
+- Decorative mine cart → PLAYABLE/07_GAMEPLAY_PROPS or REGION context.
+- Modern rail vehicle → excluded.
+
+#### Boats and ships
+
+- Controllable rowboat → PLAYABLE/08_VEHICLES.
+- Controllable canoe/raft → PLAYABLE/08_VEHICLES.
+- Controllable medieval sailing ship → PLAYABLE/08_VEHICLES.
+- Static boat at a dock → REGION context unless it is intentionally treated as a concrete playable prop.
+- Static ship used as scenery → REGION/06_SHIPS or equivalent regional context.
+- Cruise ship, container ship, modern yacht or modern motorboat → excluded by default.
+- Fantasy/magical vessel → allowed only if its design fits Vandrith's medieval-fantasy baseline.
+
+### Medieval-fantasy filter
+
+Allowed:
+
+- Wooden carts and wagons
+- Horse-drawn carriages
+- Medieval/fantasy mine carts
+- Rowboats
+- Canoes and simple rafts
+- Medieval sailing boats
+- Medieval sailing ships
+- Fantasy/magical vessels consistent with the setting
+- Other period-compatible transport appropriate to Vandrith
+
+Conditional:
+
+- Airships or unusual magical vehicles are allowed only when they clearly belong to Vandrith's fantasy setting and do not introduce a modern/sci-fi technological language.
+- Cannon-equipped or armed ships require separate gameplay classification if the weapons are operational; the vessel itself remains a vehicle.
+
+Excluded by default:
+
+- Modern cars
+- Buses
+- Motorcycles
+- Trucks
+- Cruise ships
+- Container ships
+- Modern yachts
+- Motorboats with contemporary styling
+- Trains and modern rail vehicles
+- Sci-fi spacecraft
+- Futuristic hover vehicles
+- Contemporary industrial transport
+
+### Canonical storage rule
+
+Vehicle binaries should remain in `assets/vehicles/` or their verified source/library location.
+
+PLAYABLE/08_VEHICLES records the **gameplay/map role** rather than copying the visual asset.
+
+Examples:
+
+- `assets/vehicles/cart.png` → vehicle library + PLAYABLE/08_VEHICLES if controllable.
+- `assets/vehicles/ship.png` → vehicle library + PLAYABLE/08_VEHICLES if controllable.
+- Static ship used only to establish a port scene → REGION context, not automatically 08_VEHICLES.
+- Mine cart visual → vehicle library + 08_VEHICLES when rideable.
+- Vehicle inventory item/icon → `assets/inventory/`, not PLAYABLE binary duplication.
+
+### Provenance rule
+
+Source-page discovery does not establish repository provenance.
+
+A vehicle can become 🟢 verified only after reconciling:
+
+1. Repository path and filename
+2. Actual binary content
+3. Source package/page
+4. Creator/contributors
+5. License
+6. Attribution/conditions
+7. SHA-256 checksum
+
+The mine-cart source is a good example: its page identifies the creator and multiple licenses, so those details must be preserved with any verified repository match. citeturn0search0turn0search3
+
+### Current VEHICLES result
+
+**Source coverage:** strong  
+**Repository binary match:** not yet established  
+**Approval:** ⚠️ pending until binary provenance is reconciled
+
+### PLAYABLE category audit status
+
+All eight PLAYABLE map-role categories are now defined:
+
+1. BUILDINGS — defined
+2. ARCHITECTURE — defined
+3. INTERACTABLES — defined
+4. RESOURCE_NODES — defined
+5. CRAFTING_STATIONS — defined
+6. COMBAT_INTERACTABLES — defined
+7. GAMEPLAY_PROPS — defined
+8. VEHICLES — defined
+
+The next phase is therefore **repository-wide binary reconciliation** against these roles. No source candidate is promoted to 🟢 merely because a visually similar source page exists.
