@@ -21,7 +21,7 @@ INTERIOR is a **map-role classification**, not a duplicate binary library. Visua
 ## Canonical map-role structure
 
 ```text
-04_INTERIOR
+INTERIOR
 ├── 01_FLOORS
 ├── 02_WALLS
 ├── 03_CEILINGS
