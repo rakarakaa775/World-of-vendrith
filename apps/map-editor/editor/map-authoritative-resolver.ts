@@ -22,14 +22,10 @@ export type AuthoritativeMapResolution = {
 };
 
 /**
- * Resolve persistence by identity first: requested map id -> authoritative maps
- * row -> access/ownership check -> durable latest snapshot -> contract checks.
- *
- * This deliberately does not invent a mapping between the editor's
- * world/region/playable types and database map_type values. The current
- * database contract exposes world/exterior/interior, while MapDocument uses
- * world/region/playable. A non-world save is therefore rejected until the
- * persisted map row can identify its editor scale unambiguously.
+ * Resolve persistence by editor identity first. The editor identity layer is
+ * authoritative for hierarchy and map scale; the legacy maps row is optional
+ * metadata only. This keeps World -> Region -> Playable -> Interior separate
+ * from legacy exterior/interior storage labels.
  */
 export async function resolveAuthoritativeMap(
   client: SupabaseClient,
@@ -49,21 +45,14 @@ export async function resolveAuthoritativeMap(
   if (!identityRow?.editor_map_id) throw new Error('MAP_IDENTITY_ERROR: authoritative identity is unavailable');
   if (expectedMapType && identityRow.map_type !== expectedMapType) throw new Error('IDENTITY_ERROR: requested map type does not match authoritative identity');
 
-
-  // Phase 3: the existing World Map is idempotently registered in the
-  // explicit editor identity layer. No legacy maps row is created or changed.
-  const bootstrap = await client.rpc('map_editor_bootstrap_world_identity_v1', {
-    p_legacy_map_id: requestedMapId,
-  });
-  if (bootstrap.error) {
-    throw new Error(`MAP_IDENTITY_ERROR: ${bootstrap.error.message}`);
-  }
-
-  const rowResult = await client
-    .from('maps')
-    .select('id,name,map_type,world_id,width,height,tile_size,metadata')
-    .eq('id', requestedMapId)
-    .maybeSingle();
+  const legacyMapId = identityRow.legacy_map_id ?? null;
+  const rowResult = legacyMapId
+    ? await client
+      .from('maps')
+      .select('id,name,map_type,world_id,width,height,tile_size,metadata')
+      .eq('id', legacyMapId)
+      .maybeSingle()
+    : { data: null, error: null };
 
   if (rowResult.error) throw new Error(`MAP_RESOLUTION_ERROR: ${rowResult.error.message}`);
   let row = rowResult.data as AuthoritativeMapRow | null;
