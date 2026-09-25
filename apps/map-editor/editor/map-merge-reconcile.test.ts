@@ -19,10 +19,8 @@ describe('reconcileMapMerge', () => {
     base.layers[0].objects.push(object);
     local.layers[0].objects.push(structuredClone(object));
     remote.layers[0].objects.push({ ...object, x: 4 });
-
     const merged = mergeMapDocumentsThreeWay(base, local, remote);
     const result = reconcileMapMerge(base, local, remote, merged);
-
     expect(result.conflicts).toHaveLength(0);
     expect(result.document.layers[0].objects[0].x).toBe(4);
   });
