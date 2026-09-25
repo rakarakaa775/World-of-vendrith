@@ -75,6 +75,90 @@ Do not classify these as REGION binaries during this audit:
 | Sign | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 | Well/fountain | REGION/15_REGION_PROPS | PLAYABLE/05_INTERACTABLES |
 
+## Optional extension: FANTASY / ISEKAI REGION
+
+These assets are **optional**. They are added only when the world actually contains fantasy/isekai structures or magical regional landmarks. They do not replace the normal REGION categories and they do not turn generic buildings into REGION assets.
+
+```text
+02_REGION
+├── 01_ROADS
+├── 02_PATHS
+├── 03_BRIDGES
+├── 04_DOCKS
+├── 05_PORTS
+├── 06_SHIPS
+├── 07_VILLAGES
+├── 08_TOWNS
+├── 09_CITIES
+├── 10_CASTLES
+├── 11_FORTIFICATIONS
+├── 12_RUINS
+├── 13_FARMS
+├── 14_CAMPS
+├── 15_REGION_PROPS
+└── 16_FANTASY_REGION                [OPTIONAL]
+    ├── 01_MAGIC_PORTALS
+    ├── 02_TELEPORT_CIRCLES
+    ├── 03_SHRINES_AND_ALTARS
+    ├── 04_RUNE_STONES
+    ├── 05_MAGIC_WELLS_AND_FOUNTAINS
+    ├── 06_FANTASY_LANDMARKS
+    └── 07_DUNGEON_ENTRANCES
+```
+
+### What belongs here
+
+- **Magic portals / gates** when they are physical regional landmarks or travel structures.
+- **Teleport circles** when they are placed as regional travel infrastructure.
+- **Shrines and altars** when they are exterior regional locations rather than interior-only objects.
+- **Rune stones** and other magical standing stones used as exterior landmarks.
+- **Magic wells/fountains** when they are physical regional props or landmarks.
+- **Fantasy landmarks** such as a giant magical monument or other constructed regional feature that is not a generic building.
+- **Dungeon entrances** when the visible asset is the exterior entrance/location marker; the dungeon interior belongs to INTERIOR.
+
+### Fantasy-specific source candidates
+
+| Candidate | REGION role | Evidence | Status |
+|---|---|---|---|
+| Teleporter Circle | 16_FANTASY_REGION/02_TELEPORT_CIRCLES | CC-BY 3.0; fantasy teleporter; active version has animation | ⚠️ source candidate |
+| Statues & Fountains Collection | 16_FANTASY_REGION/05_MAGIC_WELLS_AND_FOUNTAINS or 15_REGION_PROPS | CC-BY-SA 3.0 collection with per-source licensing notes | ⚠️ mixed-role source candidate |
+| [LPC] Water Fountain | 16_FANTASY_REGION/05_MAGIC_WELLS_AND_FOUNTAINS | CC-BY 3.0; attribution instructions list Curt, Sharm, William.Thompsonj and the web address | ⚠️ source candidate |
+| Temple and Ruins Assets | 16_FANTASY_REGION/03_SHRINES_AND_ALTARS or 06_FANTASY_LANDMARKS where applicable | Collection includes shrines, teleporter, runes and ruins | ⚠️ collection/source candidate |
+
+The Teleporter Circle source is explicitly a fantasy runed teleporter and is licensed CC-BY 3.0. citeturn2search1
+
+The Statues & Fountains collection is useful for fantasy regional landmarks, but it is a mixed-license collection: the collection states CC-BY-SA 3.0 while noting that individual included assets can have different licenses and should be checked against its sources.md/attribution material. citeturn2search0
+
+The [LPC] Water Fountain is separately identified as CC-BY 3.0 with specific attribution instructions, so it must retain those credits if used. citeturn2search2
+
+### Isekai-specific rule
+
+**ISEKAI is a setting tag, not a new universal asset layer.**
+
+If the story contains objects brought from another world, classify them by their actual REGION role:
+
+- Modern road → REGION/01_ROADS
+- Static modern vehicle used as scenery → REGION/15_REGION_PROPS or another appropriate regional category
+- Power pole / street infrastructure → REGION/15_REGION_PROPS or the appropriate infrastructure category
+- Abandoned modern urban remains → the appropriate regional location category
+- Modern building → remains a building/architecture asset; do not promote it to REGION merely because it is isekai
+
+Only add these assets if the actual world design calls for Earth/modern-world remnants. A fantasy world without an isekai-origin civilization should not receive them.
+
+### Hard boundary: REGION vs magic gameplay
+
+A visual magic landmark can be REGION, but its gameplay logic belongs elsewhere:
+
+| Asset | Visual placement | Gameplay logic |
+|---|---|---|
+| Teleport circle | REGION/16_FANTASY_REGION | Teleport system / world engine |
+| Magic portal | REGION/16_FANTASY_REGION | Travel/portal system |
+| Shrine | REGION/16_FANTASY_REGION | Quest/interactions if applicable |
+| Magic fountain | REGION/16_FANTASY_REGION or REGION_PROPS | Interaction/effect system if applicable |
+| Magic crystal resource node | WORLD/12_FANTASY_NATURE if natural; PLAYABLE if harvestable | Resource/item system |
+
+**No fantasy/isekai candidate becomes repository-approved until source/package match, binary identity, license/credit verification and checksum are available where applicable.**
+
 ## Source research: BRIDGES / DOCKS / PORTS / SHIPS
 
 These are **source candidates**, not binary-approved assets. A source page alone does not prove that a repository binary came from that source.
