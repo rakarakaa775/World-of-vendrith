@@ -396,7 +396,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
       if (rpc.error) throw rpc.error;
       const result = validateSaveSlotRpcResult(rpc.data, { mapId: AUTHORITATIVE_WORLD_MAP_ID, slotNumber: slot });
-      const gameSave = parseSaveSlotSnapshot(result);
+      const gameSave = parseSaveSlotSnapshot(result, AUTHORITATIVE_WORLD_MAP_ID);
       const worldDocument = normalizeWorldCanvas(gameSave.world);
       const exteriorDocument = gameSave.exterior;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
