@@ -108,5 +108,17 @@ describe("map render diff", () => {
     expect(diff.dimensionsChanged).toBe(true);
     expect(diff.changedTerrainByLayer.every(layer => layer.changedCells.length === 64 * 64)).toBe(true);
     expect(diff.objectLayerChanged).toBe(true);
+    expect(diff.layerStructureChanged).toBe(true);
   });
+  it("detects layer visibility changes as structural render changes", () => {
+    const previous = createStarterMap();
+    const next = {
+      ...previous,
+      layers: previous.layers.map(layer => layer.kind === "ground" ? { ...layer, visible: false } : layer),
+    };
+    const diff = diffMapDocuments(previous, next);
+    expect(diff.layerStructureChanged).toBe(true);
+    expect(diff.changedTerrainByLayer).toHaveLength(0);
+  });
+
 });
