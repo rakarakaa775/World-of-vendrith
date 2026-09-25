@@ -64,6 +64,7 @@ export function PixiMapCanvas(props: Props) {
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
+  const objectGraphicsRef = useRef(new Map<string, Graphics>());
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   propsRef.current = props;
@@ -144,6 +145,7 @@ export function PixiMapCanvas(props: Props) {
       if (!world || !app || !host) return;
       const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds } = propsRef.current;
       world.removeChildren();
+      objectGraphicsRef.current.clear();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
@@ -238,6 +240,7 @@ export function PixiMapCanvas(props: Props) {
             g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
               .fill({ color: c, alpha: 0.9 })
               .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            objectGraphicsRef.current.set(o.id, g);
             world.addChild(g);
           }
         }
@@ -264,7 +267,26 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime]);
+  }, [ready, props.document, props.activeLayerId, props.terrainBindings, props.environmentRuntime]);
+
+  // Selection is transient UI state. Repaint only the affected object graphics
+  // instead of rebuilding the entire map scene when selection changes.
+  useEffect(() => {
+    if (!ready) return;
+    const selected = new Set(props.selectedObjectIds);
+    const objectsLayer = props.document.layers.find(layer => layer.kind === "objects");
+    if (!objectsLayer) return;
+    const objectsById = new Map(objectsLayer.objects.map(object => [object.id, object]));
+    for (const [id, graphic] of objectGraphicsRef.current) {
+      const object = objectsById.get(id);
+      if (!object) continue;
+      const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
+      graphic.clear();
+      graphic.roundRect(object.x * props.document.tileSize + 2, object.y * props.document.tileSize + 2, object.width * props.document.tileSize - 4, object.height * props.document.tileSize - 4, 4)
+        .fill({ color: c, alpha: 0.9 })
+        .stroke({ width: 2, color: selected.has(id) ? 0x0ea5e9 : 0x334155 });
+    }
+  }, [ready, props.selectedObjectIds, props.document]);
 
   useEffect(() => {
     if (!ready) return;
