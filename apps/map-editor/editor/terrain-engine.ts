@@ -32,7 +32,7 @@ export function sourceOfTalesCornerPattern(mask:TerrainMask,centerTerrain:'water
   const center=centerTerrain==='sand'?1:0;
   const opposite=center===1?0:1;
   const corner=(a:number,b:number,c:number)=>{
-    const votes=center+a+b+c;
+    const votes=1+a+b+c;
     return votes>=2?center:opposite;
   };
   return [corner(n,w,nw),corner(n,e,ne),corner(s,w,sw),corner(s,e,se)];
