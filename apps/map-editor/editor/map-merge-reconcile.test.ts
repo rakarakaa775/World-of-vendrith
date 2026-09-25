@@ -9,7 +9,7 @@ describe('reconcileMapMerge', () => {
   it('keeps an edited remote object when local did not change it', () => {
     const base=make(), local=make(), remote=make();
     const o={id:'a',kind:'building' as const,category:'house',x:1,y:1,width:1,height:1,assetId:'house',rotation:0,zIndex:1,collision:true};
-    base.layers[0].objects.push(o); remote.layers[0].objects.push({...o,x:4});
+    base.layers[0].objects.push(o); local.layers[0].objects.push(o); remote.layers[0].objects.push({...o,x:4});
     const result=reconcileMapMerge(base,local,remote,mergeMapDocumentsThreeWay(base,local,remote));
     expect(result.conflicts).toHaveLength(0);
     expect(result.document.layers[0].objects[0].x).toBe(4);
