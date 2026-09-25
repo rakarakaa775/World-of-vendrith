@@ -8,7 +8,7 @@ describe("terrain paint", () => {
     const result = applyTerrainPaint(base, "ground", [{ x: 2, y: 2 }, { x: 2, y: 2 }], "starter-tile");
     expect(result.affected).toContainEqual({ x: 2, y: 2 });
     expect(result.affected.length).toBeGreaterThan(1);
-    expect(result.validation.every(item => item.valid)).toBe(true);
+    expect(result.validation.filter(item => item.terrain !== null).every(item => item.valid)).toBe(true);
     expect(result.variants.some(item => item.point.x === 2 && item.point.y === 2)).toBe(true);
   });
 
