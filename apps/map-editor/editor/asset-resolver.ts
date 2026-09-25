@@ -31,6 +31,7 @@ function localTerrainUrl(assetPath: string): string | null {
 
 export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCKET): string | null {
   if (!assetPath) return null;
+  if (/^https?:\/\//i.test(assetPath)) return assetPath;
   const localUrl = localTerrainUrl(assetPath);
   if (localUrl) return localUrl;
   const normalized = assetPath.replace(/\\/g, '/').replace(/^\/+/, '');
