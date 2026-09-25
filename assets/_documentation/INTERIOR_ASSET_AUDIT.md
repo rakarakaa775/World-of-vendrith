@@ -891,3 +891,115 @@ Map instance metadata may include:
 `instance_id`, `asset_id`, `building_id`, `room_id`, `floor_level`, `position`, `rotation`, `scale`, `room_context`, `gameplay_state`
 
 This separation is the intended foundation for later Vendrith World Builder implementation.
+
+
+# BUILDING → FLOOR → ROOM → INSTANCE MODEL
+
+Interior map organization is hierarchical, while the canonical asset library remains flat by physical role.
+
+```text
+REGION
+└── Building
+    ├── Exterior map content → PLAYABLE
+    └── Interior
+        ├── Floor
+        │   ├── Room
+        │   │   └── Asset instances
+        │   └── Room
+        └── Floor
+            └── Room
+```
+
+## Building
+
+A `building_id` connects the exterior building and its interior spaces.
+
+Examples:
+- `house_001`
+- `tavern_007`
+- `blacksmith_001`
+- `castle_keep_001`
+
+The exterior building remains PLAYABLE. Its interior is represented separately through INTERIOR map instances.
+
+## Floor
+
+`floor_level` identifies vertical placement.
+
+Recommended convention:
+- `-2`, `-1` = underground/basement levels
+- `0` = ground floor
+- `1`, `2`, `3`... = upper floors
+- `attic` may be represented by a dedicated map metadata value when numeric levels are insufficient.
+
+Floor level is metadata and must not create new physical asset categories.
+
+## Room
+
+`room_id` identifies a logical indoor space.
+
+Examples:
+- `kitchen_01`
+- `bedroom_01`
+- `main_hall`
+- `forge_room`
+- `storage_01`
+- `crypt_01`
+
+Recommended room metadata:
+
+`room_id`, `room_context`, `building_id`, `floor_level`, `bounds`, `entry_points`, `parent_region`
+
+## Asset instance
+
+An asset instance is a placed reference to a canonical asset definition.
+
+Recommended instance fields:
+
+`instance_id`, `asset_id`, `room_id`, `position`, `rotation`, `scale`, `layer`, `gameplay_state`
+
+`layer` is a map-render/order concept and should not be confused with WORLD/REGION/PLAYABLE/INTERIOR classification.
+
+## Entry points
+
+An entry point connects map spaces without changing the physical classification of the referenced assets.
+
+Examples:
+- Exterior door: PLAYABLE/02_ARCHITECTURE
+- Interior door: INTERIOR/04_DOORS_WINDOWS
+- Stair connection: INTERIOR/05_STAIRS
+- Dungeon passage: INTERIOR/11_DUNGEON_INTERIORS
+
+Recommended entry-point metadata:
+
+`entry_id`, `from_map`, `to_map`, `entry_type`, `door_id`, `spawn_position`
+
+## Example
+
+```text
+REGION: village_blacksmith_quarter
+  └── BUILDING: blacksmith_001
+      ├── PLAYABLE: exterior
+      └── INTERIOR
+          ├── FLOOR 0
+          │   ├── ROOM: forge_room
+          │   │   ├── forge_001
+          │   │   ├── anvil_001
+          │   │   └── workbench_001
+          │   └── ROOM: storage_01
+          └── FLOOR -1
+              └── ROOM: cellar_01
+```
+
+This model lets one building contain multiple rooms and floors while keeping reusable binaries and provenance records centralized.
+
+# BUILDING / ROOM CLASSIFICATION SAFETY
+
+A building name must not determine asset classification by itself.
+
+For example:
+- A `castle` building can contain ordinary FLOORS, WALLS, FURNITURE, LIGHTING and CRAFTING_STATIONS.
+- A `tavern` can contain furniture, props, lighting and interactables.
+- A `dungeon` can contain physical floors, walls, doors and props plus the DUNGEON_INTERIORS context.
+
+Context describes the map; physical role describes the asset.
