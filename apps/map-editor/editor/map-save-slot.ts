@@ -32,8 +32,25 @@ export function validateSaveSlotRpcResult(
   return result;
 }
 
-export function parseSaveSlotSnapshot(result: SaveSlotRpcResult): GameSaveSnapshot {
+export function parseSaveSlotSnapshot(
+  result: SaveSlotRpcResult,
+  expectedWorldMapId?: string,
+): GameSaveSnapshot {
   const parsed = parseGameSaveSnapshot(result.snapshot);
   if (!parsed) throw new Error("INVALID_GAME_SAVE_SNAPSHOT");
+  if (expectedWorldMapId && parsed.world.id !== expectedWorldMapId) {
+    throw new Error("SAVE_SLOT_WORLD_MAP_MISMATCH");
+  }
+  if (parsed.world.mapType !== "world") {
+    throw new Error("SAVE_SLOT_WORLD_TYPE_INVALID");
+  }
+  if (parsed.exterior) {
+    if (parsed.exterior.mapType !== "playable") {
+      throw new Error("SAVE_SLOT_EXTERIOR_TYPE_INVALID");
+    }
+    if (parsed.exterior.playableSpace !== "exterior") {
+      throw new Error("SAVE_SLOT_EXTERIOR_SPACE_INVALID");
+    }
+  }
   return parsed;
 }
