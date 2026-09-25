@@ -1561,3 +1561,148 @@ No castle source is promoted to verified Vendrith provenance from source-page ev
 16. REGION_PROPS — source research/deep classification completed; binary matching pending
 
 **Generic buildings remain excluded from this audit.**
+
+
+## Source audit continuation: 11_FORTIFICATIONS — deep medieval-fantasy pass
+
+11_FORTIFICATIONS is reserved for defensive regional infrastructure whose primary role is protection, perimeter control, or military defense: walls, ramparts, guard towers, gatehouses, gates, drawbridges, bastions, defensive towers and related fortification systems. A complete castle/keep/citadel remains 10_CASTLES; generic construction kits remain BUILDING / Architecture unless the verified asset is specifically a fortification assembly.
+
+### Audited source candidates
+
+**Castle Gate and Drawbridge — City Building Game Art**
+- OpenGameArt source: medieval fortress gate/drawbridge with separate gate, bridge and drawbridge items.
+- License: CC0.
+- Source package: Medieval_CityBridge+Gate_sprites and source.zip.
+- Strong 11_FORTIFICATIONS candidate for gatehouse/drawbridge infrastructure.
+- Attribution to CityBuildingKit.com is requested but not mandatory.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**Castle Set — Nia Mi**
+- OpenGameArt describes medieval flags, tower and gate.
+- License: CC0.
+- Tower/gate elements can support 11_FORTIFICATIONS when assembled as a defensive perimeter; a complete recognizable castle location remains 10_CASTLES.
+- Source package: Castle Set.7z.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**KayKit: Medieval Builder Pack 1.0 — Kay Lousberg**
+- OpenGameArt identifies a 200+ asset medieval scenery pack containing a dedicated set of walls to defend a kingdom.
+- License: CC0; commercial/personal use with no attribution requirement.
+- Only defensive wall/tower/fortification elements enter 11_FORTIFICATIONS; roads, buildings and water are split to their canonical roles.
+- Source package: kaykit_medieval_builder_pack_1.0.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**pixel art castle tileset — rubberduck**
+- OpenGameArt lists walls/stone/brick pieces, pillars, metal defensive parts, gates/doors, flags and related castle elements.
+- License: CC0.
+- Modular source. Defensive wall/gate pieces may support 11_FORTIFICATIONS when their map role is a defensive perimeter; generic construction pieces remain BUILDING / Architecture and decorative elements remain REGION_PROPS.
+- Files include castle_tileset_part1.png, castle_tileset_part2.png and castle_tileset_part3.png.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**Medieval pixel castle environment — Chestera**
+- OpenGameArt describes a medieval pixel castle environment.
+- License: CC0.
+- Conditional fortification candidate when a matched binary provides defensive perimeter structures.
+- Source package: MedievalEnvironment.zip.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+**Fortress — nicubunu / Liberated Pixel Cup**
+- OpenGameArt describes a fantasy/historical fortress map element.
+- License: CC0.
+- Complete fortress location → 10_CASTLES; defensive perimeter component → 11_FORTIFICATIONS.
+- Binary status: ⚠️ source verified; Vendrith binary not individually matched.
+
+### Fortification classification rules
+
+| Asset/source result | Classification |
+|---|---|
+| Defensive wall/rampart system | 11_FORTIFICATIONS |
+| Guard/watch tower used as defensive infrastructure | 11_FORTIFICATIONS |
+| Gatehouse / defensive gate | 11_FORTIFICATIONS |
+| Drawbridge / defensive bridge attached to fortification | 11_FORTIFICATIONS |
+| Bastion / defensive tower / perimeter structure | 11_FORTIFICATIONS |
+| Complete castle/keep/citadel destination | 10_CASTLES |
+| Generic wall/tower/gate construction kit | BUILDING / Architecture unless specifically verified as a regional fortification system |
+| Ruined wall/tower/gate whose ruin state is primary | 12_RUINS |
+| Decorative flag/statue/torch/barrel | 15_REGION_PROPS |
+| Usable ballista/catapult/cannon/siege machine | PLAYABLE |
+| Decorative siege machine | 15_REGION_PROPS |
+| Interactive gate/drawbridge control | PLAYABLE behavior layered over REGION structure |
+| Modern military base/security wall | EXCLUDED |
+| Sci-fi/futuristic fortress | EXCLUDED |
+
+### Fortification vs castle boundary
+
+- 11_FORTIFICATIONS = defensive infrastructure as a regional system.
+- 10_CASTLES = recognizable castle/keep/citadel location.
+- A standalone medieval guard tower used along a settlement perimeter is a fortification, not automatically a castle.
+- A complete fortress destination with its own compound/keep/walls can be 10_CASTLES.
+- Generic modular wall pieces remain BUILDING / Architecture until their verified map role is a regional fortification system.
+
+### Medieval-fantasy filter
+
+Allowed:
+- Medieval stone/wood defensive walls
+- Ramparts and battlements
+- Guard/watch towers
+- Gatehouses and fortified gates
+- Drawbridges and defensive bridges
+- Bastions and perimeter defenses compatible with medieval technology
+- Fantasy fortifications that preserve the medieval-fantasy visual/technological baseline
+
+Excluded:
+- Modern military bases
+- Concrete security compounds
+- Modern border/security barriers
+- Contemporary military infrastructure
+- Industrial security complexes
+- Sci-fi/futuristic defensive structures
+- Modern surveillance infrastructure
+
+### Binary verification checkpoint
+
+Repository code search was performed against principal source fingerprints reviewed for this pass, including:
+- Medieval_CityBridge+Gate_sprites and source.zip
+- Castle Set.7z
+- kaykit_medieval_builder_pack_1.0.zip
+- castle_tileset_part1.png
+- castle_tileset_part2.png
+- castle_tileset_part3.png
+- MedievalEnvironment.zip
+- fortress.svg
+
+No indexed repository result established an exact Vendrith binary match for these source fingerprints.
+
+**Important:** this is not proof that the binaries are absent. The repository contains binary/archive material that is not fully exposed by text/code search. These therefore remain ⚠️ source-researched / binary-unverified, not 🟢 and not 🔴.
+
+### Provenance decision
+
+No fortification source is promoted to verified Vendrith provenance from source-page evidence alone. Promotion still requires:
+1. actual repository/archive path;
+2. exact binary/content match;
+3. source/package provenance;
+4. creator and license;
+5. attribution and additional conditions;
+6. SHA-256 of the actual Vendrith binary when accessible.
+
+**Current status: 11_FORTIFICATIONS = ⚠️ source-researched / binary-unverified.**
+
+### Current audit order
+
+1. BRIDGES — source research completed; binary matching pending
+2. DOCKS — source research completed; binary matching pending
+3. PORTS — source research completed; binary matching pending
+4. SHIPS — source research completed; binary matching pending
+5. ROADS — source research completed; binary matching pending
+6. PATHS — source research completed; binary matching pending
+7. Regional infrastructure — source research completed; binary matching pending
+8. VILLAGES — source research completed; binary matching pending
+9. TOWNS — source research completed; binary matching pending
+10. CITIES — source research completed; binary matching pending
+11. CASTLES — source research completed; binary matching pending
+12. FORTIFICATIONS — source research completed; binary matching pending
+13. RUINS — next source-audit target
+14. FARMS
+15. CAMPS
+16. REGION_PROPS — source research/deep classification completed; binary matching pending
+
+**Generic buildings remain excluded from this audit.**
