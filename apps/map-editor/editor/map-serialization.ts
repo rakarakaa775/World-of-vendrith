@@ -68,6 +68,9 @@ function validateObjectSemantics(object: unknown): void {
   }
   if (typeof candidate.assetId !== 'string' || candidate.assetId.trim() === '') throw new Error('Map object assetId is invalid');
   if (typeof candidate.collision !== 'boolean') throw new Error('Map object collision is invalid');
+  if (candidate.childMapId !== undefined && candidate.childMapId !== null && typeof candidate.childMapId !== 'string') {
+    throw new Error('Map object childMapId is invalid');
+  }
   if (candidate.interiorMapId !== undefined && candidate.interiorMapId !== null && typeof candidate.interiorMapId !== 'string') {
     throw new Error('Map object interiorMapId is invalid');
   }
