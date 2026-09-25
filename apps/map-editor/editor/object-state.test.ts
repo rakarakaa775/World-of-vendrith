@@ -93,6 +93,18 @@ describe('level-aware palette asset placement', () => {
     });
   });
 
+  it('persists the physical registry identity when a runtime asset is placed', () => {
+    const document = createStarterMap();
+    const next = placePaletteAsset(document, 'objects', { x: 6, y: 6 }, {
+      id: 'registry:asset-1',
+      registryId: '11111111-1111-4111-8111-111111111111',
+      label: 'Approved Tree',
+      family: 'playable-nature',
+    });
+    expect(next.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.assetId)
+      .toBe('11111111-1111-4111-8111-111111111111');
+  });
+
   it('does not place an asset on a blocked object cell', () => {
     const document = createStarterMap();
     const first = placePaletteAsset(document, 'objects', { x: 2, y: 2 }, {
