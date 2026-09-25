@@ -502,6 +502,36 @@ OpenGameArt's **Medieval Tileset** includes both exterior and interior material 
 
 ---
 
+# INTERIOR SOURCE COVERAGE MATRIX
+
+The source audit has now been expanded into category-level coverage.
+
+| Category | Primary source candidates | Provenance/licensing note |
+|---|---|---|
+| 01_FLOORS | [LPC] Floors | CC-BY-SA 4.0; multi-contributor credits must be preserved. citeturn0search2 |
+| 02_WALLS | [LPC] Walls / LPC Interiors | Use the individual source page and credits rather than collection-level generated credits. citeturn0search3 |
+| 03_CEILINGS | LPC interior/castle sources | Ceiling assets must be verified individually; do not infer license from a collection. |
+| 04_DOORS_WINDOWS | LPC Animated Doors; LPC House Insides | Animated Doors lists CC-BY 3.0, CC-BY-SA 3.0 and GPL 3.0 and attributes the original wood/dungeon doors to Lanea Zimmerman. citeturn1search7 |
+| 05_STAIRS | LPC Interior Castle Tiles | Multiple licenses are listed; attribution instruction specifically asks for Lanea Zimmerman. citeturn0search11 |
+| 06_FURNITURE | [LPC] Wooden Furniture; [LPC] Upholstery | Wooden Furniture lists CC-BY-SA 4.0, CC-BY-SA 3.0 and GPL 3.0 with a required credits file. citeturn1search6 |
+| 07_DECORATION_PROPS | LPC House Insides; House interior and decorations; Indoor Tiles collection | House Insides includes household props such as vases, flowers and kitchen elements; House interior and decorations carries multiple licenses and requires credits.txt. citeturn0search1turn0search5 |
+| 08_INTERACTABLES | LPC Animated Doors; City inside; dungeon/interior sources | Interaction is a gameplay binding. Source assets must retain their original physical-role provenance. City inside explicitly points to credits.txt and identifies reused preview sources. citeturn0search4 |
+| 09_CRAFTING_STATIONS | LPC Blacksmith; LPC Revised Workshop Tilesets | Blacksmith lists CC-BY 4.0/3.0, GPL 3.0/2.0 and OGA-BY 3.0; Workshop Tilesets identifies its underlying Blacksmith, Woodshop and Tailor sources and their license chain. citeturn1search11turn1search2 |
+| 10_LIGHTING | LPC House Insides; LPC Fireplace; Animated candle/fire sources | House Insides explicitly contains torch/light-source material; exact binary attribution must follow the package credits. citeturn0search1turn1search0 |
+| 11_DUNGEON_INTERIORS | LPC Dungeon Elements; LPC Cavern and ruin tiles; LPC Interior Castle Tiles | Dungeon/interior collections provide source candidates, but collection membership is not binary provenance. citeturn1search0turn0search7 |
+
+OpenGameArt's LPC Indoor Tiles collection is useful as a discovery index because it gathers House Insides, Interior Castle Tiles, Fireplace, House interior and decorations, Dungeon Elements, Upholstery, Animated Doors, Animated Castle Doors, Wooden Furniture, Floors, Shelves, Tables & Stools and Blacksmith. However, OpenGameArt explicitly warns that automatically generated collection credits are not guaranteed to be accurate. Individual source pages and package credits remain authoritative for verification. citeturn0search0
+
+## Medieval-fantasy source filtering
+
+Not every item in LPC collections is appropriate for Vandrith. Modern, Victorian, office, contemporary and science-fiction interior packages are excluded by the project style rule. For example, the LPC Tiles collection contains both suitable medieval sources and explicitly modern/Victorian entries, so source selection must happen at the individual package level rather than by accepting an entire collection. citeturn1search1
+
+## Important mixed-source warning
+
+Several LPC interior packages are composites or modified/repacked works. For example, House Insides is a repack of base LPC assets with modifications and identifies Sharm and HughSpectrum contributions; House interior and decorations is based on LPC but heavily modified and its preview contains walls/floors from other sources. citeturn0search1turn0search5
+
+Therefore the future binary audit must preserve the **full attribution chain**, not just the page author.
+
 # SOURCE PROVENANCE RULE
 
 Source discovery does **not** prove that a binary in Vendrith came from that source.
