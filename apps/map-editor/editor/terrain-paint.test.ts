@@ -31,7 +31,6 @@ describe("terrain paint", () => {
     expect(applyTerrainPaint(hidden, "ground", [{ x: 1, y: 1 }], "starter-tile").document).toBe(hidden);
   });
 
-  it("erases a ground cell without mutating the source", () => {
   it("clears a ground cell as a new document", () => {
     const base = createStarterMap();
     const painted = applyTerrainPaint(base, "ground", [{ x: 2, y: 2 }], "starter-tile").document;
