@@ -14,6 +14,13 @@ type RegistryRow = {
   asset_path: string | null;
   preview_path: string | null;
   status: string | null;
+  asset_license_registry?: {
+    verification_status: string | null;
+    usage_status: string | null;
+    commercial_use_allowed: boolean | null;
+    modification_allowed: boolean | null;
+    redistribution_allowed: boolean | null;
+  } | null;
 };
 
 function semanticFamily(row: RegistryRow): { family: MapAssetFamily; levels: MapAssetDefinition["levels"] } | null {
@@ -56,7 +63,16 @@ function semanticFamily(row: RegistryRow): { family: MapAssetFamily; levels: Map
 }
 
 export function registryRowToMapAsset(row: RegistryRow): MapAssetDefinition | null {
-  if (!row.id || !row.name || row.status !== "approved" || !row.asset_path) return null;
+  const license = row.asset_license_registry;
+  const usableLicense =
+    license &&
+    license.verification_status === "verified" &&
+    (license.usage_status === "allowed" || license.usage_status === "credit_required") &&
+    license.commercial_use_allowed === true &&
+    license.modification_allowed === true &&
+    license.redistribution_allowed === true;
+
+  if (!row.id || !row.name || row.status !== "approved" || !row.asset_path || !usableLicense) return null;
   const semantic = semanticFamily(row);
   if (!semantic) return null;
 
@@ -78,7 +94,7 @@ export function registryRowToMapAsset(row: RegistryRow): MapAssetDefinition | nu
 export async function loadMapAssetCatalog(client: SupabaseClient): Promise<MapAssetDefinition[]> {
   const { data, error } = await client
     .from("asset_registry")
-    .select("id,name,category,role,asset_path,preview_path,status")
+    .select("id,name,category,role,asset_path,preview_path,status,asset_license_registry:license_registry_id(verification_status,usage_status,commercial_use_allowed,modification_allowed,redistribution_allowed)")
     .eq("status", "approved")
     .order("category")
     .order("name");
