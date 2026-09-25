@@ -982,3 +982,42 @@ Until the archive contents are directly inspected:
 - existing ⚠️ provenance status remains unchanged.
 
 **Next binary step:** inspect `VANDRITH_ALL_PROJECT_FILES_LATEST.zip` itself, map its internal asset paths against the REGION source candidates, then compute SHA-256 for matched binaries.
+
+
+## Source audit continuation: 05_PORTS — direct source pass
+
+### Port-specific source candidates
+
+**Medieval Seaport Top-Down Pixel Art Tileset — Cute SCKR**
+- Explicit medieval coastal harbour/port composition.
+- Includes docks, fishing boats, cargo crates and waterfront buildings.
+- Commercial source; not treated as a free approved Vendrith source.
+- Use only as a category/visual reference unless the project has documented purchase/license evidence.
+
+**Medieval Coastal Fishing Village Port — Cute SCKR**
+- Explicit medieval coastal fishing-village port composition.
+- Includes piers, fishing equipment, sailboats and shoreline scenery.
+- Commercial source; not promoted as a free source.
+
+**Port/harbor assemblies from free OpenGameArt collections**
+- Collection membership can identify possible medieval waterfront assets, but the individual submission/package must still be traced.
+- A dock, ship, warehouse or prop discovered separately is split into its canonical REGION category instead of being promoted as a complete port.
+
+### 05_PORTS rule reinforced
+
+A verified 05_PORTS asset must represent a recognizable port/harbor location or assembly. The following remain component assets:
+
+| Source element | Classification |
+|---|---|
+| Wooden pier / dock | 04_DOCKS |
+| Static sailing ship | 06_SHIPS |
+| Warehouse | BUILDING / Architecture |
+| Barrel / crate | 15_REGION_PROPS when static |
+| Fishing gear | 15_REGION_PROPS when static |
+| Complete fishing/trade/military harbor assembly | 05_PORTS |
+
+**Current 05_PORTS status: ⚠️ source/category defined, but no Vendrith binary has been proven.**
+
+No commercial asset is being copied into the approved free-asset pool merely because it visually matches the category.
+
+**Next source target: 06_SHIPS.**
