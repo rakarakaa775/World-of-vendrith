@@ -71,7 +71,22 @@ export async function resolveAuthoritativeMap(
     .maybeSingle();
 
   if (rowResult.error) throw new Error(`MAP_RESOLUTION_ERROR: ${rowResult.error.message}`);
-  const row = rowResult.data as AuthoritativeMapRow | null;
+  let row = rowResult.data as AuthoritativeMapRow | null;
+  if (!row?.id && !identityRow.legacy_map_id) {
+    row = {
+      id: identityRow.editor_map_id,
+      editor_map_id: identityRow.editor_map_id,
+      legacy_map_id: null,
+      parent_editor_map_id: identityRow.parent_editor_map_id ?? null,
+      name: document.name,
+      map_type: identityRow.map_type,
+      world_id: identityRow.world_id ?? null,
+      width: document.width,
+      height: document.height,
+      tile_size: document.tileSize,
+      metadata: null,
+    };
+  }
   if (!row?.id) throw new Error('MAP_RESOLUTION_ERROR: authoritative map row is unavailable');
 
   const loaded = await client.rpc('map_editor_load_identity_snapshot_v1', { p_editor_map_id: identityRow.editor_map_id });
