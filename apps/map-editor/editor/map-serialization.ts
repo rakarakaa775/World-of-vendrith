@@ -73,6 +73,33 @@ function validateObjectSemantics(object: unknown): void {
   }
 }
 
+function validateHierarchySemantics(document: Partial<MapDocument>): void {
+  if (document.mapType === 'world') {
+    if (document.parentMapId !== null && document.parentMapId !== undefined) {
+      throw new Error('World map cannot have a parent map');
+    }
+    return;
+  }
+
+  if (document.mapType === 'region') {
+    if (typeof document.parentMapId !== 'string' || document.parentMapId.trim() === '') {
+      throw new Error('Region map must reference a parent world map');
+    }
+    return;
+  }
+
+  if (document.mapType === 'playable') {
+    const space = document.playableSpace ?? 'exterior';
+    if (space === 'interior') {
+      if (typeof document.parentPlayableMapId !== 'string' || document.parentPlayableMapId.trim() === '') {
+        throw new Error('Interior playable map must reference a parent playable map');
+      }
+    } else if (document.parentMapId !== null && document.parentMapId !== undefined && typeof document.parentMapId !== 'string') {
+      throw new Error('Exterior playable parentMapId is invalid');
+    }
+  }
+}
+
 function validateRelationshipMetadata(document: Partial<MapDocument>): void {
   if (document.parentMapId !== null && typeof document.parentMapId !== 'string') {
     throw new Error('Map parentMapId is invalid');
@@ -145,6 +172,7 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
   if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
   const expectedCellCount = width * height;
   validateRelationshipMetadata(normalizedDocument);
+  validateHierarchySemantics(normalizedDocument);
   for (const layer of layers) validateLayerSemantics(layer, expectedCellCount);
 
   return {
