@@ -1,0 +1,2 @@
+# Vendrith Rules
+Map data is the source of truth. PixiJS renders editor state. Phaser is a runtime/game layer, not the editor persistence layer. Editor mutations should be command-oriented where undo/redo matters. Asset provenance/licensing metadata must survive the pipeline. Major decisions belong in .ai/memory/decisions/.

@@ -1,13 +1,14 @@
 "use client";
 
 import { createElement, useEffect, useRef, useState } from "react";
-import { Application, Assets, Container, Graphics, Rectangle, Sprite } from "pixi.js";
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import type { RendererPreference } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
 import type { Selection } from "../editor/selection";
 import { normalizeSelection } from "../editor/selection";
 import { pointsInFloodFill, pointsInLine, pointsInRectangle, pointsInSquare } from "../editor/paint-tools";
+import { COLLISION_BLOCKED_TILE_ID } from "../editor/map-state";
 import { neighborMask, terrainFromTileId } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
@@ -15,6 +16,7 @@ import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
 import { boxSelectObjectIds } from "../editor/object-state";
+import { diffMapDocuments } from "../editor/map-render-diff";
 import { DEFAULT_VIEWPORT, nextZoomLevel, panBy, snapToCell, zoomAt, type Viewport } from "../editor/viewport";
 
 type Props = {
@@ -32,6 +34,7 @@ type Props = {
   onObjectMove: (objectId: string, point: GridPoint) => void;
   selectedObjectIds: string[];
   onObjectSelectionChange: (objectIds: string[]) => void;
+  onOpenMapTarget?: (object: MapDocument["layers"][number]["objects"][number]) => void | Promise<void>;
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
@@ -64,6 +67,11 @@ export function PixiMapCanvas(props: Props) {
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
+  const objectGraphicsRef = useRef(new Map<string, Graphics>());
+  const objectTextureRef = useRef(new Map<string, any>());
+  const previousDocumentRef = useRef<MapDocument | null>(null);
+  const terrainLayerContainersRef = useRef(new Map<string, Container>());
+  const terrainCellGraphicsRef = useRef(new Map<string, Map<number, Sprite>>());
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   propsRef.current = props;
@@ -143,7 +151,83 @@ export function PixiMapCanvas(props: Props) {
       const host = hostRef.current;
       if (!world || !app || !host) return;
       const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds } = propsRef.current;
+      const previousDocument = previousDocumentRef.current;
+      const diff = diffMapDocuments(previousDocument, document);
+
+      // Fast path for terrain-only edits. Patch only the changed cells and their
+      // autotile neighbors; untouched terrain display objects remain mounted.
+      if (previousDocument && !diff.dimensionsChanged && !diff.layerStructureChanged && diff.changedTerrainByLayer.length > 0 && !diff.objectLayerChanged) {
+        const client = createMapEditorSupabaseClient();
+        const textureRequests = new Set<string>();
+        for (const layerDiff of diff.changedTerrainByLayer) {
+          const layer = document.layers.find(item => item.id === layerDiff.layerId);
+          if (!layer || layer.kind === "objects") continue;
+          for (const point of layerDiff.changedCells) {
+            const id = layer.cells[point.y * document.width + point.x]?.tileId;
+            const terrain = terrainFromTileId(id ?? null);
+            if (!terrain || layer.id !== activeLayerId) continue;
+            const binding = getTerrainAssetBinding(terrainBindings, terrain, neighborMask(document, layer.id, point, terrain));
+            if (binding) textureRequests.add(binding.assetId);
+          }
+        }
+        let assetRecords = new Map<string, any>();
+        if (client && textureRequests.size) {
+          try { assetRecords = await resolveAssetRecords(client, [...textureRequests]); }
+          catch (error) { console.warn("Map editor incremental asset metadata lookup failed", error); }
+        }
+        const loadedTextures = new Map<string, any>();
+        for (const assetId of textureRequests) {
+          const asset = assetRecords.get(assetId);
+          const url = asset ? resolveAssetUrl(asset) : null;
+          if (!url) continue;
+          const texture = await mapEditorTextureCache.load(url, Assets);
+          if (texture) loadedTextures.set(assetId, texture);
+          if (cancelled || worldRef.current !== world) return;
+        }
+        for (const layerDiff of diff.changedTerrainByLayer) {
+          const layer = document.layers.find(item => item.id === layerDiff.layerId);
+          if (!layer || layer.kind === "objects") continue;
+          const container = terrainLayerContainersRef.current.get(layer.id);
+          const cells = terrainCellGraphicsRef.current.get(layer.id);
+          if (!container || !cells) continue;
+          for (const point of layerDiff.changedCells) {
+            const index = point.y * document.width + point.x;
+            const existing = cells.get(index);
+            existing?.removeFromParent();
+            existing?.destroy();
+            cells.delete(index);
+            const id = layer.cells[index]?.tileId;
+            if (!id || !layer.visible) continue;
+            const sprite = new Sprite(Texture.WHITE);
+            const terrain = terrainFromTileId(id);
+            let texture = null;
+            if (layer.id === activeLayerId && terrain) {
+              const binding = getTerrainAssetBinding(terrainBindings, terrain, neighborMask(document, layer.id, point, terrain));
+              texture = binding ? loadedTextures.get(binding.assetId) ?? null : null;
+            }
+            if (texture) {
+              sprite.texture = texture;
+              sprite.tint = 0xffffff;
+            } else {
+              sprite.tint = colorForTile(id);
+            }
+            sprite.x = point.x * document.tileSize + 2;
+            sprite.y = point.y * document.tileSize + 2;
+            sprite.width = document.tileSize - 4;
+            sprite.height = document.tileSize - 4;
+            sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
+            container.addChild(sprite);
+            cells.set(index, sprite);
+          }
+        }
+        previousDocumentRef.current = document;
+        return;
+      }
+
       world.removeChildren();
+      objectGraphicsRef.current.clear();
+      terrainLayerContainersRef.current.clear();
+      terrainCellGraphicsRef.current.clear();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
@@ -157,6 +241,11 @@ export function PixiMapCanvas(props: Props) {
       world.addChild(grid);
 
       const textureRequests = new Set<string>();
+      const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+      const objectsLayerForAssets = document.layers.find(layer => layer.kind === "objects");
+      for (const object of objectsLayerForAssets?.objects ?? []) {
+        if (isUuid(object.assetId)) textureRequests.add(object.assetId);
+      }
       for (const terrain of ["grass", "sand", "dirt", "pavement", "water"] as const) {
         const binding = getTerrainAssetBinding(terrainBindings, terrain, 255);
         if (binding) textureRequests.add(binding.assetId);
@@ -193,46 +282,55 @@ export function PixiMapCanvas(props: Props) {
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
+          const layerContainer = new Container();
+          layerContainer.visible = layer.visible;
+          terrainLayerContainersRef.current.set(layer.id, layerContainer);
+          const cells = new Map<number, Sprite>();
+          terrainCellGraphicsRef.current.set(layer.id, cells);
+          const fallbackAlpha = layer.kind === "collision" ? 0.35 : 1;
           for (let i = 0; i < document.width * document.height; i++) {
             const id = layer.cells[i]?.tileId;
             if (!id) continue;
             const x = i % document.width;
             const y = Math.floor(i / document.width);
             const terrain = terrainFromTileId(id);
-            let renderedTexture = false;
+            let texture = null;
             if (layer.id === activeLayerId && terrain) {
               const mask = neighborMask(document, layer.id, { x, y }, terrain);
               const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
-              const asset = binding ? assetRecords.get(binding.assetId) : null;
-              const url = asset ? resolveAssetUrl(asset) : null;
-              let texture = binding ? loadedTextures.get(binding.assetId) : null;
-              if (!texture && url) texture = await mapEditorTextureCache.load(url, Assets);
-              if (cancelled || worldRef.current !== world) return;
-              if (texture) {
-                const sprite = new Sprite(texture);
-                sprite.x = x * document.tileSize;
-                sprite.y = y * document.tileSize;
-                sprite.width = document.tileSize;
-                sprite.height = document.tileSize;
-                sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
-                world.addChild(sprite);
-                renderedTexture = true;
-              }
+              texture = binding ? loadedTextures.get(binding.assetId) ?? null : null;
             }
-            if (!renderedTexture) {
-              const g = new Graphics();
-              g.rect(x * document.tileSize + 2, y * document.tileSize + 2, document.tileSize - 4, document.tileSize - 4)
-                .fill({ color: colorForTile(id), alpha: layer.kind === "collision" ? 0.35 : 1 });
-              world.addChild(g);
-            }
+            const sprite = new Sprite(texture ?? Texture.WHITE);
+            if (texture) sprite.tint = 0xffffff;
+            else sprite.tint = colorForTile(id);
+            sprite.x = x * document.tileSize + 2;
+            sprite.y = y * document.tileSize + 2;
+            sprite.width = document.tileSize - 4;
+            sprite.height = document.tileSize - 4;
+            sprite.alpha = fallbackAlpha;
+            layerContainer.addChild(sprite);
+            cells.set(i, sprite);
           }
+          world.addChild(layerContainer);
         } else {
           for (const o of layer.objects) {
             const g = new Graphics();
-            const c = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
-            g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
-              .fill({ color: c, alpha: 0.9 })
-              .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            const fallbackColor = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
+            const asset = assetRecords.get(o.assetId);
+            const url = asset ? resolveAssetUrl(asset) : null;
+            const texture = url ? loadedTextures.get(o.assetId) ?? null : null;
+            if (texture) {
+              objectTextureRef.current.set(o.id, texture);
+              g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
+                .fill({ texture, textureSpace: "local", alpha: 1 })
+                .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            } else {
+              objectTextureRef.current.delete(o.id);
+              g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
+                .fill({ color: fallbackColor, alpha: 0.9 })
+                .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            }
+            objectGraphicsRef.current.set(o.id, g);
             world.addChild(g);
           }
         }
@@ -251,6 +349,7 @@ export function PixiMapCanvas(props: Props) {
       world.position.set(viewportRef.current.x, viewportRef.current.y);
       world.scale.set(viewportRef.current.zoom);
       propsRef.current.onViewportChange?.(viewportRef.current);
+      previousDocumentRef.current = document;
     };
     void render().catch(error => {
       if (cancelled) return;
@@ -259,7 +358,28 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime]);
+  }, [ready, props.document, props.activeLayerId, props.terrainBindings, props.environmentRuntime]);
+
+  // Selection is transient UI state. Repaint only the affected object graphics
+  // instead of rebuilding the entire map scene when selection changes.
+  useEffect(() => {
+    if (!ready) return;
+    const selected = new Set(props.selectedObjectIds);
+    const objectsLayer = props.document.layers.find(layer => layer.kind === "objects");
+    if (!objectsLayer) return;
+    const objectsById = new Map(objectsLayer.objects.map(object => [object.id, object]));
+    for (const [id, graphic] of objectGraphicsRef.current) {
+      const object = objectsById.get(id);
+      if (!object) continue;
+      const c = object.category === "tree" ? 0x3f8f4b : object.category === "house" ? 0xb86b45 : 0x64748b;
+      const texture = objectTextureRef.current.get(id);
+      graphic.clear();
+      graphic.roundRect(object.x * props.document.tileSize + 2, object.y * props.document.tileSize + 2, object.width * props.document.tileSize - 4, object.height * props.document.tileSize - 4, 4);
+      if (texture) graphic.fill({ texture, textureSpace: "local", alpha: 1 });
+      else graphic.fill({ color: c, alpha: 0.9 });
+      graphic.stroke({ width: 2, color: selected.has(id) ? 0x0ea5e9 : 0x334155 });
+    }
+  }, [ready, props.selectedObjectIds, props.document]);
 
   useEffect(() => {
     if (!ready) return;
@@ -358,7 +478,7 @@ export function PixiMapCanvas(props: Props) {
     const paint = (pts: GridPoint[]) => {
       const { brushSize, activeTool, selectedTileId, onPaint } = propsRef.current;
       const validPts = expandBrush(pts.filter(valid), brushSize).filter(valid);
-      if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : selectedTileId);
+      if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : activeTool === "Collision" ? COLLISION_BLOCKED_TILE_ID : selectedTileId);
     };
     const down = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
@@ -393,7 +513,7 @@ export function PixiMapCanvas(props: Props) {
         lastY = e.clientY;
         return;
       }
-      if (current.activeTool === "Paint" || current.activeTool === "Erase") {
+      if (current.activeTool === "Paint" || current.activeTool === "Erase" || current.activeTool === "Collision") {
         if (valid(p)) { current.onCellInspect?.(p); paint([p]); }
         startPoint = p;
         return;
@@ -407,7 +527,7 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
       if (current.activeTool === "Stamp") { if (valid(p)) current.onStamp(p); return; }
-      if (current.activeTool === "Building") { if (valid(p)) current.onObjectPlace(p); return; }
+      if (current.activeTool === "Building" || current.activeTool === "Asset") { if (valid(p)) current.onObjectPlace(p); return; }
       panning = true;
       lastX = e.clientX;
       lastY = e.clientY;
@@ -430,7 +550,7 @@ export function PixiMapCanvas(props: Props) {
         current.onObjectMove(movingObjectId, p);
         return;
       }
-      if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
+      if ((current.activeTool === "Paint" || current.activeTool === "Erase" || current.activeTool === "Collision") && startPoint && valid(p)) {
         paint([p]);
         return;
       }
@@ -453,13 +573,14 @@ export function PixiMapCanvas(props: Props) {
           current.onObjectSelectionChange(ids);
         } else {
           const object = hit(p);
-          if (object) current.onObjectSelectionChange(e.shiftKey ? (current.selectedObjectIds.includes(object.id) ? current.selectedObjectIds.filter(id => id !== object.id) : [...current.selectedObjectIds, object.id]) : [object.id]);
+          if (object) { if (e.detail === 2 && current.onOpenMapTarget) void current.onOpenMapTarget(object); current.onObjectSelectionChange(e.shiftKey ? (current.selectedObjectIds.includes(object.id) ? current.selectedObjectIds.filter(id => id !== object.id) : [...current.selectedObjectIds, object.id]) : [object.id]); }
           else if (!e.shiftKey) current.onObjectSelectionChange([]);
         }
       } else if (current.activeTool === "Select" && !selectDragged && !movingObjectId) {
         const object = hit(p);
         current.onSelectionChange(object ? normalizeSelection({x: object.x, y: object.y}, {x: object.x + object.width - 1, y: object.y + object.height - 1}) : null);
         if (object) {
+          if (e.detail === 2 && current.onOpenMapTarget) void current.onOpenMapTarget(object);
           const ids = current.selectedObjectIds.includes(object.id)
             ? (e.shiftKey ? current.selectedObjectIds.filter(id => id !== object.id) : current.selectedObjectIds)
             : (e.shiftKey ? [...current.selectedObjectIds, object.id] : [object.id]);

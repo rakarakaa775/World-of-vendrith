@@ -1,4 +1,5 @@
 import type { MapDocument } from './map-document';
+import { parseMapDocument, serializeMapDocument } from './map-serialization';
 
 export type GameSaveSnapshot = {
   schema: 'vandrith.game-save';
@@ -15,14 +16,16 @@ export function parseGameSaveSnapshot(snapshot: unknown): GameSaveSnapshot | nul
   try {
     const value = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
     if (!value || typeof value !== 'object') return null;
-    const candidate = value as any;
-    if (candidate.schema !== 'vandrith.game-save' || candidate.version !== 1 || !candidate.world) return null;
-    return {
-      schema: 'vandrith.game-save',
-      version: 1,
-      world: candidate.world as MapDocument,
-      exterior: candidate.exterior && typeof candidate.exterior === 'object' ? candidate.exterior as MapDocument : null,
-    };
+    const candidate = value as Record<string, unknown>;
+    if (candidate.schema !== 'vandrith.game-save' || candidate.version !== 1) return null;
+
+    const world = parseMapDocument(candidate.world as MapDocument);
+    let exterior: MapDocument | null = null;
+    if (candidate.exterior !== null && candidate.exterior !== undefined) {
+      exterior = parseMapDocument(candidate.exterior as MapDocument);
+    }
+
+    return { schema: 'vandrith.game-save', version: 1, world, exterior };
   } catch {
     return null;
   }

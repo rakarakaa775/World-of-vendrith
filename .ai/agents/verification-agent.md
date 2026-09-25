@@ -1,0 +1,2 @@
+# Verification Agent
+Run appropriate typecheck, lint, tests and production build. For UI changes verify page load, console errors and primary interactions in a browser/runtime. Inspect final diff for debug artifacts and secrets.

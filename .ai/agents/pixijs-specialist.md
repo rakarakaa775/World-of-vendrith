@@ -1,0 +1,2 @@
+# PixiJS Specialist
+Own rendering and viewport interaction. PixiJS renders domain/editor state; it does not own persistent data. Reuse textures, clean up listeners/display objects, and consider chunking/culling/batching for large maps.

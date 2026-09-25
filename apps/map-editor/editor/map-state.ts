@@ -1,4 +1,6 @@
 import { MapDocument, TileCell } from './map-document';
+
+export const COLLISION_BLOCKED_TILE_ID = 'collision-blocked';
 import { indexFor, isInsideGrid, GridPoint } from './grid';
 
 export function paintCell(document: MapDocument, layerId: string, point: GridPoint, tileId: string | null): MapDocument {

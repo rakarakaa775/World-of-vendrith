@@ -16,7 +16,11 @@ import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnecti
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { serializeGameSaveSnapshot } from "../editor/game-save";
+import { canOpenObjectTarget } from "../editor/map-navigation";
+import { parseSaveSlotSnapshot, validateSaveSlotRpcResult } from "../editor/map-save-slot";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
+import { loadMapAssetCatalog } from "../editor/map-asset-loader";
+import { MAP_ASSET_CATALOG, type MapAssetDefinition } from "../editor/map-tool-registry";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -43,6 +47,7 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [showSlots, setShowSlots] = useState(false);
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
+  const [mapAssets, setMapAssets] = useState<MapAssetDefinition[]>(MAP_ASSET_CATALOG);
   const [terrainStatus, setTerrainStatus] = useState(`Loading terrain bindings… · ${BUILD_MARKER}`);
   const [isNewMap, setIsNewMap] = useState(startMode === "create");
   const [environmentValidation, setEnvironmentValidation] = useState<EnvironmentRuntimeValidation | null>(null);
@@ -181,6 +186,9 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
       void loadEnvironmentRuntimeValidation(client).then(result => {
         if (!cancelled) setEnvironmentValidation(result);
       });
+      void loadMapAssetCatalog(client)
+        .then(catalog => { if (!cancelled) setMapAssets(catalog); })
+        .catch(error => { if (!cancelled) setStatus(`Asset catalog unavailable · ${msg(error)}`); });
       try {
         const binding = await client.from("vandrith_asset_binding_workbench").select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id");
         if (binding.error) {
@@ -302,8 +310,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
         p_snapshot: snapshot,
       });
       if (rpc.error) throw rpc.error;
-      const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-      if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
+      validateSaveSlotRpcResult(rpc.data, {
+        mapId: AUTHORITATIVE_WORLD_MAP_ID,
+        slotNumber: slot,
+      });
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setStatus(`Game saved to Slot ${slot} · World + Exterior`);
     } catch (e) { setStatus(`Save Slot ${slot} failed: ${msg(e)}`); }
@@ -392,18 +402,10 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
     try {
       const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
       if (rpc.error) throw rpc.error;
-      const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-      if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
-
-      const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
-      const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
-      const worldDocumentRaw = gameSave?.world
-        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
-        : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
-      const worldDocument = normalizeWorldCanvas(worldDocumentRaw);
-      const exteriorDocument = gameSave?.exterior
-        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
-        : null;
+      const result = validateSaveSlotRpcResult(rpc.data, { mapId: AUTHORITATIVE_WORLD_MAP_ID, slotNumber: slot });
+      const gameSave = parseSaveSlotSnapshot(result, AUTHORITATIVE_WORLD_MAP_ID);
+      const worldDocument = normalizeWorldCanvas(gameSave.world);
+      const exteriorDocument = gameSave.exterior;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
       setMaps(cur => {
@@ -424,12 +426,22 @@ export function MapEditorAppV4({ startMode = "load" }: { startMode?: MapEditorSt
   }, [refreshSlots]);
 
   const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
+  const openObjectMapTarget = useCallback(async (object: MapDocument["layers"][number]["objects"][number]) => {
+    const targetId = active.mapType === "region" ? object.childMapId : object.interiorMapId;
+    if (!targetId) return;
+    const target = maps.find(document => document.id === targetId);
+    if (!target || !canOpenObjectTarget(active, object, target)) {
+      setStatus("Open failed: linked map does not match the current hierarchy");
+      return;
+    }
+    await openMap(target.id, target);
+  }, [active, maps, openMap]);
 
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
     <MapBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
-      <EditorShell initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
+      <EditorShell maps={maps} mapAssets={mapAssets} onOpenMapTarget={openObjectMapTarget} initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async () => { await save(); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} /><div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
-    {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
+    {showSlots && <SaveSlotsPanel open={showSlots} slots={slots} busy={busy} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
   </div>;
 }

@@ -1,0 +1,48 @@
+name: Map Editor CI
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "apps/map-editor/**"
+      - ".github/workflows/map-editor-ci.yml"
+  pull_request:
+    paths:
+      - "apps/map-editor/**"
+      - ".github/workflows/map-editor-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Map Editor tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/map-editor
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/map-editor/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Next.js build
+        run: npm run build
+
+      - name: Run Vitest
+        run: npm test

@@ -70,11 +70,21 @@ function MapThumbnail({ snapshot }: { snapshot?: unknown }) {
   const cells = Array.isArray(ground?.cells) ? ground.cells : [];
   const width = Math.max(1, Number(document.width) || 1);
   const height = Math.max(1, Number(document.height) || 1);
+  const objectCounts = new Map<number, number>();
+  for (const layer of Array.isArray(document.layers) ? document.layers : []) {
+    for (const object of Array.isArray(layer.objects) ? layer.objects : []) {
+      const x = Math.floor(Number(object.x));
+      const y = Math.floor(Number(object.y));
+      if (x < 0 || y < 0 || x >= width || y >= height) continue;
+      const index = y * width + x;
+      objectCounts.set(index, (objectCounts.get(index) || 0) + 1);
+    }
+  }
   return <div aria-label={`Map preview: ${document.name || 'saved map'}`} style={{ marginTop: 10, height: 84, overflow: 'hidden', border: '1px solid #334155', borderRadius: 8, background: '#020617' }}>
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${width}, 1fr)`, gridTemplateRows: `repeat(${height}, 1fr)`, width: '100%', height: '100%' }}>
       {Array.from({ length: width * height }, (_, index) => {
         const tileId = cells[index]?.tileId ?? null;
-        const objectCount = Array.isArray(document.layers) ? document.layers.reduce((count: number, layer: any) => count + (Array.isArray(layer.objects) ? layer.objects.filter((o: any) => Math.floor(o.y) * width + Math.floor(o.x) === index).length : 0), 0) : 0;
+        const objectCount = objectCounts.get(index) || 0;
         return <span key={index} title={tileId || 'Empty'} style={{ background: tilePreviewColor(tileId), border: '1px solid rgba(15,23,42,.28)', position: 'relative' }}>{objectCount > 0 && <i style={{ position: 'absolute', inset: '18%', borderRadius: 2, background: '#f8fafc', opacity: .9 }} />}</span>;
       })}
     </div>

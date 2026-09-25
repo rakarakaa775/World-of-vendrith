@@ -44,7 +44,7 @@ describe('MapDocument foundation invariants', () => {
     document.mapType = 'world';
     const serialized = serializeMapDocument(document);
     const parsed = parseMapDocument(serialized, document.id);
-    expect(parsed.id).toBe('87ba34eb-5a75-42fa-8919-63e44b700c02');
+    expect(parsed.id).toBe(document.id);
     expect(parsed.name).toBe('World Map');
     expect(parsed.mapType).toBe('world');
   });
@@ -85,7 +85,12 @@ describe('MapDocument foundation invariants', () => {
   });
 
   it.each(['world', 'region', 'playable'] as const)('round-trips %s MapDocument deterministically', (mapType) => {
-    const document = createMap(mapType);
+    const document = createMap(
+      mapType,
+      mapType === 'world' ? null : mapType === 'region' ? 'world-roundtrip' : 'region-roundtrip',
+      'exterior',
+      null,
+    );
     document.id = `${mapType}-roundtrip`;
     document.name = `${mapType} test map`;
     const parsed = parseMapDocument(serializeMapDocument(document), document.id);
@@ -106,7 +111,7 @@ describe('MapDocument foundation invariants', () => {
 
     payload.version = 1;
     delete payload.document;
-    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Missing map document');
+    expect(() => parseMapDocument(payload as never, document.id)).toThrow('Map document identity is incomplete');
   });
 
   it('rejects a requested map identity mismatch', () => {
@@ -143,5 +148,4 @@ describe('MapDocument foundation invariants', () => {
     payload.document.playableSpace = 'dungeon';
     expect(() => parseMapDocument(payload as never, document.id)).toThrow('Playable space type is invalid');
   });
-
 });

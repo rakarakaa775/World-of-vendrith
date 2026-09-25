@@ -132,3 +132,26 @@ export function distributeObjects(document: MapDocument, layerId: string, object
   const next = selected.map((o, i) => axis === 'horizontal' ? { ...o, x: Math.round(start + step * i) } : { ...o, y: Math.round(start + step * i) });
   return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: l.objects.map(o => next.find(n => n.id === o.id) ?? o) } : l) };
 }
+
+
+export type PaletteAssetPlacement = { id: string; label: string; family: string; registryId?: string };
+
+export function canPlacePaletteAsset(document: MapDocument, layerId: string, point: GridPoint, asset: PaletteAssetPlacement): boolean {
+  const layer = document.layers.find(l => l.id === layerId);
+  if (!layer || layer.kind !== "objects" || layer.locked || !layer.visible) return false;
+  if (point.x < 0 || point.y < 0 || point.x >= document.width || point.y >= document.height) return false;
+  return !layer.objects.some(o => point.x < o.x + o.width && point.x + 1 > o.x && point.y < o.y + o.height && point.y + 1 > o.y);
+}
+
+export function placePaletteAsset(document: MapDocument, layerId: string, point: GridPoint, asset: PaletteAssetPlacement): MapDocument {
+  if (!canPlacePaletteAsset(document, layerId, point, asset)) return document;
+  const family = asset.family;
+  const kind: MapObject["kind"] = family.startsWith("region-") ? "poi" : family.includes("building") ? "building" : family.includes("decoration") || family.includes("nature") || family.includes("interior-") ? "decoration" : "poi";
+  const collision = family.includes("building") || family === "interior-wall" || family === "interior-door";
+  const placed: MapObject = {
+    id: `asset-${asset.id}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+    kind, category: asset.id, x: point.x, y: point.y, width: 1, height: 1,
+    assetId: asset.registryId ?? asset.id, rotation: 0, zIndex: 0, collision,
+  };
+  return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: [...l.objects, placed] } : l) };
+}
