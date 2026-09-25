@@ -33,6 +33,7 @@ type Props = {
   onObjectMove: (objectId: string, point: GridPoint) => void;
   selectedObjectIds: string[];
   onObjectSelectionChange: (objectIds: string[]) => void;
+  onOpenMapTarget?: (object: MapDocument["layers"][number]["objects"][number]) => void | Promise<void>;
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
   environmentRuntime?: EnvironmentRuntimeState | null;
