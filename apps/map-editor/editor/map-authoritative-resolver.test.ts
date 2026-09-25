@@ -66,7 +66,7 @@ describe('authoritative map resolution', () => {
     const result = await resolveAuthoritativeMap(clientFor({
       id: 'playable-1', name: 'Exterior Playable', map_type: 'exterior', world_id: null,
       width: 20, height: 12, tile_size: 32, metadata: null,
-    }, snapshot), 'playable-1', 'playable');
+    }, snapshot, true, 'playable'), 'playable-1', 'playable');
     expect(result.document.playableSpace).toBe('exterior');
     expect(result.row.map_type).toBe('exterior');
   });
