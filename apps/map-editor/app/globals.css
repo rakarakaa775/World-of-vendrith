@@ -289,3 +289,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .world-workspace-status strong{display:block;margin:8px 0;color:#bfcfbd;font-size:12px}
 .world-workspace-status small{display:block;color:#77838d;line-height:1.5}
 @media(max-width:800px){.world-workspace-landing{grid-template-columns:1fr;padding:16px}.world-workspace-status{align-self:auto}.world-workspace-hero{padding:24px}}
+
+.vandrith-preview-toolbar button.is-active{border-color:rgba(196,177,106,.55);background:rgba(196,177,106,.12);color:#eee4c2}
+.vandrith-preview-stage.preview-grid-on{background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px),radial-gradient(circle at 50% 40%,#1b2a28 0,#10191b 58%,#0a1014 100%);background-size:32px 32px,32px 32px,100% 100%}
+.vandrith-preview-scene{transform-origin:center center;transition:transform .18s ease}
