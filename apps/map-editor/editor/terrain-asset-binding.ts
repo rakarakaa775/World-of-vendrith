@@ -1,11 +1,19 @@
 import type { TerrainKey, TerrainMask } from './terrain-engine';
 import { bindingKey, type TerrainBindingMap } from './terrain-autotile';
 
+export type TerrainAssetRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type TerrainAssetBinding = {
   terrain: TerrainKey;
   mask: TerrainMask;
   assetId: string;
   sourceRuleKey: string | null;
+  region: TerrainAssetRegion | null;
 };
 
 export type TerrainAssetBindingMap = Partial<Record<TerrainKey, Partial<Record<number, TerrainAssetBinding>>>>;
@@ -76,7 +84,7 @@ export function fromLegacyBindingMap(bindings: TerrainBindingMap, sourceRuleKey:
     for (const [maskText, assetId] of Object.entries(terrainBindings)) {
       const mask = Number(maskText);
       if (!Number.isInteger(mask) || !assetId) continue;
-      result[terrain]![mask] = { terrain, mask, assetId, sourceRuleKey };
+      result[terrain]![mask] = { terrain, mask, assetId, sourceRuleKey, region: null };
     }
   }
   return result;
