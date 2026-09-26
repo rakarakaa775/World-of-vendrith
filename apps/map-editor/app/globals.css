@@ -123,3 +123,78 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 @media(max-width:900px){.vandrith-home-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.world-builder-topbar{grid-template-columns:1fr auto}.world-builder-project{display:none}.world-builder-layout{grid-template-columns:174px minmax(0,1fr)}.world-builder-global-status span:not(.world-status-dot){display:none}.world-builder-main{grid-template-rows:34px 40px minmax(0,1fr)}}
 @media(max-width:600px){.vandrith-home-actions{grid-template-columns:1fr}.world-builder-shell{grid-template-rows:auto 1fr}.world-builder-topbar{min-height:52px;padding:7px 8px}.world-builder-nav{position:relative;padding:6px;width:100%;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);display:flex;gap:4px}.world-builder-layout{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.world-builder-nav-title,.world-builder-nav section h2{display:none}.world-builder-nav section{display:contents}.world-builder-nav button{width:auto;min-width:max-content;display:flex;grid-template-columns:none;gap:5px;margin:0;padding:6px 8px;font-size:10px}.world-builder-main{grid-template-rows:32px 38px minmax(0,1fr)}.world-builder-breadcrumb{padding:0 8px}.world-builder-toolbar{padding:5px 7px}}
 
+
+
+/* Vendrith Engine Control Center — front page */
+.vandrith-home-console{min-height:100vh;position:relative;overflow:hidden;background:#071017;color:#edf2ee;font-family:Arial,Helvetica,sans-serif}
+.vandrith-home-console:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 18%,rgba(52,105,99,.2),transparent 30%),radial-gradient(circle at 18% 62%,rgba(38,76,96,.2),transparent 32%),linear-gradient(180deg,#0b1820 0%,#071017 55%,#05090d 100%);pointer-events:none}
+.vandrith-console-stars{position:absolute;inset:0;pointer-events:none;opacity:.65}
+.vandrith-console-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#d9e4d9;box-shadow:0 0 9px rgba(216,232,220,.8);animation:vandrith-console-twinkle 4s ease-in-out infinite}
+@keyframes vandrith-console-twinkle{50%{opacity:.16;transform:scale(.6)}}
+.vandrith-console-horizon{position:absolute;left:-8%;right:-8%;bottom:-24%;height:55%;background:linear-gradient(150deg,transparent 0 19%,rgba(18,45,49,.72) 19.2% 37%,transparent 37.2% 44%,rgba(13,37,43,.9) 44.2% 63%,transparent 63.2% 71%,rgba(19,48,48,.8) 71.2%);clip-path:polygon(0 65%,8% 47%,16% 60%,25% 28%,35% 58%,46% 38%,55% 62%,65% 24%,77% 54%,87% 34%,100% 61%,100% 100%,0 100%);pointer-events:none}
+.vandrith-console-header{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:68px;padding:12px clamp(18px,4vw,52px);border-bottom:1px solid rgba(142,164,161,.16);background:rgba(5,12,17,.68);backdrop-filter:blur(14px)}
+.vandrith-console-brand{display:flex;align-items:center;gap:11px}
+.vandrith-console-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(212,194,123,.55);border-radius:50%;color:#e3cf88;font-size:17px;box-shadow:0 0 24px rgba(201,178,94,.12)}
+.vandrith-console-brand strong{display:block;letter-spacing:.2em;font-size:13px}
+.vandrith-console-brand span{display:block;margin-top:3px;color:#82928e;font-size:8px;letter-spacing:.18em}
+.vandrith-console-account{display:flex;align-items:center;gap:8px;color:#82928e;font-size:11px}
+.vandrith-console-account strong{color:#dce4df}
+.vandrith-console-account button{padding:6px 9px;border:1px solid rgba(137,157,154,.22);border-radius:6px;background:rgba(20,31,35,.8);color:#bfc9c5;font-size:10px}
+.vandrith-console-account button:hover{border-color:rgba(212,194,123,.55);color:#eee5c9;background:#1a292c}
+.vandrith-console-main{position:relative;z-index:2;width:min(1280px,calc(100% - 36px));margin:0 auto;padding:clamp(34px,5vw,64px) 0 28px}
+.vandrith-console-intro{max-width:780px}
+.vandrith-console-kicker{margin:0 0 12px;color:#cbb975;font-size:10px;font-weight:700;letter-spacing:.28em}
+.vandrith-console-intro h1{margin:0;font-size:clamp(38px,5.4vw,72px);line-height:.98;letter-spacing:-.035em;font-weight:700;text-shadow:0 14px 40px rgba(0,0,0,.35)}
+.vandrith-console-intro h1 em{font-style:normal;color:#b9c8c1}
+.vandrith-console-intro>p:last-child{max-width:650px;margin:18px 0 0;color:#8f9e9a;font-size:14px;line-height:1.7}
+.vandrith-console-section-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:52px 0 13px;padding-bottom:10px;border-bottom:1px solid rgba(142,164,161,.15)}
+.vandrith-console-section-heading span{color:#c7b66f;font-size:10px;font-weight:700;letter-spacing:.18em}
+.vandrith-console-section-heading small{color:#6f7e7b;font-size:10px}
+.vandrith-engine-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.vandrith-engine-card{position:relative;display:grid;grid-template-columns:34px 42px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:112px;padding:16px;border:1px solid rgba(135,158,155,.18);border-radius:10px;background:linear-gradient(145deg,rgba(19,31,37,.92),rgba(10,18,23,.94));color:#e9eeea;text-align:left;box-shadow:0 12px 30px rgba(0,0,0,.18);transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}
+.vandrith-engine-card:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;background:transparent;border-radius:2px}
+.vandrith-engine-card:not(:disabled):hover{transform:translateY(-3px);border-color:rgba(204,186,115,.48);background:linear-gradient(145deg,rgba(27,44,49,.98),rgba(12,23,28,.98));box-shadow:0 18px 36px rgba(0,0,0,.28)}
+.vandrith-engine-card:not(:disabled):hover:before{background:#d0bb70}
+.vandrith-engine-card.featured{grid-column:span 2;min-height:138px;background:linear-gradient(145deg,rgba(29,55,59,.95),rgba(10,25,30,.96));border-color:rgba(157,180,170,.28)}
+.vandrith-engine-card.primary{min-height:138px;border-color:rgba(203,185,112,.3);background:linear-gradient(145deg,rgba(53,49,34,.72),rgba(15,25,29,.96))}
+.vandrith-engine-card.planned{cursor:not-allowed;opacity:.62}
+.vandrith-engine-card.planned .vandrith-engine-state{color:#687572}
+.vandrith-engine-index{align-self:start;color:#596a68;font:10px "Courier New",monospace;letter-spacing:.05em}
+.vandrith-engine-icon{display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(201,184,111,.2);border-radius:8px;background:rgba(255,255,255,.025);color:#cfbe7b;font-size:18px}
+.vandrith-engine-copy{display:grid;gap:6px;min-width:0}
+.vandrith-engine-copy strong{font-size:14px;letter-spacing:.01em}
+.vandrith-engine-copy small{color:#7f8e8b;font-size:10px;line-height:1.45}
+.vandrith-engine-state{align-self:end;color:#9faeaa;font:9px "Courier New",monospace;letter-spacing:.08em;white-space:nowrap}
+.vandrith-engine-state span{color:#cdbc7b;font-size:12px}
+.vandrith-console-footer{display:flex;justify-content:space-between;gap:20px;margin-top:22px;padding-top:13px;border-top:1px solid rgba(142,164,161,.12);color:#586662;font:9px "Courier New",monospace;letter-spacing:.05em}
+.vandrith-console-loading{margin-top:45px;padding:25px;border:1px solid rgba(135,158,155,.16);border-radius:10px;background:rgba(12,21,26,.72);color:#899894}
+.vandrith-console-auth{display:grid;grid-template-columns:minmax(220px,1fr) minmax(320px,420px);align-items:center;gap:35px;margin-top:42px;padding:24px;border:1px solid rgba(135,158,155,.18);border-radius:12px;background:rgba(10,18,23,.78)}
+.vandrith-console-auth>div:first-child h2{margin:7px 0;color:#e8ede9;font-size:24px}
+.vandrith-console-auth>div:first-child p:last-child{max-width:440px;color:#7f8e8b;font-size:12px;line-height:1.6}
+.vandrith-console-section-label{margin:0;color:#c7b66f;font-size:9px;font-weight:700;letter-spacing:.18em}
+.vandrith-console-note{margin:18px 0 0;color:#65736f;font-size:10px}
+.vandrith-console-auth .vandrith-auth-panel{margin:0;width:100%;background:rgba(5,11,15,.65)}
+@media(max-width:1050px){
+  .vandrith-engine-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vandrith-engine-card.featured{grid-column:span 2}
+}
+@media(max-width:720px){
+  .vandrith-console-header{align-items:flex-start;min-height:auto}
+  .vandrith-console-account{flex-wrap:wrap;justify-content:flex-end}
+  .vandrith-console-account>span{display:none}
+  .vandrith-engine-grid{grid-template-columns:1fr}
+  .vandrith-engine-card.featured{grid-column:span 1}
+  .vandrith-engine-card,.vandrith-engine-card.featured,.vandrith-engine-card.primary{min-height:98px}
+  .vandrith-console-auth{grid-template-columns:1fr;padding:18px}
+}
+@media(max-width:480px){
+  .vandrith-console-main{width:min(100% - 22px,1280px);padding-top:28px}
+  .vandrith-console-header{padding:10px 11px}
+  .vandrith-console-brand strong{font-size:11px}
+  .vandrith-console-intro h1{font-size:39px}
+  .vandrith-console-intro>p:last-child{font-size:12px}
+  .vandrith-engine-card{grid-template-columns:28px 38px minmax(0,1fr);gap:8px;padding:12px}
+  .vandrith-engine-icon{width:36px;height:36px}
+  .vandrith-engine-state{display:none}
+  .vandrith-console-footer{display:grid}
+}
