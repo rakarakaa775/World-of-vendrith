@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useEffect, useRef, useState } from "react";
-import { Application, Assets, Container, Graphics, Rectangle, Sprite } from "pixi.js";
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import type { RendererPreference } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
@@ -49,6 +49,19 @@ const COLORS: Record<string, number> = {
 };
 const colorForTile = (id: string | null) => id ? (COLORS[terrainFromTileId(id) ?? ""] ?? 0x94a3b8) : 0xffffff;
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
+const terrainRegionTextureCache = new Map<string, Texture>();
+const textureForTerrainBinding = (texture: Texture, assetId: string, region: NonNullable<ReturnType<typeof getTerrainAssetBinding>>["region"]) => {
+  if (!region) return texture;
+  const key = `${assetId}:${region.x}:${region.y}:${region.width}:${region.height}`;
+  const cached = terrainRegionTextureCache.get(key);
+  if (cached) return cached;
+  const cropped = new Texture({
+    source: texture.source,
+    frame: new Rectangle(region.x, region.y, region.width, region.height),
+  });
+  terrainRegionTextureCache.set(key, cropped);
+  return cropped;
+};
 const expandBrush = (points: GridPoint[], size: number) => {
   if (size <= 1) return points;
   const unique = new Map<string, GridPoint>();
@@ -209,7 +222,8 @@ export function PixiMapCanvas(props: Props) {
               if (!texture && url) texture = await mapEditorTextureCache.load(url, Assets);
               if (cancelled || worldRef.current !== world) return;
               if (texture) {
-                const sprite = new Sprite(texture);
+                const renderTexture = textureForTerrainBinding(texture, binding?.assetId ?? "", binding?.region ?? null);
+                const sprite = new Sprite(renderTexture);
                 sprite.x = x * document.tileSize;
                 sprite.y = y * document.tileSize;
                 sprite.width = document.tileSize;
