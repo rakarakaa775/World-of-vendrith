@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthUser } from "../../editor/auth";
 
@@ -9,6 +9,9 @@ const previewLayers = ["World Terrain", "Region Boundaries", "Playable", "Life",
 export default function PreviewPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
+  const [zoom, setZoom] = useState(100);
+  const [layers, setLayers] = useState([true, true, false, false, false]);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
@@ -42,15 +45,15 @@ export default function PreviewPage() {
           <button type="button">Interior</button>
         </div>
         <div className="vandrith-preview-toolbar-group">
-          <button type="button">−</button>
-          <span>100%</span>
-          <button type="button">+</button>
-          <button type="button">⌖</button>
+          <button type="button" onClick={() => setZoom(value => Math.max(50, value - 10))}>−</button>
+          <span>{zoom}%</span>
+          <button type="button" onClick={() => setZoom(value => Math.min(200, value + 10))}>+</button>
+          <button type="button" onClick={() => setZoom(100)} aria-label="Reset zoom">⌖</button>
         </div>
       </div>
 
       <section className="vandrith-preview-stage" aria-label="World preview viewport">
-        <div className="vandrith-preview-scene">
+        <div className="vandrith-preview-scene" style={{ transform: `scale(${zoom / 100})` }}>
           <div className="vandrith-preview-mist mist-one" />
           <div className="vandrith-preview-mist mist-two" />
           <div className="vandrith-preview-mountain mountain-back" />
@@ -94,7 +97,13 @@ export default function PreviewPage() {
           </div>
           <div className="vandrith-preview-layers">
             {previewLayers.map((layer, index) => (
-              <button key={layer} type="button" className={index < 2 ? "is-on" : ""}>
+              <button
+                key={layer}
+                type="button"
+                className={layers[index] ? "is-on" : ""}
+                onClick={() => setLayers(current => current.map((enabled, layerIndex) => layerIndex === index ? !enabled : enabled))}
+                aria-pressed={layers[index]}
+              >
                 <i aria-hidden="true" />
                 <span>{layer}</span>
               </button>
@@ -105,10 +114,10 @@ export default function PreviewPage() {
 
       <footer className="vandrith-preview-bottom">
         <div className="vandrith-preview-playback">
-          <button type="button" aria-label="Play preview">▶</button>
-          <button type="button" aria-label="Pause preview">Ⅱ</button>
+          <button type="button" aria-label="Play preview" onClick={() => setPlaying(true)}>▶</button>
+          <button type="button" aria-label="Pause preview" onClick={() => setPlaying(false)}>Ⅱ</button>
           <button type="button" aria-label="Reset preview">↺</button>
-          <span>00:00:00</span>
+          <span>{playing ? "PLAYING" : "00:00:00"}</span>
         </div>
         <div className="vandrith-preview-mode">
           <span>SIMULATION</span>
