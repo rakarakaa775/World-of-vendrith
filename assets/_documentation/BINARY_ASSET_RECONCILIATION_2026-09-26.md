@@ -429,3 +429,8 @@ Detailed audit: `WORLD_GROUND_TRANSITIONS_AUDIT_2026-09-26.md`.
 A focused enumeration found **14 PNG candidates**. Strong semantic groups are lava (`lava`, `lavagrassaltother`, `lavarock`), waterfall (`tilesets_edit__5_waterfall.png`), cave sheets, and hole/depression variants. The official LPC Terrains source includes lava, while LPC sources separately document waterfall and cave resources. citeturn0search0turn0search1turn0search5
 
 Detailed audit: `WORLD_NATURAL_HAZARDS_SPECIAL_TERRAIN_AUDIT_2026-09-26.md`.
+
+
+## WORLD water-feature reconciliation checkpoint — 2026-09-26
+
+Focused filename scan returned **40 water-related matches**, with false positives filtered conservatively. Strong feature candidates include `LPC_Overworld__River.png`, general water sheets, deepwater, brackish, coldwater, beach/shore assets and the previously audited waterfall. The water model is now explicitly **water state + geographic feature + transition**. No standalone lake or ocean binary is invented where the repository does not provide one. Detailed audit: `WORLD_SHORELINES_RIVERS_LAKES_WATER_FEATURES_AUDIT_2026-09-26.md`.
