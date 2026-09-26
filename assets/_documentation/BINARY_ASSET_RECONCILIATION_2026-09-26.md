@@ -422,3 +422,10 @@ Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
 A focused scan found **29 transition-related PNG candidates**. The LPC terrain source was explicitly designed for seamless terrain composition and supports selected multi-terrain combinations; this validates keeping transitions as logical compatibility metadata rather than duplicating binaries. citeturn0search0turn0search8
 
 Detailed audit: `WORLD_GROUND_TRANSITIONS_AUDIT_2026-09-26.md`.
+
+
+## WORLD twelfth reconciliation checkpoint — Natural Hazards / Special Terrain — 2026-09-26
+
+A focused enumeration found **14 PNG candidates**. Strong semantic groups are lava (`lava`, `lavagrassaltother`, `lavarock`), waterfall (`tilesets_edit__5_waterfall.png`), cave sheets, and hole/depression variants. The official LPC Terrains source includes lava, while LPC sources separately document waterfall and cave resources. citeturn0search0turn0search1turn0search5
+
+Detailed audit: `WORLD_NATURAL_HAZARDS_SPECIAL_TERRAIN_AUDIT_2026-09-26.md`.
