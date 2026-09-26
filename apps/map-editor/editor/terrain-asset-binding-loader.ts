@@ -15,6 +15,7 @@ export type TerrainAssetBindingRow = {
   asset_status: string | null;
   autotile_capable: boolean | null;
   license_registry_id: string | null;
+  tile_region?: unknown;
 };
 
 export type TerrainAssetBindingLoadResult = {
@@ -44,6 +45,26 @@ function isNonEmptyString(value: unknown): value is string {
 function isApprovedAssetStatus(value: unknown): value is 'approved' {
   return value === 'approved';
 }
+
+function parseTerrainAssetRegion(value: unknown): TerrainAssetBinding['region'] {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const x = row.x;
+  const y = row.y;
+  const width = row.width;
+  const height = row.height;
+  if (
+    ![x, y, width, height].every(
+      item => typeof item === 'number' && Number.isInteger(item) && item >= 0,
+    ) ||
+    width === 0 ||
+    height === 0
+  ) {
+    return null;
+  }
+  return { x: x as number, y: y as number, width: width as number, height: height as number };
+}
+
 
 /**
  * Converts rows from public.vandrith_asset_binding_workbench into the editor
@@ -96,6 +117,7 @@ export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoad
       mask: row.neighbor_mask as TerrainMask,
       assetId: row.asset_id!.trim(),
       sourceRuleKey: null,
+      region: parseTerrainAssetRegion(row.tile_region),
     });
   }
 
