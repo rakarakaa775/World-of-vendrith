@@ -61,7 +61,7 @@ No asset directory in this library may be glob-imported wholesale. Runtime/edito
 
 ## 7. Binary transfer note
 
-The current GitHub connector used for this project can create/update UTF-8 repository files but does not provide a suitable verified binary upload workflow for the supplied large ZIP libraries. Individual binary assets are only declared repository-present after a verified binary transfer.
+The binary import checkpoint of 2026-09-26 is now present in the repository through Git LFS pointers. Individual assets still require binary-object availability plus provenance/license/checksum reconciliation before being marked approved. See `assets/_documentation/BINARY_ASSET_RECONCILIATION_2026-09-26.md`.
 
 ## 8. Map Editor terrain assets — verified originals
 
