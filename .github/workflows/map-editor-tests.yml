@@ -1,4 +1,4 @@
-name: Map Editor Tests
+name: Vendrith World Builder Tests
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test-map-editor:
+  test-world-builder:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,5 +26,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run Map Editor focused tests
+      - name: Run World Builder focused tests
         run: npm test
