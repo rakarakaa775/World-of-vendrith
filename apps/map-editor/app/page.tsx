@@ -32,7 +32,8 @@ export default function HomePage() {
 
   const openItem = (id: string) => {
     if (id === "preview") {
-      router.push("/preview");\n    } else if (id === "world") {
+      router.push("/preview");
+    } else if (id === "world") {
       router.push("/world-builder?workspace=world&load=1");
     } else if (id === "credits") {
       router.push("/credits");
