@@ -95,10 +95,6 @@ The current `[LPC] Jungle` source by bluecarrot16 is CC-BY 4.0. The page states 
 
 The repository's `lpc-jungle-v2__*` naming is a strong source-family clue, but exact binary identity is still pending.
 
-### Remaining tree-related candidate
-
-25. `LPC_Submissions_Merged_2.0__plants.png`
-
 This is retained as a generic plant candidate rather than being promoted to a specific source family from filename alone.
 
 ## Conifer boundary
