@@ -181,3 +181,12 @@ The candidates are separated into desert terrain, sand/water transitions, and de
 Desert vegetation therefore remains a valid Asset Library subtype (cactus, succulents, dry shrubs, desert trees) but currently has no approved/identified binary in this staging set.
 
 The [LPC] Beach / Desert source is CC-BY-SA 3.0 and has its own multi-author credits requirements; its vegetation must not inherit the license/credits of the separate [LPC] Terrains sand source merely because both are used in desert environments. citeturn0search0turn0search2
+
+
+## Natural wetlands focused audit — 2026-09-26
+
+A filename-focused scan identified **21 PNG candidates** related to brackish water, water-grass transitions, dirt/grass variants, depressions and wetland-adjacent terrain. Only a subset is swamp-specific from filename semantics: `lpc_terrain__brackish.png` plus water-grass transition variants are the strongest candidates. Generic dirt, grass and hole/depression tiles remain context-dependent.
+
+No generic plant/dead-tree/fungi binary is automatically classified as swamp vegetation. The detailed audit is recorded in `WORLD_SWAMP_WETLANDS_AUDIT_2026-09-26.md`.
+
+The upstream [LPC] Terrains ecosystem includes bog among its terrain content, but that does not prove exact binary identity for any current repository PNG. 
