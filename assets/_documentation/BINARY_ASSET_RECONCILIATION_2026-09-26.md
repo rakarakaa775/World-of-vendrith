@@ -316,3 +316,24 @@ This will also let us visually inspect which WORLD assets are actually available
 **MAP-ROLE RECONCILIATION: WORLD structural cleanup complete**  
 **PROVENANCE / CHECKSUM VERIFICATION: IN PROGRESS — individual binary approval pending**  
 **WORLD BUILDING ASSET LIBRARY: DESIGN CONTRACT ADDED — UI IMPLEMENTATION PENDING**
+
+
+## WORLD fourth reconciliation checkpoint — LPC Terrains — 2026-09-26
+
+A focused repository enumeration found exactly **59** files matching `lpc_terrain__*.png` under `assets/world/world/02_TILES_AND_TERRAIN/`.
+
+All 59 are now classified in `assets/_documentation/LPC_TERRAINS_WORLD_AUDIT_2026-09-26.md` by canonical WORLD role, subcategory and transition binding.
+
+### Locked classification rules
+
+- `lpc_terrain__water.png` → WORLD / WATER / OPEN.
+- `lpc_terrain__deepwater.png`, `deepwater2.png` → WORLD / WATER / DEEP.
+- Sand/red-sand/grass water-combination tiles → WORLD / WATER / COASTAL or transition bindings.
+- `coldwater*` → WORLD / WATER / COLD.
+- `ice*` and `snowice` → WORLD / WATER / FROZEN/ICE binding; do not infer sea-ice origin from filename alone.
+- Ground, volcanic, vegetation and natural-hole files remain WORLD natural terrain.
+- `tileset01a`–`tileset01f` remain **Source Tileset / visual verification pending**.
+
+This is metadata classification only. The PNGs are not duplicated or renamed, and source-family matching does not by itself promote the binaries to approved status.
+
+The repository tree currently provides Git object/pointer identities for all 59 files; final binary SHA-256 reconciliation remains a separate verification step.
