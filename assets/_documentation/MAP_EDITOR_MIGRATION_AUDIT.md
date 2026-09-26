@@ -110,3 +110,33 @@ The four map layers are **roles in the World Builder**, not mandatory physical f
 ## Important Limitation
 
 GitHub code search is not a complete binary/archive inspection mechanism. Absence of indexed matches is therefore not evidence that every historical or generated reference has disappeared.
+
+
+## Phase 1 completion record
+
+The active product surface has now been migrated to **Vendrith World Builder**:
+
+- New route: `/world-builder`.
+- Legacy `/editor` route redirects to `/world-builder`.
+- Main application component: `VendrithWorldBuilderApp`.
+- Main browser component: `WorldBrowser`.
+- Error boundary: `WorldBuilderErrorBoundary`.
+- Home navigation points to `/world-builder`.
+- Home action terminology uses **World Builder** and **Load World**.
+- Legacy component files using the `MapEditor*` class/function names were removed after the new components were wired.
+- Test workflow was renamed to `.github/workflows/world-builder-tests.yml`.
+
+### Contracts intentionally retained
+
+The following remain unchanged because they are persistence/backend contracts rather than product terminology:
+
+- `MapDocument`, `MapType`, and related serialized document types.
+- Existing `map_*` editor persistence module filenames while the data contract migration is deferred.
+- Supabase RPC names such as `map_editor_bootstrap_world_identity_v1`, `map_editor_create_child_v1`, and `map_editor_create_interior_v1`.
+- Existing database table names such as `map_editor_save_slots`.
+
+These names must not be renamed as branding-only changes because doing so would create a backend compatibility migration.
+
+### Route verification
+
+The source-level route migration is complete. A live production test was not claimed from the current commit: the GitHub combined status currently reports a Vercel failure whose target indicates a Vercel build-rate-limit/plan constraint. No successful World Builder test run was observed through the available GitHub workflow-run interface during this audit.
