@@ -173,7 +173,7 @@ export function PixiMapCanvas(props: Props) {
       const host = hostRef.current;
       if (!world || !app || !host) return;
       const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds } = propsRef.current;
-      world.removeChildren();
+      const scene = new Container();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
@@ -186,7 +186,7 @@ export function PixiMapCanvas(props: Props) {
         for (let y = 1; y < document.height; y++) grid.moveTo(0, y * document.tileSize).lineTo(width, y);
         grid.stroke({ width: 1, color: 0xcbd5e1 });
       }
-      world.addChild(grid);
+      scene.addChild(grid);
 
       const textureRequests = new Set<string>();
       for (const terrain of ["grass", "sand", "dirt", "pavement", "water"] as const) {
@@ -248,7 +248,7 @@ export function PixiMapCanvas(props: Props) {
                 sprite.width = document.tileSize;
                 sprite.height = document.tileSize;
                 sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
-                world.addChild(sprite);
+                scene.addChild(sprite);
                 renderedTexture = true;
               }
             }
@@ -256,27 +256,48 @@ export function PixiMapCanvas(props: Props) {
               const g = new Graphics();
               g.rect(x * document.tileSize + 2, y * document.tileSize + 2, document.tileSize - 4, document.tileSize - 4)
                 .fill({ color: colorForTile(id), alpha: layer.kind === "collision" ? 0.35 : 1 });
-              world.addChild(g);
+              scene.addChild(g);
             }
           }
         } else {
           for (const o of layer.objects) {
+            if (o.assetUrl) {
+              const texture = await mapEditorTextureCache.load(o.assetUrl, Assets);
+              if (cancelled || worldRef.current !== world) return;
+              if (texture) {
+                const sprite = new Sprite(texture);
+                sprite.x = o.x * document.tileSize + 2;
+                sprite.y = o.y * document.tileSize + 2;
+                sprite.width = Math.max(4, o.width * document.tileSize - 4);
+                sprite.height = Math.max(4, o.height * document.tileSize - 4);
+                sprite.alpha = 0.95;
+                scene.addChild(sprite);
+                if (selectedObjectIds.includes(o.id)) {
+                  const outline = new Graphics();
+                  outline.rect(o.x * document.tileSize + 1, o.y * document.tileSize + 1, Math.max(6, o.width * document.tileSize - 2), Math.max(6, o.height * document.tileSize - 2)).stroke({ width: 2, color: 0x0ea5e9 });
+                  scene.addChild(outline);
+                }
+                continue;
+              }
+            }
             const g = new Graphics();
             const c = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
             g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
               .fill({ color: c, alpha: 0.9 })
               .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
-            world.addChild(g);
+            scene.addChild(g);
           }
         }
       }
 
-      world.addChild(overlay);
+      scene.addChild(overlay);
       const preview = new Graphics();
       preview.eventMode = "none";
       preview.zIndex = 999;
       brushPreviewRef.current = preview;
-      world.addChild(preview);
+      scene.addChild(preview);
+      world.removeChildren();
+      for (const child of scene.removeChildren()) world.addChild(child);
       app.stage.hitArea = app.screen;
       if (!viewportInitializedRef.current) {
         viewportRef.current = {
