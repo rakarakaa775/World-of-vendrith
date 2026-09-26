@@ -439,3 +439,8 @@ Focused filename scan returned **40 water-related matches**, with false positive
 ## WORLD vegetation ecology reconciliation checkpoint — 2026-09-26
 
 Filename scan returned **52 vegetation-related candidates**; terrain transitions and generic grass materials were filtered out. Strong families are forest/woodland, seasonal/snow trees, orchard/fruit trees, jungle, understory/plants/fungi and dead vegetation. Dedicated desert and wetland vegetation remain source-supported but binary-pending where filename evidence is insufficient. Detailed audit: `WORLD_VEGETATION_ECOLOGY_AUDIT_2026-09-26.md`.
+
+
+## WORLD biome composition reconciliation checkpoint — 2026-09-26
+
+The completed WORLD audits are consolidated into a logical biome recipe layer. Biomes reference verified Asset Library records rather than owning duplicate binaries. Water remains state + feature; landforms remain orthogonal; seasonal variants are modifiers. Detailed rules: `WORLD_BIOME_COMPOSITION_ECOLOGY_RULES_2026-09-26.md`.
