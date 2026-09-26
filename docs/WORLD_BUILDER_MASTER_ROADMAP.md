@@ -63,11 +63,12 @@ The existing map-editor foundations, persistence architecture, Supabase authorit
 - [x] Optional runtime tile-region representation added.
 - [x] Exact LPC base runtime tile-region mapping for dirt/grass/sand/water; transition mapping remains Phase 2 terrain/autotile work.
 - [x] Runtime candidate generation/review for verified WORLD base terrain — 4 LPC v7 candidates approved.
-- [ ] Runtime candidate review.
-- [ ] Runtime approval only after semantic verification.
+- [x] Runtime candidate review.
+- [x] Runtime approval only after semantic verification for the four consumed base terrain bindings.
 - [x] Verify every registered WORLD asset family has a usable registry path.
-- [ ] Verify WORLD Asset Browser can enumerate the final approved registry.
-- [ ] WORLD asset validation pass.
+- [x] Verify WORLD Asset Browser can enumerate the final approved registry.
+- [x] WORLD asset validation pass.
+- [x] WORLD asset credits / attribution registry view.
 - [x] WORLD asset completion checkpoint — 2026-09-26.
 
 ### Phase 0 completion rule
