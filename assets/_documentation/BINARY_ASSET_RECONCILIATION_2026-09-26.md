@@ -473,3 +473,31 @@ The migration was applied successfully to the live Supabase project and the six 
 
 Detailed contract: `assets/_documentation/ASSET_LIBRARY_SCHEMA_V1_2026-09-26.md`.
 
+
+
+## WORLD fourteenth reconciliation checkpoint — Initial Asset Library population — 2026-09-26
+
+The first WORLD bindings were populated only from records already present in `asset_registry`.
+
+Verified binary identities:
+- `tile_grass.png` — SHA-256 recorded and previously audited.
+- `tile_dirt.png` — SHA-256 recorded and previously audited.
+
+Initial semantic bindings:
+- 4 biome compatibility records for grass/dirt.
+- 3 mountain landform candidate records.
+- 1 snowy mountain biome candidate.
+
+No water, vegetation or transition record was invented because the current canonical registry does not yet contain sufficiently resolved asset records for those families. The absence is intentional.
+
+Current live counts after seeding:
+- binary verifications: 2
+- biome bindings: 5
+- landform bindings: 3
+- water bindings: 0
+- vegetation bindings: 0
+- transition bindings: 0
+
+The seed migration is `supabase/migrations/20260926101500_asset_library_world_seed_v1.sql`.
+
+All non-binary bindings remain candidate/compatibility states and are not equivalent to project approval.
