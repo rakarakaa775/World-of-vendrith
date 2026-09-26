@@ -111,16 +111,16 @@ Create a persistent World Builder shell containing:
 
 ## Workspace behavior
 
-- [ ] Persistent navigation
-- [ ] Active workspace state
-- [ ] Breadcrumbs
-- [ ] World/project selector
-- [ ] Contextual toolbar
+- [x] Persistent navigation
+- [x] Active workspace state
+- [x] Breadcrumbs
+- [x] World/project selector
+- [x] Contextual toolbar
 - [ ] Global save state
 - [ ] Validation status
 - [ ] Error/warning surface
-- [ ] Responsive desktop layout
-- [ ] Clear separation between World, Region, and Map scopes
+- [x] Responsive desktop layout
+- [x] Clear separation between World, Region, and Map scopes
 
 ## World Builder shell
 
