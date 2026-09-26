@@ -237,3 +237,8 @@ Detailed audit: `WORLD_SHORELINES_RIVERS_LAKES_WATER_FEATURES_AUDIT_2026-09-26.m
 ## Vegetation Ecology — 2026-09-26
 
 Focused vegetation scan returned **52 filename-related candidates**; terrain transitions and generic grass materials were excluded. Strong families: forest/woodland, seasonal/snow trees, orchard/fruit trees, jungle, understory/plants/fungi, and dead vegetation. Desert and wetland vegetation remain source-supported but binary-pending where filename evidence is insufficient. Vegetation is modeled as `family + biome compatibility + season + ecology role + provenance`, so one verified binary can serve multiple biome palettes without duplication. Detailed audit: `WORLD_VEGETATION_ECOLOGY_AUDIT_2026-09-26.md`.
+
+
+## Biome Composition & Ecology Rules — 2026-09-26
+
+WORLD biomes are now modeled as compositions of ground, water state/features, landforms, vegetation, transitions, seasonal modifiers and special features. Canonical recipes cover FOREST, JUNGLE, DESERT, SWAMP/WETLAND, SNOW/TUNDRA and COASTAL, with MOUNTAIN/HILLS treated as orthogonal landform modifiers. No biome creates duplicate PNGs. Detailed rules: `WORLD_BIOME_COMPOSITION_ECOLOGY_RULES_2026-09-26.md`.
