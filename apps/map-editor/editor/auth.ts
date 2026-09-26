@@ -69,7 +69,7 @@ export async function requestPasswordReset(email: string) {
   const client = createMapEditorSupabaseClient();
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
   const cleanEmail = email.trim().toLowerCase();
-  if (!/^\\S+@\\S+\\.\\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
   const redirectTo = typeof window !== "undefined"
     ? new URL("/reset-password", window.location.origin).toString()
     : undefined;
