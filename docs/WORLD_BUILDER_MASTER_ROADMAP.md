@@ -146,6 +146,8 @@ The World Builder shell and Control Center are established, but downstream works
 
 ## Terrain
 
+- [x] World Map Studio authoring toolbar
+- [x] Select / Paint / Erase / Line / Rectangle / Flood tool access
 - [ ] Complete terrain brush suite
 - [ ] Eraser
 - [ ] Line
