@@ -388,3 +388,14 @@ The absence of a dedicated desert-vegetation filename is recorded explicitly rat
 Detailed classification: `WORLD_DESERT_DESERT_VEGETATION_AUDIT_2026-09-26.md`.
 
 **Approval remains pending:** `source package → source path → repository path → binary identity/SHA-256 → license → attribution`.
+
+
+## WORLD eighth reconciliation checkpoint — Swamp / Wetlands — 2026-09-26
+
+A filename-focused enumeration found **21 PNG candidates** with wetland-adjacent semantics. The strongest explicit candidate is `lpc_terrain__brackish.png`; `watergrass` and `watergrassaltother` are strong wetland transition candidates. Generic dirt/grass and hole/depression assets remain unapproved for swamp-specific binding until visual/source verification.
+
+No dedicated swamp vegetation binary was promoted solely from filename semantics. Generic plants, dead trees and fungi remain reusable candidates whose biome binding requires visual verification and provenance reconciliation.
+
+Detailed audit: `WORLD_SWAMP_WETLANDS_AUDIT_2026-09-26.md`.
+
+**Approval remains pending:** `source package → source path → repository path → binary identity/SHA-256 → license → attribution`.
