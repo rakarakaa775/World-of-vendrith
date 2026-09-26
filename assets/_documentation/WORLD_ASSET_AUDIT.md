@@ -206,3 +206,8 @@ A broad filename discovery scan returned 144 PNG paths because generic words suc
 Conservative Ground Core candidates include grass variants (`LPC_Overworld__Grass.png`, `lpc_terrain__grass*.png`), dirt/soil variants (`lpc_terrain__dirt*.png`, `tilesets_edit__10_dirt.png`), and beach candidates (`LPC_Overworld__Beach.png`, `tilesets_edit__9_beach.png`). Stone remains sheet-level pending visual/source verification. Mud is confirmed as a source-family terrain in LPC Terrains but no filename-explicit mud binary is promoted yet.
 
 Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
+
+
+## Ground Transitions / Edge & Blend Library — 2026-09-26
+
+Focused filename scan found **29 transition-related PNG candidates**. Strong families include grass↔water, sand↔water, snow↔grass/water/ice, cold-water transitions, and ice↔grass. These are modeled as relationships between materials rather than new biome categories. Detailed audit: `WORLD_GROUND_TRANSITIONS_AUDIT_2026-09-26.md`.
