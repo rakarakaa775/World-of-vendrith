@@ -170,3 +170,14 @@ No current binary is promoted to CONIFER merely because the official LPC Conifer
 The main source boundaries are preserved: [LPC] Forest tiles, [LPC] Trees, [LPC] Conifers, [LPC] Jungle, [LPC] Fruit Trees, All Seasons Apple Tree, LPC Orange Trees, and Flowers / Plants / Fungi / Wood are separate source records with different attribution/license requirements. 
 
 This is metadata classification only. No PNG duplication is required, and filename/source-family similarity is not binary approval.
+
+
+## Natural desert focused audit — 2026-09-26
+
+A focused enumeration identified **17 PNG candidates** in WORLD terrain staging whose filenames indicate desert/sand semantics. The detailed audit is recorded in `WORLD_DESERT_DESERT_VEGETATION_AUDIT_2026-09-26.md`.
+
+The candidates are separated into desert terrain, sand/water transitions, and desert landforms. Importantly, **0 filename-explicit dedicated desert-vegetation binaries** were found in the current WORLD terrain staging path. The existence of the official [LPC] Beach / Desert source does not justify assigning a repository binary to it without an actual source/binary match.
+
+Desert vegetation therefore remains a valid Asset Library subtype (cactus, succulents, dry shrubs, desert trees) but currently has no approved/identified binary in this staging set.
+
+The [LPC] Beach / Desert source is CC-BY-SA 3.0 and has its own multi-author credits requirements; its vegetation must not inherit the license/credits of the separate [LPC] Terrains sand source merely because both are used in desert environments. citeturn0search0turn0search2
