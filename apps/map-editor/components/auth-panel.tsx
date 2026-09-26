@@ -26,7 +26,7 @@ export function AuthPanel({ onSuccess }: { onSuccess: () => void }) {
         const result = await signUpWithEmail(email, password, displayName);
         setMessage(result.sessionCreated
           ? "Akun berhasil dibuat. Kamu sudah masuk."
-          : "Akun berhasil dibuat. Jika verifikasi email masih aktif di Supabase, matikan Email Confirmation agar login langsung.");
+          : "Akun berhasil dibuat. Jika verifikasi email aktif, periksa inbox untuk mengonfirmasi akun sebelum login.");
         if (result.sessionCreated) onSuccess();
       }
     } catch (error) {
