@@ -36,7 +36,7 @@ function EditorWorkspace() {
 
 export default function EditorPage() {
   return (
-    <Suspense fallback={<main className="vandrith-auth-loading">Memuat editor...</main>}>
+    <Suspense fallback={<main className="vandrith-auth-loading">Memuat Vendrith World Builder...</main>}>
       <EditorWorkspace />
     </Suspense>
   );
