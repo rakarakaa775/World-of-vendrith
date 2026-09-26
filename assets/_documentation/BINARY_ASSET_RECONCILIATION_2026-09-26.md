@@ -3,7 +3,7 @@
 ## Status
 
 **BINARY IMPORT: PRESENT**  
-**MAP-ROLE RECONCILIATION: IN PROGRESS**  
+**MAP-ROLE RECONCILIATION: IN PROGRESS — WORLD FIRST PASS APPLIED**  
 **PROVENANCE / CHECKSUM VERIFICATION: NOT YET COMPLETE FOR EVERY BINARY**
 
 The commit `032f83d88821e4d81fbfb63c87006c8ec06b4fb3` imported the original binary asset packages into the repository through Git LFS.
@@ -147,3 +147,50 @@ These are **manifest-reported import counts**, not an independent final classifi
 5. Recompute counts after reconciliation.
 6. Only then mark individual assets repository-present/approved.
 
+
+
+## WORLD first-pass reconciliation — completed
+
+On 2026-09-26, the first WORLD staging directory was enumerated directly from the repository tree.
+
+- Original WORLD staging count: **681**
+- Clearly non-WORLD files removed from that staging path: **81**
+- Remaining WORLD staging count: **600**
+- LFS pointer identity was preserved; the move changed repository path, not the LFS object.
+- Verification after the move confirmed representative targets are still Git LFS pointers. GitHub documents that LFS pointer files contain an object OID and final file size, while the actual large object is stored separately. citeturn0search6turn0search2
+
+### Moved categories
+
+| Category | Count / rule | Destination |
+|---|---:|---|
+| Character shirt animation sprites | 7 | `assets/characters/imported/lpc/` |
+| Overworld houses | 3 | `assets/objects/imported/exterior/` |
+| Explicit wall/stair/water-wall pieces | 5 | `assets/objects/imported/exterior/` |
+| Limestone/brick/window architecture | 3 | `assets/objects/imported/exterior/` |
+| Roof tiles/previews | 5 | `assets/objects/imported/exterior/` |
+| LPC wall package + credits/TSX | 3 | `assets/objects/imported/exterior/` |
+| Christmas wall decoration | 1 | `assets/objects/imported/interior/` |
+| LPC structure pack | 50 | `assets/objects/imported/interior-exterior/` |
+| Rusty-wall / pipe asset | 1 | `assets/objects/imported/exterior/` |
+| Sidewalk | 1 | `assets/region/region/01_ROADS/imported/` |
+| Roof/building/indoor edited tilesets | 3 | canonical-role staging destinations |
+
+**Total moved: 81.**
+
+### Deliberately not moved
+
+- `LPC_Overworld__Sailboat.png`
+- `LPC_Overworld__Ship.png`
+- `LPC_Overworld__Shipwreck.png`
+
+These are man-made maritime assets, but the exact final distinction between REGION context, controllable vehicle, and wreck/prop should be decided in the REGION/PLAYABLE audit rather than guessed from filename.
+
+- `lpc_animals_2022_v1.1__animated wall traps (extra).png`
+
+This is also retained pending PLAYABLE combat-interactable reconciliation.
+
+- `lpc_animals_2022_v1.1__underwater tiles (by Sevarihk).png`
+
+This remains in WORLD because its filename identifies underwater tiles and therefore may legitimately belong to the water layer.
+
+The move was performed at the Git tree level using the existing LFS pointer blob identities, so no binary re-encoding was performed.
