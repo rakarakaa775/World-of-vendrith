@@ -25,8 +25,9 @@ export default function HomePage() {
           <>
             <p className="vandrith-welcome">Welcome, <strong>{user.username}</strong></p>
             <nav className="vandrith-home-actions" aria-label="World Builder menu">
-              <button onClick={() => router.push("/world-builder")}><span>✦</span><strong>World Builder</strong><small>Create and shape a world</small></button>
-              <button onClick={() => router.push("/world-builder?load=1")}><span>◈</span><strong>Load World</strong><small>Open an existing world</small></button>
+              <button onClick={() => router.push("/world-builder?workspace=world&load=1")}><span>✦</span><strong>World Builder</strong><small>World, Region, Playable, Interior</small></button>
+              <button onClick={() => router.push("/world-builder?workspace=world&load=1")}><span>◈</span><strong>Load World</strong><small>Open an existing world</small></button>
+              <button onClick={() => router.push("/reset-password")}><span>⚿</span><strong>Ganti Password</strong><small>Ubah password akun</small></button>
               <button onClick={() => router.push("/credits")}><span>◇</span><strong>Credits</strong><small>Asset & creator credits</small></button>
             </nav>
             <button className="vandrith-logout" onClick={() => void signOut()}>Logout</button>
