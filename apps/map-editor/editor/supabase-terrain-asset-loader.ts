@@ -21,7 +21,7 @@ export type SupabaseTerrainAssetLoadResult = TerrainAssetBindingLoadResult & {
 };
 
 const WORKBENCH_COLUMNS =
-  'terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id';
+  'terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id,tile_region,tileset_id';
 
 /**
  * Reads the audited terrain asset workbench without granting the editor any
