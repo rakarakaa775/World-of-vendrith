@@ -232,3 +232,8 @@ Recommended model:
 Web research confirms LPC water resources distinguish animated/flowing water and waterfalls, and source discussion distinguishes visual behavior for ponds, rivers, depth and shore edges. citeturn0search1turn0search11
 
 Detailed audit: `WORLD_SHORELINES_RIVERS_LAKES_WATER_FEATURES_AUDIT_2026-09-26.md`.
+
+
+## Vegetation Ecology — 2026-09-26
+
+Focused vegetation scan returned **52 filename-related candidates**; terrain transitions and generic grass materials were excluded. Strong families: forest/woodland, seasonal/snow trees, orchard/fruit trees, jungle, understory/plants/fungi, and dead vegetation. Desert and wetland vegetation remain source-supported but binary-pending where filename evidence is insufficient. Vegetation is modeled as `family + biome compatibility + season + ecology role + provenance`, so one verified binary can serve multiple biome palettes without duplication. Detailed audit: `WORLD_VEGETATION_ECOLOGY_AUDIT_2026-09-26.md`.
