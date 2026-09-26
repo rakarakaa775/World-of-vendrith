@@ -228,8 +228,46 @@ The remaining entries are **not yet all approved WORLD assets**. They contain a 
 
 Therefore the next step is to split the 242 entries into **NATURAL-WORLD**, **AUTHORING/SOURCE**, and **REMAINING ROLE CONFLICTS**, then perform provenance/checksum verification before any final approval.
 
+## WORLD third reconciliation checkpoint — 2026-09-26
+
+The current repository tree was re-enumerated from commit `0f011ae51cc685f246382d527f3a0d310702a79f`.
+
+- **WORLD staging: 144 PNG binaries remain**
+- **WORLD authoring/source files: 0**
+- The latest cleanup removed three non-runtime/context PNGs from WORLD:
+  - `LPC_forest__preview.png` → `assets/_documentation/source-material/world/`
+  - `lpc-fruit-trees__fruit-trees-labels.png` → `assets/_documentation/source-material/world/`
+  - `lpc_terrain__plowed_soil.png` → `assets/region/region/05_SETTLEMENTS/imported/`
+- The remaining WORLD staging set is therefore PNG-only and is being treated as a **provenance audit set**, not automatically as approved content.
+
+### Current provenance groups
+
+The strongest source-family matches currently identified are:
+
+| Repository source family | WORLD role | Provenance status |
+|---|---|---|
+| `LPC_Overworld__*` natural terrain/forest/mountain/rock/water files | WORLD | Source-family match; individual binary identity still pending |
+| `lpc-terrains__terrain-v7.png` and related terrain exports | WORLD | Source-family match; individual binary identity still pending |
+| `8__mountains-v6-tmw*`, `mountains__*` | WORLD | Source-family match; individual binary identity still pending |
+| `rocks__*` | WORLD | Source-family match; individual binary identity still pending |
+| `lpc-trees__*` | WORLD | Source-family match; individual binary identity still pending |
+| `lpc-flowers-plants-fungi-wood__plants.png` | WORLD | Source-family match; individual binary identity still pending |
+| `lpc-jungle*` | WORLD | Source-family match; individual binary identity still pending |
+| generic/repacked/submission/edited files | WORLD candidate | Pending individual source-path and checksum reconciliation |
+
+The OpenGameArt source pages confirm that LPC Terrains covers ground terrain including grass, dirt, rock, water, snow, ice, lava, sand, beach and bog; LPC Mountains covers mountains, hills, cliffs, rocks and snow; LPC Rocks covers rocks/boulders/stones/pebbles; the Plants/Fungi/Wood pack covers flowers, bushes, small trees, fungi, leaves, stumps and logs; and LPC Jungle covers trees, plants, vines and giant trees. These sources carry their respective attribution/license requirements and should not be collapsed into a single generic credit. 
+
+### Important approval rule
+
+A source-family filename match is **not** sufficient for final approval. Each binary remains pending until the audit can establish:
+
+`source package → source path → repository path → binary identity/SHA-256 → license → attribution`
+
+For this reason, the current 144-file count should be read as **144 WORLD candidates under provenance review**, not 144 fully approved assets.
+
 ## Current checkpoint
 
-**WORLD staging: 242 entries remaining**  
-**MAP-ROLE RECONCILIATION: WORLD structural cleanup substantially advanced**  
-**PROVENANCE / CHECKSUM VERIFICATION: STILL PENDING FOR INDIVIDUAL BINARIES**
+**WORLD staging: 144 PNG binaries**  
+**WORLD authoring/source files: 0**  
+**MAP-ROLE RECONCILIATION: WORLD structural cleanup complete**  
+**PROVENANCE / CHECKSUM VERIFICATION: IN PROGRESS — individual binary approval pending**
