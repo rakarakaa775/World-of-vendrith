@@ -24,6 +24,7 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
     <main className="world-builder-shell">
       <header className="world-builder-topbar">
         <div className="world-builder-brand">
+          <button type="button" className="world-builder-home-button" onClick={() => router.push("/")} aria-label="Kembali ke Control Center" title="Kembali ke Control Center">‹</button>
           <span className="world-builder-mark">✦</span>
           <div>
             <strong>Vendrith World Builder</strong>
