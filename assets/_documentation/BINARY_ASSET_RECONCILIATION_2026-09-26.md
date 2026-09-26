@@ -444,3 +444,32 @@ Filename scan returned **52 vegetation-related candidates**; terrain transitions
 ## WORLD biome composition reconciliation checkpoint — 2026-09-26
 
 The completed WORLD audits are consolidated into a logical biome recipe layer. Biomes reference verified Asset Library records rather than owning duplicate binaries. Water remains state + feature; landforms remain orthogonal; seasonal variants are modifiers. Detailed rules: `WORLD_BIOME_COMPOSITION_ECOLOGY_RULES_2026-09-26.md`.
+
+
+## WORLD thirteenth reconciliation checkpoint — Asset Library schema v1 — 2026-09-26
+
+The live Supabase Asset Library foundation was inspected before adding a second schema. Existing canonical tables were retained rather than duplicated:
+
+- `asset_registry`: canonical asset identity
+- `asset_sources`: source/package identity
+- `asset_license_registry`: license and attribution
+- `asset_provenance_verifications`: provenance evidence
+- `asset_manifest`: manifest/runtime metadata
+- `asset_seasonal_variants`: seasonal relationships
+- `asset_binding_candidates`: existing terrain candidates
+
+The new WORLD extension adds normalized relationships:
+
+- `asset_binary_verifications`
+- `world_biome_compatibility`
+- `world_water_bindings`
+- `world_landform_bindings`
+- `world_vegetation_bindings`
+- `world_transition_bindings`
+
+The migration was applied successfully to the live Supabase project and the six new tables were verified with RLS enabled.
+
+**Important:** these tables contain no seeded WORLD approvals yet. New bindings default to candidate/pending states, so schema creation does not silently promote any audited PNG to approved status.
+
+Detailed contract: `assets/_documentation/ASSET_LIBRARY_SCHEMA_V1_2026-09-26.md`.
+
