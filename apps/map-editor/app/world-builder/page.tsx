@@ -12,7 +12,7 @@ function WorldBuilderWorkspace() {
   const searchParams = useSearchParams();
   const { user, loading } = useAuthUser();
   const startMode = searchParams.get("load") === "1" ? "load" : "create";
-  const workspace = searchParams.get("workspace") || "world-map";
+  const workspace = searchParams.get("workspace") || "world";
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
@@ -23,15 +23,15 @@ function WorldBuilderWorkspace() {
   return (
     <WorldBuilderErrorBoundary>
       <WorldBuilderWorkspaceShell activeWorkspace={workspace}>
-        {workspace === "world-map" ? (
+        {workspace === "world" ? (
           <VendrithWorldBuilderApp startMode={startMode} />
         ) : (
           <section className="world-workspace-placeholder">
             <div>
               <span className="world-workspace-eyebrow">WORLD BUILDER</span>
               <h1>{workspaceLabel(workspace)}</h1>
-              <p>Workspace shell siap. Mesin editor yang sudah terverifikasi tetap berada di World Map sampai workspace ini diimplementasikan.</p>
-              <button onClick={() => router.push("/world-builder?workspace=world-map&load=1")}>Open World Map</button>
+              <p>Workspace ini disiapkan untuk kategori {workspaceLabel(workspace)}. Mesin editor World yang sudah terverifikasi tetap tidak disentuh.</p>
+              <button onClick={() => router.push("/world-builder?workspace=world&load=1")}>Open World</button>
             </div>
           </section>
         )}
@@ -41,21 +41,7 @@ function WorldBuilderWorkspace() {
 }
 
 function workspaceLabel(value: string) {
-  const labels: Record<string, string> = {
-    preview: "Preview",
-    building: "Building World",
-    generate: "Generate Life",
-    spawn: "Spawn Life",
-    organize: "Organize the World",
-    library: "Library Asset",
-    settings: "World Settings",
-    weather: "Weather",
-    time: "Time / Seasons",
-    validation: "Validation",
-    versions: "Save / Load / Versions",
-    project: "Project / World Management",
-    "world-map": "World Map",
-  };
+  const labels: Record<string, string> = { world: "World", region: "Region", playable: "Playable", interior: "Interior" };
   return labels[value] || "World Workspace";
 }
 
