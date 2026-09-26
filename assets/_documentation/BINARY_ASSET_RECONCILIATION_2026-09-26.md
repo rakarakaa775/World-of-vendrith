@@ -408,3 +408,10 @@ A filename-focused enumeration found **33 PNG candidates** with snow/ice/frozen/
 Official LPC sources confirm snow/ice terrain and snowy overworld/landform variants, but exact repository binary provenance still requires source-path and binary identity reconciliation. citeturn0search0turn0search1turn0search5
 
 Detailed audit: `WORLD_SNOW_TUNDRA_FROZEN_AUDIT_2026-09-26.md`.
+
+
+## WORLD tenth reconciliation checkpoint — Ground / Terrain Core — 2026-09-26
+
+A broad filename discovery returned **144 PNG paths**, but only a conservative subset is Ground Core. Grass, dirt/soil and beach have direct candidates; stone and mud remain conservative/source-level classifications until exact binary identity is verified. The official LPC Terrains source explicitly covers grass, dirt, stone, mud and beach. citeturn0search0
+
+Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
