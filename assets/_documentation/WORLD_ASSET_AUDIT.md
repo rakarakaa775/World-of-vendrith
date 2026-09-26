@@ -114,3 +114,20 @@ WORLD is now the completed classification/audit unit. REGION can be audited as a
 - https://opengameart.org/content/lpc-overworld-0
 - https://opengameart.org/content/lpc-revised-4-season-terrain
 - https://opengameart.org/content/frozen-lake-lpc
+
+## LPC Terrains focused audit — 2026-09-26
+
+The repository contains exactly **59** `lpc_terrain__*.png` binaries in the WORLD terrain staging path. Their classification is locked in `LPC_TERRAINS_WORLD_AUDIT_2026-09-26.md`.
+
+For water, the canonical taxonomy is:
+
+- **Coastal / Shallow** — transition tiles involving sand, red sand or grass.
+- **Open Water** — `lpc_terrain__water.png`.
+- **Deep Water** — `lpc_terrain__deepwater.png`, `lpc_terrain__deepwater2.png`.
+- **Brackish** — `lpc_terrain__brackish.png`.
+- **Cold Water** — `coldwater*` and related cold-water transitions.
+- **Frozen / Ice** — `ice*` and `snowice`, without assuming sea-ice origin.
+
+The six `tileset01a-f` files remain source-tileset candidates pending visual/source verification. This prevents filename-based overclassification.
+
+This focused audit is metadata-only: no PNG duplication or relocation is required. Provenance and checksum approval remain controlled separately.
