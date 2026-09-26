@@ -415,3 +415,10 @@ Detailed audit: `WORLD_SNOW_TUNDRA_FROZEN_AUDIT_2026-09-26.md`.
 A broad filename discovery returned **144 PNG paths**, but only a conservative subset is Ground Core. Grass, dirt/soil and beach have direct candidates; stone and mud remain conservative/source-level classifications until exact binary identity is verified. The official LPC Terrains source explicitly covers grass, dirt, stone, mud and beach. citeturn0search0
 
 Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
+
+
+## WORLD eleventh reconciliation checkpoint — Ground Transitions — 2026-09-26
+
+A focused scan found **29 transition-related PNG candidates**. The LPC terrain source was explicitly designed for seamless terrain composition and supports selected multi-terrain combinations; this validates keeping transitions as logical compatibility metadata rather than duplicating binaries. citeturn0search0turn0search8
+
+Detailed audit: `WORLD_GROUND_TRANSITIONS_AUDIT_2026-09-26.md`.
