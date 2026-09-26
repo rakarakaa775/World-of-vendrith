@@ -190,3 +190,10 @@ A filename-focused scan identified **21 PNG candidates** related to brackish wat
 No generic plant/dead-tree/fungi binary is automatically classified as swamp vegetation. The detailed audit is recorded in `WORLD_SWAMP_WETLANDS_AUDIT_2026-09-26.md`.
 
 The upstream [LPC] Terrains ecosystem includes bog among its terrain content, but that does not prove exact binary identity for any current repository PNG. 
+
+
+## Snow / Tundra / Frozen Landscapes focused audit — 2026-09-26
+
+Filename scan found **33 PNG candidates** containing snow, ice, frozen, winter or cold semantics. Strong groups include snow ground, snow transitions, frozen/ice terrain, snowy mountains/hills/cliffs/rocks, and snowy forest/tree variants. Cold-water combinations remain distinct from frozen water until visually verified.
+
+The repository has a substantial winter/frozen asset family, but no filename-explicit dedicated tundra vegetation family. Tundra therefore remains a metadata-defined biome context rather than an invented binary classification. Detailed audit: `WORLD_SNOW_TUNDRA_FROZEN_AUDIT_2026-09-26.md`.
