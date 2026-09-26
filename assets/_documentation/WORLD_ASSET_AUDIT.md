@@ -131,3 +131,23 @@ For water, the canonical taxonomy is:
 The six `tileset01a-f` files remain source-tileset candidates pending visual/source verification. This prevents filename-based overclassification.
 
 This focused audit is metadata-only: no PNG duplication or relocation is required. Provenance and checksum approval remain controlled separately.
+
+
+## Natural landforms focused audit — 2026-09-26
+
+A filename-level audit now covers **23 natural landform binaries** staged under WORLD terrain:
+- 9 mountain-related
+- 3 hills
+- 4 cliffs
+- 7 natural rocks
+
+The detailed classification and provenance boundaries are recorded in `WORLD_MOUNTAINS_HILLS_CLIFFS_ROCKS_AUDIT_2026-09-26.md`.
+
+Important provenance separation:
+- ordinary [LPC] Mountains → CC-BY-SA 4.0 / CC-BY-SA 3.0 source family;
+- Mountains from The Mana World → separate GPL 2.0 source family;
+- [LPC] Overworld → separate CC-BY-SA 3.0 / GPL 3.0 source family;
+- [LPC] Rocks → separate multi-author CC-BY-SA source family;
+- grass-topped cliff/mountain derivatives → separate source record until binary identity is confirmed.
+
+Filename classification is not binary provenance approval. Ambiguous assets remain pending exact source/binary verification.
