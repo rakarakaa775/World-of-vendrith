@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState, type ReactNode } from "react";
 
-type Props = { activeWorkspace: string; children: React.ReactNode };
+type Props = { activeWorkspace: string; children: ReactNode };
 
 const groups = [
   { title: "World", items: [["world", "World"]] },
@@ -13,6 +14,7 @@ const groups = [
 
 export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props) {
   const router = useRouter();
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const navigate = (workspace: string) =>
     router.push(workspace === "world"
       ? "/world-builder?workspace=world&load=1"
@@ -38,16 +40,27 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
         </div>
       </header>
 
-      <div className="world-builder-layout">
+      <div className={`world-builder-layout${navCollapsed ? " nav-collapsed" : ""}`}>
         <aside className="world-builder-nav" aria-label="World Builder navigation">
-          <div className="world-builder-nav-title">World Builder</div>
+          <div className="world-builder-nav-title">
+            <span>World Builder</span>
+            <button
+              type="button"
+              className="world-builder-nav-toggle"
+              onClick={() => setNavCollapsed(value => !value)}
+              aria-label={navCollapsed ? "Tampilkan menu" : "Sembunyikan menu"}
+              title={navCollapsed ? "Tampilkan menu" : "Sembunyikan menu"}
+            >
+              {navCollapsed ? "›" : "‹"}
+            </button>
+          </div>
           {groups.map(group => (
             <section key={group.title}>
               <h2>{group.title}</h2>
               {group.items.map(([id, label]) => (
                 <button key={id} className={activeWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={activeWorkspace === id ? "page" : undefined}>
                   <span>{iconFor(id)}</span>
-                  {label}
+                  <span className="world-builder-nav-label">{label}</span>
                 </button>
               ))}
             </section>
