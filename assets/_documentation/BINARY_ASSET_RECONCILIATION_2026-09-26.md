@@ -279,3 +279,40 @@ For this reason, the current 144-file count should be read as **144 WORLD candid
 **WORLD authoring/source files: 0**  
 **MAP-ROLE RECONCILIATION: WORLD structural cleanup complete**  
 **PROVENANCE / CHECKSUM VERIFICATION: IN PROGRESS — individual binary approval pending**
+
+
+## WORLD fourth checkpoint — LPC Terrains provenance boundary
+
+OpenGameArt's **[LPC] Terrains** identifies bluecarrot16 as author and Zabin as collaborator. The pack covers grass, dirt, rock, stone, cobblestone, mud, water, snow, ice, lava, sand, beach and bog, and lists CC-BY-SA 4.0 and CC-BY-SA 3.0. Its attribution notice requires crediting all authors listed in `CREDITS-terrain.txt` and linking back to the OpenGameArt page. citeturn0search0
+
+This confirms that the terrain family is appropriate for WORLD, but it does **not** by itself prove that every similarly named repository PNG is an exact byte-for-byte copy of the upstream file. The repository therefore keeps individual binary identity and source-path verification as a separate approval step.
+
+The related **[LPC] Terrains Repacked** submission states that it repacks the LPC Terrains tiles into a 4096×4096 image and retains the same attribution requirements. A repository file named like a repacked/exported terrain atlas must therefore retain its exact upstream/repack provenance rather than being silently attributed to a generic terrain source. citeturn0search4
+
+### Special mountain license boundary
+
+The separate **[LPC] Mountains from The Mana World** package is GPL 2.0, not the CC-BY-SA licensing shown for the main LPC Mountains package. Its three mountain-v6 TMW PNGs must therefore remain separately identified in the provenance registry and must not be merged into the main CC-BY-SA mountain credit record. citeturn0search2
+
+The main **[LPC] Mountains** page also explicitly warns that its preview/Tiled material contains LPC Terrains content, so the terrain attribution requirements continue to apply where that material is included. citeturn0search1
+
+## World Building Asset Library checkpoint
+
+A visual Asset Library is now defined at `apps/map-editor/WORLD_BUILDING_ASSET_LIBRARY.md`.
+
+The intended model is:
+
+`Asset Registry → Asset Library → Terrain Binding → World Builder placement`
+
+The library will show thumbnails/previews, names, categories, biome/environment tags, source family, license/provenance status, runtime status, dimensions/tile size and placement capability. It will support sheet preview, tile preview, placement preview and terrain/autotile preview where metadata allows.
+
+This is deliberately a **metadata/reference layer**, not another binary asset library. Canonical binaries remain stored once, while the World Builder reads their registered paths and runtime bindings.
+
+This will also let us visually inspect which WORLD assets are actually available before placing them, instead of relying only on filenames.
+
+## Updated current checkpoint
+
+**WORLD staging: 144 PNG binaries**  
+**WORLD authoring/source files: 0**  
+**MAP-ROLE RECONCILIATION: WORLD structural cleanup complete**  
+**PROVENANCE / CHECKSUM VERIFICATION: IN PROGRESS — individual binary approval pending**  
+**WORLD BUILDING ASSET LIBRARY: DESIGN CONTRACT ADDED — UI IMPLEMENTATION PENDING**
