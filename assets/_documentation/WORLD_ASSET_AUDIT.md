@@ -216,3 +216,19 @@ Focused filename scan found **29 transition-related PNG candidates**. Strong fam
 ## Natural Hazards / Special Terrain — 2026-09-26
 
 Focused scan found **14 PNG candidates**: lava/volcanic terrain, waterfall, cave sheets, and natural hole/depression variants. Lava, waterfall and volcanic rock receive dedicated special-terrain metadata; holes remain natural-depression mechanics and are not automatically caves. Cave sheets remain role-pending until visual verification. Detailed audit: `WORLD_NATURAL_HAZARDS_SPECIAL_TERRAIN_AUDIT_2026-09-26.md`.
+
+
+## Shorelines / Rivers / Lakes / Water Features — 2026-09-26
+
+A focused water-feature audit found **40 filename matches**, then conservatively separated false positives from actual water assets. Strong feature candidates include `LPC_Overworld__River.png`, `LPC_Overworld__Water.png`, `LPC_Overworld__Beach.png`, dedicated water tilesheets, `brackish`, `deepwater`, `coldwater`, and the existing waterfall sheet. Existing coastal/open/deep/cold/frozen water state taxonomy remains authoritative; river/lake/shoreline are feature roles layered over water state, not replacement water states.
+
+Recommended model:
+- `water_state`: COASTAL/SHALLOW, OPEN, DEEP, BRACKISH, COLD, FROZEN
+- `water_feature`: SHORELINE, RIVER, LAKE, WATERFALL, OCEAN/SEA
+- `transition`: LAND↔WATER, SHALLOW↔DEEP, OPEN↔DEEP, COLD↔SNOW, etc.
+
+`LPC_Overworld__River.png` is a RIVER feature candidate, while `lpc_terrain__deepwater*.png` remains DEEP water state. Do not infer a lake binary merely because a water tilesheet can be used to build a lake.
+
+Web research confirms LPC water resources distinguish animated/flowing water and waterfalls, and source discussion distinguishes visual behavior for ponds, rivers, depth and shore edges. citeturn0search1turn0search11
+
+Detailed audit: `WORLD_SHORELINES_RIVERS_LAKES_WATER_FEATURES_AUDIT_2026-09-26.md`.
