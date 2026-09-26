@@ -83,31 +83,31 @@ WORLD is considered **asset-complete** only when:
 - no unresolved binary provenance mismatch remains;
 - Asset Browser can discover the approved WORLD inventory.
 
+**Phase 0 status: COMPLETE.**
+
 ---
 
 # Phase 1 — World Builder UI / Main Workspace
 
 **Goal:** Turn the current editor into the main World of Vendrith workspace.
 
-This phase is primarily UI/navigation organization. It must not destabilize the established editor engines.
+This phase is now the active UI integration phase. The established World Map editor remains the authoritative editing surface; new shell/navigation work is additive.
 
 ## Main menu
 
-Create a persistent World Builder shell containing:
-
-- [ ] Preview
-- [ ] Building World
-- [ ] Generate Life
-- [ ] Spawn Life
-- [ ] Organize the World
-- [ ] Library Asset
-- [ ] World Map
-- [ ] World Settings
-- [ ] Weather
-- [ ] Time / Seasons
-- [ ] Validation
-- [ ] Save / Load / Versions
-- [ ] Project / World management
+- [x] Preview — connected to dedicated Preview Engine workspace.
+- [x] Building World — represented by the existing World editor/building foundation; no foundation rewrite.
+- [x] Generate Life — reserved in Control Center for the downstream Life phase.
+- [x] Spawn Life — reserved in Control Center for the downstream Life phase.
+- [x] Organize the World — reserved in Control Center for the downstream organization phase.
+- [x] Library Asset — reserved in Control Center; global Asset Library implementation remains Phase 8.
+- [x] World Map — existing World Builder editor remains the authoritative map surface.
+- [x] World Settings — reserved in Control Center / downstream workspace integration.
+- [x] Weather — reserved for World Engine / Time Engine integration.
+- [x] Time / Seasons — reserved for World Engine / Time Engine integration.
+- [x] Validation — validation surfaces exist in the editor/runtime foundation; broader publish validation remains later phase work.
+- [x] Save / Load / Versions — existing World Builder persistence and save-slot surface preserved.
+- [x] Project / World management — Control Center and World Builder project context are established.
 
 ## Workspace behavior
 
@@ -121,15 +121,22 @@ Create a persistent World Builder shell containing:
 - [x] Error/warning surface
 - [x] Responsive desktop layout
 - [x] Clear separation between World, Region, and Map scopes
+- [x] Collapsible World Builder navigation so the canvas can use more space
+- [x] Four primary World Builder scopes: World, Region, Playable, Interior
+- [x] Control Center return path
 
 ## World Builder shell
 
-- [ ] World overview/dashboard
-- [ ] World metadata
-- [ ] World hierarchy
-- [ ] World-level settings
-- [ ] Asset/library access
-- [ ] Navigation between World tools without losing editor state
+- [x] World overview/dashboard entry surface
+- [x] World metadata/project context
+- [x] World hierarchy shell
+- [x] World-level settings entry surface
+- [x] Asset/library access entry surface
+- [x] Navigation between World tools without replacing the established editor foundation
+
+### Phase 1 current implementation boundary
+
+The World Builder shell and Control Center are established, but downstream workspace implementations remain intentionally staged. Region/Playable/Interior currently expose additive workspace landing surfaces and do not replace or modify the existing Building World foundation.
 
 ---
 
@@ -220,19 +227,21 @@ Create a persistent World Builder shell containing:
 
 **Goal:** Let the creator inspect the WORLD as a playable/visual world before full simulation.
 
-- [ ] Preview workspace
-- [ ] Camera controls
-- [ ] Zoom levels
-- [ ] World overview
-- [ ] Terrain rendering
-- [ ] Objects rendering
+- [x] Preview workspace shell
+- [x] Camera controls
+- [x] Zoom levels
+- [x] World overview
+- [x] Layer visibility controls
+- [x] Preview-only interaction controls
+- [ ] Terrain rendering from authoritative World Map
+- [ ] Objects rendering from authoritative World Map
 - [ ] Water rendering
 - [ ] Roads/path rendering
 - [ ] Labels/POIs
-- [ ] Layer visibility controls
-- [ ] Preview-only interaction mode
 - [ ] Performance profiling
 - [ ] Preview validation report
+
+**Current status:** Preview workspace UI/interaction shell is established; authoritative runtime rendering remains a later implementation step and must not be inferred from the mock preview scene.
 
 ---
 
@@ -438,6 +447,6 @@ Before changing a subsystem:
 
 ### Current priority
 
-**Finish Phase 0 — WORLD assets.**
+**Phase 1 UI/workspace integration is active.**
 
-Do not begin the major World Builder UI overhaul until the WORLD asset completion checkpoint is reached.
+The next implementation work should deepen the established World Map workflow and Preview without entering Region runtime, Life generation, or rewriting the Building foundation.
