@@ -211,3 +211,8 @@ Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
 ## Ground Transitions / Edge & Blend Library — 2026-09-26
 
 Focused filename scan found **29 transition-related PNG candidates**. Strong families include grass↔water, sand↔water, snow↔grass/water/ice, cold-water transitions, and ice↔grass. These are modeled as relationships between materials rather than new biome categories. Detailed audit: `WORLD_GROUND_TRANSITIONS_AUDIT_2026-09-26.md`.
+
+
+## Natural Hazards / Special Terrain — 2026-09-26
+
+Focused scan found **14 PNG candidates**: lava/volcanic terrain, waterfall, cave sheets, and natural hole/depression variants. Lava, waterfall and volcanic rock receive dedicated special-terrain metadata; holes remain natural-depression mechanics and are not automatically caves. Cave sheets remain role-pending until visual verification. Detailed audit: `WORLD_NATURAL_HAZARDS_SPECIAL_TERRAIN_AUDIT_2026-09-26.md`.
