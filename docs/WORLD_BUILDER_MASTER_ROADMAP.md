@@ -116,9 +116,9 @@ Create a persistent World Builder shell containing:
 - [x] Breadcrumbs
 - [x] World/project selector
 - [x] Contextual toolbar
-- [ ] Global save state
-- [ ] Validation status
-- [ ] Error/warning surface
+- [x] Global save state
+- [x] Validation status
+- [x] Error/warning surface
 - [x] Responsive desktop layout
 - [x] Clear separation between World, Region, and Map scopes
 
