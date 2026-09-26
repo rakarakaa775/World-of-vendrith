@@ -127,12 +127,12 @@ This phase is now the active UI integration phase. The established World Map edi
 
 ## World Builder shell
 
-- [x] World overview/dashboard entry surface
+- [ ] World overview/dashboard entry surface
 - [x] World metadata/project context
-- [x] World hierarchy shell
-- [x] World-level settings entry surface
-- [x] Asset/library access entry surface
-- [x] Navigation between World tools without replacing the established editor foundation
+- [ ] World hierarchy shell
+- [ ] World-level settings entry surface
+- [ ] Asset/library access entry surface
+- [x] Navigation between the four World Builder scopes without replacing the established editor foundation
 
 ### Phase 1 current implementation boundary
 
