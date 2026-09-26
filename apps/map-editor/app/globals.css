@@ -219,7 +219,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .vandrith-preview-toolbar button:hover,.vandrith-preview-toolbar button.is-active{border-color:rgba(196,177,106,.3);background:rgba(194,173,102,.08);color:#d6c481}
 .vandrith-preview-toolbar-group span{min-width:42px;text-align:center;color:#7c8986;font:9px "Courier New",monospace}
 .vandrith-preview-stage{position:relative;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 258px;overflow:hidden;background:#0a1418}
-.vandrith-preview-scene{position:relative;overflow:hidden;background:linear-gradient(180deg,#172b32 0%,#254044 40%,#314b3f 40.5%,#1a302a 100%)}
+.vandrith-preview-scene{position:relative;overflow:hidden;background:linear-gradient(180deg,#172b32 0%,#254044 40%,#314b3f 40.5%,#1a302a 100%)}.vandrith-preview-authoritative-scene{background:#f5f7fa}.vandrith-preview-authoritative-scene .pixi-map-canvas-host{z-index:1}.vandrith-preview-authoritative-scene .vandrith-preview-coordinates{z-index:5}.vandrith-preview-empty{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:8px;color:#64748b;background:#f5f7fa;font:12px "Courier New",monospace;text-align:center}.vandrith-preview-empty strong{color:#334155;font-family:Arial,Helvetica,sans-serif}.vandrith-preview-empty span{max-width:80%;overflow-wrap:anywhere}
 .vandrith-preview-mist{position:absolute;width:48%;height:26%;border-radius:50%;background:rgba(191,210,201,.09);filter:blur(22px)}
 .mist-one{left:8%;top:18%}.mist-two{right:4%;top:31%;width:34%}
 .vandrith-preview-mountain{position:absolute;bottom:49%;width:70%;height:45%;clip-path:polygon(0 100%,19% 38%,32% 72%,51% 8%,67% 62%,82% 27%,100% 100%);background:#20373a}
