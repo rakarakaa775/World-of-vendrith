@@ -257,6 +257,14 @@ The strongest source-family matches currently identified are:
 
 The OpenGameArt source pages confirm that LPC Terrains covers ground terrain including grass, dirt, rock, water, snow, ice, lava, sand, beach and bog; LPC Mountains covers mountains, hills, cliffs, rocks and snow; LPC Rocks covers rocks/boulders/stones/pebbles; the Plants/Fungi/Wood pack covers flowers, bushes, small trees, fungi, leaves, stumps and logs; and LPC Jungle covers trees, plants, vines and giant trees. These sources carry their respective attribution/license requirements and should not be collapsed into a single generic credit. 
 
+### LPC Overworld binary checkpoint
+
+The current WORLD tree contains **21** `LPC_Overworld__*.png` binaries. All 21 resolve in Git as Git LFS pointers. Their repository-side SHA-256 OIDs and byte sizes have been recorded during this checkpoint.
+
+The OpenGameArt `[LPC] Overworld` source describes the same broad terrain family — grass, sand/desert, snow, water, forests, mountains, hills, rivers and rocks — but it also contains non-WORLD material such as houses, towns/castles, ships, docks, sea creatures and banners. Therefore only the natural subset belongs in WORLD; the repository's earlier reconciliation already moved the non-WORLD/context material out. citeturn0search1
+
+**Binary verification status:** LFS identity recorded; upstream-file checksum comparison is still pending. Do not mark these files fully approved solely from filename/source-family similarity.
+
 ### Important approval rule
 
 A source-family filename match is **not** sufficient for final approval. Each binary remains pending until the audit can establish:
