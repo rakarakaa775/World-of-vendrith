@@ -337,3 +337,12 @@ All 59 are now classified in `assets/_documentation/LPC_TERRAINS_WORLD_AUDIT_202
 This is metadata classification only. The PNGs are not duplicated or renamed, and source-family matching does not by itself promote the binaries to approved status.
 
 The repository tree currently provides Git object/pointer identities for all 59 files; final binary SHA-256 reconciliation remains a separate verification step.
+
+
+## WORLD fifth reconciliation checkpoint — Natural Landforms — 2026-09-26
+
+A focused filename-level pass identified **23** natural landform binaries in the WORLD terrain staging path: 9 mountains, 3 hills, 4 cliffs and 7 natural rocks.
+
+Detailed classification is recorded in `WORLD_MOUNTAINS_HILLS_CLIFFS_ROCKS_AUDIT_2026-09-26.md`.
+
+The audit explicitly separates ordinary [LPC] Mountains, Mountains from The Mana World (GPL 2.0), [LPC] Overworld, [LPC] Rocks, and grass-topped cliff/mountain derivatives. No ambiguous file receives a guessed provenance or license.
