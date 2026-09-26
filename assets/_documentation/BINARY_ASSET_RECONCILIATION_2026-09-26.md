@@ -399,3 +399,12 @@ No dedicated swamp vegetation binary was promoted solely from filename semantics
 Detailed audit: `WORLD_SWAMP_WETLANDS_AUDIT_2026-09-26.md`.
 
 **Approval remains pending:** `source package → source path → repository path → binary identity/SHA-256 → license → attribution`.
+
+
+## WORLD ninth reconciliation checkpoint — Snow / Tundra / Frozen Landscapes — 2026-09-26
+
+A filename-focused enumeration found **33 PNG candidates** with snow/ice/frozen/winter/cold semantics. Snow terrain, snowy landforms and snowy vegetation variants are distinguishable from frozen water and cold-water transitions. No dedicated tundra vegetation family was promoted from filename semantics alone.
+
+Official LPC sources confirm snow/ice terrain and snowy overworld/landform variants, but exact repository binary provenance still requires source-path and binary identity reconciliation. citeturn0search0turn0search1turn0search5
+
+Detailed audit: `WORLD_SNOW_TUNDRA_FROZEN_AUDIT_2026-09-26.md`.
