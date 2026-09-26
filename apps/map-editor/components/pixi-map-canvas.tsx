@@ -90,6 +90,7 @@ export function PixiMapCanvas(props: Props) {
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
+  const brushPreviewRef = useRef<Graphics | null>(null);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   propsRef.current = props;
@@ -269,9 +270,8 @@ export function PixiMapCanvas(props: Props) {
       const preview = new Graphics();
       preview.eventMode = "none";
       preview.zIndex = 999;
-      brushPreview = preview;
+      brushPreviewRef.current = preview;
       world.addChild(preview);
-      syncBrushPreview(null);
       app.stage.hitArea = app.screen;
       if (!viewportInitializedRef.current) {
         viewportRef.current = {
@@ -362,8 +362,8 @@ export function PixiMapCanvas(props: Props) {
     let activePointerId: number | null = null;
     let spaceHeld = false;
     let movingObjectId: string | null = null;
-    let brushPreview: Graphics | null = null;
     const syncBrushPreview = (p: GridPoint | null) => {
+      const brushPreview = brushPreviewRef.current;
       if (!brushPreview) return;
       brushPreview.clear();
       const current = propsRef.current;
