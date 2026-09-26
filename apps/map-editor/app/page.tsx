@@ -18,14 +18,14 @@ export default function HomePage() {
       <section className="vandrith-home-card">
         <div className="vandrith-emblem" aria-hidden="true">✦</div>
         <p className="vandrith-kicker">WORLD OF VENDRITH</p>
-        <h1>Vandrith Map Editor</h1>
+        <h1>Vendrith World Builder</h1>
         <p className="vandrith-subtitle">Shape the lands, build the world, and preserve every map of Vendrith.</p>
 
         {loading ? <p className="vandrith-auth-status">Checking account...</p> : user ? (
           <>
             <p className="vandrith-welcome">Welcome, <strong>{user.username}</strong></p>
-            <nav className="vandrith-home-actions" aria-label="Map editor menu">
-              <button onClick={() => router.push("/editor")}><span>✦</span><strong>Buat Map</strong><small>Create a new world</small></button>
+            <nav className="vandrith-home-actions" aria-label="World Builder menu">
+              <button onClick={() => router.push("/editor")}><span>✦</span><strong>World Builder</strong><small>Create and shape a world</small></button>
               <button onClick={() => router.push("/editor?load=1")}><span>◈</span><strong>Load Map</strong><small>Open an existing map</small></button>
               <button onClick={() => router.push("/credits")}><span>◇</span><strong>Credits</strong><small>Asset & creator credits</small></button>
             </nav>
@@ -37,7 +37,7 @@ export default function HomePage() {
             <p className="vandrith-auth-note">Save, Load, dan Save Slot akan terikat ke akun yang sedang login.</p>
           </>
         )}
-        <p className="vandrith-version">Vandrith Map Editor · Development Edition</p>
+        <p className="vandrith-version">Vendrith World Builder · Development Edition</p>
       </section>
     </main>
   );
