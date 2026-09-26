@@ -197,3 +197,12 @@ The upstream [LPC] Terrains ecosystem includes bog among its terrain content, bu
 Filename scan found **33 PNG candidates** containing snow, ice, frozen, winter or cold semantics. Strong groups include snow ground, snow transitions, frozen/ice terrain, snowy mountains/hills/cliffs/rocks, and snowy forest/tree variants. Cold-water combinations remain distinct from frozen water until visually verified.
 
 The repository has a substantial winter/frozen asset family, but no filename-explicit dedicated tundra vegetation family. Tundra therefore remains a metadata-defined biome context rather than an invented binary classification. Detailed audit: `WORLD_SNOW_TUNDRA_FROZEN_AUDIT_2026-09-26.md`.
+
+
+## Ground / Terrain Core focused audit — 2026-09-26
+
+A broad filename discovery scan returned 144 PNG paths because generic words such as terrain, grass, dirt, sand and rock occur throughout biome-specific sheets. This is a discovery count, not a Ground Core approval count.
+
+Conservative Ground Core candidates include grass variants (`LPC_Overworld__Grass.png`, `lpc_terrain__grass*.png`), dirt/soil variants (`lpc_terrain__dirt*.png`, `tilesets_edit__10_dirt.png`), and beach candidates (`LPC_Overworld__Beach.png`, `tilesets_edit__9_beach.png`). Stone remains sheet-level pending visual/source verification. Mud is confirmed as a source-family terrain in LPC Terrains but no filename-explicit mud binary is promoted yet.
+
+Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
