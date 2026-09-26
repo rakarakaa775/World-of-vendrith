@@ -77,7 +77,7 @@ export default function PreviewPage() {
             <span />
             <span />
           </div>
-          {showCoordinates && <div className="vandrith-preview-coordinates">X 064 · Y 041 · REGION NORTH VALE</div>
+          {showCoordinates && <div className="vandrith-preview-coordinates">X 064 · Y 041 · REGION NORTH VALE</div>}
         </div>
 
         <aside className="vandrith-preview-inspector">
