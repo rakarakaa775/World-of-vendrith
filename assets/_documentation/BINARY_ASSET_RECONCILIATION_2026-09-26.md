@@ -372,3 +372,19 @@ Important source boundaries:
 The detailed classification is recorded in `WORLD_FOREST_WOODLAND_CONIFER_JUNGLE_AUDIT_2026-09-26.md`.
 
 **Approval remains pending:** `source package → source path → repository path → binary identity/SHA-256 → license → attribution`.
+
+
+## WORLD seventh reconciliation checkpoint — Desert — 2026-09-26
+
+A direct repository-tree enumeration identified **17 desert/sand PNG candidates** in WORLD terrain staging.
+
+- 4 desert terrain files
+- 10 sand/water transition files
+- 3 desert landform files
+- 0 filename-explicit dedicated desert-vegetation files
+
+The absence of a dedicated desert-vegetation filename is recorded explicitly rather than filling the gap from an external source assumption. The official [LPC] Beach / Desert pack contains cacti, desert plants and dry trees, but a repository binary must be located and checksum/source-reconciled before receiving that binding. citeturn0search0
+
+Detailed classification: `WORLD_DESERT_DESERT_VEGETATION_AUDIT_2026-09-26.md`.
+
+**Approval remains pending:** `source package → source path → repository path → binary identity/SHA-256 → license → attribution`.
