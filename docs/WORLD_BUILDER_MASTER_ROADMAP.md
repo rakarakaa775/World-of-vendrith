@@ -191,7 +191,7 @@ The World Builder shell and Control Center are established, but downstream works
 
 ## Asset placement
 
-- [ ] Asset browser integration
+- [x] Asset browser integration
 - [ ] Drag/drop
 - [ ] Stamp placement
 - [ ] Scatter
@@ -235,15 +235,15 @@ The World Builder shell and Control Center are established, but downstream works
 - [x] World overview
 - [x] Layer visibility controls
 - [x] Preview-only interaction controls
-- [ ] Terrain rendering from authoritative World Map
-- [ ] Objects rendering from authoritative World Map
+- [x] Terrain rendering from authoritative World Map
+- [x] Objects rendering from authoritative World Map
 - [ ] Water rendering
 - [ ] Roads/path rendering
 - [ ] Labels/POIs
 - [ ] Performance profiling
 - [ ] Preview validation report
 
-**Current status:** Preview workspace UI/interaction shell is established; authoritative runtime rendering remains a later implementation step and must not be inferred from the mock preview scene.
+**Current status:** Preview workspace now consumes the authoritative World Map snapshot and the same Pixi terrain/object renderer used by World Map Studio. Water and other future runtime layers remain staged separately.
 
 ---
 
