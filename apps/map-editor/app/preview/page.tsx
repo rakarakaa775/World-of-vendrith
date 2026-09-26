@@ -67,35 +67,6 @@ export default function PreviewPage() {
   }, [loading, user, loadAuthoritativeWorld, refreshKey]);
 
 
-      const client = createMapEditorSupabaseClient();
-      if (!client) {
-        setLoadStatus("Supabase client unavailable");
-        return;
-      }
-      try {
-        const loaded = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
-        if (!loaded.document) {
-          throw new Error(loaded.result.error || loaded.result.code || "Authoritative World Map snapshot unavailable");
-        }
-        const binding = await client
-          .from("vandrith_asset_binding_workbench")
-          .select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id,tile_region");
-        if (binding.error) throw binding.error;
-        const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
-        if (cancelled) return;
-        setDocument(loaded.document);
-        setTerrainBindings(terrain.bindings);
-        setLoadStatus(
-          loaded.result.code === "durable-version-fallback"
-            ? `Authoritative World · version ${loaded.result.version_number || "?"} · durable fallback`
-            : `Authoritative World · version ${loaded.result.version_number || "?"}`,
-        );
-      } catch (error) {
-        if (cancelled) return;
-        setLoadStatus(error instanceof Error ? error.message : String(error));
-      }
-
-
   const previewDocument = useMemo(() => {
     if (!document) return null;
     return {
