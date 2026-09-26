@@ -65,8 +65,8 @@ The existing map-editor foundations, persistence architecture, Supabase authorit
 - [ ] Runtime candidate generation for verified WORLD terrain.
 - [ ] Runtime candidate review.
 - [ ] Runtime approval only after semantic verification.
-- [ ] Verify every WORLD asset family has a usable registry path.
-- [ ] Verify WORLD Asset Browser can enumerate the final registry.
+- [~] Verify every WORLD asset family has a usable registry path — binary inventory complete; registry coverage still partial.
+- [ ] Verify WORLD Asset Browser can enumerate the final approved registry.
 - [ ] WORLD asset validation pass.
 - [ ] WORLD asset completion checkpoint.
 
