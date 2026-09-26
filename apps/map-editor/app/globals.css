@@ -269,3 +269,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
   .vandrith-preview-toolbar-group:first-child button:nth-child(n+3){display:none}
   .vandrith-preview-mode{display:none}
 }
+
+.world-builder-home-button{width:30px;height:30px;display:grid;place-items:center;padding:0;border:1px solid rgba(196,177,106,.24);border-radius:7px;background:rgba(196,177,106,.05);color:#cdbb79;font-size:20px;line-height:1;flex:0 0 auto}
+.world-builder-home-button:hover{border-color:rgba(196,177,106,.55);background:rgba(196,177,106,.1);color:#eee4c2}
+.world-builder-brand{display:flex;align-items:center;gap:8px}
