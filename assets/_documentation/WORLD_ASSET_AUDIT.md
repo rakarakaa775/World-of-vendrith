@@ -151,3 +151,22 @@ Important provenance separation:
 - grass-topped cliff/mountain derivatives → separate source record until binary identity is confirmed.
 
 Filename classification is not binary provenance approval. Ambiguous assets remain pending exact source/binary verification.
+
+
+## Natural vegetation focused audit — Forest / Woodland / Conifer / Jungle — 2026-09-26
+
+A focused enumeration identified **25 PNG candidates** in WORLD terrain staging whose filenames indicate forest, trees, plants, seasonal vegetation or jungle roles. The detailed audit is recorded in `WORLD_FOREST_WOODLAND_CONIFER_JUNGLE_AUDIT_2026-09-26.md`.
+
+Canonical logical bindings now distinguish:
+- FOREST / woodland / deciduous;
+- CONIFER as a separate class, but only after visual/source verification;
+- seasonal vegetation;
+- orchard / fruit trees;
+- understory / plants;
+- JUNGLE with giant trees, viney trees, giant plants and giant fungi.
+
+No current binary is promoted to CONIFER merely because the official LPC Conifers source exists; the current 25-file filename enumeration contains no explicit dedicated conifer filename. Repacked/edited/submission sheets remain provenance-pending.
+
+The main source boundaries are preserved: [LPC] Forest tiles, [LPC] Trees, [LPC] Conifers, [LPC] Jungle, [LPC] Fruit Trees, All Seasons Apple Tree, LPC Orange Trees, and Flowers / Plants / Fungi / Wood are separate source records with different attribution/license requirements. 
+
+This is metadata classification only. No PNG duplication is required, and filename/source-family similarity is not binary approval.
