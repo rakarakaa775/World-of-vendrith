@@ -7,7 +7,7 @@ import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
 import type { Selection } from "../editor/selection";
 import { normalizeSelection } from "../editor/selection";
-import { pointsInFloodFill, pointsInLine, pointsInRectangle, pointsInSquare } from "../editor/paint-tools";
+import { pointsInFloodFill, pointsInLine, pointsInRectangle } from "../editor/paint-tools";
 import { neighborMask, terrainFromTileId } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
@@ -65,7 +65,20 @@ const textureForTerrainBinding = (texture: Texture, assetId: string, region: Non
 const expandBrush = (points: GridPoint[], size: number) => {
   if (size <= 1) return points;
   const unique = new Map<string, GridPoint>();
-  for (const point of points) for (const expanded of pointsInSquare(point, size)) unique.set(pointKey(expanded), expanded);
+  // Terrain brushes use a circular footprint; size is the brush diameter in cells.
+  const radius = (size - 1) / 2;
+  const minOffset = -Math.ceil(radius);
+  const maxOffset = Math.ceil(radius);
+  for (const point of points) {
+    for (let dy = minOffset; dy <= maxOffset; dy++) {
+      for (let dx = minOffset; dx <= maxOffset; dx++) {
+        if (Math.hypot(dx, dy) <= radius + 0.5) {
+          const expanded = { x: point.x + dx, y: point.y + dy };
+          unique.set(pointKey(expanded), expanded);
+        }
+      }
+    }
+  }
   return [...unique.values()];
 };
 
