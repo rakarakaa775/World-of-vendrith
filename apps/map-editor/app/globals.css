@@ -273,3 +273,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .world-builder-home-button{width:30px;height:30px;display:grid;place-items:center;padding:0;border:1px solid rgba(196,177,106,.24);border-radius:7px;background:rgba(196,177,106,.05);color:#cdbb79;font-size:20px;line-height:1;flex:0 0 auto}
 .world-builder-home-button:hover{border-color:rgba(196,177,106,.55);background:rgba(196,177,106,.1);color:#eee4c2}
 .world-builder-brand{display:flex;align-items:center;gap:8px}
+
+.world-workspace-landing{height:100%;min-height:520px;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;padding:28px;background:radial-gradient(circle at 20% 10%,rgba(74,99,110,.16),transparent 38%),#0b0f14}
+.world-workspace-hero{align-self:center;max-width:780px;padding:34px;border:1px solid rgba(196,177,106,.22);border-radius:14px;background:linear-gradient(145deg,rgba(21,28,34,.94),rgba(12,17,22,.92));box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.world-workspace-eyebrow{display:block;color:#bba765;font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}
+.world-workspace-hero h1{margin:10px 0 12px;font-size:clamp(34px,5vw,58px);letter-spacing:-.02em}
+.world-workspace-hero p{max-width:680px;margin:0;color:#aeb8c1;line-height:1.65}
+.world-workspace-tools{display:flex;flex-wrap:wrap;gap:7px;margin:24px 0}
+.world-workspace-tools span{padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#11171d;color:#d1d8de;font-size:11px}
+.world-workspace-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:24px}
+.world-workspace-actions button{border-color:#8d7b43;background:#29291f;color:#eee4c2;font-weight:700}
+.world-workspace-actions span{color:#77838d;font-size:11px}
+.world-workspace-status{align-self:start;padding:18px;border:1px solid var(--line);border-radius:10px;background:#10151b}
+.world-workspace-status>span{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em}
+.world-workspace-status strong{display:block;margin:8px 0;color:#bfcfbd;font-size:12px}
+.world-workspace-status small{display:block;color:#77838d;line-height:1.5}
+@media(max-width:800px){.world-workspace-landing{grid-template-columns:1fr;padding:16px}.world-workspace-status{align-self:auto}.world-workspace-hero{padding:24px}}
