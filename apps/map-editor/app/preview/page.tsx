@@ -12,6 +12,8 @@ export default function PreviewPage() {
   const [zoom, setZoom] = useState(100);
   const [layers, setLayers] = useState([true, true, false, false, false]);
   const [playing, setPlaying] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showCoordinates, setShowCoordinates] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
@@ -49,6 +51,8 @@ export default function PreviewPage() {
           <span>{zoom}%</span>
           <button type="button" onClick={() => setZoom(value => Math.min(200, value + 10))}>+</button>
           <button type="button" onClick={() => setZoom(100)} aria-label="Reset zoom">⌖</button>
+          <button type="button" className={showGrid ? "is-active" : ""} onClick={() => setShowGrid(value => !value)} aria-pressed={showGrid}>Grid</button>
+          <button type="button" className={showCoordinates ? "is-active" : ""} onClick={() => setShowCoordinates(value => !value)} aria-pressed={showCoordinates}>XY</button>
         </div>
       </div>
 
@@ -73,7 +77,7 @@ export default function PreviewPage() {
             <span />
             <span />
           </div>
-          <div className="vandrith-preview-coordinates">X 064 · Y 041 · REGION NORTH VALE</div>
+          {showCoordinates && <div className="vandrith-preview-coordinates">X 064 · Y 041 · REGION NORTH VALE</div>
         </div>
 
         <aside className="vandrith-preview-inspector">
