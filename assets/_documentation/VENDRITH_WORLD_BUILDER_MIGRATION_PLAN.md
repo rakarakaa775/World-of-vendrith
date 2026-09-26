@@ -61,7 +61,7 @@ REGION
 
 ### Phase 1 — Terminologi
 
-**Status: IN PROGRESS — baseline terminology migrated.**
+**Status: COMPLETE — Phase 1 application terminology and route migration finished.**
 
 Completed:
 - Product metadata renamed to **Vendrith World Builder**.
@@ -72,7 +72,7 @@ Completed:
 
 Still intentionally retained:
 - `apps/map-editor/` technical directory path.
-- Internal `MapEditor*` identifiers where changing them would require coordinated source/file migration.
+- Legacy `/editor` is now a redirect to `/world-builder`.
 - Database/RPC names that are existing persistence contracts.
 
 Ganti istilah produk/UI:
@@ -290,4 +290,4 @@ Migrasi dianggap selesai ketika:
 - REGION: taxonomy/source audit complete; binary pending.
 - PLAYABLE: taxonomy/source audit complete; binary pending.
 - INTERIOR: taxonomy/source audit complete; binary pending.
-- Vendrith World Builder migration: **PHASE 1 IN PROGRESS / TECHNICAL PATH MIGRATION PENDING**.
+- Vendrith World Builder migration: **PHASE 1 COMPLETE / TECHNICAL APP PATH RETAINED TEMPORARILY FOR COMPATIBILITY**.
