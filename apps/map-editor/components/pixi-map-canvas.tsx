@@ -266,6 +266,12 @@ export function PixiMapCanvas(props: Props) {
       }
 
       world.addChild(overlay);
+      const preview = new Graphics();
+      preview.eventMode = "none";
+      preview.zIndex = 999;
+      brushPreview = preview;
+      world.addChild(preview);
+      syncBrushPreview(null);
       app.stage.hitArea = app.screen;
       if (!viewportInitializedRef.current) {
         viewportRef.current = {
@@ -356,6 +362,26 @@ export function PixiMapCanvas(props: Props) {
     let activePointerId: number | null = null;
     let spaceHeld = false;
     let movingObjectId: string | null = null;
+    let brushPreview: Graphics | null = null;
+    const syncBrushPreview = (p: GridPoint | null) => {
+      if (!brushPreview) return;
+      brushPreview.clear();
+      const current = propsRef.current;
+      if (!p || (current.activeTool !== "Paint" && current.activeTool !== "Erase")) {
+        brushPreview.visible = false;
+        return;
+      }
+      const size = Math.max(1, current.brushSize);
+      const radius = (size - 1) / 2;
+      const centerX = (p.x + 0.5) * current.document.tileSize;
+      const centerY = (p.y + 0.5) * current.document.tileSize;
+      brushPreview.visible = true;
+      brushPreview.circle(centerX, centerY, Math.max(current.document.tileSize * 0.5, (radius + 0.5) * current.document.tileSize));
+      brushPreview.fill({ color: current.activeTool === "Erase" ? 0xef4444 : colorForTile(current.selectedTileId), alpha: 0.16 });
+      brushPreview.stroke({ width: 2, color: current.activeTool === "Erase" ? 0xef4444 : 0x0f172a, alpha: 0.8 });
+    };
+    const leaveBrushPreview = () => syncBrushPreview(null);
+
 
     // Use native pointer events at the host boundary for editing input. This
     // keeps touch input deterministic on mobile browsers while preserving the
@@ -453,6 +479,7 @@ export function PixiMapCanvas(props: Props) {
       }
       const p = pointAt(e);
       const current = propsRef.current;
+      syncBrushPreview(p);
       if (movingObjectId && valid(p)) {
         current.onObjectMove(movingObjectId, p);
         return;
@@ -503,6 +530,7 @@ export function PixiMapCanvas(props: Props) {
       movingObjectId = null;
       panning = false;
       selectDragged = false;
+      syncBrushPreview(null);
       if (activePointerId === e.pointerId) {
         try { host.releasePointerCapture(e.pointerId); } catch {}
         activePointerId = null;
@@ -519,6 +547,7 @@ export function PixiMapCanvas(props: Props) {
     const keydown = (e: KeyboardEvent) => { if (e.code === "Space") { spaceHeld = true; e.preventDefault(); } };
     const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
 
+    host.addEventListener("pointerleave", leaveBrushPreview);
     host.addEventListener("pointerdown", down);
     host.addEventListener("pointermove", move);
     host.addEventListener("pointerup", up);
@@ -528,6 +557,7 @@ export function PixiMapCanvas(props: Props) {
     window.addEventListener("keydown", keydown);
     window.addEventListener("keyup", keyup);
     return () => {
+      host.removeEventListener("pointerleave", leaveBrushPreview);
       host.removeEventListener("pointerdown", down);
       host.removeEventListener("pointermove", move);
       host.removeEventListener("pointerup", up);
