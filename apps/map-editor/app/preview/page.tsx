@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthUser } from "../../editor/auth";
 import { createMapEditorSupabaseClient } from "../../editor/supabase-client";
@@ -26,15 +26,47 @@ export default function PreviewPage() {
   const [showGrid, setShowGrid] = useState(false);
   const [showCoordinates, setShowCoordinates] = useState(true);
   const [viewportAction, setViewportAction] = useState<PreviewViewportAction>({ id: 1, type: "fit" });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
   }, [loading, user, router]);
 
+  const loadAuthoritativeWorld = useCallback(async () => {
+    const client = createMapEditorSupabaseClient();
+    if (!client) {
+      setLoadStatus("Supabase client unavailable");
+      return;
+    }
+    setLoadStatus("Loading authoritative World Map…");
+    try {
+      const loaded = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
+      if (!loaded.document) {
+        throw new Error(loaded.result.error || loaded.result.code || "Authoritative World Map snapshot unavailable");
+      }
+      const binding = await client
+        .from("vandrith_asset_binding_workbench")
+        .select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id,tile_region");
+      if (binding.error) throw binding.error;
+      const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
+      setDocument(loaded.document);
+      setTerrainBindings(terrain.bindings);
+      setLoadStatus(
+        loaded.result.code === "durable-version-fallback"
+          ? `Authoritative World · version ${loaded.result.version_number || "?"} · durable fallback`
+          : `Authoritative World · version ${loaded.result.version_number || "?"}`,
+      );
+    } catch (error) {
+      setLoadStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, []);
+
   useEffect(() => {
     if (loading || !user) return;
-    let cancelled = false;
-    void (async () => {
+    void loadAuthoritativeWorld();
+  }, [loading, user, loadAuthoritativeWorld, refreshKey]);
+
+
       const client = createMapEditorSupabaseClient();
       if (!client) {
         setLoadStatus("Supabase client unavailable");
@@ -62,9 +94,17 @@ export default function PreviewPage() {
         if (cancelled) return;
         setLoadStatus(error instanceof Error ? error.message : String(error));
       }
-    })();
-    return () => { cancelled = true; };
-  }, [loading, user]);
+
+
+  const previewDocument = useMemo(() => {
+    if (!document) return null;
+    return {
+      ...document,
+      layers: document.layers.map(layer =>
+        layer.id === "ground" ? { ...layer, visible: layers[0] } : layer,
+      ),
+    };
+  }, [document, layers]);
 
   const changeZoom = (next: number) => {
     const value = Math.max(50, Math.min(200, next));
@@ -106,6 +146,7 @@ export default function PreviewPage() {
           <button type="button" onClick={() => { setZoom(100); setViewportAction(previous => ({ id: previous.id + 1, type: "fit" })); }} aria-label="Fit world map">⌖</button>
           <button type="button" className={showGrid ? "is-active" : ""} onClick={() => setShowGrid(value => !value)} aria-pressed={showGrid}>Grid</button>
           <button type="button" className={showCoordinates ? "is-active" : ""} onClick={() => setShowCoordinates(value => !value)} aria-pressed={showCoordinates}>XY</button>
+          <button type="button" onClick={() => setRefreshKey(value => value + 1)}>Refresh</button>
         </div>
       </div>
 
@@ -113,7 +154,7 @@ export default function PreviewPage() {
         <div className="vandrith-preview-scene vandrith-preview-authoritative-scene">
           {document ? (
             <PixiMapCanvas
-              document={document}
+              document={previewDocument || document}
               activeTool="Preview"
               activeLayerId="ground"
               selectedTileId="grass"
