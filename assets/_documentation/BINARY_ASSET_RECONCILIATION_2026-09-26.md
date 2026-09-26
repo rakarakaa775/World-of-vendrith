@@ -434,3 +434,8 @@ Detailed audit: `WORLD_NATURAL_HAZARDS_SPECIAL_TERRAIN_AUDIT_2026-09-26.md`.
 ## WORLD water-feature reconciliation checkpoint — 2026-09-26
 
 Focused filename scan returned **40 water-related matches**, with false positives filtered conservatively. Strong feature candidates include `LPC_Overworld__River.png`, general water sheets, deepwater, brackish, coldwater, beach/shore assets and the previously audited waterfall. The water model is now explicitly **water state + geographic feature + transition**. No standalone lake or ocean binary is invented where the repository does not provide one. Detailed audit: `WORLD_SHORELINES_RIVERS_LAKES_WATER_FEATURES_AUDIT_2026-09-26.md`.
+
+
+## WORLD vegetation ecology reconciliation checkpoint — 2026-09-26
+
+Filename scan returned **52 vegetation-related candidates**; terrain transitions and generic grass materials were filtered out. Strong families are forest/woodland, seasonal/snow trees, orchard/fruit trees, jungle, understory/plants/fungi and dead vegetation. Dedicated desert and wetland vegetation remain source-supported but binary-pending where filename evidence is insufficient. Detailed audit: `WORLD_VEGETATION_ECOLOGY_AUDIT_2026-09-26.md`.
