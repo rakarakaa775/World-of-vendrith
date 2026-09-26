@@ -194,3 +194,42 @@ This is also retained pending PLAYABLE combat-interactable reconciliation.
 This remains in WORLD because its filename identifies underwater tiles and therefore may legitimately belong to the water layer.
 
 The move was performed at the Git tree level using the existing LFS pointer blob identities, so no binary re-encoding was performed.
+
+
+## WORLD second reconciliation checkpoint — 2026-09-26
+
+The repository tree was re-enumerated after the first-pass moves. The original 681 WORLD staging entries are now represented as:
+
+- **242 entries remaining in WORLD staging**
+- **64 additional entries reconciled:** 8 regional-context files + 56 fauna files
+- **280 LPC map-symbol/banner files moved to shared canonical storage**
+- **14 additional obvious role conflicts moved:** 3 sea creatures, 3 towers, 2 floor assets, 1 Victorian street asset, 2 Christmas-tree assets, 1 flower prop and 1 planter asset
+
+The WORLD directory is therefore no longer a generic dump of the original 681-entry staging package.
+
+### Provenance findings
+
+The LPC Overworld source explicitly separates terrain, forests, mountains, hills, rocks and paths from houses/towns/castles, ships/docks, sea creatures, banners, patterns and symbols. It is licensed CC-BY-SA 3.0 and GPL 3.0, with attribution requirements. 
+
+The LPC Terrains source explicitly covers ground terrain such as grass, dirt, rock, stone, mud, water, snow, ice, lava, sand, beach and bog, and requires attribution through its credits file.
+
+The LPC Mountains source explicitly covers mountains, hills, cliffs, rocks and snow, with separate attribution requirements.
+
+The LPC Trees source requires crediting the authors listed in its CREDITS-trees.txt file and linking back to the OpenGameArt source page.
+
+### Remaining 242-entry WORLD staging rule
+
+The remaining entries are **not yet all approved WORLD assets**. They contain a mixture of:
+
+- genuine natural terrain/vegetation that can receive WORLD bindings;
+- authoring resources such as TMX/TSX/XCF/PSD/scripts and credit files;
+- a small number of remaining man-made/context assets such as ships and street/cement-related material;
+- source packages whose exact provenance still needs individual checksum/license reconciliation.
+
+Therefore the next step is to split the 242 entries into **NATURAL-WORLD**, **AUTHORING/SOURCE**, and **REMAINING ROLE CONFLICTS**, then perform provenance/checksum verification before any final approval.
+
+## Current checkpoint
+
+**WORLD staging: 242 entries remaining**  
+**MAP-ROLE RECONCILIATION: WORLD structural cleanup substantially advanced**  
+**PROVENANCE / CHECKSUM VERIFICATION: STILL PENDING FOR INDIVIDUAL BINARIES**
