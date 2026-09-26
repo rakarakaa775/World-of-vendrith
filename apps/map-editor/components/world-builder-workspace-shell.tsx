@@ -5,47 +5,18 @@ import { useRouter } from "next/navigation";
 type Props = { activeWorkspace: string; children: React.ReactNode };
 
 const groups = [
-  {
-    title: "World",
-    items: [
-      ["preview", "Preview"],
-      ["world-map", "World Map"],
-      ["library", "Library Asset"],
-      ["settings", "World Settings"],
-      ["validation", "Validation"],
-    ],
-  },
-  {
-    title: "Life",
-    items: [
-      ["generate", "Generate Life"],
-      ["spawn", "Spawn Life"],
-      ["organize", "Organize the World"],
-    ],
-  },
-  {
-    title: "Systems",
-    items: [
-      ["weather", "Weather"],
-      ["time", "Time / Seasons"],
-    ],
-  },
-  {
-    title: "Building",
-    items: [["building", "Building World"]],
-  },
-  {
-    title: "Project",
-    items: [
-      ["versions", "Save / Load / Versions"],
-      ["project", "Project / World Management"],
-    ],
-  },
+  { title: "World", items: [["world", "World"]] },
+  { title: "Region", items: [["region", "Region"]] },
+  { title: "Playable", items: [["playable", "Playable"]] },
+  { title: "Interior", items: [["interior", "Interior"]] },
 ] as const;
 
 export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props) {
   const router = useRouter();
-  const navigate = (workspace: string) => router.push(`/world-builder?workspace=${workspace}${workspace === "world-map" ? "&load=1" : ""}`);
+  const navigate = (workspace: string) =>
+    router.push(workspace === "world"
+      ? "/world-builder?workspace=world&load=1"
+      : `/world-builder?workspace=${workspace}`);
 
   return (
     <main className="world-builder-shell">
@@ -60,12 +31,10 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
         <div className="world-builder-project">
           <span>Project</span>
           <strong>World of Vendrith</strong>
-          <button onClick={() => navigate("project")}>Manage</button>
         </div>
         <div className="world-builder-global-status">
           <span className="world-status-dot" />
           <span>Workspace active</span>
-          <button onClick={() => navigate("versions")}>Save / Load</button>
         </div>
       </header>
 
@@ -87,16 +56,12 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
 
         <section className="world-builder-main">
           <div className="world-builder-breadcrumb">
-            <button onClick={() => navigate("world-map")}>World of Vendrith</button>
+            <button onClick={() => navigate("world")}>World of Vendrith</button>
             <span>›</span>
             <strong>{labelFor(activeWorkspace)}</strong>
           </div>
           <div className="world-builder-toolbar">
             <span className="world-toolbar-context">{labelFor(activeWorkspace)}</span>
-            <div>
-              <button onClick={() => navigate("validation")}>Validation</button>
-              <button onClick={() => navigate("versions")}>Save / Load</button>
-            </div>
           </div>
           <div className="world-builder-content">{children}</div>
         </section>
@@ -114,20 +79,6 @@ function labelFor(id: string) {
 }
 
 function iconFor(id: string) {
-  const icons: Record<string, string> = {
-    preview: "◉",
-    "world-map": "▦",
-    library: "◇",
-    settings: "⚙",
-    validation: "✓",
-    generate: "✦",
-    spawn: "♙",
-    organize: "☷",
-    weather: "☁",
-    time: "◷",
-    building: "⌂",
-    versions: "◈",
-    project: "▣",
-  };
+  const icons: Record<string, string> = { world: "▦", region: "◇", playable: "♙", interior: "⌂" };
   return icons[id] || "•";
 }
