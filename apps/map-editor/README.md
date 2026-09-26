@@ -1,43 +1,63 @@
-# Vandrith Map Editor
+# Vendrith World Builder
 
-Map Editor foundation for the Vandrith World project.
+World-authoring application for the Vandrith World project.
 
 ## Architecture
+
 - Next.js App Router
 - TypeScript
-- PixiJS editor canvas
+- PixiJS world-authoring canvas
 - Local map-document state with history
 - Supabase controlled persistence/runtime reads
 - Vercel deployment target
 
+## World Builder layers
+
+The application is being migrated from the legacy **Map Editor** identity to **Vendrith World Builder**.
+
+The active world-authoring layers are:
+
+- **WORLD** — natural environment only.
+- **REGION** — regional/location context.
+- **PLAYABLE** — concrete exterior gameplay content.
+- **INTERIOR** — indoor map content.
+
+These are map roles, not four duplicated binary asset libraries.
+
 ## Current implementation
-- Editor shell and workspace layout
-- Pixi map canvas
-- Map document model and starter map
+
+- World Builder shell and workspace layout
+- Pixi world canvas
+- Map/world document model and starter map
 - Layer selection, visibility, locking, and reordering
 - Tile painting and erase tools
 - Brush sizes
 - Rectangular selection and stamp workflow
-- Building placement, selection, movement, and deletion for non-world maps
+- Building placement, selection, movement, and deletion
 - Undo/redo history
 - Inspector for world/building context
 - Authoritative map bootstrap/load/save through Supabase
 - Optimistic concurrency and three-way conflict resolution
 - Runtime snapshot persistence and crash-recovery journal
 - Authoritative terrain/environment read adapters
-- Season definitions are represented only as the existing four-season enum and must not be used to invent calendar mappings
 
-## Season / Weather boundary
-Season and Weather remain backend World Engine concerns. The editor may consume authoritative resolver results for preview, but it must fail closed when the Time Engine seasonMapping or Weather transition canon is not configured/verified. The UI must not invent season durations, transition durations, transition tags, modifiers, or calendar mapping JSON shapes.
+## Migration boundary
+
+The source directory remains `apps/map-editor/` temporarily for compatibility. This is a technical legacy path, not the product name.
+
+Do not create new architecture under the old Map Editor terminology. New World Builder work must follow the WORLD / REGION / PLAYABLE / INTERIOR contracts.
 
 ## Persistence boundary
-Map persistence uses the verified `maps`, `map_versions`, and runtime snapshot contracts. Initial bootstrap creates the authoritative map and version through the merge gateway; subsequent saves use optimistic version checks and three-way merge conflict resolution. The internal reconciliation primitive is not directly executable by client roles.
+
+Map persistence uses the verified `maps`, `map_versions`, and runtime snapshot contracts. Initial bootstrap creates the authoritative map and version through the merge gateway; subsequent saves use optimistic version checks and three-way merge conflict resolution.
 
 ## Deployment boundary
-Vercel is the final deployment target. The latest verified production build must remain green before adding the next editor slice.
+
+Vercel is the final deployment target. The latest verified production build must remain green before adding the next World Builder slice.
 
 ## Next implementation slices
-1. Persistence smoke test against the deployed editor.
+
+1. World Builder terminology and shell migration.
 2. Asset-library read model and verified asset selection.
 3. Authoritative Season/Weather preview validation panel.
 4. Save readiness gate and richer diagnostics.
