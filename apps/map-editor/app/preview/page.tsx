@@ -3,21 +3,74 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthUser } from "../../editor/auth";
+import { createMapEditorSupabaseClient } from "../../editor/supabase-client";
+import { loadMapDocumentSnapshot } from "../../editor/map-persistence";
+import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../../editor/terrain-asset-binding-loader";
+import type { MapDocument } from "../../editor/map-document";
+import type { TerrainAssetBindingMap } from "../../editor/terrain-asset-binding";
+import { PixiMapCanvas } from "../../components/pixi-map-canvas";
 
 const previewLayers = ["World Terrain", "Region Boundaries", "Playable", "Life", "Events"];
+const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
+type PreviewViewportAction = { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" };
 
 export default function PreviewPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
+  const [document, setDocument] = useState<MapDocument | null>(null);
+  const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
+  const [loadStatus, setLoadStatus] = useState("Loading authoritative World Map…");
   const [zoom, setZoom] = useState(100);
   const [layers, setLayers] = useState([true, true, false, false, false]);
   const [playing, setPlaying] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [showCoordinates, setShowCoordinates] = useState(true);
+  const [viewportAction, setViewportAction] = useState<PreviewViewportAction>({ id: 1, type: "fit" });
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (loading || !user) return;
+    let cancelled = false;
+    void (async () => {
+      const client = createMapEditorSupabaseClient();
+      if (!client) {
+        setLoadStatus("Supabase client unavailable");
+        return;
+      }
+      try {
+        const loaded = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
+        if (!loaded.document) {
+          throw new Error(loaded.result.error || loaded.result.code || "Authoritative World Map snapshot unavailable");
+        }
+        const binding = await client
+          .from("vandrith_asset_binding_workbench")
+          .select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id,tile_region");
+        if (binding.error) throw binding.error;
+        const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
+        if (cancelled) return;
+        setDocument(loaded.document);
+        setTerrainBindings(terrain.bindings);
+        setLoadStatus(
+          loaded.result.code === "durable-version-fallback"
+            ? `Authoritative World · version ${loaded.result.version_number || "?"} · durable fallback`
+            : `Authoritative World · version ${loaded.result.version_number || "?"}`,
+        );
+      } catch (error) {
+        if (cancelled) return;
+        setLoadStatus(error instanceof Error ? error.message : String(error));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loading, user]);
+
+  const changeZoom = (next: number) => {
+    const value = Math.max(50, Math.min(200, next));
+    setZoom(value);
+    setViewportAction(previous => ({ id: previous.id + 1, type: "zoom", zoom: value / 100 }));
+  };
 
   if (loading || !user) {
     return <main className="vandrith-preview-loading">Memeriksa akun...</main>;
@@ -35,7 +88,7 @@ export default function PreviewPage() {
         </div>
         <div className="vandrith-preview-status">
           <i aria-hidden="true" />
-          <span>Preview Environment</span>
+          <span>{document ? loadStatus : "Loading World Map"}</span>
         </div>
       </header>
 
@@ -47,37 +100,51 @@ export default function PreviewPage() {
           <button type="button">Interior</button>
         </div>
         <div className="vandrith-preview-toolbar-group">
-          <button type="button" onClick={() => setZoom(value => Math.max(50, value - 10))}>−</button>
+          <button type="button" onClick={() => changeZoom(zoom - 10)}>−</button>
           <span>{zoom}%</span>
-          <button type="button" onClick={() => setZoom(value => Math.min(200, value + 10))}>+</button>
-          <button type="button" onClick={() => setZoom(100)} aria-label="Reset zoom">⌖</button>
+          <button type="button" onClick={() => changeZoom(zoom + 10)}>+</button>
+          <button type="button" onClick={() => { setZoom(100); setViewportAction(previous => ({ id: previous.id + 1, type: "fit" })); }} aria-label="Fit world map">⌖</button>
           <button type="button" className={showGrid ? "is-active" : ""} onClick={() => setShowGrid(value => !value)} aria-pressed={showGrid}>Grid</button>
           <button type="button" className={showCoordinates ? "is-active" : ""} onClick={() => setShowCoordinates(value => !value)} aria-pressed={showCoordinates}>XY</button>
         </div>
       </div>
 
-      <section className="vandrith-preview-stage" aria-label="World preview viewport">
-        <div className="vandrith-preview-scene" style={{ transform: `scale(${zoom / 100})` }}>
-          <div className="vandrith-preview-mist mist-one" />
-          <div className="vandrith-preview-mist mist-two" />
-          <div className="vandrith-preview-mountain mountain-back" />
-          <div className="vandrith-preview-mountain mountain-mid" />
-          <div className="vandrith-preview-ground">
-            <div className="vandrith-preview-river" />
-            <div className="vandrith-preview-forest forest-one" />
-            <div className="vandrith-preview-forest forest-two" />
-            <div className="vandrith-preview-settlement">
-              <span />
-              <span />
-              <span />
-              <b>North Vale</b>
+      <section className="vandrith-preview-stage" aria-label="Authoritative World Map preview">
+        <div className="vandrith-preview-scene vandrith-preview-authoritative-scene">
+          {document ? (
+            <PixiMapCanvas
+              document={document}
+              activeTool="Preview"
+              activeLayerId="ground"
+              selectedTileId="grass"
+              brushSize={1}
+              selection={null}
+              onPaint={() => undefined}
+              onSelectionChange={() => undefined}
+              onStamp={() => undefined}
+              onObjectPlace={() => undefined}
+              onObjectMove={() => undefined}
+              selectedObjectIds={[]}
+              onObjectSelectionChange={() => undefined}
+              selectedObjectId={null}
+              terrainBindings={terrainBindings}
+              viewportAction={viewportAction}
+              viewportResetKey={document.id}
+              readonly
+              showGrid={showGrid}
+              previewMode
+            />
+          ) : (
+            <div className="vandrith-preview-empty">
+              <strong>World Map belum termuat</strong>
+              <span>{loadStatus}</span>
             </div>
-          </div>
-          <div className="vandrith-preview-crosshair" aria-hidden="true">
-            <span />
-            <span />
-          </div>
-          {showCoordinates && <div className="vandrith-preview-coordinates">X 064 · Y 041 · REGION NORTH VALE</div>}
+          )}
+          {showCoordinates && document && (
+            <div className="vandrith-preview-coordinates">
+              {document.width}×{document.height} · {document.name} · AUTHORITATIVE WORLD
+            </div>
+          )}
         </div>
 
         <aside className="vandrith-preview-inspector">
@@ -89,8 +156,8 @@ export default function PreviewPage() {
           <p>Authoritative World Map</p>
 
           <dl>
-            <div><dt>World</dt><dd>Loaded</dd></div>
-            <div><dt>Terrain</dt><dd>Runtime ready</dd></div>
+            <div><dt>World</dt><dd>{document ? "Loaded" : "Loading"}</dd></div>
+            <div><dt>Terrain</dt><dd>{Object.keys(terrainBindings).length ? "Runtime ready" : "Loading"}</dd></div>
             <div><dt>Life</dt><dd>Not generated</dd></div>
             <div><dt>Events</dt><dd>Standby</dd></div>
           </dl>
@@ -120,11 +187,11 @@ export default function PreviewPage() {
         <div className="vandrith-preview-playback">
           <button type="button" aria-label="Play preview" onClick={() => setPlaying(true)}>▶</button>
           <button type="button" aria-label="Pause preview" onClick={() => setPlaying(false)}>Ⅱ</button>
-          <button type="button" aria-label="Reset preview">↺</button>
+          <button type="button" aria-label="Reset preview" onClick={() => { setPlaying(false); setZoom(100); setViewportAction(previous => ({ id: previous.id + 1, type: "fit" })); }}>↺</button>
           <span>{playing ? "PLAYING" : "00:00:00"}</span>
         </div>
         <div className="vandrith-preview-mode">
-          <span>SIMULATION</span>
+          <span>AUTHORITATIVE MAP</span>
           <strong>EDITOR PREVIEW</strong>
         </div>
         <button type="button" className="vandrith-preview-exit" onClick={() => router.push("/world-builder?workspace=world&load=1")}>
