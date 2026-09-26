@@ -346,3 +346,29 @@ A focused filename-level pass identified **23** natural landform binaries in the
 Detailed classification is recorded in `WORLD_MOUNTAINS_HILLS_CLIFFS_ROCKS_AUDIT_2026-09-26.md`.
 
 The audit explicitly separates ordinary [LPC] Mountains, Mountains from The Mana World (GPL 2.0), [LPC] Overworld, [LPC] Rocks, and grass-topped cliff/mountain derivatives. No ambiguous file receives a guessed provenance or license.
+
+
+## WORLD sixth reconciliation checkpoint — Natural Vegetation — 2026-09-26
+
+A direct repository-tree enumeration found **25 PNG candidates** in `assets/world/world/02_TILES_AND_TERRAIN/` matching forest/tree/plant/jungle/season semantics.
+
+| Natural vegetation group | Count | Status |
+|---|---:|---|
+| Forest terrain | 3 | source-family identified; binary verification pending |
+| Deciduous / woodland trees | 4 | [LPC] Trees source identified; binary verification pending |
+| Seasonal / modified trees | 3 | source/binary mapping pending |
+| Orchard / fruit trees | 3 | multiple distinct source families identified |
+| Plants / understory / submissions | 6 | mixed source families; mapping pending |
+| Jungle | 5 | [LPC] Jungle family identified; binary verification pending |
+| **Total** | **24 unique classified records + 1 generic plant sheet** | all remain provenance-review candidates |
+
+Important source boundaries:
+- [LPC] Forest tiles is a separate multi-author pack with CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0.
+- [LPC] Trees is CC-BY-SA 3.0 and requires its credits file.
+- [LPC] Conifers is CC-BY-SA 3.0 / GPL 3.0 / GPL 2.0, but no dedicated conifer-named binary was found in this enumeration.
+- [LPC] Jungle is CC-BY 4.0 and has its own credits file.
+- Fruit Trees, All Seasons Apple Tree and Orange Trees are separate sources and must retain separate attribution.
+
+The detailed classification is recorded in `WORLD_FOREST_WOODLAND_CONIFER_JUNGLE_AUDIT_2026-09-26.md`.
+
+**Approval remains pending:** `source package → source path → repository path → binary identity/SHA-256 → license → attribution`.
