@@ -38,6 +38,9 @@ type Props = {
   viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" } | { id: number; type: "zoom-selection" };
   onViewportChange?: (viewport: Viewport) => void;
   viewportResetKey?: string | number;
+  readonly?: boolean;
+  showGrid?: boolean;
+  previewMode?: boolean;
 };
 
 const COLORS: Record<string, number> = {
@@ -177,10 +180,12 @@ export function PixiMapCanvas(props: Props) {
 
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
-      grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
-      for (let x = 1; x < document.width; x++) grid.moveTo(x * document.tileSize, 0).lineTo(x * document.tileSize, height);
-      for (let y = 1; y < document.height; y++) grid.moveTo(0, y * document.tileSize).lineTo(width, y * document.tileSize);
-      grid.stroke({ width: 1, color: 0xcbd5e1 });
+      if (propsRef.current.showGrid !== false) {
+        grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
+        for (let x = 1; x < document.width; x++) grid.moveTo(x * document.tileSize, 0).lineTo(x * document.tileSize, height);
+        for (let y = 1; y < document.height; y++) grid.moveTo(0, y * document.tileSize).lineTo(width, y);
+        grid.stroke({ width: 1, color: 0xcbd5e1 });
+      }
       world.addChild(grid);
 
       const textureRequests = new Set<string>();
@@ -292,7 +297,7 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime, props.showGrid]);
 
   useEffect(() => {
     if (!ready) return;
@@ -426,6 +431,12 @@ export function PixiMapCanvas(props: Props) {
       }
       const p = pointAt(e);
       const current = propsRef.current;
+      if (current.readonly) {
+        panning = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        return;
+      }
       gestureStartX = e.clientX;
       gestureStartY = e.clientY;
       selectDragged = false;
@@ -569,5 +580,5 @@ export function PixiMapCanvas(props: Props) {
     };
   }, [ready]);
 
-  return createElement("div", { ref: hostRef, className: "pixi-map-canvas-host", style: { position: "absolute", left: 40, top: 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
+  return createElement("div", { ref: hostRef, className: props.previewMode ? "pixi-map-canvas-host pixi-map-canvas-preview" : "pixi-map-canvas-host", style: { position: "absolute", left: props.previewMode ? 0 : 40, top: props.previewMode ? 0 : 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
