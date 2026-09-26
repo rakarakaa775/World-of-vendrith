@@ -51,7 +51,7 @@ export async function signUpWithEmail(email: string, password: string, username?
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
   const cleanEmail = email.trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
-  if (password.length < 8) throw new Error("Password minimal 6 karakter.");
+  if (password.length < 8) throw new Error("Password minimal 8 karakter.");
   const { data, error } = await client.auth.signUp({
     email: cleanEmail,
     password,
@@ -63,6 +63,26 @@ export async function signUpWithEmail(email: string, password: string, username?
     if (claimError) throw claimError;
   }
   return { sessionCreated: Boolean(data.session), emailConfirmationRequired: !data.session };
+}
+
+export async function requestPasswordReset(email: string) {
+  const client = createMapEditorSupabaseClient();
+  if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
+  const cleanEmail = email.trim().toLowerCase();
+  if (!/^\\S+@\\S+\\.\\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
+  const redirectTo = typeof window !== "undefined"
+    ? new URL("/reset-password", window.location.origin).toString()
+    : undefined;
+  const { error } = await client.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+  if (error) throw error;
+}
+
+export async function updatePassword(password: string) {
+  const client = createMapEditorSupabaseClient();
+  if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
+  if (password.length < 8) throw new Error("Password minimal 8 karakter.");
+  const { error } = await client.auth.updateUser({ password });
+  if (error) throw error;
 }
 
 export async function signOut() {
