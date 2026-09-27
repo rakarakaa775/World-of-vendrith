@@ -2,7 +2,10 @@ import { NextRequest } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const ASSET_REPO = "rakarakaa775/Asset-library-LPC";
+const ASSET_REPOS = {
+  library: "rakarakaa775/Asset-library-LPC",
+  world: "rakarakaa775/World-of-vendrith",
+} as const;
 const ASSET_REF = "main";
 
 type LocalTerrainFile = { relativePath: string; contentType: string };
@@ -37,8 +40,9 @@ async function readBundledTerrain(fileName: string): Promise<{ body: Buffer; sou
   return null;
 }
 
-export async function GET(_request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await context.params;
+  const requestedRepo = request.nextUrl.searchParams.get("repo") === "world" ? "world" : "library";
   const assetPath = segments.map((segment) => decodeURIComponent(segment)).join("/");
   if (!assetPath || assetPath.includes("..")) {
     return new Response("Invalid asset path", { status: 400 });
@@ -63,7 +67,11 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ pa
     });
   }
 
-  const upstream = `https://media.githubusercontent.com/media/${ASSET_REPO}/${ASSET_REF}/raw/${assetPath
+  const upstreamPath =
+    requestedRepo === "world"
+      ? `assets/world/world/${assetPath.replace(/^ASSET_LIBRARY\//, "")}`
+      : assetPath.replace(/^ASSET_LIBRARY\//, "ASSET_LIBRARY/");
+  const upstream = `https://media.githubusercontent.com/media/${ASSET_REPOS[requestedRepo]}/${ASSET_REF}/raw/${upstreamPath
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
