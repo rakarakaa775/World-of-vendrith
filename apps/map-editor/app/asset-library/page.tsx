@@ -20,7 +20,6 @@ type Asset = {
 const WORLD_SOURCES=new Set([
   "[LPC] Terrains",
   "[LPC] Overworld",
-  "Liberated Pixel Cup (LPC) Base Assets",
   "LPC Revised 4-Seasons Exterior Tilesets",
 ]);
 
