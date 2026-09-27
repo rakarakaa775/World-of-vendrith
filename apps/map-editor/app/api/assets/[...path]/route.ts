@@ -69,8 +69,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
 
   const upstreamPath =
     requestedRepo === "world"
-      ? `assets/world/world/${assetPath.replace(/^ASSET_LIBRARY\\//, "")}`
-      : assetPath.replace(/^ASSET_LIBRARY\\//, "ASSET_LIBRARY/");
+      ? `assets/world/world/${assetPath.replace(/^ASSET_LIBRARY\//, "")}`
+      : assetPath.replace(/^ASSET_LIBRARY\//, "ASSET_LIBRARY/");
 
   const upstream = `https://raw.githubusercontent.com/${ASSET_REPOS[requestedRepo]}/${ASSET_REF}/${upstreamPath
     .split("/")
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
 
     const pointer = await response.text();
     const oidMatch = pointer.match(/^oid sha256:([a-f0-9]{64})$/m);
-    const sizeMatch = pointer.match(/^size (\\d+)$/m);
+    const sizeMatch = pointer.match(/^size (\d+)$/m);
 
     if (!pointer.startsWith("version https://git-lfs.github.com/spec/v1") || !oidMatch || !sizeMatch) {
       return new Response(pointer, {
