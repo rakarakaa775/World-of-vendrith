@@ -71,7 +71,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     requestedRepo === "world"
       ? `assets/world/world/${assetPath.replace(/^ASSET_LIBRARY\//, "")}`
       : assetPath.replace(/^ASSET_LIBRARY\//, "ASSET_LIBRARY/");
-  const upstream = `https://media.githubusercontent.com/media/${ASSET_REPOS[requestedRepo]}/${ASSET_REF}/raw/${upstreamPath
+  const upstream = `https://media.githubusercontent.com/media/${ASSET_REPOS[requestedRepo]}/${ASSET_REF}/${upstreamPath
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
