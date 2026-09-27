@@ -69,9 +69,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
 
   const upstreamPath =
     requestedRepo === "world"
-      ? `assets/world/world/${assetPath.replace(/^ASSET_LIBRARY\//, "")}`
-      : assetPath.replace(/^ASSET_LIBRARY\//, "ASSET_LIBRARY/");
-  const upstream = `https://media.githubusercontent.com/media/${ASSET_REPOS[requestedRepo]}/${ASSET_REF}/${upstreamPath
+      ? `assets/world/world/${assetPath.replace(/^ASSET_LIBRARY\\//, "")}`
+      : assetPath.replace(/^ASSET_LIBRARY\\//, "ASSET_LIBRARY/");
+
+  const upstream = `https://raw.githubusercontent.com/${ASSET_REPOS[requestedRepo]}/${ASSET_REF}/${upstreamPath
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
@@ -88,12 +89,95 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
       });
     }
 
-    const body = await response.arrayBuffer();
-    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("text/plain")) {
+      const body = await response.arrayBuffer();
+      return new Response(body, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType || "application/octet-stream",
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+        },
+      });
+    }
+
+    const pointer = await response.text();
+    const oidMatch = pointer.match(/^oid sha256:([a-f0-9]{64})$/m);
+    const sizeMatch = pointer.match(/^size (\\d+)$/m);
+
+    if (!pointer.startsWith("version https://git-lfs.github.com/spec/v1") || !oidMatch || !sizeMatch) {
+      return new Response(pointer, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType || "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+        },
+      });
+    }
+
+    const batchUrl = `https://github.com/${ASSET_REPOS[requestedRepo]}.git/info/lfs/objects/batch`;
+    const batchResponse = await fetch(batchUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.git-lfs+json",
+        "Content-Type": "application/vnd.git-lfs+json",
+      },
+      body: JSON.stringify({
+        operation: "download",
+        transfers: ["basic"],
+        ref: { name: `refs/heads/${ASSET_REF}` },
+        objects: [{ oid: oidMatch[1], size: Number(sizeMatch[1]) }],
+        hash_algo: "sha256",
+      }),
+      cache: "no-store",
+    });
+
+    if (!batchResponse.ok) {
+      return new Response(`Git LFS batch failed: ${batchResponse.status}`, {
+        status: batchResponse.status,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+
+    const batch = (await batchResponse.json()) as {
+      objects?: Array<{
+        error?: { code?: number; message?: string };
+        actions?: { download?: { href?: string; header?: Record<string, string> } };
+      }>;
+    };
+    const object = batch.objects?.[0];
+    if (object?.error) {
+      return new Response(`Git LFS object failed: ${object.error.message || object.error.code || "unknown error"}`, {
+        status: object.error.code || 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+
+    const download = object?.actions?.download;
+    if (!download?.href) {
+      return new Response("Git LFS download action missing", {
+        status: 502,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+
+    const assetResponse = await fetch(download.href, {
+      headers: download.header || {},
+      cache: "force-cache",
+      next: { revalidate: 86400 },
+    });
+    if (!assetResponse.ok) {
+      return new Response(`Git LFS download failed: ${assetResponse.status}`, {
+        status: assetResponse.status,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+
+    const body = await assetResponse.arrayBuffer();
     return new Response(body, {
       status: 200,
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": assetResponse.headers.get("content-type") || "application/octet-stream",
         "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
       },
     });
