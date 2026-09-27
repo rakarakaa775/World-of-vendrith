@@ -26,6 +26,7 @@ const WORLD_SOURCES=new Set([
 
 function assetUrl(path:string|null,source:string|null){
   if(!path)return null;
+  if(/^https?:\/\/media\.githubusercontent\.com\/media\//i.test(path)) return path.replace(/\/main\//i,"/main/raw/");
   if(/^https?:\/\//i.test(path)||/^data:image\//i.test(path))return path;
   const repo=source && WORLD_SOURCES.has(source) ? "world" : "library";
   return `/api/assets/${path.split("/").map(encodeURIComponent).join("/")}?repo=${repo}`;
