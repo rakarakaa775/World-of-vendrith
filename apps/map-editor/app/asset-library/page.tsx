@@ -17,9 +17,6 @@ type Asset = {
   redistribution_allowed:boolean; license_verification_status:string|null; license_usage_status:string|null;
 };
 
-const WORLD_MEDIA_ROOT="https://media.githubusercontent.com/media/rakarakaa775/World-of-vendrith/main/raw/";
-const LIBRARY_MEDIA_ROOT="https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main/raw/";
-
 const WORLD_SOURCES=new Set([
   "[LPC] Terrains",
   "[LPC] Overworld",
@@ -30,13 +27,8 @@ const WORLD_SOURCES=new Set([
 function assetUrl(path:string|null,source:string|null){
   if(!path)return null;
   if(/^https?:\/\//i.test(path))return path;
-  const relative=path.replace(/^ASSET_LIBRARY\//,"");
-  const isWorldSource=Boolean(source && WORLD_SOURCES.has(source));
-  const repositoryPath=isWorldSource
-    ? `assets/world/world/${relative}`
-    : `ASSET_LIBRARY/${relative}`;
-  const root=isWorldSource?WORLD_MEDIA_ROOT:LIBRARY_MEDIA_ROOT;
-  return root+repositoryPath.split("/").map(encodeURIComponent).join("/");
+  const repo=source && WORLD_SOURCES.has(source) ? "world" : "library";
+  return `/api/assets/${path.split("/").map(encodeURIComponent).join("/")}?repo=${repo}`;
 }
 
 function AssetPreview({asset,className=""}:{asset:Asset;className?:string}){
