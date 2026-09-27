@@ -313,3 +313,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 @media(max-width:1200px){.asset-library-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:950px){.asset-library-layout{grid-template-columns:1fr}.asset-library-detail{position:relative;height:auto;border-left:0;border-top:1px solid rgba(146,164,158,.14)}.asset-library-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:700px){.asset-library-header{padding:18px}.asset-library-toolbar{grid-template-columns:1fr 1fr;padding:9px 18px}.asset-library-toolbar input{grid-column:1/-1}.asset-library-toolbar>span{text-align:left}.asset-library-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.asset-library-detail{padding:14px}.asset-detail-image{height:210px}}
+
+.asset-image-missing{display:grid;place-items:center;min-height:100%;background:repeating-conic-gradient(#1a1f2a 0 25%,#11151d 0 50%) 50%/18px 18px;color:#8992a4;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.asset-detail-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.asset-detail-links a{display:inline-flex;align-items:center;padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:inherit;text-decoration:none;font-size:12px}
+.asset-detail-links a:hover{border-color:rgba(255,255,255,.28)}
