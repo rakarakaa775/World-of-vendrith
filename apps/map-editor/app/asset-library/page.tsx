@@ -21,7 +21,7 @@ const RAW_ROOT="https://raw.githubusercontent.com/rakarakaa775/Asset-library-LPC
 
 function assetUrl(path:string|null){
   if(!path)return null;
-  if(/^https?:\\/\\//i.test(path))return path;
+  if(/^https?:\/\//i.test(path))return path;
   return RAW_ROOT+path;
 }
 
