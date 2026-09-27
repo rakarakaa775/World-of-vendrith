@@ -105,7 +105,7 @@ export default function AssetLibraryPage(){
       (source==="all"||a.source_name===source)&&
       (!q||[a.name,a.role,a.category,a.source_name,a.slug].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)))
     );
-  },[assets,search,category,source]);
+  },[assets,search,placementCategory,source]);
 
   if(loading)return <main className="asset-library-loading">Checking account…</main>;
   if(!user)return <main className="asset-library-loading"><button onClick={()=>router.push("/")}>Back to Control Center</button></main>;
