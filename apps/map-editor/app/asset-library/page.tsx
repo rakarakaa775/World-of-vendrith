@@ -24,7 +24,7 @@ function assetUrl(path:string|null,source:string|null){
   if(!path)return null;
   if(/^https?:\/\//i.test(path))return path;
   const relative=path.replace(/^ASSET_LIBRARY\//,"");
-  const isWorldSource=Boolean(source && /^(\\[?]LPC\\])/.test(source));
+  const isWorldSource=Boolean(source && /^\[LPC\]/.test(source));
   return (isWorldSource?WORLD_RAW_ROOT:LIBRARY_RAW_ROOT)+relative;
 }
 
