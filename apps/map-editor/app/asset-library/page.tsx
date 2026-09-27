@@ -17,12 +17,15 @@ type Asset = {
   redistribution_allowed:boolean; license_verification_status:string|null; license_usage_status:string|null;
 };
 
-const RAW_ROOT="https://raw.githubusercontent.com/rakarakaa775/Asset-library-LPC/main/";
+const WORLD_RAW_ROOT="https://raw.githubusercontent.com/rakarakaa775/World-of-vendrith/main/assets/world/world/";
+const LIBRARY_RAW_ROOT="https://raw.githubusercontent.com/rakarakaa775/Asset-library-LPC/main/";
 
-function assetUrl(path:string|null){
+function assetUrl(path:string|null,source:string|null){
   if(!path)return null;
   if(/^https?:\/\//i.test(path))return path;
-  return RAW_ROOT+path;
+  const relative=path.replace(/^ASSET_LIBRARY\//,"");
+  const isWorldSource=Boolean(source && /^(\\[?]LPC\\])/.test(source));
+  return (isWorldSource?WORLD_RAW_ROOT:LIBRARY_RAW_ROOT)+relative;
 }
 
 function metadataNote(asset:Asset){
@@ -93,7 +96,7 @@ export default function AssetLibraryPage(){
     <section className="asset-library-layout">
       <div className="asset-library-grid">
         {busy?<div className="asset-library-empty">Loading approved assets…</div>:error?<div className="asset-library-empty">{error}</div>:filtered.length===0?<div className="asset-library-empty">No approved asset matches.</div>:filtered.map(asset=>{
-          const image=assetUrl(asset.asset_path);
+          const image=assetUrl(asset.asset_path,asset.source_name);
           const active=selected?.id===asset.id;
           return <button key={asset.id} className={active?"asset-card active":"asset-card"} onClick={()=>setSelected(asset)} aria-pressed={active}>
             <span className="asset-card-image">{image?<img src={image} alt={asset.name} loading="lazy" onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>NO PREVIEW</span>}</span>
@@ -105,7 +108,7 @@ export default function AssetLibraryPage(){
       </div>
 
       <aside className="asset-library-detail">
-        {selected?<><div className="asset-detail-image">{assetUrl(selected.asset_path)?<img src={assetUrl(selected.asset_path)!} alt={selected.name} onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>No preview</span>}</div>
+        {selected?<><div className="asset-detail-image">{assetUrl(selected.asset_path,selected.source_name)?<img src={assetUrl(selected.asset_path)!} alt={selected.name} onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>No preview</span>}</div>
           <p className="asset-detail-kicker">ASSET DETAIL · {selected.asset_status}</p>
           <h2>{selected.name}</h2>
           <p className="asset-detail-role">{selected.role||selected.category||"Uncategorized"}</p>
