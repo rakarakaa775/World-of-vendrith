@@ -26,15 +26,22 @@ const WORLD_SOURCES=new Set([
 
 function assetUrl(path:string|null,source:string|null){
   if(!path)return null;
-  if(/^https?:\/\/media\.githubusercontent\.com\/media\//i.test(path)) return path.replace(/\/main\//i,"/main/raw/");
-  if(/^https?:\/\//i.test(path)||/^data:image\//i.test(path))return path;
+  if(/^data:image\//i.test(path))return path;
   const repo=source && WORLD_SOURCES.has(source) ? "world" : "library";
+  if(/^https?:\/\/media\.githubusercontent\.com\/media\//i.test(path)){
+    const marker="/raw/";
+    const markerIndex=path.indexOf(marker);
+    const rawPath=markerIndex>=0 ? path.slice(markerIndex+marker.length) : path.split("/main/")[1] || "";
+    return rawPath ? `/api/assets/${rawPath.split("/").map(encodeURIComponent).join("/")}?repo=library` : null;
+  }
+  if(/^https?:\/\//i.test(path))return path;
   return `/api/assets/${path.split("/").map(encodeURIComponent).join("/")}?repo=${repo}`;
 }
 
 function AssetPreview({asset,className=""}:{asset:Asset;className?:string}){
-  const primary=assetUrl(asset.preview_path||asset.asset_path,asset.source_name);
-  const fallback=assetUrl(asset.asset_path,asset.source_name);
+  const embeddedPreview=/^data:image\//i.test(asset.preview_path||"") ? asset.preview_path : null;
+  const primary=embeddedPreview || assetUrl(asset.asset_path,asset.source_name);
+  const fallback=assetUrl(asset.preview_path,asset.source_name);
   const [src,setSrc]=useState(primary);
   const [failed,setFailed]=useState(!primary);
 
