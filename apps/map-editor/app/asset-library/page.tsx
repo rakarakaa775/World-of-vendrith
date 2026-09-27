@@ -131,7 +131,7 @@ export default function AssetLibraryPage(){
       <div className="asset-library-grid">
         {busy?<div className="asset-library-empty">Loading approved assets…</div>:error?<div className="asset-library-empty">{error}</div>:filtered.length===0?<div className="asset-library-empty">No approved asset matches.</div>:filtered.map(asset=>{
           const active=selected?.id===asset.id;
-          return <button key={asset.id} className={active?"asset-card active":"asset-card"} onClick={()=>setSelected(asset)} aria-pressed={active}>
+          return <button key={asset.id} className={active?"asset-card active":"asset-card"} onClick={()=>router.push(`/asset-library/${asset.id}`)} aria-pressed={active}>
             <span className="asset-card-image"><AssetPreview asset={asset}/></span>
             <strong>{asset.name}</strong>
             <small>{asset.role||asset.category||"Asset"}</small>
