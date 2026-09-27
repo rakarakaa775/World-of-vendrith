@@ -17,15 +17,50 @@ type Asset = {
   redistribution_allowed:boolean; license_verification_status:string|null; license_usage_status:string|null;
 };
 
-const WORLD_RAW_ROOT="https://raw.githubusercontent.com/rakarakaa775/World-of-vendrith/main/assets/world/world/";
-const LIBRARY_RAW_ROOT="https://raw.githubusercontent.com/rakarakaa775/Asset-library-LPC/main/";
+const WORLD_MEDIA_ROOT="https://media.githubusercontent.com/media/rakarakaa775/World-of-vendrith/main/raw/";
+const LIBRARY_MEDIA_ROOT="https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main/raw/";
+
+const WORLD_SOURCES=new Set([
+  "[LPC] Terrains",
+  "[LPC] Overworld",
+  "Liberated Pixel Cup (LPC) Base Assets",
+  "LPC Revised 4-Seasons Exterior Tilesets",
+]);
 
 function assetUrl(path:string|null,source:string|null){
   if(!path)return null;
   if(/^https?:\/\//i.test(path))return path;
   const relative=path.replace(/^ASSET_LIBRARY\//,"");
-  const isWorldSource=Boolean(source && /^\[LPC\]/.test(source));
-  return (isWorldSource?WORLD_RAW_ROOT:LIBRARY_RAW_ROOT)+relative;
+  const isWorldSource=Boolean(source && WORLD_SOURCES.has(source));
+  const repositoryPath=isWorldSource
+    ? `assets/world/world/${relative}`
+    : `ASSET_LIBRARY/${relative}`;
+  const root=isWorldSource?WORLD_MEDIA_ROOT:LIBRARY_MEDIA_ROOT;
+  return root+repositoryPath.split("/").map(encodeURIComponent).join("/");
+}
+
+function AssetPreview({asset,className=""}:{asset:Asset;className?:string}){
+  const primary=assetUrl(asset.preview_path||asset.asset_path,asset.source_name);
+  const fallback=assetUrl(asset.asset_path,asset.source_name);
+  const [src,setSrc]=useState(primary);
+  const [failed,setFailed]=useState(!primary);
+
+  useEffect(()=>{
+    setSrc(primary);
+    setFailed(!primary);
+  },[primary]);
+
+  if(!src||failed)return <span className={className}>NO PREVIEW</span>;
+  return <img
+    className={className}
+    src={src}
+    alt={asset.name}
+    loading="lazy"
+    onError={()=>{
+      if(fallback&&src!==fallback){setSrc(fallback);return;}
+      setFailed(true);
+    }}
+  />;
 }
 
 function metadataNote(asset:Asset){
@@ -96,10 +131,9 @@ export default function AssetLibraryPage(){
     <section className="asset-library-layout">
       <div className="asset-library-grid">
         {busy?<div className="asset-library-empty">Loading approved assets…</div>:error?<div className="asset-library-empty">{error}</div>:filtered.length===0?<div className="asset-library-empty">No approved asset matches.</div>:filtered.map(asset=>{
-          const image=assetUrl(asset.asset_path,asset.source_name);
           const active=selected?.id===asset.id;
           return <button key={asset.id} className={active?"asset-card active":"asset-card"} onClick={()=>setSelected(asset)} aria-pressed={active}>
-            <span className="asset-card-image">{image?<img src={image} alt={asset.name} loading="lazy" onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>NO PREVIEW</span>}</span>
+            <span className="asset-card-image"><AssetPreview asset={asset}/></span>
             <strong>{asset.name}</strong>
             <small>{asset.role||asset.category||"Asset"}</small>
             <em>{asset.source_name||"Unknown source"}</em>
@@ -108,7 +142,7 @@ export default function AssetLibraryPage(){
       </div>
 
       <aside className="asset-library-detail">
-        {selected?<><div className="asset-detail-image">{assetUrl(selected.asset_path,selected.source_name)?<img src={assetUrl(selected.asset_path)!} alt={selected.name} onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>No preview</span>}</div>
+        {selected?<><div className="asset-detail-image"><AssetPreview key={selected.id} asset={selected}/></div>
           <p className="asset-detail-kicker">ASSET DETAIL · {selected.asset_status}</p>
           <h2>{selected.name}</h2>
           <p className="asset-detail-role">{selected.role||selected.category||"Uncategorized"}</p>
