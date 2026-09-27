@@ -6,7 +6,7 @@ import { useAuthUser } from "../../editor/auth";
 import { createMapEditorSupabaseClient } from "../../editor/supabase-client";
 
 type Asset = {
-  id:string; name:string; slug:string|null; category:string|null; role:string|null;
+  id:string; name:string; slug:string|null; category:string|null; placement_category:string|null; role:string|null;
   asset_path:string|null; preview_path:string|null; grid_width:number|null; grid_height:number|null;
   tile_width:number|null; tile_height:number|null; perspective:string|null; palette_family:string|null;
   outline_style:string|null; lighting_direction:string|null; season_capable:boolean;
@@ -74,7 +74,7 @@ export default function AssetLibraryPage(){
   const [assets,setAssets]=useState<Asset[]>([]);
   const [selected,setSelected]=useState<Asset|null>(null);
   const [search,setSearch]=useState("");
-  const [category,setCategory]=useState("all");
+  const [placementCategory,setPlacementCategory]=useState("all");
   const [source,setSource]=useState("all");
   const [busy,setBusy]=useState(true);
   const [error,setError]=useState("");
@@ -96,12 +96,12 @@ export default function AssetLibraryPage(){
     return()=>{active=false};
   },[loading,user]);
 
-  const categories=useMemo(()=>["all",...Array.from(new Set(assets.map(a=>a.category).filter(Boolean) as string[]))],[assets]);
+  const placementCategories=useMemo(()=>["all","world","region","playable","interior"].filter(v=>v==="all"||assets.some(a=>a.placement_category===v)),[assets]);
   const sources=useMemo(()=>["all",...Array.from(new Set(assets.map(a=>a.source_name).filter(Boolean) as string[]))],[assets]);
   const filtered=useMemo(()=>{
     const q=search.trim().toLowerCase();
     return assets.filter(a=>
-      (category==="all"||a.category===category)&&
+      (placementCategory==="all"||a.placement_category===placementCategory)&&
       (source==="all"||a.source_name===source)&&
       (!q||[a.name,a.role,a.category,a.source_name,a.slug].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)))
     );
@@ -123,7 +123,7 @@ export default function AssetLibraryPage(){
 
     <section className="asset-library-toolbar">
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search asset, role, category, source…" aria-label="Search assets"/>
-      <select value={category} onChange={e=>setCategory(e.target.value)} aria-label="Filter category">{categories.map(v=><option key={v} value={v}>{v==="all"?"All categories":v}</option>)}</select>
+      <select value={placementCategory} onChange={e=>setPlacementCategory(e.target.value)} aria-label="Filter placement category">{placementCategories.map(v=><option key={v} value={v}>{v==="all"?"All placement categories":v.toUpperCase()}</option>)}</select>
       <select value={source} onChange={e=>setSource(e.target.value)} aria-label="Filter source">{sources.map(v=><option key={v} value={v}>{v==="all"?"All sources":v}</option>)}</select>
       <span>{filtered.length} shown</span>
     </section>
@@ -136,7 +136,7 @@ export default function AssetLibraryPage(){
             <span className="asset-card-image"><AssetPreview asset={asset}/></span>
             <strong>{asset.name}</strong>
             <small>{asset.role||asset.category||"Asset"}</small>
-            <em>{asset.source_name||"Unknown source"}</em>
+            <em>{(asset.placement_category||"unassigned").toUpperCase()} · {asset.source_name||"Unknown source"}</em>
           </button>;
         })}
       </div>
@@ -145,7 +145,7 @@ export default function AssetLibraryPage(){
         {selected?<><div className="asset-detail-image"><AssetPreview key={selected.id} asset={selected}/></div>
           <p className="asset-detail-kicker">ASSET DETAIL · {selected.asset_status}</p>
           <h2>{selected.name}</h2>
-          <p className="asset-detail-role">{selected.role||selected.category||"Uncategorized"}</p>
+          <p className="asset-detail-role">{selected.role||selected.category||"Uncategorized"} · <strong>{(selected.placement_category||"unassigned").toUpperCase()}</strong></p>
           <section><h3>WHAT IS THIS ASSET?</h3><dl><div><dt>Type</dt><dd>{selected.role||"—"}</dd></div><div><dt>Category</dt><dd>{selected.category||"—"}</dd></div><div><dt>Perspective</dt><dd>{selected.perspective||"—"}</dd></div><div><dt>Palette</dt><dd>{selected.palette_family||"—"}</dd></div></dl><p>{metadataNote(selected)}</p></section>
           <section><h3>SOURCE</h3><dl><div><dt>Name</dt><dd>{selected.source_name||"—"}</dd></div><div><dt>Version</dt><dd>{selected.source_version||"—"}</dd></div><div><dt>Path</dt><dd>{selected.asset_path||"—"}</dd></div></dl><div className="asset-detail-links">{selected.source_url?<a href={selected.source_url} target="_blank" rel="noreferrer">Open source</a>:null}{selected.repository_url?<a href={selected.repository_url} target="_blank" rel="noreferrer">Open repository</a>:null}</div></section>
           <section><h3>LICENSE</h3><p>{selected.licenses?.length?selected.licenses.join(" · "):"Not recorded"}</p><dl><div><dt>Attribution</dt><dd>{selected.attribution_required?"Required":"Not required"}</dd></div><div><dt>Commercial use</dt><dd>{selected.commercial_use_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Modification</dt><dd>{selected.modification_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Redistribution</dt><dd>{selected.redistribution_allowed?"Allowed":"Not recorded / restricted"}</dd></div></dl>{selected.attribution_text?<blockquote>{selected.attribution_text}</blockquote>:null}</section>
