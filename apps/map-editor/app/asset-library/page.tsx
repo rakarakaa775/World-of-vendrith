@@ -93,10 +93,10 @@ export default function AssetLibraryPage(){
     <section className="asset-library-layout">
       <div className="asset-library-grid">
         {busy?<div className="asset-library-empty">Loading approved assets…</div>:error?<div className="asset-library-empty">{error}</div>:filtered.length===0?<div className="asset-library-empty">No approved asset matches.</div>:filtered.map(asset=>{
-          const image=assetUrl(asset.preview_path||asset.asset_path);
+          const image=assetUrl(asset.asset_path);
           const active=selected?.id===asset.id;
           return <button key={asset.id} className={active?"asset-card active":"asset-card"} onClick={()=>setSelected(asset)} aria-pressed={active}>
-            <span className="asset-card-image">{image?<img src={image} alt={asset.name} loading="lazy"/>:<span>NO PREVIEW</span>}</span>
+            <span className="asset-card-image">{image?<img src={image} alt={asset.name} loading="lazy" onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>NO PREVIEW</span>}</span>
             <strong>{asset.name}</strong>
             <small>{asset.role||asset.category||"Asset"}</small>
             <em>{asset.source_name||"Unknown source"}</em>
@@ -105,12 +105,12 @@ export default function AssetLibraryPage(){
       </div>
 
       <aside className="asset-library-detail">
-        {selected?<><div className="asset-detail-image">{assetUrl(selected.preview_path||selected.asset_path)?<img src={assetUrl(selected.preview_path||selected.asset_path)!} alt={selected.name}/>:<span>No preview</span>}</div>
+        {selected?<><div className="asset-detail-image">{assetUrl(selected.asset_path)?<img src={assetUrl(selected.asset_path)!} alt={selected.name} onError={e=>{e.currentTarget.style.display="none"; e.currentTarget.parentElement?.classList.add("asset-image-missing")}}/>:<span>No preview</span>}</div>
           <p className="asset-detail-kicker">ASSET DETAIL · {selected.asset_status}</p>
           <h2>{selected.name}</h2>
           <p className="asset-detail-role">{selected.role||selected.category||"Uncategorized"}</p>
-          <section><h3>DESCRIPTION / NOTES</h3><p>{metadataNote(selected)}</p></section>
-          <section><h3>SOURCE</h3><dl><div><dt>Name</dt><dd>{selected.source_name||"—"}</dd></div><div><dt>Version</dt><dd>{selected.source_version||"—"}</dd></div><div><dt>Path</dt><dd>{selected.asset_path||"—"}</dd></div></dl></section>
+          <section><h3>WHAT IS THIS ASSET?</h3><dl><div><dt>Type</dt><dd>{selected.role||"—"}</dd></div><div><dt>Category</dt><dd>{selected.category||"—"}</dd></div><div><dt>Perspective</dt><dd>{selected.perspective||"—"}</dd></div><div><dt>Palette</dt><dd>{selected.palette_family||"—"}</dd></div></dl><p>{metadataNote(selected)}</p></section>
+          <section><h3>SOURCE</h3><dl><div><dt>Name</dt><dd>{selected.source_name||"—"}</dd></div><div><dt>Version</dt><dd>{selected.source_version||"—"}</dd></div><div><dt>Path</dt><dd>{selected.asset_path||"—"}</dd></div></dl><div className="asset-detail-links">{selected.source_url?<a href={selected.source_url} target="_blank" rel="noreferrer">Open source</a>:null}{selected.repository_url?<a href={selected.repository_url} target="_blank" rel="noreferrer">Open repository</a>:null}</div></section>
           <section><h3>LICENSE</h3><p>{selected.licenses?.length?selected.licenses.join(" · "):"Not recorded"}</p><dl><div><dt>Attribution</dt><dd>{selected.attribution_required?"Required":"Not required"}</dd></div><div><dt>Commercial use</dt><dd>{selected.commercial_use_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Modification</dt><dd>{selected.modification_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Redistribution</dt><dd>{selected.redistribution_allowed?"Allowed":"Not recorded / restricted"}</dd></div></dl>{selected.attribution_text?<blockquote>{selected.attribution_text}</blockquote>:null}</section>
           <section><h3>TECHNICAL</h3><dl><div><dt>Grid</dt><dd>{selected.grid_width??"—"} × {selected.grid_height??"—"}</dd></div><div><dt>Tile</dt><dd>{selected.tile_width??"—"} × {selected.tile_height??"—"}</dd></div><div><dt>Autotile</dt><dd>{selected.autotile_capable?"Yes":"No"}</dd></div><div><dt>Collision</dt><dd>{selected.collision_capable?"Yes":"No"}</dd></div><div><dt>Interactable</dt><dd>{selected.interactable?"Yes":"No"}</dd></div></dl></section>
         </>:<div className="asset-library-empty">Select an asset.</div>}
