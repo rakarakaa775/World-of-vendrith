@@ -11,6 +11,7 @@ export type TerrainAssetBindingRow = {
   terrain_key: string | null;
   neighbor_mask: number | null;
   asset_id: string | null;
+  asset_path?: string | null;
   candidate_status: string | null;
   asset_status: string | null;
   autotile_capable: boolean | null;
@@ -46,6 +47,11 @@ function isApprovedAssetStatus(value: unknown): value is 'approved' {
   return value === 'approved';
 }
 
+function isRuntimeAssetPathAllowed(value: unknown): boolean {
+  if (!isNonEmptyString(value)) return true;
+  return !value.toLowerCase().includes('terrain-v7');
+}
+
 function parseTerrainAssetRegion(value: unknown): TerrainAssetBinding['region'] {
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
@@ -65,16 +71,6 @@ function parseTerrainAssetRegion(value: unknown): TerrainAssetBinding['region'] 
   return { x: x as number, y: y as number, width: width as number, height: height as number };
 }
 
-
-/**
- * Converts rows from public.vandrith_asset_binding_workbench into the editor
- * binding registry without inventing asset IDs.
- *
- * Every runtime binding must satisfy the documented two-source approval
- * boundary: the asset itself is approved and the binding candidate is
- * approved. Full autotile rows additionally require an autotile-capable asset.
- * A base terrain is represented by mask 255 and may be non-autotile-capable.
- */
 export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoadResult {
   if (!Array.isArray(rows)) {
     return {
@@ -103,6 +99,7 @@ export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoad
       isNonEmptyString(row.asset_id) &&
       approvedCandidate &&
       approvedAsset &&
+      isRuntimeAssetPathAllowed(row.asset_path) &&
       isNonEmptyString(row.license_registry_id);
     const baseTerrain = common && row.neighbor_mask === 255;
     const fullAutotile = common && row.autotile_capable === true;
