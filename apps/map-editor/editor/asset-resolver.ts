@@ -119,8 +119,43 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
         });
         found.add(row.asset_id);
       }
+
+      // The manifest is the preferred World source, but it is not allowed to
+      // hide an approved registry asset. If a verified manifest row is absent,
+      // resolve the same asset ID from asset_registry before declaring it
+      // unavailable. This is important for newly promoted terrain assets such
+      // as deepwater while the manifest projection catches up.
+      const unresolved = missing.filter(id => !found.has(id));
+      if (unresolved.length) {
+        const registry = await client
+          .from('asset_registry')
+          .select('id,name,asset_path,status,source_id,tile_width,tile_height')
+          .in('id', unresolved);
+        if (registry.error) throw registry.error;
+        const registryRows = registry.data ?? [];
+        const registrySourceIds = [...new Set(registryRows.map((row: any) => row.source_id).filter(Boolean))];
+        const registrySources = new Map<string, string>();
+        if (registrySourceIds.length) {
+          const { data: sources } = await client
+            .from('asset_sources')
+            .select('id,name')
+            .in('id', registrySourceIds);
+          for (const source of sources ?? []) registrySources.set(source.id, source.name);
+        }
+        for (const row of registryRows) {
+          if (row.source_id && registrySources.has(row.source_id)) {
+            row.source_name = registrySources.get(row.source_id);
+          }
+          const asset = cacheAssetRecord(row as AssetRecord);
+          if (asset?.id) found.add(asset.id);
+        }
+      }
+
       for (const id of missing) if (!found.has(id)) assetCache.set(id, null);
-      return new Map(unique.flatMap(id => { const asset=assetCache.get(id); return asset ? [[id,asset] as const] : []; }));
+      return new Map(unique.flatMap(id => {
+        const asset = assetCache.get(id);
+        return asset ? [[id, asset] as const] : [];
+      }));
     }
     const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').in('id', missing);
     if (registry.error) throw registry.error;
