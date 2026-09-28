@@ -238,40 +238,52 @@ export function PixiMapCanvas(props: Props) {
             let renderedTexture = false;
             if (layer.id === activeLayerId && terrain) {
               if (terrain === "deepwater") {
-                const asset = assetRecords.get(DEEP_WATER_ASSET_ID);
-                const url = asset ? resolveAssetUrl(asset) : null;
-                const texture = asset ? loadedTextures.get(DEEP_WATER_ASSET_ID) : null;
+                const texture = loadedTextures.get(DEEP_WATER_ASSET_ID);
                 if (texture) {
                   const sprite = new Sprite(texture);
-                  sprite.x = x * document.tileSize; sprite.y = y * document.tileSize;
-                  sprite.width = document.tileSize; sprite.height = document.tileSize;
-                  scene.addChild(sprite); renderedTexture = true;
+                  sprite.x = x * document.tileSize;
+                  sprite.y = y * document.tileSize;
+                  sprite.width = document.tileSize;
+                  sprite.height = document.tileSize;
+                  scene.addChild(sprite);
+                  renderedTexture = true;
                 }
-              }
-              if (terrain !== "deepwater") {
-              const mask = neighborMask(document, layer.id, { x, y }, terrain);
-              const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
-              const asset = binding ? assetRecords.get(binding.assetId) : null;
-              const url = asset ? resolveAssetUrl(asset) : null;
-              let texture = binding ? loadedTextures.get(binding.assetId) : null;
-              if (!texture && url) texture = await mapEditorTextureCache.load(url, Assets);
-              if (cancelled || worldRef.current !== world) return;
-              if (texture) {
-                const renderTexture = textureForTerrainBinding(texture, binding?.assetId ?? "", binding?.region ?? null);
-                const sprite = new Sprite(renderTexture);
-                sprite.x = x * document.tileSize;
-                sprite.y = y * document.tileSize;
-                sprite.width = document.tileSize;
-                sprite.height = document.tileSize;
-                sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
-                scene.addChild(sprite);
-                renderedTexture = true;
+              } else {
+                const mask = neighborMask(document, layer.id, { x, y }, terrain);
+                const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
+                const asset = binding ? assetRecords.get(binding.assetId) : null;
+                const url = asset ? resolveAssetUrl(asset) : null;
+                let texture = binding ? loadedTextures.get(binding.assetId) : null;
+                if (!texture && url) texture = await mapEditorTextureCache.load(url, Assets);
+                if (cancelled || worldRef.current !== world) return;
+                if (texture) {
+                  const renderTexture = textureForTerrainBinding(
+                    texture,
+                    binding?.assetId ?? "",
+                    binding?.region ?? null,
+                  );
+                  const sprite = new Sprite(renderTexture);
+                  sprite.x = x * document.tileSize;
+                  sprite.y = y * document.tileSize;
+                  sprite.width = document.tileSize;
+                  sprite.height = document.tileSize;
+                  sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
+                  scene.addChild(sprite);
+                  renderedTexture = true;
+                }
               }
             }
             if (!renderedTexture) {
               const g = new Graphics();
-              g.rect(x * document.tileSize + 2, y * document.tileSize + 2, document.tileSize - 4, document.tileSize - 4)
-                .fill({ color: colorForTile(id), alpha: layer.kind === "collision" ? 0.35 : 1 });
+              g.rect(
+                x * document.tileSize + 2,
+                y * document.tileSize + 2,
+                document.tileSize - 4,
+                document.tileSize - 4,
+              ).fill({
+                color: colorForTile(id),
+                alpha: layer.kind === "collision" ? 0.35 : 1,
+              });
               scene.addChild(g);
             }
           }
