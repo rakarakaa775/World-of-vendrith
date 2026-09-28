@@ -1,6 +1,7 @@
 export type AssetRecord = {
   id?: string | null;
   asset_path?: string | null;
+  name?: string | null;
   status?: string | null;
   source_id?: string | null;
   source_name?: string | null;
@@ -22,6 +23,7 @@ function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
   return `/api/assets/${encodedPath}?repo=${repo}`;
 }
 const assetCache = new Map<string, AssetRecord | null>();
+const WORLD_ASSET_MANIFEST_IDS = new Set<string>();
 
 /** Canonical bundled terrain textures. Supabase remains the registry/provenance source. */
 const LOCAL_TERRAIN_ASSETS: Record<string, string> = {
@@ -71,7 +73,14 @@ export function clearAssetRecordCache(): void { assetCache.clear(); }
 
 export async function resolveAssetRecord(client: any, assetId: string): Promise<AssetRecord | null> {
   if (assetCache.has(assetId)) return assetCache.get(assetId) ?? null;
-  const { data, error } = await client.from('asset_registry').select('id,asset_path,status,source_id,tile_width,tile_height').eq('id', assetId).maybeSingle();
+  const { data, error } = await client.from('world_asset_manifest_v1').select('asset_id,name,asset_path,selection_status,verification_status').eq('asset_id', assetId).eq('selection_status','enabled').eq('verification_status','verified').maybeSingle();
+  if (!error && data) {
+    return cacheAssetRecord({ id: data.asset_id, name: data.name, asset_path: data.asset_path, status: 'approved' });
+  }
+  const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').eq('id', assetId).maybeSingle();
+  if (registry.error) throw registry.error;
+  const data = registry.data;
+
   if (error) throw error;
   if (!data) { assetCache.set(assetId, null); return null; }
   const sourceId = (data as any).source_id;
@@ -86,7 +95,16 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
   const unique = [...new Set(assetIds.filter(Boolean))];
   const missing = unique.filter(id => !assetCache.has(id));
   if (missing.length) {
-    const { data, error } = await client.from('asset_registry').select('id,asset_path,status,source_id,tile_width,tile_height').in('id', missing);
+    const { data, error } = await client.from('world_asset_manifest_v1').select('asset_id,name,asset_path,selection_status,verification_status').in('asset_id', missing).eq('selection_status','enabled').eq('verification_status','verified');
+    if (!error) {
+      const found = new Set<string>();
+      for (const row of data ?? []) { cacheAssetRecord({ id: row.asset_id, name: row.name, asset_path: row.asset_path, status: 'approved' }); found.add(row.asset_id); }
+      for (const id of missing) if (!found.has(id)) assetCache.set(id, null);
+      return new Map(unique.flatMap(id => { const asset=assetCache.get(id); return asset ? [[id,asset] as const] : []; }));
+    }
+    const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').in('id', missing);
+    if (registry.error) throw registry.error;
+    const data = registry.data;
     if (error) throw error;
     const sourceIds = [...new Set((data ?? []).map((row: any) => row.source_id).filter(Boolean))];
     const sourceNames = new Map<string, string>();
