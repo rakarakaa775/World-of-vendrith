@@ -5,7 +5,7 @@ import {
   type TerrainAssetBindingMap,
 } from './terrain-asset-binding';
 
-const TERRAIN_KEYS: readonly TerrainKey[] = ['grass', 'sand', 'dirt', 'pavement', 'water'];
+const TERRAIN_KEYS: readonly TerrainKey[] = ['grass', 'sand', 'dirt', 'pavement', 'water', 'deepwater'];
 
 export type TerrainAssetBindingRow = {
   terrain_key: string | null;
