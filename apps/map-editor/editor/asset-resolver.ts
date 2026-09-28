@@ -19,7 +19,6 @@ function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
     .split('/')
     .map(encodeURIComponent)
     .join('/');
-    .join('/');
   return `/api/assets/${encodedPath}?repo=${repo}`;
 }
 const assetCache = new Map<string, AssetRecord | null>();
