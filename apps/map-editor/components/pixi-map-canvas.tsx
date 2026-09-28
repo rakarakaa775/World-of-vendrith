@@ -120,7 +120,7 @@ export function PixiMapCanvas(props: Props) {
     };
     const initPromise = app.init(initOptions);
     const timeoutPromise = new Promise<never>((_, reject) => {
-      initTimer = setTimeout(() => reject(new Error("Renderer initialization timed out after 8 seconds")), 8000);
+      initTimer = setTimeout(() => reject(new Error("Renderer initialization timed out after 30 seconds")), 30000);
     });
     void Promise.race([initPromise, timeoutPromise]).then(() => {
       if (initTimer) { clearTimeout(initTimer); initTimer = null; }
