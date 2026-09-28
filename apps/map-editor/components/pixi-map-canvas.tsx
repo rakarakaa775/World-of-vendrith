@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useEffect, useRef, useState } from "react";
-import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture, TilingSprite } from "pixi.js";
 import type { RendererPreference } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
@@ -229,6 +229,28 @@ export function PixiMapCanvas(props: Props) {
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
+          // Render the seeded World deepwater as one repeated texture instead of
+          // 16,384 individual display objects. This avoids mobile canvas stalls.
+          const isSolidDeepwaterWorld =
+            layer.id === activeLayerId &&
+            layer.kind === "ground" &&
+            document.mapType === "world" &&
+            layer.cells.length === document.width * document.height &&
+            layer.cells.every(cell => cell.tileId === "deepwater");
+          if (isSolidDeepwaterWorld) {
+            const texture = loadedTextures.get(DEEP_WATER_ASSET_ID);
+            if (texture) {
+              const tileTexture = textureForTerrainBinding(texture, DEEP_WATER_ASSET_ID, {
+                x: 0,
+                y: 0,
+                width: 16,
+                height: 16,
+              });
+              const tiled = new TilingSprite({ texture: tileTexture, width, height });
+              scene.addChild(tiled);
+              continue;
+            }
+          }
           for (let i = 0; i < document.width * document.height; i++) {
             const id = layer.cells[i]?.tileId;
             if (!id) continue;
