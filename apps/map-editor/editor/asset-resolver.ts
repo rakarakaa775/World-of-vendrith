@@ -84,16 +84,15 @@ export async function resolveAssetRecord(client: any, assetId: string): Promise<
   }
   const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').eq('id', assetId).maybeSingle();
   if (registry.error) throw registry.error;
-  const data = registry.data;
+  const registryData = registry.data;
 
-  if (error) throw error;
-  if (!data) { assetCache.set(assetId, null); return null; }
-  const sourceId = (data as any).source_id;
+  if (!registryData) { assetCache.set(assetId, null); return null; }
+  const sourceId = (registryData as any).source_id;
   if (sourceId) {
     const { data: source } = await client.from('asset_sources').select('name').eq('id', sourceId).maybeSingle();
-    if (source?.name) (data as any).source_name = source.name;
+    if (source?.name) (registryData as any).source_name = source.name;
   }
-  return cacheAssetRecord(data as AssetRecord);
+  return cacheAssetRecord(registryData as AssetRecord);
 }
 
 export async function resolveAssetRecords(client: any, assetIds: string[]): Promise<Map<string, AssetRecord>> {
@@ -109,7 +108,7 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
         for (const source of sources ?? []) sourceNames.set(source.id, source.name);
       }
       const found = new Set<string>();
-      for (const row of data ?? []) {
+      for (const row of registryData ?? []) {
         cacheAssetRecord({
           id: row.asset_id,
           name: row.name,
@@ -125,9 +124,8 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
     }
     const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').in('id', missing);
     if (registry.error) throw registry.error;
-    const data = registry.data;
-    if (error) throw error;
-    const sourceIds = [...new Set((data ?? []).map((row: any) => row.source_id).filter(Boolean))];
+    const registryData = registry.data;
+    const sourceIds = [...new Set((registryData ?? []).map((row: any) => row.source_id).filter(Boolean))];
     const sourceNames = new Map<string, string>();
     if (sourceIds.length) {
       const { data: sources } = await client.from('asset_sources').select('id,name').in('id', sourceIds);
