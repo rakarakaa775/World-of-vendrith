@@ -15,6 +15,8 @@ export type WorldAssetBrowserItem = {
   collision_capable: boolean;
   interactable: boolean;
   asset_status: string | null;
+  world_role: "base_terrain" | "polar_terrain" | "mountain" | "polar_mountain" | null;
+  verification_status: string | null;
 };
 
 export const ASSET_LIBRARY_RAW = "https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main";
@@ -31,12 +33,30 @@ export async function loadWorldAssetBrowser(): Promise<WorldAssetBrowserItem[]> 
   const client = createMapEditorSupabaseClient();
   if (!client) return [];
   const { data, error } = await client
-    .from("world_asset_browser_inventory_v1")
-    .select("id,name,category,role,asset_path,preview_path,tile_width,tile_height,source_name,attribution_required,autotile_capable,collision_capable,interactable,asset_status")
-    .eq("asset_status", "approved")
-    .order("category", { ascending: true })
+    .from("world_asset_manifest_v1")
+    .select("asset_id,name,category,world_role,asset_path,preview_path,source_id,selection_status,verification_status")
+    .eq("selection_status", "enabled")
+    .eq("verification_status", "verified")
+    .order("world_role", { ascending: true })
     .order("name", { ascending: true })
-    .limit(200);
+    .limit(100);
   if (error || !data) return [];
-  return data as WorldAssetBrowserItem[];
+  return (data as any[]).map(row => ({
+    id: row.asset_id,
+    name: row.name,
+    category: row.category ?? null,
+    role: row.world_role ?? null,
+    asset_path: row.asset_path ?? null,
+    preview_path: row.preview_path ?? null,
+    tile_width: null,
+    tile_height: null,
+    source_name: null,
+    attribution_required: false,
+    autotile_capable: false,
+    collision_capable: false,
+    interactable: false,
+    asset_status: "approved",
+    world_role: row.world_role ?? null,
+    verification_status: row.verification_status ?? null,
+  })) as WorldAssetBrowserItem[];
 }
