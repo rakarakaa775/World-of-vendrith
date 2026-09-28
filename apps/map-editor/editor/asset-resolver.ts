@@ -132,7 +132,7 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
       for (const source of sources ?? []) sourceNames.set(source.id, source.name);
     }
     const found = new Set<string>();
-    for (const row of data ?? []) {
+    for (const row of registryData ?? []) {
       if (row.source_id && sourceNames.has(row.source_id)) row.source_name = sourceNames.get(row.source_id);
       const asset = cacheAssetRecord(row as AssetRecord);
       if (asset?.id) found.add(asset.id);
