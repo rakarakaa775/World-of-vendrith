@@ -1,6 +1,41 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthUser } from "../../editor/auth";
+import { VendrithWorldBuilderApp } from "../../components/vendrith-world-builder-app";
+import { WorldBuilderErrorBoundary } from "../../components/world-builder-error-boundary";
+import { WorldBuilderWorkspaceShell } from "../../components/world-builder-workspace-shell";
+
+function WorldBuilderWorkspace() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, loading } = useAuthUser();
+  const startMode = searchParams.get("load") === "1" ? "load" : "create";
+  const workspace = searchParams.get("workspace") || "world";
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/");
+  }, [loading, user, router]);
+
+  if (loading || !user) return <main className="vandrith-auth-loading">Memeriksa akun...</main>;
+
+  return (
+    <WorldBuilderErrorBoundary>
+      <WorldBuilderWorkspaceShell activeWorkspace={workspace}>
+        {workspace === "world" ? (
+          <VendrithWorldBuilderApp startMode={startMode} />
+        ) : (
+          <WorkspaceLanding workspace={workspace} onOpenWorld={() => router.push("/world-builder?workspace=world&load=1")} />
+        )}
+      </WorldBuilderWorkspaceShell>
+    </WorldBuilderErrorBoundary>
+  );
+}
+
+"use client";
+
+import { Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthUser } from "../../editor/auth";
 import { VendrithWorldBuilderApp } from "../../components/vendrith-world-builder-app";
