@@ -201,7 +201,18 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         if (binding.error) {
           setTerrainStatus(`Terrain runtime unavailable · ${msg(binding.error)} · ${BUILD_MARKER}`);
         } else {
-          const result: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
+          const bindingRows = binding.data || [];
+          const assetIds = [...new Set(bindingRows.map((row: any) => row.asset_id).filter(Boolean))];
+          const registry = assetIds.length
+            ? await client.from("asset_registry").select("id,asset_path").in("id", assetIds)
+            : { data: [], error: null };
+          if (registry.error) throw registry.error;
+          const assetPaths = new Map((registry.data || []).map((row: any) => [row.id, row.asset_path]));
+          const enrichedBindingRows = bindingRows.map((row: any) => ({
+            ...row,
+            asset_path: assetPaths.get(row.asset_id) ?? null,
+          }));
+          const result: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(enrichedBindingRows);
           setTerrainBindings(result.bindings);
           setTerrainStatus(`Terrain runtime · ${result.diagnostics.accepted}/256 · ${result.rejected} rejected · ${BUILD_MARKER}`);
         }
