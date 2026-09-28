@@ -115,3 +115,48 @@ export class PixiTextureCache {
 }
 
 export const mapEditorTextureCache = new PixiTextureCache();
+
+export type WorldAssetRole = 'base_terrain' | 'polar_terrain' | 'mountain' | 'polar_mountain';
+
+export type WorldAssetRecord = AssetRecord & {
+  name?: string | null;
+  world_role?: WorldAssetRole | null;
+  selection_status?: string | null;
+  verification_status?: string | null;
+};
+
+/**
+ * Canonical World PNG source. Do not derive World selection from placement_category.
+ * Seasonal Four Seasons assets are intentionally outside this manifest.
+ */
+export async function resolveWorldAssetRecords(client: any, role?: WorldAssetRole): Promise<WorldAssetRecord[]> {
+  let query = client
+    .from('world_asset_manifest_v1')
+    .select('asset_id,name,asset_path,world_role,selection_status,verification_status')
+    .eq('selection_status', 'enabled')
+    .eq('verification_status', 'verified')
+    .order('world_role')
+    .order('name');
+
+  if (role) query = query.eq('world_role', role);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((row: any) => ({
+    id: row.asset_id,
+    name: row.name,
+    asset_path: row.asset_path,
+    status: 'approved',
+    world_role: row.world_role,
+    selection_status: row.selection_status,
+    verification_status: row.verification_status,
+  })) as WorldAssetRecord[];
+}
+
+export async function resolveWorldAssetUrls(client: any, role?: WorldAssetRole): Promise<Array<{ asset: WorldAssetRecord; url: string }>> {
+  const assets = await resolveWorldAssetRecords(client, role);
+  return assets
+    .map(asset => ({ asset, url: resolveAssetUrl(asset) }))
+    .filter((item): item is { asset: WorldAssetRecord; url: string } => Boolean(item.url));
+}
