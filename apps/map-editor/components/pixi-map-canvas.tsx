@@ -43,12 +43,12 @@ type Props = {
   previewMode?: boolean;
 };
 
-const COLORS: Record<string, number> = {
+const DEEP_WATER_ASSET_ID = "5587526c-093a-4e3a-8813-aeaa348060eb";\nconst COLORS: Record<string, number> = {
   grass: 0x4f9d50,
   sand: 0xe6c36a,
   dirt: 0x98633e,
   pavement: 0x8b949e,
-  water: 0x3b82c4,
+  water: 0x3b82c4,\n  deepwater: 0x24527a,
 };
 const colorForTile = (id: string | null) => id ? (COLORS[terrainFromTileId(id) ?? ""] ?? 0x94a3b8) : 0xffffff;
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
@@ -188,7 +188,7 @@ export function PixiMapCanvas(props: Props) {
       }
       scene.addChild(grid);
 
-      const textureRequests = new Set<string>();
+      const textureRequests = new Set<string>();\n      textureRequests.add(DEEP_WATER_ASSET_ID);
       for (const terrain of ["grass", "sand", "dirt", "pavement", "water"] as const) {
         const binding = getTerrainAssetBinding(terrainBindings, terrain, 255);
         if (binding) textureRequests.add(binding.assetId);
@@ -232,7 +232,7 @@ export function PixiMapCanvas(props: Props) {
             const y = Math.floor(i / document.width);
             const terrain = terrainFromTileId(id);
             let renderedTexture = false;
-            if (layer.id === activeLayerId && terrain) {
+            if (layer.id === activeLayerId && terrain) {\n              if (terrain === "deepwater") {\n                const asset = assetRecords.get(DEEP_WATER_ASSET_ID);\n                const url = asset ? resolveAssetUrl(asset) : null;\n                const texture = asset ? loadedTextures.get(DEEP_WATER_ASSET_ID) : null;\n                if (texture) {\n                  const sprite = new Sprite(texture);\n                  sprite.x = x * document.tileSize; sprite.y = y * document.tileSize;\n                  sprite.width = document.tileSize; sprite.height = document.tileSize;\n                  scene.addChild(sprite); renderedTexture = true;\n                }\n              }\n              if (terrain !== "deepwater") {
               const mask = neighborMask(document, layer.id, { x, y }, terrain);
               const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
               const asset = binding ? assetRecords.get(binding.assetId) : null;
