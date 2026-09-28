@@ -13,6 +13,14 @@ const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
 
 const WORLD_SOURCES = new Set(['[LPC] Terrains', '[LPC] Overworld', 'LPC Revised 4-Seasons Exterior Tilesets']);
 
+function normalizeAssetPath(assetPath: string): string {
+  return assetPath
+    .split('/')
+    .filter(Boolean)
+    .map(segment => encodeURIComponent(segment))
+    .join('/');
+}
+
 function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
   if (!asset.asset_path || !asset.source_name || !WORLD_SOURCES.has(asset.source_name)) return null;
   const repo = asset.source_name === '[LPC] Overworld' ? 'world' : 'library';
