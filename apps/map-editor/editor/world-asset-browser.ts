@@ -24,6 +24,7 @@ export const ASSET_LIBRARY_RAW = "https://media.githubusercontent.com/media/raka
 export function assetPreviewUrl(item: WorldAssetBrowserItem): string | undefined {
   const source = item.preview_path || item.asset_path;
   if (!source) return undefined;
+  if (/^data:image\//i.test(source)) return source;
   if (/^https?:\/\//i.test(source)) return source;
   if (source.startsWith("ASSET_LIBRARY/")) return `${ASSET_LIBRARY_RAW}/${source}`;
   return undefined;
