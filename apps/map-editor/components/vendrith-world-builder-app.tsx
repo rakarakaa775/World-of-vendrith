@@ -47,7 +47,22 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
   const [isNewMap, setIsNewMap] = useState(startMode === "create");
   const [environmentValidation, setEnvironmentValidation] = useState<EnvironmentRuntimeValidation | null>(null);
   const active = maps.find(m => m.id === activeMapId) || maps[0];
-  const normalizeWorldCanvas = useCallback((document: MapDocument) => document.mapType === "world" ? resizeMapDocument(document, 128, 128) : document, []);
+  const normalizeWorldCanvas = useCallback((document: MapDocument) => {
+    if (document.mapType !== "world") return document;
+    const resized = resizeMapDocument(document, 128, 128);
+    const ground = resized.layers.find(layer => layer.id === "ground" && layer.kind === "ground");
+    if (!ground) return resized;
+    const hasTerrain = ground.cells.some(cell => Boolean(cell.tileId));
+    if (hasTerrain) return resized;
+    return {
+      ...resized,
+      layers: resized.layers.map(layer =>
+        layer.id === ground.id
+          ? { ...layer, cells: layer.cells.map(() => ({ tileId: "deepwater" })) }
+          : layer,
+      ),
+    };
+  }, []);
 
   const update = useCallback((next: MapDocument) => {
     setMaps(cur => {
