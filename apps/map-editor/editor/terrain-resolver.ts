@@ -21,6 +21,7 @@ const FALLBACK_TILE: Record<TerrainKey, string> = {
   dirt: 'dirt',
   pavement: 'stone-tile',
   water: 'water-tile',
+  deepwater: 'deepwater',
 };
 
 export function resolveTerrainVariant(terrain: TerrainKey, mask: TerrainMask, resolver?: TerrainResolver): TerrainVariant {
