@@ -32,6 +32,7 @@ const TERRAIN_INPUTS: Record<TerrainKey, string> = {
   dirt: tileIdForTerrain('dirt'),
   pavement: tileIdForTerrain('pavement'),
   water: tileIdForTerrain('water'),
+  deepwater: tileIdForTerrain('deepwater'),
 };
 
 function normalizePaintedTileId(value: string | null): string | null {
