@@ -184,7 +184,7 @@ export class PixiTextureCache {
     const pending = this.pending.get(url); if (pending) return pending;
     const request = (async () => {
       try {
-        const texture = await Assets.load(url);
+        const texture = await Assets.load({ src: url, parser: "texture" });
         this.textures.set(url, texture);
         return texture;
       } catch (error) {
