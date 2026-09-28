@@ -16,9 +16,9 @@ function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
   if (!asset.asset_path || !asset.source_name || !WORLD_SOURCES.has(asset.source_name)) return null;
   const repo = asset.source_name === '[LPC] Overworld' ? 'world' : 'library';
   const encodedPath = asset.asset_path
-    .replace(/^ASSET_LIBRARY\\//, '')
     .split('/')
     .map(encodeURIComponent)
+    .join('/');
     .join('/');
   return `/api/assets/${encodedPath}?repo=${repo}`;
 }
