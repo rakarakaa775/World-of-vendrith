@@ -10,17 +10,17 @@ export type AssetRecord = {
 
 const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
 
-const ASSET_LIBRARY_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main';
-const WORLD_REPO_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/World-of-vendrith/main';
 const WORLD_SOURCES = new Set(['[LPC] Terrains', '[LPC] Overworld', 'LPC Revised 4-Seasons Exterior Tilesets']);
 
 function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
   if (!asset.asset_path || !asset.source_name || !WORLD_SOURCES.has(asset.source_name)) return null;
-  const relative = asset.asset_path.replace(/^ASSET_LIBRARY\//, '');
-  if (asset.source_name === '[LPC] Overworld') {
-    return `${WORLD_REPO_RAW}/assets/world/world/${relative}`;
-  }
-  return `${ASSET_LIBRARY_RAW}/${asset.asset_path}`;
+  const repo = asset.source_name === '[LPC] Overworld' ? 'world' : 'library';
+  const encodedPath = asset.asset_path
+    .replace(/^ASSET_LIBRARY\\//, '')
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/');
+  return `/api/assets/${encodedPath}?repo=${repo}`;
 }
 const assetCache = new Map<string, AssetRecord | null>();
 
