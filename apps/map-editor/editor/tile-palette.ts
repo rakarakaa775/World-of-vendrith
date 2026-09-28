@@ -3,7 +3,7 @@ import { createMapEditorSupabaseClient } from "./supabase-client";
 export type TileOption = {
   id: string;
   label: string;
-  terrain: 'grass' | 'sand' | 'dirt' | 'pavement' | 'water';
+  terrain: 'grass' | 'sand' | 'dirt' | 'pavement' | 'water' | 'deepwater';
   assetName: string;
   assetPath?: string;
   previewPath?: string;
@@ -27,6 +27,7 @@ const TERRAIN_BY_ASSET: Record<string, TileOption['terrain']> = {
   'tile_dirt.png': 'dirt',
   'tile_pavement.png': 'pavement',
   'tile_water.png': 'water',
+  'lpc_terrain__deepwater.png': 'deepwater',
 };
 
 const LABEL_BY_TERRAIN: Record<TileOption['terrain'], string> = {
@@ -35,6 +36,7 @@ const LABEL_BY_TERRAIN: Record<TileOption['terrain'], string> = {
   dirt: 'Dirt',
   pavement: 'Pavement',
   water: 'Water',
+  deepwater: 'Deepwater',
 };
 
 const ASSET_LIBRARY_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main';
@@ -71,6 +73,7 @@ export const STARTER_TILES: TileOption[] = [
   { id: 'dirt', label: 'Dirt', terrain: 'dirt', assetName: 'tile_dirt.png', previewUrl: VERIFIED_PREVIEWS.dirt },
   { id: 'stone-tile', label: 'Pavement', terrain: 'pavement', assetName: 'tile_pavement.png', previewUrl: VERIFIED_PREVIEWS.pavement },
   { id: 'water-tile', label: 'Water', terrain: 'water', assetName: 'tile_water.png', previewUrl: VERIFIED_PREVIEWS.water },
+  { id: 'deepwater', label: 'Deepwater', terrain: 'deepwater', assetName: 'lpc_terrain__deepwater.png', previewUrl: '/api/assets/ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__deepwater.png?repo=library' },
 ];
 
 export async function loadTerrainTiles(): Promise<TileOption[]> {
@@ -80,7 +83,6 @@ export async function loadTerrainTiles(): Promise<TileOption[]> {
   const { data, error } = await client
     .from('asset_registry')
     .select('id,name,slug,asset_path,preview_path,tile_width,tile_height,status')
-    .eq('category', 'terrain')
     .eq('status', 'approved')
     .in('name', Object.keys(TERRAIN_BY_ASSET));
 
