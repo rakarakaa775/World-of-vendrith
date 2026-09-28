@@ -1,74 +1,164 @@
 "use client";
 
-import { createMap, type MapDocument } from "../editor/map-document";
+import { useCallback, useEffect, useState } from "react";
 import { PixiMapCanvas } from "./pixi-map-canvas";
+import { createMap, type MapDocument } from "../editor/map-document";
+import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
+import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
+import { createHistory, commitHistory, type MapHistory } from "../editor/map-history";
+import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
+import type { Selection } from "../editor/selection";
+import type { GridPoint } from "../editor/grid";
+import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
 type Props = {
   initialDocument?: MapDocument;
   initialDocumentRevision?: number;
-  [key: string]: unknown;
+  onDocumentChange?: (document: MapDocument) => void;
+  onSave?: (document: MapDocument) => void | Promise<void>;
+  onSaveLoad?: () => void | Promise<void>;
+  onQuickSave?: () => void | Promise<void>;
+  onLoadLatest?: () => void | Promise<void>;
+  terrainBindings?: TerrainAssetBindingMap;
+  terrainStatus?: string;
+  environmentValidation?: EnvironmentRuntimeValidation | null;
 };
 
-/**
- * World canvas UI — foundation step.
- *
- * This component intentionally contains only the canvas surface.
- * Toolbar, sidebar, inspector, terrain palette, asset picker, rulers,
- * minimap, transforms, and other editor chrome will be added back
- * incrementally in later steps.
- */
+const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood"] as const;
+const BRUSH_SIZES = [1, 2, 3, 5];
+
 export function EditorShell({
   initialDocument = createMap("world"),
   initialDocumentRevision = 0,
+  onDocumentChange,
+  onSave,
+  onSaveLoad,
+  onQuickSave,
+  onLoadLatest,
+  terrainBindings = {},
+  terrainStatus = "Terrain runtime unavailable",
 }: Props) {
-  const activeLayerId =
-    initialDocument.layers.find((layer) => layer.active)?.id ??
-    initialDocument.layers[0]?.id ??
-    "ground";
+  const [activeTool, setActiveTool] = useState<string>("Select");
+  const [tileOptions, setTileOptions] = useState<TileOption[]>(STARTER_TILES);
+  const [selectedTile, setSelectedTile] = useState<string>(STARTER_TILES.find(tile => tile.terrain === "deepwater")?.id ?? STARTER_TILES[0].id);
+  const [brushSize, setBrushSize] = useState(1);
+  const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
+  const document = history.present;
+  const activeLayer = document.layers.find(layer => layer.active)?.id ?? document.layers[0]?.id ?? "ground";
+
+  useEffect(() => {
+    setHistory(createHistory(initialDocument));
+  }, [initialDocument.id, initialDocumentRevision]);
+
+  useEffect(() => {
+    onDocumentChange?.(document);
+  }, [document, onDocumentChange]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadTerrainTiles().then(tiles => {
+      if (cancelled) return;
+      setTileOptions(tiles);
+      const deepwater = tiles.find(tile => tile.terrain === "deepwater");
+      setSelectedTile(current => tiles.some(tile => tile.id === current) ? current : deepwater?.id ?? tiles[0]?.id ?? current);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const commit = useCallback((next: MapDocument) => {
+    if (next !== document) setHistory(current => commitHistory(current, next));
+  }, [document]);
+
+  const handlePaint = useCallback((points: GridPoint[], tileId: string | null) => {
+    if (activeLayer !== "ground") return;
+    const result = tileId === null
+      ? eraseTerrainPaint(document, activeLayer, points, terrainBindings)
+      : applyTerrainPaint(document, activeLayer, points, tileId, terrainBindings);
+    commit(result.document);
+  }, [activeLayer, document, terrainBindings, commit]);
+
+  const chooseTerrain = (tile: TileOption) => {
+    setSelectedTile(tile.id);
+    setActiveTool("Paint");
+  };
+
+  const selectTool = (tool: string) => setActiveTool(tool);
 
   return (
-    <main
-      aria-label="World canvas"
-      style={{
-        width: "100%",
-        height: "100%",
-        minWidth: 0,
-        minHeight: 0,
-        overflow: "hidden",
-        background: "#0b1220",
-      }}
-    >
-      <section
-        aria-label="World map canvas surface"
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-        }}
-      >
-        <PixiMapCanvas
-          document={initialDocument}
-          activeTool="Select"
-          activeLayerId={activeLayerId}
-          selectedTileId={null}
-          brushSize={1}
-          selection={null}
-          onPaint={() => {}}
-          onSelectionChange={() => {}}
-          onStamp={() => {}}
-          onObjectPlace={() => {}}
-          onObjectMove={() => {}}
-          selectedObjectId={null}
-          selectedObjectIds={[]}
-          onObjectSelectionChange={() => {}}
-          readonly
-          showGrid={false}
-          viewportResetKey={initialDocumentRevision}
-        />
-      </section>
+    <main style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "#0b1220", color: "#e5e7eb" }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid #243047", background: "#0f172a", flexWrap: "wrap" }}>
+        <strong style={{ marginRight: 8 }}>World Map</strong>
+        {TOOLS.map(tool => (
+          <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
+            style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid #334155", background: activeTool === tool ? "#1e40af" : "#111827", color: "#fff" }}>
+            {tool}
+          </button>
+        ))}
+        <button type="button" onClick={() => void onSave?.(document)} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
+        <button type="button" onClick={() => void onLoadLatest?.()} style={{ padding: "6px 10px" }}>Load Latest</button>
+      </header>
+
+      <div style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
+        <aside style={{ overflow: "auto", borderRight: "1px solid #243047", background: "#0f172a", padding: 10 }}>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN</div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>{terrainStatus}</div>
+
+          <div style={{ display: "grid", gap: 6 }}>
+            {tileOptions.map(tile => (
+              <button key={tile.id} type="button" onClick={() => chooseTerrain(tile)} aria-pressed={selectedTile === tile.id}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid #334155", background: selectedTile === tile.id ? "#172554" : "#111827", color: "#fff" }}>
+                <span style={{ width: 28, height: 28, borderRadius: 4, background:
+                  tile.terrain === "deepwater" ? "#24527a" :
+                  tile.terrain === "water" ? "#3b82c4" :
+                  tile.terrain === "grass" ? "#4f9d50" :
+                  tile.terrain === "sand" ? "#e6c36a" :
+                  tile.terrain === "dirt" ? "#98633e" : "#8b949e" }} />
+                <span>{tile.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Brush size</div>
+          <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
+            {BRUSH_SIZES.map(size => (
+              <button key={size} type="button" onClick={() => setBrushSize(size)} aria-pressed={brushSize === size}
+                style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid #334155", background: brushSize === size ? "#1e40af" : "#111827", color: "#fff" }}>
+                {size}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 14, fontSize: 11, color: "#64748b" }}>
+            World: {document.width}×{document.height}<br />
+            Active layer: {activeLayer}<br />
+            Selected: {tileOptions.find(tile => tile.id === selectedTile)?.label ?? "—"}
+          </div>
+        </aside>
+
+        <section style={{ minWidth: 0, minHeight: 0, position: "relative" }}>
+          <PixiMapCanvas
+            document={document}
+            activeTool={activeTool}
+            activeLayerId={activeLayer}
+            selectedTileId={activeTool === "Erase" ? null : selectedTile}
+            brushSize={brushSize}
+            selection={null as Selection | null}
+            onPaint={handlePaint}
+            onSelectionChange={() => {}}
+            onCellInspect={() => {}}
+            onStamp={() => {}}
+            onObjectPlace={() => {}}
+            onObjectMove={() => {}}
+            selectedObjectId={null}
+            selectedObjectIds={[]}
+            onObjectSelectionChange={() => {}}
+            terrainBindings={terrainBindings}
+            environmentRuntime={null}
+            viewportResetKey={initialDocumentRevision}
+            showGrid
+          />
+        </section>
+      </div>
     </main>
   );
 }
