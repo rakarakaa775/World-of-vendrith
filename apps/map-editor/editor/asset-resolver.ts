@@ -73,9 +73,14 @@ export function clearAssetRecordCache(): void { assetCache.clear(); }
 
 export async function resolveAssetRecord(client: any, assetId: string): Promise<AssetRecord | null> {
   if (assetCache.has(assetId)) return assetCache.get(assetId) ?? null;
-  const { data, error } = await client.from('world_asset_manifest_v1').select('asset_id,name,asset_path,selection_status,verification_status').eq('asset_id', assetId).eq('selection_status','enabled').eq('verification_status','verified').maybeSingle();
+  const { data, error } = await client.from('world_asset_manifest_v1').select('asset_id,name,asset_path,source_id,selection_status,verification_status').eq('asset_id', assetId).eq('selection_status','enabled').eq('verification_status','verified').maybeSingle();
   if (!error && data) {
-    return cacheAssetRecord({ id: data.asset_id, name: data.name, asset_path: data.asset_path, status: 'approved' });
+    let sourceName: string | null = null;
+    if (data.source_id) {
+      const { data: source } = await client.from('asset_sources').select('name').eq('id', data.source_id).maybeSingle();
+      sourceName = source?.name ?? null;
+    }
+    return cacheAssetRecord({ id: data.asset_id, name: data.name, asset_path: data.asset_path, source_id: data.source_id, source_name: sourceName, status: 'approved' });
   }
   const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').eq('id', assetId).maybeSingle();
   if (registry.error) throw registry.error;
@@ -95,10 +100,26 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
   const unique = [...new Set(assetIds.filter(Boolean))];
   const missing = unique.filter(id => !assetCache.has(id));
   if (missing.length) {
-    const { data, error } = await client.from('world_asset_manifest_v1').select('asset_id,name,asset_path,selection_status,verification_status').in('asset_id', missing).eq('selection_status','enabled').eq('verification_status','verified');
+    const { data, error } = await client.from('world_asset_manifest_v1').select('asset_id,name,asset_path,source_id,selection_status,verification_status').in('asset_id', missing).eq('selection_status','enabled').eq('verification_status','verified');
     if (!error) {
+      const sourceIds = [...new Set((data ?? []).map((row: any) => row.source_id).filter(Boolean))];
+      const sourceNames = new Map<string, string>();
+      if (sourceIds.length) {
+        const { data: sources } = await client.from('asset_sources').select('id,name').in('id', sourceIds);
+        for (const source of sources ?? []) sourceNames.set(source.id, source.name);
+      }
       const found = new Set<string>();
-      for (const row of data ?? []) { cacheAssetRecord({ id: row.asset_id, name: row.name, asset_path: row.asset_path, status: 'approved' }); found.add(row.asset_id); }
+      for (const row of data ?? []) {
+        cacheAssetRecord({
+          id: row.asset_id,
+          name: row.name,
+          asset_path: row.asset_path,
+          source_id: row.source_id,
+          source_name: row.source_id ? sourceNames.get(row.source_id) ?? null : null,
+          status: 'approved'
+        });
+        found.add(row.asset_id);
+      }
       for (const id of missing) if (!found.has(id)) assetCache.set(id, null);
       return new Map(unique.flatMap(id => { const asset=assetCache.get(id); return asset ? [[id,asset] as const] : []; }));
     }
