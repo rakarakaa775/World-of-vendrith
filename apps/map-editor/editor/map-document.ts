@@ -1,4 +1,8 @@
 export type MapType = 'world' | 'region' | 'playable';
+export const WORLD_DEFAULT_WIDTH = 128;
+export const WORLD_DEFAULT_HEIGHT = 128;
+export const WORLD_DEFAULT_TILE_SIZE = 32;
+export const WORLD_DEEP_WATER_TILE = 'deepwater';
 export type MapLayerKind = 'ground' | 'objects' | 'collision';
 export type PlayableSpaceType = 'exterior' | 'interior';
 export type TileCell = { tileId: string | null };
@@ -16,7 +20,12 @@ export const createEmptyCells = (width:number, height:number):TileCell[] => {
 
 const layer=(id:string,name:string,kind:MapLayerKind,width:number,height:number,active=false):MapLayer=>({id,name,kind,visible:true,locked:false,active,cells:createEmptyCells(width,height),objects:[]});
 export const MAP_CAPABILITIES={world:{buildings:false,collision:false,terrainDetail:false,regions:true},region:{buildings:true,collision:false,terrainDetail:true,regions:false},playable:{buildings:true,collision:true,terrainDetail:true,regions:false}} as const;
-export const createMap=(mapType:MapType='playable',parentMapId:string|null=null,playableSpace:PlayableSpaceType='exterior',parentPlayableMapId:string|null=null):MapDocument=>({version:1,id:`${mapType}-map-${Date.now()}`,name:`${mapType[0].toUpperCase()+mapType.slice(1)} Map`,mapType,parentMapId,width:128,height:128,tileSize:32,layers:[layer('ground','Ground','ground',128,128,true),layer('objects','Objects','objects',128,128),layer('collision','Collision','collision',128,128)],...(mapType==='playable'?{playableSpace,parentPlayableMapId}: {})});
+export const createMap=(mapType:MapType='playable',parentMapId:string|null=null,playableSpace:PlayableSpaceType='exterior',parentPlayableMapId:string|null=null):MapDocument=>{
+  const isWorld=mapType==='world';
+  const ground=layer('ground','World Ocean','ground',WORLD_DEFAULT_WIDTH,WORLD_DEFAULT_HEIGHT,true);
+  if(isWorld) ground.cells=ground.cells.map(()=>({tileId:WORLD_DEEP_WATER_TILE}));
+  return {version:1,id:`${mapType}-map-${Date.now()}`,name:isWorld?'World Map':`${mapType[0].toUpperCase()+mapType.slice(1)} Map`,mapType,parentMapId,width:WORLD_DEFAULT_WIDTH,height:WORLD_DEFAULT_HEIGHT,tileSize:WORLD_DEFAULT_TILE_SIZE,layers:isWorld?[ground,layer('objects','World Objects','objects',WORLD_DEFAULT_WIDTH,WORLD_DEFAULT_HEIGHT)]:[ground,layer('objects','Objects','objects',WORLD_DEFAULT_WIDTH,WORLD_DEFAULT_HEIGHT),layer('collision','Collision','collision',WORLD_DEFAULT_WIDTH,WORLD_DEFAULT_HEIGHT)],...(mapType==='playable'?{playableSpace,parentPlayableMapId}: {})};
+};
 export const createStarterMap=()=>createMap('playable');
 
 export function resizeMapDocument(document: MapDocument, width: number, height: number): MapDocument {
