@@ -37,12 +37,6 @@ Each asset card should eventually show:
 9. Dimensions / tile size when known.
 10. A `Use` / `Place` action when the asset is runtime-compatible.
 
-Example:
-`[thumbnail] LPC Overworld — Grass`
-`WORLD · Ground · Temperate`
-`CC-BY-SA · Provenance verified`
-`[Preview] [Use]`
-
 ## Filters
 The library should support:
 - Search by name
@@ -84,30 +78,11 @@ An asset should not display a misleading `approved` badge based only on its file
 The required provenance chain remains:
 `source package → source path → repository path → binary identity/SHA-256 → license → attribution`
 
-This is especially important for LPC packs where one package can contain different source/license requirements. LPC Terrains, for example, requires attribution to all authors in its credits file and a link to its OpenGameArt source page. citeturn0search0
-
-## Future World Builder layout
-Recommended structure:
-`World Builder`
-- Map Canvas
-- Layers
-- **Asset Library**
-  - Search
-  - Filters
-  - Categories
-  - Asset grid
-  - Selected asset details
-  - Preview
-  - Place / Bind action
-
-The Asset Library should be dockable/collapsible so it does not permanently consume the map canvas.
-
-
 ## World base-asset manifest
 
 The World Builder must not infer its usable PNG set from `placement_category='world'` alone.
 
-A dedicated Supabase manifest, `public.world_asset_manifest`, now defines the approved World PNG selection while continuing to reference the canonical `asset_registry` rows.
+A dedicated Supabase manifest, `public.world_asset_manifest`, defines the approved World PNG selection while continuing to reference the canonical `asset_registry` rows.
 
 Current roles:
 - `base_terrain` — foundational world terrain/water PNGs.
@@ -128,9 +103,31 @@ These remain available to the future Seasonal Preview Engine. The map's stored g
 
 The World Builder should consume `public.world_asset_manifest_v1` for World terrain selection rather than rebuilding this list from source names or broad placement categories.
 
+## Final audit lock — 2026-09-28
+
+The Asset Library has completed its current binary/manifest audit and is **LOCKED** as the canonical approved library snapshot.
+
+Snapshot:
+- Approved registry assets: **93**
+- Asset Library browser assets: **86**
+- Canonical asset file rows: **93**
+- Verified binary rows: **90**
+- Unavailable binary rows: **3**
+- World manifest enabled + verified: **19**
+
+The three unavailable binaries are explicitly tracked and are not treated as verified:
+- `LPC Revised Buildings`
+- `tile_sand.png`
+- `tile_water.png`
+
+`LPC Thatched-roof Cottage` was resolved from the finalized review archive and is now verified.
+
+The lock is an intake/audit boundary: existing audited records remain intact, while any future asset addition or binary replacement must go through a new audit/intake cycle. The lock does not delete or hide the three unavailable records.
+
 ## Implementation boundary
-This design should reuse the existing asset registry, asset resolver, asset proxy and terrain-binding infrastructure where possible.
+
+Reuse the existing asset registry, asset resolver, asset proxy and terrain-binding infrastructure where possible.
 
 Do not create a second independent asset database solely for the World Builder.
 
-The next implementation phase can add the visual Asset Library UI on top of the existing registry and runtime asset resolution.
+The next implementation phase can build on this locked library snapshot without changing the canonical asset foundation.
