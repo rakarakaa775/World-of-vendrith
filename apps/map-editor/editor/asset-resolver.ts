@@ -25,29 +25,9 @@ function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
 const assetCache = new Map<string, AssetRecord | null>();
 const WORLD_ASSET_MANIFEST_IDS = new Set<string>();
 
-/** Canonical bundled terrain textures. Supabase remains the registry/provenance source. */
-const LOCAL_TERRAIN_ASSETS: Record<string, string> = {
-  'tile_grass.png': '/assets/terrain/tile_grass.png',
-  'tile_sand.png': '/assets/terrain/tile_sand.png',
-  'tile_dirt.png': '/assets/terrain/tile_dirt.png',
-  'tile_pavement.png': '/assets/terrain/tile_pavement.png',
-  'tile_water.png': '/assets/terrain/tile_water.png',
-};
-
-export function normalizeAssetPath(path: string): string {
-  return path.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
-}
-
-function localTerrainUrl(assetPath: string): string | null {
-  const normalized = assetPath.replace(/\\/g, '/').replace(/^\/+/, '');
-  const fileName = normalized.split('/').pop() || '';
-  return LOCAL_TERRAIN_ASSETS[fileName] || null;
-}
-
+/** Canonical asset storage URL. Runtime never falls back to bundled legacy terrain PNGs. */
 export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCKET): string | null {
   if (!assetPath) return null;
-  const localUrl = localTerrainUrl(assetPath);
-  if (localUrl) return localUrl;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!supabaseUrl) return null;
   return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${encodeURIComponent(bucket)}/${normalizeAssetPath(assetPath)}`;
