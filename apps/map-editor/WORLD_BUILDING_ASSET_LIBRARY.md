@@ -102,6 +102,32 @@ Recommended structure:
 
 The Asset Library should be dockable/collapsible so it does not permanently consume the map canvas.
 
+
+## World base-asset manifest
+
+The World Builder must not infer its usable PNG set from `placement_category='world'` alone.
+
+A dedicated Supabase manifest, `public.world_asset_manifest`, now defines the approved World PNG selection while continuing to reference the canonical `asset_registry` rows.
+
+Current roles:
+- `base_terrain` — foundational world terrain/water PNGs.
+- `polar_terrain` — dedicated north/south polar terrain foundation.
+- `mountain` — foundational mountain PNGs.
+- `polar_mountain` — snow/polar mountain variant.
+
+The manifest is restricted to approved assets whose canonical binary is marked `verified` in `asset_files`. The current selection contains 19 enabled PNG assets.
+
+### Seasonal separation
+
+The three approved terrain PNGs from **LPC Revised 4-Seasons Exterior Tilesets** are deliberately **not** members of the World manifest:
+- `LPC_Terrain__terrain.png`
+- `tiled__terrain-map-v7.png`
+- `lpc-terrains__terrain-v7.png`
+
+These remain available to the future Seasonal Preview Engine. The map's stored geography should remain season-neutral; the seasonal engine can change the visual terrain presentation over time without replacing the underlying world layout.
+
+The World Builder should consume `public.world_asset_manifest_v1` for World terrain selection rather than rebuilding this list from source names or broad placement categories.
+
 ## Implementation boundary
 This design should reuse the existing asset registry, asset resolver, asset proxy and terrain-binding infrastructure where possible.
 
