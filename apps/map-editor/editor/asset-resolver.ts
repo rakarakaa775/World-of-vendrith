@@ -2,11 +2,26 @@ export type AssetRecord = {
   id?: string | null;
   asset_path?: string | null;
   status?: string | null;
+  source_id?: string | null;
+  source_name?: string | null;
   tile_width?: number | null;
   tile_height?: number | null;
 };
 
 const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
+
+const ASSET_LIBRARY_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/Asset-library-LPC/main';
+const WORLD_REPO_RAW = 'https://media.githubusercontent.com/media/rakarakaa775/World-of-vendrith/main';
+const WORLD_SOURCES = new Set(['[LPC] Terrains', '[LPC] Overworld', 'LPC Revised 4-Seasons Exterior Tilesets']);
+
+function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
+  if (!asset.asset_path || !asset.source_name || !WORLD_SOURCES.has(asset.source_name)) return null;
+  const relative = asset.asset_path.replace(/^ASSET_LIBRARY\//, '');
+  if (asset.source_name === '[LPC] Overworld') {
+    return `${WORLD_REPO_RAW}/assets/world/world/${relative}`;
+  }
+  return `${ASSET_LIBRARY_RAW}/${asset.asset_path}`;
+}
 const assetCache = new Map<string, AssetRecord | null>();
 
 /** Canonical bundled terrain textures. Supabase remains the registry/provenance source. */
@@ -43,7 +58,7 @@ export function resolveAssetUrl(asset: AssetRecord | null | undefined): string |
   if (!asset?.asset_path) return null;
   const status = String(asset.status ?? '').toLowerCase();
   if (status && !['approved', 'verified', 'active'].includes(status)) return null;
-  return assetStorageUrl(asset.asset_path);
+  return canonicalRepositoryAssetUrl(asset) ?? assetStorageUrl(asset.asset_path);
 }
 
 export function cacheAssetRecord(asset: AssetRecord): AssetRecord | null {
@@ -57,9 +72,14 @@ export function clearAssetRecordCache(): void { assetCache.clear(); }
 
 export async function resolveAssetRecord(client: any, assetId: string): Promise<AssetRecord | null> {
   if (assetCache.has(assetId)) return assetCache.get(assetId) ?? null;
-  const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height').eq('id', assetId).maybeSingle();
+  const { data, error } = await client.from('asset_registry').select('id,asset_path,status,source_id,tile_width,tile_height').eq('id', assetId).maybeSingle();
   if (error) throw error;
   if (!data) { assetCache.set(assetId, null); return null; }
+  const sourceId = (data as any).source_id;
+  if (sourceId) {
+    const { data: source } = await client.from('asset_sources').select('name').eq('id', sourceId).maybeSingle();
+    if (source?.name) (data as any).source_name = source.name;
+  }
   return cacheAssetRecord(data as AssetRecord);
 }
 
@@ -67,10 +87,17 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
   const unique = [...new Set(assetIds.filter(Boolean))];
   const missing = unique.filter(id => !assetCache.has(id));
   if (missing.length) {
-    const { data, error } = await client.from('asset_registry').select('id,asset_path,status,tile_width,tile_height').in('id', missing);
+    const { data, error } = await client.from('asset_registry').select('id,asset_path,status,source_id,tile_width,tile_height').in('id', missing);
     if (error) throw error;
+    const sourceIds = [...new Set((data ?? []).map((row: any) => row.source_id).filter(Boolean))];
+    const sourceNames = new Map<string, string>();
+    if (sourceIds.length) {
+      const { data: sources } = await client.from('asset_sources').select('id,name').in('id', sourceIds);
+      for (const source of sources ?? []) sourceNames.set(source.id, source.name);
+    }
     const found = new Set<string>();
     for (const row of data ?? []) {
+      if (row.source_id && sourceNames.has(row.source_id)) row.source_name = sourceNames.get(row.source_id);
       const asset = cacheAssetRecord(row as AssetRecord);
       if (asset?.id) found.add(asset.id);
     }
