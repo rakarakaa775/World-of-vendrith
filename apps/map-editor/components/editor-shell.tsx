@@ -85,12 +85,12 @@ export function EditorShell({
   const selectTool = (tool: string) => setActiveTool(tool);
 
   return (
-    <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "#0b1220", color: "#e5e7eb" }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid #243047", background: "#0f172a", flexWrap: "wrap" }}>
+    <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "var(--map-editor-bg)", color: "var(--map-editor-text)" }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", flexWrap: "wrap" }}>
         <strong style={{ marginRight: 8 }}>World Map</strong>
         {TOOLS.map(tool => (
           <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
-            style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid #334155", background: activeTool === tool ? "#1e40af" : "#111827", color: "#fff" }}>
+            style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: activeTool === tool ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
             {tool}
           </button>
         ))}
@@ -99,14 +99,14 @@ export function EditorShell({
       </header>
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
-        <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid #243047", background: "#0f172a", padding: 10 }}>
+        <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN</div>
           <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
 
           <div style={{ display: "grid", gap: 6 }}>
             {tileOptions.map(tile => (
               <button key={tile.id} type="button" onClick={() => chooseTerrain(tile)} aria-pressed={selectedTile === tile.id}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid #334155", background: selectedTile === tile.id ? "#172554" : "#111827", color: "#fff" }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid var(--map-editor-border)", background: selectedTile === tile.id ? "var(--map-editor-terrain-selected)" : "var(--map-editor-button)", color: "#fff" }}>
                 <span style={{ width: 28, height: 28, borderRadius: 4, background:
                   tile.terrain === "deepwater" ? "#24527a" :
                   tile.terrain === "water" ? "#3b82c4" :
@@ -122,7 +122,7 @@ export function EditorShell({
           <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
             {BRUSH_SIZES.map(size => (
               <button key={size} type="button" onClick={() => setBrushSize(size)} aria-pressed={brushSize === size}
-                style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid #334155", background: brushSize === size ? "#1e40af" : "#111827", color: "#fff" }}>
+                style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid var(--map-editor-border)", background: brushSize === size ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
                 {size}
               </button>
             ))}
