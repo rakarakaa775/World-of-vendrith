@@ -74,7 +74,7 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <strong>Save Slot {slotNumber}</strong>
-                    <span style={{ fontSize: 11, color: slot ? '#86efac' : '#64748b' }}>{slot ? 'SAVED' : 'EMPTY'}</span>
+                    <span style={{ fontSize: 11, color: slot ? '#86efac' : '#94a3b8' }}>{slot ? 'SAVED' : 'EMPTY'}</span>
                   </div>
                   <div style={{ marginTop: 10, fontSize: 16 }}>{slot?.label || 'Empty Chronicle Slot'}</div>
                   {slot && <MapThumbnail snapshot={slot.snapshot} />}
@@ -88,7 +88,7 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
             );
           })}
         </div>
-        <footer style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #1e293b', color: '#64748b', fontSize: 11 }}>Six slots are enabled now; the database contract supports up to 12 slots without changing the save format.</footer>
+        <footer style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #1e293b', color: '#94a3b8', fontSize: 11 }}>Six slots are enabled now; the database contract supports up to 12 slots without changing the save format.</footer>
       </section>
     </div>
   );
@@ -96,7 +96,7 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
 
 function MapThumbnail({ snapshot }: { snapshot?: unknown }) {
   const document = extractDocument(snapshot);
-  if (!document) return <div style={{ marginTop: 10, height: 84, display: 'grid', placeItems: 'center', border: '1px solid #1e293b', borderRadius: 8, color: '#64748b', fontSize: 11 }}>Preview unavailable</div>;
+  if (!document) return <div style={{ marginTop: 10, height: 84, display: 'grid', placeItems: 'center', border: '1px solid #1e293b', borderRadius: 8, color: '#94a3b8', fontSize: 11 }}>Preview unavailable</div>;
   const ground = document.layers?.find((layer: any) => layer.kind === 'ground') || document.layers?.[0];
   const cells = Array.isArray(ground?.cells) ? ground.cells : [];
   const width = Math.max(1, Number(document.width) || 1);
