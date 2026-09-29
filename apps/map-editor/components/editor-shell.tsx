@@ -85,7 +85,7 @@ export function EditorShell({
   const selectTool = (tool: string) => setActiveTool(tool);
 
   return (
-    <main style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "#0b1220", color: "#e5e7eb" }}>
+    <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "#0b1220", color: "#e5e7eb" }}>
       <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid #243047", background: "#0f172a", flexWrap: "wrap" }}>
         <strong style={{ marginRight: 8 }}>World Map</strong>
         {TOOLS.map(tool => (
@@ -98,8 +98,8 @@ export function EditorShell({
         <button type="button" onClick={() => void onLoadLatest?.()} style={{ padding: "6px 10px" }}>Load Latest</button>
       </header>
 
-      <div style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
-        <aside style={{ overflow: "auto", borderRight: "1px solid #243047", background: "#0f172a", padding: 10 }}>
+      <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
+        <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid #243047", background: "#0f172a", padding: 10 }}>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN</div>
           <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>{terrainStatus}</div>
 
@@ -135,7 +135,7 @@ export function EditorShell({
           </div>
         </aside>
 
-        <section style={{ minWidth: 0, minHeight: 0, position: "relative" }}>
+        <section className="map-editor-canvas" style={{ minWidth: 0, minHeight: 0, position: "relative" }}>
           <PixiMapCanvas
             document={document}
             activeTool={activeTool}
