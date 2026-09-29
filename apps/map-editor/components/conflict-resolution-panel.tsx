@@ -14,7 +14,28 @@ export type ConflictResolutionPanelProps = {
 const choices: ConflictChoice[] = ["local", "remote", "base"];
 
 export function ConflictResolutionPanel({ session, onApply, onCancel }: ConflictResolutionPanelProps) {
-  const [workingSession, setWorkingSession] = useState(session);\n  const dialogRef = useRef<HTMLElement | null>(null);\n  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);\n  const returnFocusRef = useRef<HTMLElement | null>(null);\n\n  useEffect(() => {\n    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;\n    const frame = window.requestAnimationFrame(() => cancelButtonRef.current?.focus());\n    const onKeyDown = (event: KeyboardEvent) => {\n      if (event.key === "Escape" && onCancel) {\n        event.preventDefault();\n        onCancel();\n      }\n    };\n    window.addEventListener("keydown", onKeyDown);\n    return () => {\n      window.cancelAnimationFrame(frame);\n      window.removeEventListener("keydown", onKeyDown);\n      returnFocusRef.current?.focus();\n      returnFocusRef.current = null;\n    };\n  }, [onCancel]);
+  const [workingSession, setWorkingSession] = useState(session);
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => cancelButtonRef.current?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && onCancel) {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onKeyDown);
+      returnFocusRef.current?.focus();
+      returnFocusRef.current = null;
+    };
+  }, [onCancel]);
   const activeId = workingSession.conflicts[workingSession.selected]?.id ?? null;
   const activeIndex = Math.max(0, workingSession.conflicts.findIndex(c => c.id === activeId));
   const selectedSession = { ...workingSession, selected: activeIndex };
