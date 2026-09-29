@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 export type SaveSlot = {
   slot_number: number;
   label: string;
@@ -20,18 +22,47 @@ type Props = {
 const SLOT_COUNT = 6;
 
 export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onLoad }: Props) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    returnFocusRef.current?.focus();
+    returnFocusRef.current = null;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, busy, onClose]);
+
   if (!open) return null;
   const bySlot = new Map(slots.map(slot => [slot.slot_number, slot]));
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(2,6,23,.72)', backdropFilter: 'blur(4px)' }}>
-      <section role="dialog" aria-modal="true" aria-label="Save slots" style={{ width: 'min(760px, 100%)', maxHeight: '90vh', overflow: 'auto', border: '1px solid #475569', borderRadius: 16, background: 'linear-gradient(180deg,#111827,#020617)', color: '#f8fafc', boxShadow: '0 24px 80px rgba(0,0,0,.55)', padding: 18 }}>
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-label="Save slots" style={{ width: 'min(760px, 100%)', maxHeight: '90vh', overflow: 'auto', border: '1px solid #475569', borderRadius: 16, background: 'linear-gradient(180deg,#111827,#020617)', color: '#f8fafc', boxShadow: '0 24px 80px rgba(0,0,0,.55)', padding: 18 }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 12, letterSpacing: '.16em', textTransform: 'uppercase', color: '#94a3b8' }}>Vandrith Chronicle</div>
             <h2 style={{ margin: '4px 0 0', fontSize: 26 }}>Save / Load Game</h2>
           </div>
-          <button onClick={onClose} disabled={busy} style={buttonStyle(false)}>✕</button>
+          <button ref={closeButtonRef} type="button" onClick={onClose} disabled={busy} aria-label="Close save slots" style={buttonStyle(false)}>✕</button>
         </header>
         <p style={{ margin: '0 0 14px', color: '#cbd5e1', fontSize: 13 }}>Choose a save slot. Saving creates a new authoritative map version and stores that exact map state in the selected slot.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 10 }}>
@@ -50,8 +81,8 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
                   {slot && <div style={{ marginTop: 6, color: '#94a3b8', fontSize: 12 }}>Version {slot.version_number} · {new Date(slot.updated_at).toLocaleString()}</div>}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: slot ? '1fr 1fr' : '1fr', gap: 7, marginTop: 14 }}>
-                  <button disabled={busy} onClick={() => onSave(slotNumber, slot?.label || `Save Slot ${slotNumber}`)} style={buttonStyle(true)}>Save</button>
-                  {slot && <button disabled={busy} onClick={() => onLoad(slotNumber)} style={buttonStyle(false)}>Load</button>}
+                  <button type="button" disabled={busy} onClick={() => onSave(slotNumber, slot?.label || `Save Slot ${slotNumber}`)} style={buttonStyle(true)}>Save</button>
+                  {slot && <button type="button" disabled={busy} onClick={() => onLoad(slotNumber)} style={buttonStyle(false)}>Load</button>}
                 </div>
               </article>
             );
