@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ConflictChoice, ConflictResolutionSession } from "../editor/map-conflict-resolution-ui-model";
 import { canApplyResolution, chooseConflict, resolveAll } from "../editor/map-conflict-resolution-ui-model";
 import { createConflictResolutionView } from "../editor/map-conflict-resolution-view";
@@ -14,7 +14,7 @@ export type ConflictResolutionPanelProps = {
 const choices: ConflictChoice[] = ["local", "remote", "base"];
 
 export function ConflictResolutionPanel({ session, onApply, onCancel }: ConflictResolutionPanelProps) {
-  const [workingSession, setWorkingSession] = useState(session);
+  const [workingSession, setWorkingSession] = useState(session);\n  const dialogRef = useRef<HTMLElement | null>(null);\n  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);\n  const returnFocusRef = useRef<HTMLElement | null>(null);\n\n  useEffect(() => {\n    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;\n    const frame = window.requestAnimationFrame(() => cancelButtonRef.current?.focus());\n    const onKeyDown = (event: KeyboardEvent) => {\n      if (event.key === "Escape" && onCancel) {\n        event.preventDefault();\n        onCancel();\n      }\n    };\n    window.addEventListener("keydown", onKeyDown);\n    return () => {\n      window.cancelAnimationFrame(frame);\n      window.removeEventListener("keydown", onKeyDown);\n      returnFocusRef.current?.focus();\n      returnFocusRef.current = null;\n    };\n  }, [onCancel]);
   const activeId = workingSession.conflicts[workingSession.selected]?.id ?? null;
   const activeIndex = Math.max(0, workingSession.conflicts.findIndex(c => c.id === activeId));
   const selectedSession = { ...workingSession, selected: activeIndex };
@@ -28,11 +28,11 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
   };
 
   return (
-    <section role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
+    <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
       <div style={{ width: "min(1100px, calc(100vw - 32px))", maxHeight: "calc(100vh - 32px)", overflow: "auto", border: "1px solid #475569", borderRadius: 8, background: "#0f172a", padding: 18 }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div><h2 id="conflict-resolution-title" style={{ margin: 0 }}>{view.title}</h2><p style={{ margin: "6px 0 0", fontSize: 12, opacity: .75 }}>{view.summary}</p></div>
-          {onCancel && <button onClick={onCancel}>Cancel</button>}
+          {onCancel && <button ref={cancelButtonRef} type="button" onClick={onCancel}>Cancel</button>}
         </header>
 
         <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12, marginTop: 16 }}>
@@ -51,8 +51,8 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
                 {(["base", "local", "remote"] as const).map(key => <div key={key} style={{ border: "1px solid #334155", borderRadius: 5, padding: 8 }}><strong>{key}</strong><pre style={{ maxHeight: 260, overflow: "auto", fontSize: 10, whiteSpace: "pre-wrap" }}>{panel[key]}</pre></div>)}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                {choices.map(choice => <button key={choice} onClick={() => choose(choice)}>{`Keep ${choice}`}</button>)}
-                <button onClick={() => setWorkingSession(resolveAll(selectedSession, "local"))}>Resolve All Local</button>
+                {choices.map(choice => <button type="button" key={choice} onClick={() => choose(choice)}>{`Keep ${choice}`}</button>)}
+                <button type="button" onClick={() => setWorkingSession(resolveAll(selectedSession, "local"))}>Resolve All Local</button>
               </div>
               <p style={{ fontSize: 11, opacity: .7 }}>Current: {current.choice ?? "unresolved"}</p>
             </article>;
@@ -60,8 +60,8 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
         </div>
 
         <footer style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-          {onCancel && <button onClick={onCancel}>Cancel</button>}
-          <button disabled={!applyEnabled} onClick={() => onApply(selectedSession)}>Apply Merge</button>
+          {onCancel && <button type="button" onClick={onCancel}>Cancel</button>}
+          <button type="button" disabled={!applyEnabled onClick={() => onApply(selectedSession)}>Apply Merge</button>
         </footer>
       </div>
     </section>
