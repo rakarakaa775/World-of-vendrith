@@ -3,3 +3,4 @@ assets/world/** filter=lfs diff=lfs merge=lfs -text
 assets/region/** filter=lfs diff=lfs merge=lfs -text
 assets/playable/** filter=lfs diff=lfs merge=lfs -text
 assets/interior/** filter=lfs diff=lfs merge=lfs -text
+assets/**/README.md -filter -diff -merge text
