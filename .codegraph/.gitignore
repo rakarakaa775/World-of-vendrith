@@ -1,0 +1,3 @@
+# CodeGraph local index — never commit project graph data.
+*
+!.gitignore
