@@ -101,7 +101,7 @@ export function EditorShell({
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid #243047", background: "#0f172a", padding: 10 }}>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN</div>
-          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>{terrainStatus}</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
 
           <div style={{ display: "grid", gap: 6 }}>
             {tileOptions.map(tile => (
@@ -128,7 +128,7 @@ export function EditorShell({
             ))}
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 11, color: "#64748b" }}>
+          <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
             World: {document.width}×{document.height}<br />
             Active layer: {activeLayer}<br />
             Selected: {tileOptions.find(tile => tile.id === selectedTile)?.label ?? "—"}
