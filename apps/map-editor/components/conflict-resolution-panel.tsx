@@ -82,7 +82,7 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
 
         <footer style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
           {onCancel && <button type="button" onClick={onCancel}>Cancel</button>}
-          <button type="button" disabled={!applyEnabled onClick={() => onApply(selectedSession)}>Apply Merge</button>
+          <button type="button" disabled={!applyEnabled} onClick={() => onApply(selectedSession)}>Apply Merge</button>
         </footer>
       </div>
     </section>
