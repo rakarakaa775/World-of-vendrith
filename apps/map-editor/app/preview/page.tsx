@@ -91,7 +91,7 @@ export default function PreviewPage() {
     <main className="vandrith-preview">
       <header className="vandrith-preview-topbar">
         <button className="vandrith-preview-back" type="button" onClick={() => router.push("/")}>
-          <span>‹</span> Control Center
+          <span aria-hidden="true">‹</span> Control Center
         </button>
         <div className="vandrith-preview-title">
           <span>PREVIEW ENGINE</span>
@@ -111,9 +111,9 @@ export default function PreviewPage() {
           <button type="button">Interior</button>
         </div>
         <div className="vandrith-preview-toolbar-group">
-          <button type="button" onClick={() => changeZoom(zoom - 10)}>−</button>
+          <button type="button" onClick={() => changeZoom(zoom - 10)} aria-label="Zoom out">−</button>
           <span>{zoom}%</span>
-          <button type="button" onClick={() => changeZoom(zoom + 10)}>+</button>
+          <button type="button" onClick={() => changeZoom(zoom + 10)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => { setZoom(100); setViewportAction(previous => ({ id: previous.id + 1, type: "fit" })); }} aria-label="Fit world map">⌖</button>
           <button type="button" className={showGrid ? "is-active" : ""} onClick={() => setShowGrid(value => !value)} aria-pressed={showGrid}>Grid</button>
           <button type="button" className={showCoordinates ? "is-active" : ""} onClick={() => setShowCoordinates(value => !value)} aria-pressed={showCoordinates}>XY</button>
@@ -213,3 +213,4 @@ export default function PreviewPage() {
     </main>
   );
 }
+
