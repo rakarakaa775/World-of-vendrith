@@ -70,7 +70,7 @@ export default function HomePage() {
         {user && !loading ? (
           <div className="vandrith-console-account">
             <span>Signed in as <strong>{user.username}</strong></span>
-            <button type="button" onClick={() => router.push("/reset-password")}>Ganti Password</button>
+            <button type="button" onClick={() => router.push("/reset-password?mode=change")}>Ganti Password</button>
             <button type="button" onClick={() => void signOut()}>Logout</button>
           </div>
         ) : null}
