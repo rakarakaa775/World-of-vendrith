@@ -18,6 +18,70 @@ type Asset = {
   redistribution_allowed:boolean; license_verification_status:string|null; license_usage_status:string|null;
 };
 
+
+const pendingTerrainPaths=[
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowgrass.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowother.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icegrassaltother.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__sandredsandwater.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__watersandother.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/AppleTree_allSeasons.png__AppleTree_allSeasons.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__redsandwater.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__holelikegrassaltotheroverlay.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__lavagrassaltother.png",
+  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__water.png",
+];
+
+function readU16(view:DataView,offset:number){return view.getUint16(offset,true);}
+function readU32(view:DataView,offset:number){return view.getUint32(offset,true);}
+
+async function extractZipItems(file:File,wanted:string[]){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-22-65535);i--){
+    if(i>=0&&readU32(view,i)===0x06054b50){eocd=i;break;}
+  }
+  if(eocd<0)throw new Error("ZIP end-of-central-directory tidak ditemukan.");
+  const count=readU16(view,eocd+10);
+  const centralOffset=readU32(view,eocd+16);
+  const wantedSet=new Set(wanted);
+  const found=new Map<string,Uint8Array>();
+  let p=centralOffset;
+  for(let i=0;i<count;i++){
+    if(readU32(view,p)!==0x02014b50)throw new Error("Central directory ZIP tidak valid.");
+    const flags=readU16(view,p+8),method=readU16(view,p+10);
+    const compressedSize=readU32(view,p+20);
+    const nameLen=readU16(view,p+28),extraLen=readU16(view,p+30),commentLen=readU16(view,p+32);
+    const localOffset=readU32(view,p+42);
+    const name=new TextDecoder().decode(bytes.slice(p+46,p+46+nameLen));
+    p+=46+nameLen+extraLen+commentLen;
+    if(!wantedSet.has(name))continue;
+    if(flags&0x08)throw new Error("ZIP data descriptor tidak didukung untuk "+name+".");
+    if(method!==0&&method!==8)throw new Error("Metode kompresi ZIP tidak didukung untuk "+name+".");
+    if(readU32(view,localOffset)!==0x04034b50)throw new Error("Local ZIP header tidak valid untuk "+name+".");
+    const localNameLen=readU16(view,localOffset+26),localExtraLen=readU16(view,localOffset+28);
+    const dataStart=localOffset+30+localNameLen+localExtraLen;
+    const compressed=bytes.slice(dataStart,dataStart+compressedSize);
+    let data:Uint8Array;
+    if(method===0)data=compressed;
+    else{
+      const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      data=new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    found.set(name,data);
+  }
+  const missing=wanted.filter(path=>!found.has(path));
+  if(missing.length)throw new Error("Archive tidak memuat "+missing.length+" file pending: "+missing.join(", "));
+  return wanted.map(path=>({path,bytes:found.get(path)!}));
+}
+
+function bytesToBase64(bytes:Uint8Array){
+  let binary="";
+  for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+  return btoa(binary);
+}
+
 const WORLD_SOURCES=new Set([
   "[LPC] Terrains",
   "[LPC] Overworld",
@@ -101,26 +165,18 @@ export default function AssetLibraryPage(){
   const placementCategories=useMemo(()=>["all","world","region","playable","interior"].filter(v=>v==="all"||assets.some(a=>a.placement_category===v)),[assets]);
   const sources=useMemo(()=>["all",...Array.from(new Set(assets.map(a=>a.source_name).filter(Boolean) as string[]))],[assets]);
 
-  const syncPendingTerrainBatch=async()=>{
+  const syncPendingTerrainBatch=async(file:File|null)=>{
     if(syncing)return;
+    if(!file){setSyncResult("Pilih archive ZIP terlebih dahulu.");return;}
+    if(!file.name.toLowerCase().endsWith(".zip")){setSyncResult("File harus berupa ZIP.");return;}
     const client=createMapEditorSupabaseClient();
     if(!client){setSyncResult("Supabase client belum tersedia.");return;}
     setSyncing(true);
-    setSyncResult("Menjalankan verifikasi + canonical binding batch terrain…");
-    const paths=[
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowgrass.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowother.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icegrassaltother.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__sandredsandwater.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__watersandother.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/AppleTree_allSeasons.png__AppleTree_allSeasons.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__redsandwater.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__holelikegrassaltotheroverlay.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__lavagrassaltother.png",
-      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__water.png",
-    ];
+    setSyncResult("Mengekstrak 10 file terrain dari archive…");
     try{
-      const {data,error}=await client.functions.invoke("sync-terrain-assets",{body:{paths}});
+      const items=await extractZipItems(file,pendingTerrainPaths);
+      setSyncResult("Menjalankan verifikasi + canonical binding batch terrain…");
+      const {data,error}=await client.functions.invoke("sync-terrain-assets",{body:{items:items.map(item=>({path:item.path,base64:bytesToBase64(item.bytes)}))}});
       if(error)throw error;
       const results=Array.isArray(data?.results)?data.results:[];
       const failed=results.filter((row:{status?:string})=>row.status==="failed");
