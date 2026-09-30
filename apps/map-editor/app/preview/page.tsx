@@ -20,6 +20,7 @@ export default function PreviewPage() {
   const [document, setDocument] = useState<MapDocument | null>(null);
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
   const [loadStatus, setLoadStatus] = useState("Loading authoritative World Map…");
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [zoom, setZoom] = useState(100);
   const [layers, setLayers] = useState([true, true, false, false, false]);
   const [playing, setPlaying] = useState(false);
@@ -35,9 +36,11 @@ export default function PreviewPage() {
   const loadAuthoritativeWorld = useCallback(async () => {
     const client = createMapEditorSupabaseClient();
     if (!client) {
+      setLoadState("error");
       setLoadStatus("Supabase client unavailable");
       return;
     }
+    setLoadState("loading");
     setLoadStatus("Loading authoritative World Map…");
     try {
       const loaded = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
@@ -51,12 +54,16 @@ export default function PreviewPage() {
       const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
       setDocument(loaded.document);
       setTerrainBindings(terrain.bindings);
+      setLoadState("ready");
       setLoadStatus(
         loaded.result.code === "durable-version-fallback"
           ? `Authoritative World · version ${loaded.result.version_number || "?"} · durable fallback`
           : `Authoritative World · version ${loaded.result.version_number || "?"}`,
       );
     } catch (error) {
+      setDocument(null);
+      setTerrainBindings({});
+      setLoadState("error");
       setLoadStatus(error instanceof Error ? error.message : String(error));
     }
   }, []);
@@ -98,7 +105,7 @@ export default function PreviewPage() {
           <strong>World of Vendrith</strong>
         </div>
         <div className="vandrith-preview-status">
-          <i aria-hidden="true" />
+          <i className={`is-${loadState}`} aria-hidden="true" />
           <span role="status" aria-live="polite">{loadStatus}</span>
         </div>
       </header>
