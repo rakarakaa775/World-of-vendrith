@@ -149,18 +149,29 @@ export default function AssetLibraryPage(){
   useEffect(()=>{
     if(loading||!user)return;
     let active=true;
-    void (async()=>{
+    let interval:ReturnType<typeof setInterval>|null=null;
+    const refresh=async()=>{
       const client=createMapEditorSupabaseClient();
-      if(!client){setError("Supabase client belum tersedia.");setBusy(false);return;}
-      const {data,error}=await client.from("world_asset_browser_inventory_v1").select("*").eq("asset_status","approved").order("category").order("name").limit(500);
+      if(!client){if(active){setError("Supabase client belum tersedia.");setBusy(false);}return;}
+      const {data,error}=await client.from("asset_library_inventory_v1").select("*").eq("asset_status","approved").order("category").order("name").limit(500);
       if(!active)return;
       if(error){setError(error.message);setBusy(false);return;}
       const rows=(data??[]) as Asset[];
       setAssets(rows);
-      setSelected(rows[0]??null);
+      setSelected(prev=>rows.find(row=>row.id===prev?.id)||rows[0]||null);
       setBusy(false);
-    })();
-    return()=>{active=false};
+    };
+    void refresh();
+    interval=setInterval(()=>void refresh(),5000);
+    const onVisible=()=>{if(document.visibilityState==="visible")void refresh()};
+    document.addEventListener("visibilitychange",onVisible);
+    window.addEventListener("focus",onVisible);
+    return()=>{
+      active=false;
+      if(interval)clearInterval(interval);
+      document.removeEventListener("visibilitychange",onVisible);
+      window.removeEventListener("focus",onVisible);
+    };
   },[loading,user]);
 
   const placementCategories=useMemo(()=>["all","world","region","playable","interior"].filter(v=>v==="all"||assets.some(a=>a.placement_category===v)),[assets]);
