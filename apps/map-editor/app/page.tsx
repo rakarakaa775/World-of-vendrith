@@ -87,7 +87,7 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <div className="vandrith-console-loading">Checking account...</div>
+          <div className="vandrith-console-loading" role="status" aria-live="polite">Checking account...</div>
         ) : user ? (
           <>
             <div className="vandrith-console-section-heading">
