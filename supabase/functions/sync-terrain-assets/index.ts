@@ -43,10 +43,18 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
   let paths = DEFAULT_PATHS;
+  const binaryByPath = new Map<string, string>();
 
   try {
     const body = await req.json();
-    if (Array.isArray(body?.paths) && body.paths.length) {
+    if (Array.isArray(body?.items) && body.items.length) {
+      for (const item of body.items) {
+        if (typeof item?.path === "string" && item.path.length > 0 && !item.path.includes("..") && !item.path.startsWith("/") && typeof item?.base64 === "string" && item.base64.length > 0) {
+          binaryByPath.set(item.path, item.base64);
+        }
+      }
+      paths = [...binaryByPath.keys()];
+    } else if (Array.isArray(body?.paths) && body.paths.length) {
       paths = body.paths.filter(
         (path: unknown): path is string =>
           typeof path === "string" && path.length > 0 && !path.includes("..") && !path.startsWith("/"),
@@ -57,18 +65,22 @@ Deno.serve(async (req) => {
   const results: Array<Record<string, unknown>> = [];
 
   for (const assetPath of paths) {
-    const upstream =
-      `https://media.githubusercontent.com/media/${REPO}/${REF}/${assetPath.split("/").map(encodeURIComponent).join("/")}`;
-
     try {
-      const response = await fetch(upstream, { redirect: "follow" });
-      if (!response.ok) throw new Error(`GitHub LFS HTTP ${response.status}`);
-
       const contentType = contentTypeFor(assetPath);
-      const bytes = new Uint8Array(await response.arrayBuffer());
+      const suppliedBase64 = binaryByPath.get(assetPath);
+      let bytes: Uint8Array;
+      let upstreamType = "";
+      if (suppliedBase64) {
+        bytes = Uint8Array.from(atob(suppliedBase64), (char) => char.charCodeAt(0));
+      } else {
+        const upstream = `https://media.githubusercontent.com/media/${REPO}/${REF}/${assetPath.split("/").map(encodeURIComponent).join("/")}`;
+        const response = await fetch(upstream, { redirect: "follow" });
+        if (!response.ok) throw new Error(`GitHub LFS HTTP ${response.status}`);
+        upstreamType = response.headers.get("content-type") || "";
+        bytes = new Uint8Array(await response.arrayBuffer());
+      }
       if (!bytes.length) throw new Error("empty asset");
 
-      const upstreamType = response.headers.get("content-type") || "";
       if (upstreamType.includes("text/plain") || contentType === "application/octet-stream") {
         const text = new TextDecoder().decode(bytes);
         if (text.startsWith("version https://git-lfs.github.com/spec/v1")) {
