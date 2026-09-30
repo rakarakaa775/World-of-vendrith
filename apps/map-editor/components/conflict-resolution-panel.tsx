@@ -21,7 +21,10 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
 
   useEffect(() => {
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = window.requestAnimationFrame(() => cancelButtonRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => {
+      cancelButtonRef.current?.focus();
+      if (!cancelButtonRef.current) dialogRef.current?.querySelector<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]')?.focus();
+    });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && onCancel) {
         event.preventDefault();
@@ -48,8 +51,20 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
     setWorkingSession(chooseConflict(selectedSession, current.id, choice));
   };
 
+  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Tab") return;
+    const root = dialogRef.current;
+    if (!root) return;
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+
   return (
-    <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
+    <section ref={dialogRef} onKeyDown={handleDialogKeyDown} role="dialog" aria-modal="true" aria-labelledby="conflict-resolution-title" style={{ position: "absolute", inset: 0, zIndex: 50, display: "grid", placeItems: "center", background: "rgba(2,6,23,.72)" }}>
       <div style={{ width: "min(1100px, calc(100vw - 32px))", maxHeight: "calc(100vh - 32px)", overflow: "auto", border: "1px solid #475569", borderRadius: 8, background: "#0f172a", padding: 18 }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div><h2 id="conflict-resolution-title" style={{ margin: 0 }}>{view.title}</h2><p style={{ margin: "6px 0 0", fontSize: 12, opacity: .75 }}>{view.summary}</p></div>
