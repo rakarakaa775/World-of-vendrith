@@ -59,7 +59,7 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
             <section key={group.title}>
               <h2>{group.title}</h2>
               {group.items.map(([id, label]) => (
-                <button key={id} className={activeWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={activeWorkspace === id ? "page" : undefined}>
+                <button type="button" key={id} className={activeWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={activeWorkspace === id ? "page" : undefined}>
                   <span>{iconFor(id)}</span>
                   <span className="world-builder-nav-label">{label}</span>
                 </button>
@@ -70,7 +70,7 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
 
         <section className="world-builder-main">
           <div className="world-builder-breadcrumb">
-            <button onClick={() => navigate("world")}>World of Vendrith</button>
+            <button type="button" onClick={() => navigate("world")}>World of Vendrith</button>
             <span>›</span>
             <strong>{labelFor(activeWorkspace)}</strong>
           </div>
