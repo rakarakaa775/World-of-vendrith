@@ -105,10 +105,10 @@ export default function PreviewPage() {
 
       <div className="vandrith-preview-toolbar">
         <div className="vandrith-preview-toolbar-group">
-          <button type="button" className="is-active">World</button>
-          <button type="button">Region</button>
-          <button type="button">Playable</button>
-          <button type="button">Interior</button>
+          <button type="button" className="is-active" aria-current="page">World</button>
+          <button type="button" aria-current={undefined}>Region</button>
+          <button type="button" aria-current={undefined}>Playable</button>
+          <button type="button" aria-current={undefined}>Interior</button>
         </div>
         <div className="vandrith-preview-toolbar-group">
           <button type="button" onClick={() => changeZoom(zoom - 10)} aria-label="Zoom out">−</button>
