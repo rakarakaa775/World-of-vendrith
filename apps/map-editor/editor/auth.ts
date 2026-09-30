@@ -52,6 +52,8 @@ export async function signUpWithEmail(email: string, password: string, username?
   const cleanEmail = email.trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
   if (password.length < 8) throw new Error("Password minimal 8 karakter.");
+  const { data: userData } = await client.auth.getUser();
+  if (!userData.user) throw new Error("Sesi login tidak ditemukan. Silakan login kembali sebelum mengganti password.");
   const { data, error } = await client.auth.signUp({
     email: cleanEmail,
     password,
