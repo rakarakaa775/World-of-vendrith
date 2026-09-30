@@ -19,18 +19,19 @@ type Asset = {
 };
 
 
-const pendingTerrainPaths=[
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowgrass.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowother.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icegrassaltother.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__sandredsandwater.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__watersandother.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/AppleTree_allSeasons.png__AppleTree_allSeasons.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__redsandwater.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__holelikegrassaltotheroverlay.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__lavagrassaltother.png",
-  "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__water.png",
-];
+async function getPendingTerrainPaths(client:ReturnType<typeof createMapEditorSupabaseClient>){
+  if(!client)return [];
+  const {data,error}=await client
+    .from("asset_files")
+    .select("file_path,sha256")
+    .eq("verification_status","verified")
+    .not("sha256","is",null)
+    .or("storage_bucket.is.null,storage_path.is.null")
+    .order("created_at",{ascending:true})
+    .limit(10);
+  if(error)throw error;
+  return Array.from(new Set((data??[]).map(row=>row.file_path).filter((path):path is string=>typeof path==="string"&&path.length>0)));
+}
 
 function readU16(view:DataView,offset:number){return view.getUint16(offset,true);}
 function readU32(view:DataView,offset:number){return view.getUint32(offset,true);}
@@ -172,8 +173,14 @@ export default function AssetLibraryPage(){
     const client=createMapEditorSupabaseClient();
     if(!client){setSyncResult("Supabase client belum tersedia.");return;}
     setSyncing(true);
-    setSyncResult("Mengekstrak 10 file terrain dari archive…");
+    setSyncResult("Membaca 10 pending terrain terbaru dari database…");
     try{
+      const pendingTerrainPaths=await getPendingTerrainPaths(client);
+      if(pendingTerrainPaths.length===0){
+        setSyncResult("Tidak ada pending terrain yang tersisa.");
+        return;
+      }
+      setSyncResult("Mengekstrak "+pendingTerrainPaths.length+" file terrain dari archive…");
       const items=await extractZipItems(file,pendingTerrainPaths);
       setSyncResult("Menjalankan verifikasi + canonical binding batch terrain…");
       const {data,error}=await client.functions.invoke("sync-terrain-assets",{body:{items:items.map(item=>({path:item.path,base64:bytesToBase64(item.bytes)}))}});
