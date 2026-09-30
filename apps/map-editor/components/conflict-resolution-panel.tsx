@@ -73,7 +73,7 @@ export function ConflictResolutionPanel({ session, onApply, onCancel }: Conflict
 
         <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12, marginTop: 16 }}>
           <nav aria-label="Conflicts" style={{ display: "grid", alignContent: "start", gap: 5 }}>
-            {view.panels.map((panel, index) => <button key={panel.id} onClick={() => setWorkingSession({ ...selectedSession, selected: index })} aria-pressed={index === view.selectedIndex} style={{ textAlign: "left", padding: 9 }}>
+            {view.panels.map((panel, index) => <button type="button" key={panel.id} onClick={() => setWorkingSession({ ...selectedSession, selected: index })} aria-pressed={index === view.selectedIndex} style={{ textAlign: "left", padding: 9 }}>
               {panel.title}<span style={{ display: "block", fontSize: 10, opacity: .7 }}>{panel.kind} · {panel.selected ?? "unresolved"}</span>
             </button>)}
           </nav>
