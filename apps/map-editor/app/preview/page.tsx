@@ -99,16 +99,16 @@ export default function PreviewPage() {
         </div>
         <div className="vandrith-preview-status">
           <i aria-hidden="true" />
-          <span>{document ? loadStatus : "Loading World Map"}</span>
+          <span role="status" aria-live="polite">{document ? loadStatus : "Loading World Map"}</span>
         </div>
       </header>
 
       <div className="vandrith-preview-toolbar">
         <div className="vandrith-preview-toolbar-group">
           <button type="button" className="is-active" aria-current="page">World</button>
-          <button type="button" aria-current={undefined}>Region</button>
-          <button type="button" aria-current={undefined}>Playable</button>
-          <button type="button" aria-current={undefined}>Interior</button>
+          <button type="button">Region</button>
+          <button type="button">Playable</button>
+          <button type="button">Interior</button>
         </div>
         <div className="vandrith-preview-toolbar-group">
           <button type="button" onClick={() => changeZoom(zoom - 10)} aria-label="Zoom out">−</button>
@@ -197,8 +197,8 @@ export default function PreviewPage() {
 
       <footer className="vandrith-preview-bottom">
         <div className="vandrith-preview-playback">
-          <button type="button" aria-label="Play preview" onClick={() => setPlaying(true)}>▶</button>
-          <button type="button" aria-label="Pause preview" onClick={() => setPlaying(false)}>Ⅱ</button>
+          <button type="button" aria-label="Play preview" aria-pressed={playing} onClick={() => setPlaying(true)}>▶</button>
+          <button type="button" aria-label="Pause preview" aria-pressed={!playing} onClick={() => setPlaying(false)}>Ⅱ</button>
           <button type="button" aria-label="Reset preview" onClick={() => { setPlaying(false); setZoom(100); setViewportAction(previous => ({ id: previous.id + 1, type: "fit" })); }}>↺</button>
           <span>{playing ? "PLAYING" : "00:00:00"}</span>
         </div>
