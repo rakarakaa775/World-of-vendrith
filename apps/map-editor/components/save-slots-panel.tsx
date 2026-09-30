@@ -29,7 +29,10 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
   useEffect(() => {
     if (!open) return;
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+      if (!closeButtonRef.current) dialogRef.current?.querySelector<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]')?.focus();
+    });
     return () => window.cancelAnimationFrame(frame);
   }, [open]);
 
@@ -51,12 +54,24 @@ export function SaveSlotsPanel({ open, slots, busy = false, onClose, onSave, onL
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, busy, onClose]);
 
+  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Tab") return;
+    const root = dialogRef.current;
+    if (!root) return;
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+
   if (!open) return null;
   const bySlot = new Map(slots.map(slot => [slot.slot_number, slot]));
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(2,6,23,.72)', backdropFilter: 'blur(4px)' }}>
-      <section ref={dialogRef} role="dialog" aria-modal="true" aria-label="Save slots" style={{ width: 'min(760px, 100%)', maxHeight: '90vh', overflow: 'auto', border: '1px solid #475569', borderRadius: 16, background: 'linear-gradient(180deg,#111827,#020617)', color: '#f8fafc', boxShadow: '0 24px 80px rgba(0,0,0,.55)', padding: 18 }}>
+      <section ref={dialogRef} onKeyDown={handleDialogKeyDown} role="dialog" aria-modal="true" aria-label="Save slots" style={{ width: 'min(760px, 100%)', maxHeight: '90vh', overflow: 'auto', border: '1px solid #475569', borderRadius: 16, background: 'linear-gradient(180deg,#111827,#020617)', color: '#f8fafc', boxShadow: '0 24px 80px rgba(0,0,0,.55)', padding: 18 }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 12, letterSpacing: '.16em', textTransform: 'uppercase', color: '#94a3b8' }}>Vandrith Chronicle</div>
