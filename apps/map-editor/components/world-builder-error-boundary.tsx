@@ -29,7 +29,7 @@ export class WorldBuilderErrorBoundary extends Component<Props, State> {
           <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", padding: 14, borderRadius: 10, background: "#020617", color: "#fecaca" }}>
             {this.state.error?.stack || this.state.error?.message || String(this.state.error)}
           </pre>
-          <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: "9px 14px", borderRadius: 8, border: "1px solid #475569", background: "#1e293b", color: "#fff", fontWeight: 700 }}>
+          <button type="button" onClick={() => window.location.reload()} style={{ marginTop: 12, padding: "9px 14px", borderRadius: 8, border: "1px solid #475569", background: "#1e293b", color: "#fff", fontWeight: 700 }}>
             Muat ulang World Builder
           </button>
         </section>
