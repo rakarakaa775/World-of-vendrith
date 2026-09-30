@@ -47,7 +47,7 @@ export function AuthPanel({ onSuccess }: { onSuccess: () => void }) {
         {mode === "register" && <label>Nama tampilan (opsional)<input value={displayName} onChange={e => setDisplayName(e.target.value)} autoComplete="nickname" /></label>}
         {mode !== "forgot" && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} required /></label>}
         {mode === "login" && <button type="button" className="vandrith-auth-forgot" onClick={() => { setMode("forgot"); setMessage(""); }}>Lupa password?</button>}
-        <button className="vandrith-auth-submit" disabled={busy}>{busy ? "Memproses..." : mode === "forgot" ? "Kirim Link Reset" : mode === "login" ? "Login" : "Buat Akun"}</button>
+        <button type="submit" className="vandrith-auth-submit" disabled={busy} aria-busy={busy}>{busy ? "Memproses..." : mode === "forgot" ? "Kirim Link Reset" : mode === "login" ? "Login" : "Buat Akun"}</button>
       </form>
       {mode === "forgot" && <button type="button" className="vandrith-auth-forgot" onClick={() => { setMode("login"); setMessage(""); }}>← Kembali ke Login</button>}
       {message && <p className="vandrith-auth-message" role="status" aria-live="polite">{message}</p>}
