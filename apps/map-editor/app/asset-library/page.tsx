@@ -72,9 +72,9 @@ async function extractZipItems(file:File,wanted:string[]){
     }
     found.set(name,data);
   }
+  const items=wanted.filter(path=>found.has(path)).map(path=>({path,bytes:found.get(path)!}));
   const missing=wanted.filter(path=>!found.has(path));
-  if(missing.length)throw new Error("Archive tidak memuat "+missing.length+" file pending: "+missing.join(", "));
-  return wanted.map(path=>({path,bytes:found.get(path)!}));
+  return {items,missing};
 }
 
 function bytesToBase64(bytes:Uint8Array){
@@ -181,14 +181,21 @@ export default function AssetLibraryPage(){
         return;
       }
       setSyncResult("Mengekstrak "+pendingTerrainPaths.length+" file terrain dari archive…");
-      const items=await extractZipItems(file,pendingTerrainPaths);
-      setSyncResult("Menjalankan verifikasi + canonical binding batch terrain…");
-      const {data,error}=await client.functions.invoke("sync-terrain-assets",{body:{items:items.map(item=>({path:item.path,base64:bytesToBase64(item.bytes)}))}});
+      const extracted=await extractZipItems(file,pendingTerrainPaths);
+      if(extracted.missing.length)console.warn("Archive missing current pending paths",extracted.missing);
+      if(extracted.items.length===0){
+        setSyncResult("Archive tidak memuat satupun dari "+pendingTerrainPaths.length+" pending terrain terbaru.");
+        return;
+      }
+      const available=extracted.items.length;
+      setSyncResult("Archive memuat "+available+"/"+pendingTerrainPaths.length+" pending; menjalankan verifikasi + canonical binding…");
+      const {data,error}=await client.functions.invoke("sync-terrain-assets",{body:{items:extracted.items.map(item=>({path:item.path,base64:bytesToBase64(item.bytes)}))}});
       if(error)throw error;
       const results=Array.isArray(data?.results)?data.results:[];
       const failed=results.filter((row:{status?:string})=>row.status==="failed");
       const verified=results.length-failed.length;
-      setSyncResult("Batch selesai: "+verified+"/"+results.length+" verified"+(failed.length?"; "+failed.length+" gagal":""));
+      const missingNote=extracted.missing.length?"; "+extracted.missing.length+" pending tidak ada di archive, akan masuk batch berikutnya":"";
+      setSyncResult("Batch selesai: "+verified+"/"+results.length+" verified"+(failed.length?"; "+failed.length+" gagal":"")+missingNote);
       if(failed.length)console.warn("sync-terrain-assets failures",failed);
     }catch(err){
       setSyncResult(err instanceof Error?err.message:String(err));
