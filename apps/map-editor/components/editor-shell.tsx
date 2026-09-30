@@ -101,7 +101,7 @@ export function EditorShell({
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
+          <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
 
           <div style={{ display: "grid", gap: 6 }}>
             {tileOptions.map(tile => (
@@ -121,7 +121,7 @@ export function EditorShell({
           <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Brush size</div>
           <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
             {BRUSH_SIZES.map(size => (
-              <button key={size} type="button" onClick={() => setBrushSize(size)} aria-pressed={brushSize === size}
+              <button key={size} type="button" onClick={() => setBrushSize(size)} aria-label={"Brush size " + size} aria-pressed={brushSize === size}
                 style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid var(--map-editor-border)", background: brushSize === size ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
                 {size}
               </button>
