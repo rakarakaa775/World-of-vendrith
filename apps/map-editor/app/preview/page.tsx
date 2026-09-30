@@ -91,7 +91,7 @@ export default function PreviewPage() {
   };
 
   if (loading || !user) {
-    return <main className="vandrith-preview-loading">Memeriksa akun...</main>;
+    return <main className="vandrith-preview-loading" role="status" aria-live="polite">Memeriksa akun...</main>;
   }
 
   return (
