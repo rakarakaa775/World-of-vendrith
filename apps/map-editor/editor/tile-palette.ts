@@ -1,9 +1,11 @@
 import { createMapEditorSupabaseClient } from "./supabase-client";
 
+export type TerrainPaletteKey = "grass" | "sand" | "dirt" | "pavement" | "water" | "deepwater";
+
 export type TileOption = {
   id: string;
   label: string;
-  terrain: "deepwater";
+  terrain: TerrainPaletteKey;
   assetName: string;
   assetPath?: string;
   previewPath?: string;
@@ -21,41 +23,54 @@ type RegistryTileRow = {
   status: string;
 };
 
-const DEEPWATER_NAME = "lpc_terrain__deepwater.png";
-const DEEPWATER_PREVIEW = "/api/assets/ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__deepwater.png?repo=library";
+const TERRAIN_ASSETS: ReadonlyArray<{ terrain: TerrainPaletteKey; name: string; label: string }> = [
+  { terrain: "grass", name: "lpc_terrain__grass.png", label: "Grass" },
+  { terrain: "sand", name: "lpc_terrain__sand.png", label: "Sand" },
+  { terrain: "dirt", name: "lpc_terrain__dirt.png", label: "Dirt" },
+  { terrain: "pavement", name: "tile_pavement.png", label: "Pavement" },
+  { terrain: "water", name: "lpc_terrain__water.png", label: "Water" },
+  { terrain: "deepwater", name: "lpc_terrain__deepwater.png", label: "Deepwater" },
+];
 
-function normalizeRegistryTile(row: RegistryTileRow): TileOption | null {
-  if (row.name.toLowerCase() !== DEEPWATER_NAME || row.status !== "approved") return null;
+export const STARTER_TILES: TileOption[] = TERRAIN_ASSETS.map(({ terrain, name, label }) => ({
+  id: terrain,
+  label,
+  terrain,
+  assetName: name,
+}));
+
+function normalizeRegistryTile(row: RegistryTileRow, definition: (typeof TERRAIN_ASSETS)[number]): TileOption {
   return {
-    id: "deepwater",
-    label: "Deepwater",
-    terrain: "deepwater",
+    id: definition.terrain,
+    label: definition.label,
+    terrain: definition.terrain,
     assetName: row.name,
     assetPath: row.asset_path || undefined,
     previewPath: row.preview_path || undefined,
-    previewUrl: DEEPWATER_PREVIEW,
   };
 }
-
-export const STARTER_TILES: TileOption[] = [
-  { id: "deepwater", label: "Deepwater", terrain: "deepwater", assetName: DEEPWATER_NAME, previewUrl: DEEPWATER_PREVIEW },
-];
 
 export async function loadTerrainTiles(): Promise<TileOption[]> {
   const client = createMapEditorSupabaseClient();
   if (!client) return STARTER_TILES;
 
+  const names = TERRAIN_ASSETS.map(item => item.name);
   const { data, error } = await client
     .from("asset_registry")
     .select("id,name,slug,asset_path,preview_path,tile_width,tile_height,status")
     .eq("status", "approved")
-    .eq("name", DEEPWATER_NAME);
+    .in("name", names);
 
   if (error || !data) return STARTER_TILES;
 
-  const deepwater = (data as RegistryTileRow[])
-    .map(normalizeRegistryTile)
-    .find((tile): tile is TileOption => Boolean(tile));
+  const rows = data as RegistryTileRow[];
+  const byName = new Map(rows.map(row => [row.name.toLowerCase(), row]));
+  const loaded = TERRAIN_ASSETS
+    .map(definition => {
+      const row = byName.get(definition.name.toLowerCase());
+      return row ? normalizeRegistryTile(row, definition) : null;
+    })
+    .filter((tile): tile is TileOption => Boolean(tile));
 
-  return deepwater ? [deepwater] : STARTER_TILES;
+  return loaded.length ? loaded : STARTER_TILES;
 }
