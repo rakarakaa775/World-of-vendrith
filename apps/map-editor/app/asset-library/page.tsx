@@ -130,7 +130,7 @@ export default function AssetLibraryPage(){
 
     <section className="asset-library-layout">
       <div className="asset-library-grid">
-        {busy?<div className="asset-library-empty">Loading approved assets…</div>:error?<div className="asset-library-empty">{error}</div>:filtered.length===0?<div className="asset-library-empty">No approved asset matches.</div>:filtered.map(asset=>{
+        {busy?<div className="asset-library-empty" role="status" aria-live="polite">Loading approved assets…</div>:error?<div className="asset-library-empty" role="alert" aria-live="polite">{error}</div>:filtered.length===0?<div className="asset-library-empty" role="status" aria-live="polite">No approved asset matches.</div>:filtered.map(asset=>{
           const active=selected?.id===asset.id;
           return <Link key={asset.id} className={active?"asset-card active":"asset-card"} href={`/asset-library/${asset.id}`}>
             <span className="asset-card-image"><AssetPreview asset={asset}/></span>
