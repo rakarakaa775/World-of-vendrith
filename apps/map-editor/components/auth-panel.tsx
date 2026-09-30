@@ -39,8 +39,8 @@ export function AuthPanel({ onSuccess }: { onSuccess: () => void }) {
   return (
     <section className="vandrith-auth-panel">
       <div className="vandrith-auth-tabs">
-        <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Login</button>
-        <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Buat Akun</button>
+        <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")} aria-pressed={mode === "login"}>Login</button>
+        <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")} aria-pressed={mode === "register"}>Buat Akun</button>
       </div>
       <form onSubmit={submit}>
         <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" inputMode="email" required /></label>
@@ -50,7 +50,7 @@ export function AuthPanel({ onSuccess }: { onSuccess: () => void }) {
         <button className="vandrith-auth-submit" disabled={busy}>{busy ? "Memproses..." : mode === "forgot" ? "Kirim Link Reset" : mode === "login" ? "Login" : "Buat Akun"}</button>
       </form>
       {mode === "forgot" && <button type="button" className="vandrith-auth-forgot" onClick={() => { setMode("login"); setMessage(""); }}>← Kembali ke Login</button>}
-      {message && <p className="vandrith-auth-message">{message}</p>}
+      {message && <p className="vandrith-auth-message" role="status" aria-live="polite">{message}</p>}
     </section>
   );
 }
