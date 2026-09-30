@@ -99,7 +99,7 @@ export default function PreviewPage() {
         </div>
         <div className="vandrith-preview-status">
           <i aria-hidden="true" />
-          <span role="status" aria-live="polite">{document ? loadStatus : "Loading World Map"}</span>
+          <span role="status" aria-live="polite">{loadStatus}</span>
         </div>
       </header>
 
@@ -147,7 +147,7 @@ export default function PreviewPage() {
               previewMode
             />
           ) : (
-            <div className="vandrith-preview-empty">
+            <div className="vandrith-preview-empty" role={loadStatus === "Loading authoritative World Map…" || loadStatus === "Supabase client unavailable" ? "status" : "alert"} aria-live="polite">
               <strong>World Map belum termuat</strong>
               <span>{loadStatus}</span>
             </div>
