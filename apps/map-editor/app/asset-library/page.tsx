@@ -162,9 +162,10 @@ export default function AssetLibraryPage(){
       <select value={placementCategory} onChange={e=>setPlacementCategory(e.target.value)} aria-label="Filter placement category">{placementCategories.map(v=><option key={v} value={v}>{v==="all"?"All placement categories":v.toUpperCase()}</option>)}</select>
       <select value={source} onChange={e=>setSource(e.target.value)} aria-label="Filter source">{sources.map(v=><option key={v} value={v}>{v==="all"?"All sources":v}</option>)}</select>
       <span>{filtered.length} shown</span>
-      <button type="button" onClick={syncPendingTerrainBatch} disabled={syncing}>
-        {syncing?"SYNCING…":"SYNC PENDING TERRAIN BATCH"}
-      </button>
+      <label>
+        <span className="sr-only">Pilih archive terrain pending</span>
+        <input type="file" accept=".zip,application/zip" disabled={syncing} onChange={e=>void syncPendingTerrainBatch(e.target.files?.[0]??null)} />
+      </label>
     </section>
     {syncResult?<p role="status" aria-live="polite">{syncResult}</p>:null}
 
