@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuthUser } from "../../editor/auth";
 import { createMapEditorSupabaseClient } from "../../editor/supabase-client";
 
@@ -107,12 +108,12 @@ export default function AssetLibraryPage(){
   },[assets,search,placementCategory,source]);
 
   if(loading)return <main className="asset-library-loading">Checking account…</main>;
-  if(!user)return <main className="asset-library-loading"><button onClick={()=>router.push("/")}>Back to Control Center</button></main>;
+  if(!user)return <main className="asset-library-loading"><button type="button" onClick={()=>router.push("/")}>Back to Control Center</button></main>;
 
   return <main className="asset-library-page">
     <header className="asset-library-header">
       <div>
-        <button className="asset-library-back" onClick={()=>router.push("/")}>‹ Control Center</button>
+        <button type="button" className="asset-library-back" onClick={()=>router.push("/")}>‹ Control Center</button>
         <p>VENDRITH ASSET SYSTEM</p>
         <h1>Asset Library</h1>
         <span>Approved assets · visual catalog · source of truth for engine workspaces</span>
@@ -131,12 +132,12 @@ export default function AssetLibraryPage(){
       <div className="asset-library-grid">
         {busy?<div className="asset-library-empty">Loading approved assets…</div>:error?<div className="asset-library-empty">{error}</div>:filtered.length===0?<div className="asset-library-empty">No approved asset matches.</div>:filtered.map(asset=>{
           const active=selected?.id===asset.id;
-          return <button key={asset.id} className={active?"asset-card active":"asset-card"} onClick={()=>router.push(`/asset-library/${asset.id}`)} aria-pressed={active}>
+          return <Link key={asset.id} className={active?"asset-card active":"asset-card"} href={`/asset-library/${asset.id}`}>
             <span className="asset-card-image"><AssetPreview asset={asset}/></span>
             <strong>{asset.name}</strong>
             <small>{asset.role||asset.category||"Asset"}</small>
             <em>{(asset.placement_category||"unassigned").toUpperCase()} · {asset.source_name||"Unknown source"}</em>
-          </button>;
+          </Link>;
         })}
       </div>
 
