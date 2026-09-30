@@ -213,6 +213,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .vandrith-preview-title strong{display:block;margin-top:4px;font-size:12px;letter-spacing:.08em}
 .vandrith-preview-status{display:flex;align-items:center;gap:7px;color:#778681;font:9px "Courier New",monospace}
 .vandrith-preview-status i{width:6px;height:6px;border-radius:50%;background:#8ebc9a;box-shadow:0 0 9px rgba(142,188,154,.7)}
+.vandrith-preview-status i.is-loading{background:#d6b36a;box-shadow:0 0 9px rgba(214,179,106,.65)}
+.vandrith-preview-status i.is-error{background:#d97b7b;box-shadow:0 0 9px rgba(217,123,123,.65)}
 .vandrith-preview-toolbar{display:flex;justify-content:space-between;align-items:center;padding:0 12px;border-bottom:1px solid rgba(146,164,158,.1);background:#080f14}
 .vandrith-preview-toolbar-group{display:flex;align-items:center;gap:3px}
 .vandrith-preview-toolbar button{min-width:34px;height:27px;border:1px solid transparent;border-radius:5px;background:transparent;color:#71817d;font-size:9px;cursor:pointer}
