@@ -78,6 +78,8 @@ export default function AssetLibraryPage(){
   const [source,setSource]=useState("all");
   const [busy,setBusy]=useState(true);
   const [error,setError]=useState("");
+  const [syncing,setSyncing]=useState(false);
+  const [syncResult,setSyncResult]=useState("");
 
   useEffect(()=>{
     if(loading||!user)return;
@@ -98,6 +100,40 @@ export default function AssetLibraryPage(){
 
   const placementCategories=useMemo(()=>["all","world","region","playable","interior"].filter(v=>v==="all"||assets.some(a=>a.placement_category===v)),[assets]);
   const sources=useMemo(()=>["all",...Array.from(new Set(assets.map(a=>a.source_name).filter(Boolean) as string[]))],[assets]);
+
+  const syncPendingTerrainBatch=async()=>{
+    if(syncing)return;
+    const client=createMapEditorSupabaseClient();
+    if(!client){setSyncResult("Supabase client belum tersedia.");return;}
+    setSyncing(true);
+    setSyncResult("Menjalankan verifikasi + canonical binding batch terrain…");
+    const paths=[
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowgrass.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icesnowother.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__icegrassaltother.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__sandredsandwater.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__watersandother.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/AppleTree_allSeasons.png__AppleTree_allSeasons.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__redsandwater.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__holelikegrassaltotheroverlay.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__lavagrassaltother.png",
+      "ASSET_LIBRARY/02_TILES_AND_TERRAIN/lpc_terrain__water.png",
+    ];
+    try{
+      const {data,error}=await client.functions.invoke("sync-terrain-assets",{body:{paths}});
+      if(error)throw error;
+      const results=Array.isArray(data?.results)?data.results:[];
+      const failed=results.filter((row:{status?:string})=>row.status==="failed");
+      const verified=results.length-failed.length;
+      setSyncResult("Batch selesai: "+verified+"/"+results.length+" verified"+(failed.length?"; "+failed.length+" gagal":""));
+      if(failed.length)console.warn("sync-terrain-assets failures",failed);
+    }catch(err){
+      setSyncResult(err instanceof Error?err.message:String(err));
+    }finally{
+      setSyncing(false);
+    }
+  };
+
   const filtered=useMemo(()=>{
     const q=search.trim().toLowerCase();
     return assets.filter(a=>
@@ -126,7 +162,11 @@ export default function AssetLibraryPage(){
       <select value={placementCategory} onChange={e=>setPlacementCategory(e.target.value)} aria-label="Filter placement category">{placementCategories.map(v=><option key={v} value={v}>{v==="all"?"All placement categories":v.toUpperCase()}</option>)}</select>
       <select value={source} onChange={e=>setSource(e.target.value)} aria-label="Filter source">{sources.map(v=><option key={v} value={v}>{v==="all"?"All sources":v}</option>)}</select>
       <span>{filtered.length} shown</span>
+      <button type="button" onClick={syncPendingTerrainBatch} disabled={syncing}>
+        {syncing?"SYNCING…":"SYNC PENDING TERRAIN BATCH"}
+      </button>
     </section>
+    {syncResult?<p role="status" aria-live="polite">{syncResult}</p>:null}
 
     <section className="asset-library-layout">
       <div className="asset-library-grid">
