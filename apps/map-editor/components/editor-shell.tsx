@@ -19,6 +19,7 @@ type Props = {
   onSaveLoad?: () => void | Promise<void>;
   onQuickSave?: () => void | Promise<void>;
   onLoadLatest?: () => void | Promise<void>;
+  busy?: boolean;
   terrainBindings?: TerrainAssetBindingMap;
   terrainStatus?: string;
   environmentValidation?: EnvironmentRuntimeValidation | null;
@@ -35,6 +36,7 @@ export function EditorShell({
   onSaveLoad,
   onQuickSave,
   onLoadLatest,
+  busy = false,
   terrainBindings = {},
   terrainStatus = "Terrain runtime unavailable",
 }: Props) {
@@ -94,8 +96,8 @@ export function EditorShell({
             {tool}
           </button>
         ))}
-        <button type="button" onClick={() => void onSave?.(document)} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
-        <button type="button" onClick={() => void onLoadLatest?.()} style={{ padding: "6px 10px" }}>Load Latest</button>
+        <button type="button" onClick={() => void onSave?.(document)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
+        <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
       </header>
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
