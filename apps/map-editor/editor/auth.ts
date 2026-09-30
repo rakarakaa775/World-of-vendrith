@@ -77,11 +77,17 @@ export async function requestPasswordReset(email: string) {
   if (error) throw error;
 }
 
-export async function updatePassword(password: string) {
+export async function updatePassword(password: string, currentPassword?: string) {
   const client = createMapEditorSupabaseClient();
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
   if (password.length < 8) throw new Error("Password minimal 8 karakter.");
-  const { error } = await client.auth.updateUser({ password });
+  if (currentPassword !== undefined && currentPassword.length === 0) {
+    throw new Error("Masukkan password saat ini.");
+  }
+  const { error } = await client.auth.updateUser({
+    password,
+    ...(currentPassword !== undefined ? { current_password: currentPassword } : {}),
+  });
   if (error) throw error;
 }
 
