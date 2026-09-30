@@ -1,3 +1,5 @@
+[Reading 289 lines from start (total: 289 lines, 0 remaining)]
+
 export type AssetRecord = {
   id?: string | null;
   asset_path?: string | null;
@@ -7,6 +9,8 @@ export type AssetRecord = {
   source_name?: string | null;
   tile_width?: number | null;
   tile_height?: number | null;
+  storage_bucket?: string | null;
+  storage_path?: string | null;
 };
 
 const DEFAULT_STORAGE_BUCKET = 'vandrith-assets';
@@ -33,6 +37,24 @@ function canonicalRepositoryAssetUrl(asset: AssetRecord): string | null {
 const assetCache = new Map<string, AssetRecord | null>();
 const WORLD_ASSET_MANIFEST_IDS = new Set<string>();
 
+async function enrichStorageBindings(client: any, assets: AssetRecord[]): Promise<void> {
+  const paths = [...new Set(assets.map(asset => asset.asset_path).filter((path): path is string => Boolean(path)))];
+  if (!paths.length) return;
+  const { data, error } = await client
+    .from('asset_files')
+    .select('file_path,storage_bucket,storage_path')
+    .in('file_path', paths);
+  if (error) return;
+  const bindings = new Map<string, { storage_bucket: string | null; storage_path: string | null }>((data ?? []).map((row: any) => [row.file_path, { storage_bucket: row.storage_bucket ?? null, storage_path: row.storage_path ?? null }]));
+  for (const asset of assets) {
+    const binding = asset.asset_path ? bindings.get(asset.asset_path) : null;
+    if (binding) {
+      asset.storage_bucket = binding.storage_bucket ?? null;
+      asset.storage_path = binding.storage_path ?? null;
+    }
+  }
+}
+
 /** Canonical asset storage URL. Runtime never falls back to bundled legacy terrain PNGs. */
 export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCKET): string | null {
   if (!assetPath) return null;
@@ -43,11 +65,17 @@ export function assetStorageUrl(assetPath: string, bucket = DEFAULT_STORAGE_BUCK
 
 export function assetRawUrl(assetPath: string): string | null { return assetStorageUrl(assetPath); }
 
+function storageObjectUrl(asset: AssetRecord): string | null {
+  if (!asset.storage_bucket || !asset.storage_path) return null;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://ojtmfokjcirvjvhnbnos.supabase.co';
+  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${encodeURIComponent(asset.storage_bucket)}/${normalizeAssetPath(asset.storage_path)}`;
+}
+
 export function resolveAssetUrl(asset: AssetRecord | null | undefined): string | null {
   if (!asset?.asset_path) return null;
   const status = String(asset.status ?? '').toLowerCase();
   if (status && !['approved', 'verified', 'active'].includes(status)) return null;
-  return canonicalRepositoryAssetUrl(asset) ?? assetStorageUrl(asset.asset_path);
+  return storageObjectUrl(asset) ?? canonicalRepositoryAssetUrl(asset) ?? assetStorageUrl(asset.asset_path);
 }
 
 export function cacheAssetRecord(asset: AssetRecord): AssetRecord | null {
@@ -68,7 +96,9 @@ export async function resolveAssetRecord(client: any, assetId: string): Promise<
       const { data: source } = await client.from('asset_sources').select('name').eq('id', data.source_id).maybeSingle();
       sourceName = source?.name ?? null;
     }
-    return cacheAssetRecord({ id: data.asset_id, name: data.name, asset_path: data.asset_path, source_id: data.source_id, source_name: sourceName, status: 'approved' });
+    const asset = { id: data.asset_id, name: data.name, asset_path: data.asset_path, source_id: data.source_id, source_name: sourceName, status: 'approved' } as AssetRecord;
+    await enrichStorageBindings(client, [asset]);
+    return cacheAssetRecord(asset);
   }
   const registry = await client.from('asset_registry').select('id,name,asset_path,status,source_id,tile_width,tile_height').eq('id', assetId).maybeSingle();
   if (registry.error) throw registry.error;
@@ -80,7 +110,9 @@ export async function resolveAssetRecord(client: any, assetId: string): Promise<
     const { data: source } = await client.from('asset_sources').select('name').eq('id', sourceId).maybeSingle();
     if (source?.name) (registryData as any).source_name = source.name;
   }
-  return cacheAssetRecord(registryData as AssetRecord);
+  const asset = registryData as AssetRecord;
+  await enrichStorageBindings(client, [asset]);
+  return cacheAssetRecord(asset);
 }
 
 export async function resolveAssetRecords(client: any, assetIds: string[]): Promise<Map<string, AssetRecord>> {
@@ -96,17 +128,21 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
         for (const source of sources ?? []) sourceNames.set(source.id, source.name);
       }
       const found = new Set<string>();
+      const manifestAssets: AssetRecord[] = [];
       for (const row of data ?? []) {
-        cacheAssetRecord({
+        const asset = {
           id: row.asset_id,
           name: row.name,
           asset_path: row.asset_path,
           source_id: row.source_id,
           source_name: row.source_id ? sourceNames.get(row.source_id) ?? null : null,
           status: 'approved'
-        });
+        } as AssetRecord;
+        manifestAssets.push(asset);
         found.add(row.asset_id);
       }
+      await enrichStorageBindings(client, manifestAssets);
+      for (const asset of manifestAssets) cacheAssetRecord(asset);
 
       // The manifest is the preferred World source, but it is not allowed to
       // hide an approved registry asset. If a verified manifest row is absent,
@@ -130,11 +166,13 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
             .in('id', registrySourceIds);
           for (const source of sources ?? []) registrySources.set(source.id, source.name);
         }
-        for (const row of registryRows) {
-          if (row.source_id && registrySources.has(row.source_id)) {
-            row.source_name = registrySources.get(row.source_id);
-          }
-          const asset = cacheAssetRecord(row as AssetRecord);
+        const registryAssets = registryRows.map((row: any) => {
+          if (row.source_id && registrySources.has(row.source_id)) row.source_name = registrySources.get(row.source_id);
+          return row as AssetRecord;
+        });
+        await enrichStorageBindings(client, registryAssets);
+        for (const asset of registryAssets) {
+          cacheAssetRecord(asset);
           if (asset?.id) found.add(asset.id);
         }
       }
@@ -155,10 +193,15 @@ export async function resolveAssetRecords(client: any, assetIds: string[]): Prom
       for (const source of sources ?? []) sourceNames.set(source.id, source.name);
     }
     const found = new Set<string>();
+    const fallbackAssets: AssetRecord[] = [];
     for (const row of registryData ?? []) {
       if (row.source_id && sourceNames.has(row.source_id)) row.source_name = sourceNames.get(row.source_id);
-      const asset = cacheAssetRecord(row as AssetRecord);
-      if (asset?.id) found.add(asset.id);
+      fallbackAssets.push(row as AssetRecord);
+    }
+    await enrichStorageBindings(client, fallbackAssets);
+    for (const asset of fallbackAssets) {
+      cacheAssetRecord(asset);
+      if (asset.id) found.add(asset.id);
     }
     for (const id of missing) if (!found.has(id)) assetCache.set(id, null);
   }
@@ -246,3 +289,5 @@ export async function resolveWorldAssetUrls(client: any, role?: WorldAssetRole):
     .map(asset => ({ asset, url: resolveAssetUrl(asset) }))
     .filter((item): item is { asset: WorldAssetRecord; url: string } => Boolean(item.url));
 }
+
+[executed on device: codespaces-e54cf0 (395fa14b-836a-48d6-b3c2-3cdaa0f364fc)]
