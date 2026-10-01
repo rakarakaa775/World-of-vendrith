@@ -500,6 +500,7 @@ export function PixiMapCanvas(props: Props) {
     };
     const down = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      e.preventDefault();
       activePointerId = e.pointerId;
       try { host.setPointerCapture(e.pointerId); } catch {}
       const panGesture = e.button === 1 || spaceHeld;
@@ -558,6 +559,7 @@ export function PixiMapCanvas(props: Props) {
     };
     const move = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      if (e.pointerType === "touch" || e.buttons !== 0) e.preventDefault();
       if (panning) {
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
@@ -588,6 +590,7 @@ export function PixiMapCanvas(props: Props) {
     };
     const up = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      e.preventDefault();
       const p = pointAt(e);
       const current = propsRef.current;
       if (current.activeTool === "Select" && selecting && startPoint) {
@@ -639,21 +642,22 @@ export function PixiMapCanvas(props: Props) {
     const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
 
     host.addEventListener("pointerleave", leaveBrushPreview);
-    host.addEventListener("pointerdown", down);
-    host.addEventListener("pointermove", move);
-    host.addEventListener("pointerup", up);
-    host.addEventListener("pointercancel", up);
-    host.addEventListener("lostpointercapture", up);
+    const pointerOptions: AddEventListenerOptions = { capture: true, passive: false };
+    host.addEventListener("pointerdown", down, pointerOptions);
+    host.addEventListener("pointermove", move, pointerOptions);
+    host.addEventListener("pointerup", up, pointerOptions);
+    host.addEventListener("pointercancel", up, pointerOptions);
+    host.addEventListener("lostpointercapture", up, pointerOptions);
     host.addEventListener("wheel", wheel, { passive: true });
     window.addEventListener("keydown", keydown);
     window.addEventListener("keyup", keyup);
     return () => {
       host.removeEventListener("pointerleave", leaveBrushPreview);
-      host.removeEventListener("pointerdown", down);
-      host.removeEventListener("pointermove", move);
-      host.removeEventListener("pointerup", up);
-      host.removeEventListener("pointercancel", up);
-      host.removeEventListener("lostpointercapture", up);
+      host.removeEventListener("pointerdown", down, pointerOptions);
+      host.removeEventListener("pointermove", move, pointerOptions);
+      host.removeEventListener("pointerup", up, pointerOptions);
+      host.removeEventListener("pointercancel", up, pointerOptions);
+      host.removeEventListener("lostpointercapture", up, pointerOptions);
       host.removeEventListener("wheel", wheel);
       window.removeEventListener("keydown", keydown);
       window.removeEventListener("keyup", keyup);
