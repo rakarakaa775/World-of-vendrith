@@ -5,7 +5,7 @@ import { PixiMapCanvas } from "./pixi-map-canvas";
 import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
-import { createHistory, commitHistory, type MapHistory } from "../editor/map-history";
+import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
 import type { GridPoint } from "../editor/grid";
@@ -57,6 +57,21 @@ export function EditorShell({
   }, [document, onDocumentChange]);
 
   useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        setHistory(current => event.shiftKey ? redoHistory(current) : undoHistory(current));
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        setHistory(current => redoHistory(current));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     void loadTerrainTiles().then(tiles => {
       if (cancelled) return;
@@ -96,13 +111,18 @@ export function EditorShell({
             {tool}
           </button>
         ))}
+        <span aria-hidden="true" style={{ width: 1, height: 22, background: "var(--map-editor-line)", margin: "0 2px" }} />
+        <button type="button" onClick={() => setHistory(current => undoHistory(current))} disabled={!history.past.length || busy}
+          aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" style={{ padding: "6px 9px" }}>↶ Undo</button>
+        <button type="button" onClick={() => setHistory(current => redoHistory(current))} disabled={!history.future.length || busy}
+          aria-label="Redo" title="Redo (Ctrl/Cmd+Y)" style={{ padding: "6px 9px" }}>↷ Redo</button>
         <button type="button" onClick={() => void onSave?.(document)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
       </header>
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · 6 BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
 
           <div style={{ display: "grid", gap: 6 }}>
@@ -131,6 +151,8 @@ export function EditorShell({
           </div>
 
           <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+            Tools: Paint · Erase · Line · Rectangle · Flood<br />
+            Undo/Redo: Ctrl/Cmd+Z · Ctrl/Cmd+Y<br />
             World: {document.width}×{document.height}<br />
             Active layer: {activeLayer}<br />
             Selected: {tileOptions.find(tile => tile.id === selectedTile)?.label ?? "—"}
