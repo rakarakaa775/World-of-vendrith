@@ -287,5 +287,3 @@ export async function resolveWorldAssetUrls(client: any, role?: WorldAssetRole):
     .map(asset => ({ asset, url: resolveAssetUrl(asset) }))
     .filter((item): item is { asset: WorldAssetRecord; url: string } => Boolean(item.url));
 }
-
-[executed on device: codespaces-e54cf0 (395fa14b-836a-48d6-b3c2-3cdaa0f364fc)]
