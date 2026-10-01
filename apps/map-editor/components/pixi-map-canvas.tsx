@@ -217,16 +217,20 @@ export function PixiMapCanvas(props: Props) {
       if (cancelled || worldRef.current !== world) return;
 
       const loadedTextures = new Map<string, any>();
-      // Preload terrain textures concurrently. The previous sequential loop could
-      // leave the map scene on the empty grid while one remote asset was still
-      // loading, which made touch painting look unresponsive on mobile.
-      await Promise.all([...textureRequests].map(async assetId => {
+      // Never block the editor scene on remote texture I/O. A logical terrain
+      // edit must remain visible through the deterministic color fallback even
+      // when one asset is slow or unavailable on a mobile connection.
+      const loadTextureWithTimeout = async (assetId: string) => {
         const asset = assetRecords.get(assetId);
         const url = asset ? resolveAssetUrl(asset) : null;
         if (!url) return;
-        const texture = await mapEditorTextureCache.load(url, Assets);
+        const texture = await Promise.race([
+          mapEditorTextureCache.load(url, Assets),
+          new Promise<null>(resolve => window.setTimeout(() => resolve(null), 1500)),
+        ]);
         if (texture) loadedTextures.set(assetId, texture);
-      }));
+      };
+      await Promise.allSettled([...textureRequests].map(loadTextureWithTimeout));
       if (cancelled || worldRef.current !== world) return;
 
       for (const layer of document.layers) {
