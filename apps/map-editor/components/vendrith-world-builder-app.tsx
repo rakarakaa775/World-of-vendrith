@@ -442,9 +442,15 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
         : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
       const worldDocument = normalizeWorldCanvas(worldDocumentRaw);
+      if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID) {
+        throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
+      }
       const exteriorDocument = gameSave?.exterior
         ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
         : null;
+      if (exteriorDocument && exteriorDocument.mapType !== "playable") {
+        throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not a playable map");
+      }
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
       setMaps(cur => {
