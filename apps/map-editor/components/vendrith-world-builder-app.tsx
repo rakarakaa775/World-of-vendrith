@@ -496,7 +496,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         </div>
         <span style={{maxWidth:"55%",padding:"4px 7px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:10,textAlign:"right"}}>{status}</span>
       </div>
-      <EditorShell busy={busy} initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async (document) => { await save(document); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async () => { await save(); }} onLoadLatest={async () => { await loadLatest(); }} />
+      <EditorShell busy={busy} initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async (document) => { await save(document); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async (document) => { await save(document); }} onLoadLatest={async () => { await loadLatest(); }} />
       <div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
     {showSlots && <SaveSlotsPanel busy={busy} open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
