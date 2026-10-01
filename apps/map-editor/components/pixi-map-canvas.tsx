@@ -217,14 +217,17 @@ export function PixiMapCanvas(props: Props) {
       if (cancelled || worldRef.current !== world) return;
 
       const loadedTextures = new Map<string, any>();
-      for (const assetId of textureRequests) {
+      // Preload terrain textures concurrently. The previous sequential loop could
+      // leave the map scene on the empty grid while one remote asset was still
+      // loading, which made touch painting look unresponsive on mobile.
+      await Promise.all([...textureRequests].map(async assetId => {
         const asset = assetRecords.get(assetId);
         const url = asset ? resolveAssetUrl(asset) : null;
-        if (!url) continue;
+        if (!url) return;
         const texture = await mapEditorTextureCache.load(url, Assets);
         if (texture) loadedTextures.set(assetId, texture);
-        if (cancelled || worldRef.current !== world) return;
-      }
+      }));
+      if (cancelled || worldRef.current !== world) return;
 
       for (const layer of document.layers) {
         if (!layer.visible) continue;
@@ -275,8 +278,7 @@ export function PixiMapCanvas(props: Props) {
                 const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
                 const asset = binding ? assetRecords.get(binding.assetId) : null;
                 const url = asset ? resolveAssetUrl(asset) : null;
-                let texture = binding ? loadedTextures.get(binding.assetId) : null;
-                if (!texture && url) texture = await mapEditorTextureCache.load(url, Assets);
+                const texture = binding ? loadedTextures.get(binding.assetId) : null;
                 if (cancelled || worldRef.current !== world) return;
                 if (texture) {
                   const renderTexture = textureForTerrainBinding(
