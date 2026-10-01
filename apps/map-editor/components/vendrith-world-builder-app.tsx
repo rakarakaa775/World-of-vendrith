@@ -275,6 +275,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           result = await saveWithConflictDetection(client, current, connection.document, connection.version);
         }
       }
+      if (result.status === "error") { setStatus(`Save failed: ${msg(result.error)}`); return result; }
       if (result.status !== "committed") { setStatus(`Save ${result.status}`); return result; }
       const savedMapId = localCurrent.mapType === "world" ? (connectedMapId || AUTHORITATIVE_WORLD_MAP_ID) : localCurrent.id;
       setIsNewMap(false);
