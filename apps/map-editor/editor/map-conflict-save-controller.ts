@@ -63,6 +63,24 @@ export async function saveWithConflictDetection(
       ),
     );
 
+    if (committed.status === 'committed') {
+      const authoritative = await loadMapDocumentSnapshot(client, local.id);
+      if (!authoritative.document) {
+        return { status: 'error', error: new Error('SAVE_POSTCOMMIT_VERIFY_FAILED: authoritative snapshot unavailable') };
+      }
+      const authoritativeTrace = traceTerrain(
+        authoritative.document,
+        'post-commit-authoritative',
+        authoritative.result.version_number ?? committed.versionNumber,
+      );
+      console.info('[MAP SAVE TRACE]', formatTerrainTrace(authoritativeTrace));
+      try {
+        assertTerrainPreserved(resolvedTrace, authoritativeTrace, 'resolved→post-commit-authoritative');
+      } catch (error) {
+        return { status: 'error', error };
+      }
+    }
+
     if (committed.status === 'conflict') {
       const refreshed = await loadMapDocumentSnapshot(client, local.id);
       if (!refreshed.document) return { status: 'error', error: new Error('Remote map disappeared during save') };
