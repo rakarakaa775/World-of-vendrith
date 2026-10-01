@@ -1,7 +1,11 @@
 import type { GridPoint } from './grid';
 import type { MapDocument } from './map-document';
 
-export const TERRAIN_KEYS = ['grass', 'sand', 'dirt', 'pavement', 'water', 'deepwater'] as const;
+export const TERRAIN_KEYS = [
+  'grass','grassalt','sand','redsand','dirt','dirt2','pavement',
+  'water','deepwater','deepwater2','brackish','tallgrass',
+  'hole','holek','holemid','lava','lavarock',
+] as const;
 export type TerrainKey = (typeof TERRAIN_KEYS)[number];
 
 export type TerrainNeighborhood = { n:boolean;e:boolean;s:boolean;w:boolean;ne:boolean;se:boolean;sw:boolean;nw:boolean };
