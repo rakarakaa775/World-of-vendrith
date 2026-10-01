@@ -18,6 +18,7 @@ import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConfl
 import { serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
+import { applyWaterDepthGradient } from "../editor/terrain-engine";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -57,7 +58,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     // terrain. Preserve every explicit terrain tile, but normalize missing ground
     // cells back to the canonical deepwater baseline so Load Latest cannot render
     // the map as a white/unpainted canvas.
-    return {
+    const normalized = {
       ...resized,
       layers: resized.layers.map(layer =>
         layer.id === ground.id
@@ -68,6 +69,10 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           : layer,
       ),
     };
+
+    // Rebuild the derived ocean-depth bands when loading older snapshots that
+    // were saved before distance-based water depth existed.
+    return applyWaterDepthGradient(normalized, ground.id);
   }, []);
 
   const update = useCallback((next: MapDocument) => {
