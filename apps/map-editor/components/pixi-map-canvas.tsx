@@ -27,6 +27,7 @@ type Props = {
   onPaint: (points: GridPoint[], tileId: string | null) => void;
   onSelectionChange: (selection: Selection | null) => void;
   onCellInspect?: (point: GridPoint) => void;
+  onInputDiagnostic?: (message: string) => void;
   onStamp: (point: GridPoint) => void;
   onObjectPlace: (point: GridPoint) => void;
   onObjectMove: (objectId: string, point: GridPoint) => void;
@@ -494,8 +495,14 @@ export function PixiMapCanvas(props: Props) {
       return null;
     };
     const paint = (pts: GridPoint[]) => {
-      const { brushSize, activeTool, selectedTileId, onPaint } = propsRef.current;
-      const validPts = expandBrush(pts.filter(valid), brushSize).filter(valid);
+      const { brushSize, activeTool, selectedTileId, onPaint, onInputDiagnostic } = propsRef.current;
+      const filtered = pts.filter(valid);
+      const validPts = expandBrush(filtered, brushSize).filter(valid);
+      onInputDiagnostic?.(
+        validPts.length
+          ? `paint-path: valid=${validPts.length} tool=${activeTool} tile=${selectedTileId ?? "null"}`
+          : `paint-path: BLOCKED valid=0 tool=${activeTool} tile=${selectedTileId ?? "null"} raw=${pts.length}`,
+      );
       if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : selectedTileId);
     };
     const down = (e: PointerEvent) => {
@@ -512,6 +519,7 @@ export function PixiMapCanvas(props: Props) {
       }
       const p = pointAt(e);
       const current = propsRef.current;
+      current.onInputDiagnostic?.(`pointerdown: x=${e.clientX} y=${e.clientY} cell=${p.x}:${p.y} tool=${current.activeTool} tile=${current.selectedTileId ?? "null"} layer=${current.activeLayerId}`);
       if (current.readonly) {
         panning = true;
         lastX = e.clientX;
