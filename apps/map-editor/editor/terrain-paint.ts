@@ -73,8 +73,12 @@ export function eraseTerrainPaint(
   ).values()];
   if (!validPoints.length) return { document, affected: [], variants: [], validation: [] };
 
+  // World Map has a permanent deep-water floor. Erase means "restore the base
+  // floor", not "make the cell empty". Other map types may legitimately erase
+  // to null.
+  const eraseTileId = document.mapType === "world" ? "deepwater" : null;
   let next = document;
-  for (const point of validPoints) next = paintCell(next, layerId, point, null);
+  for (const point of validPoints) next = paintCell(next, layerId, point, eraseTileId);
   const affected = affectedTerrainCells(document, validPoints);
   const result = applyTerrainAutotile(next, layerId, affected, bindings);
   const validation = affected.map(point => validateTerrainCell(result.document, layerId, point, bindings));
