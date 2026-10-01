@@ -183,8 +183,30 @@ export function PixiMapCanvas(props: Props) {
       const width = document.width * document.tileSize;
       const height = document.height * document.tileSize;
 
+      // Keep the logical terrain and the editor grid in the SAME Graphics object.
+      // The grid is already proven to render on mobile; drawing terrain into this
+      // exact render object removes the scene/child ordering as a possible failure
+      // point. Remote textures remain optional enhancements below.
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
+      for (const layer of document.layers) {
+        if (!layer.visible || layer.kind === "objects") continue;
+        for (let i = 0; i < document.width * document.height; i++) {
+          const id = layer.cells[i]?.tileId;
+          if (!id) continue;
+          const x = i % document.width;
+          const y = Math.floor(i / document.width);
+          grid.rect(
+            x * document.tileSize + 1,
+            y * document.tileSize + 1,
+            Math.max(1, document.tileSize - 2),
+            Math.max(1, document.tileSize - 2),
+          ).fill({
+            color: colorForTile(id),
+            alpha: layer.kind === "collision" ? 0.35 : 1,
+          });
+        }
+      }
       if (propsRef.current.showGrid !== false) {
         grid.rect(0, 0, width, height).stroke({ width: 2, color: 0x64748b });
         for (let x = 1; x < document.width; x++) grid.moveTo(x * document.tileSize, 0).lineTo(x * document.tileSize, height);
@@ -244,37 +266,11 @@ export function PixiMapCanvas(props: Props) {
         }
       }));
       
-      // Terrain must have a deterministic visual representation independent of
-      // active-layer state, asset metadata, or remote textures. Draw all logical
-      // terrain cells into one Graphics batch first; textures may be layered on top.
-      // This makes a successful paint edit immediately visible even when assets fail.
+      // Remote textures are an enhancement only. They never determine whether
+      // the painted cell is rendered.
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
-          const terrainFallback = new Graphics();
-          let fallbackCount = 0;
-
-          for (let i = 0; i < document.width * document.height; i++) {
-            const id = layer.cells[i]?.tileId;
-            if (!id) continue;
-            const x = i % document.width;
-            const y = Math.floor(i / document.width);
-            terrainFallback.rect(
-              x * document.tileSize + 2,
-              y * document.tileSize + 2,
-              Math.max(1, document.tileSize - 4),
-              Math.max(1, document.tileSize - 4),
-            ).fill({
-              color: colorForTile(id),
-              alpha: layer.kind === "collision" ? 0.35 : 1,
-            });
-            fallbackCount++;
-          }
-
-          if (fallbackCount > 0) scene.addChild(terrainFallback);
-
-          // Remote textures are an enhancement only. They never determine whether
-          // the painted cell is rendered.
           if (layer.kind === "ground") {
             const isSolidDeepwaterWorld =
               document.mapType === "world" &&
