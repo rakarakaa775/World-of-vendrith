@@ -47,6 +47,11 @@ export function EditorShell({
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
   const activeLayer = document.layers.find(layer => layer.active)?.id ?? document.layers[0]?.id ?? "ground";
+  // Terrain painting is always a ground-layer operation. The persisted map can
+  // contain a different active layer (for example objects), but the current
+  // World Map UI has no terrain-layer picker and must never silently discard a
+  // Paint/Erase request because of that persisted active flag.
+  const terrainLayer = document.layers.find(layer => layer.kind === "ground")?.id ?? "ground";
 
   useEffect(() => {
     setHistory(createHistory(initialDocument));
@@ -87,12 +92,11 @@ export function EditorShell({
   }, [document]);
 
   const handlePaint = useCallback((points: GridPoint[], tileId: string | null) => {
-    if (activeLayer !== "ground") return;
     const result = tileId === null
-      ? eraseTerrainPaint(document, activeLayer, points, terrainBindings)
-      : applyTerrainPaint(document, activeLayer, points, tileId, terrainBindings);
+      ? eraseTerrainPaint(document, terrainLayer, points, terrainBindings)
+      : applyTerrainPaint(document, terrainLayer, points, tileId, terrainBindings);
     commit(result.document);
-  }, [activeLayer, document, terrainBindings, commit]);
+  }, [document, terrainLayer, terrainBindings, commit]);
 
   const chooseTerrain = (tile: TileOption) => {
     setSelectedTile(tile.id);
