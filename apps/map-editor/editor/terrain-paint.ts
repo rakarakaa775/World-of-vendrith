@@ -1,7 +1,7 @@
 import type { GridPoint } from './grid';
 import type { MapDocument } from './map-document';
 import { paintCell } from './map-state';
-import { affectedTerrainCells, terrainFromTileId, terrainVariantKey, neighborMask } from './terrain-engine';
+import { affectedTerrainCells, applyWaterDepthGradient, terrainFromTileId, terrainVariantKey, neighborMask } from './terrain-engine';
 import { applyTerrainAutotile, type TerrainCellVariant } from './terrain-autotile-apply';
 import type { TerrainAssetBindingMap } from './terrain-asset-binding';
 import {
@@ -44,6 +44,9 @@ export function applyTerrainPaint(
   let next = document;
   for (const point of requestValidation.points) next = paintCell(next, layerId, point, tileId);
 
+  // Water depth is derived from shoreline distance after every logical terrain
+  // edit, so painting land or water immediately updates the coastal gradient.
+  next = applyWaterDepthGradient(next, layerId);
   const affected = affectedTerrainCells(next, requestValidation.points);
   const result = applyTerrainAutotile(next, layerId, affected, bindings);
   const validation = affected.map(point => validateTerrainCell(result.document, layerId, point, bindings));
@@ -79,7 +82,8 @@ export function eraseTerrainPaint(
   const eraseTileId = document.mapType === "world" ? "deepwater" : null;
   let next = document;
   for (const point of validPoints) next = paintCell(next, layerId, point, eraseTileId);
-  const affected = affectedTerrainCells(document, validPoints);
+  next = applyWaterDepthGradient(next, layerId);
+  const affected = affectedTerrainCells(next, validPoints);
   const result = applyTerrainAutotile(next, layerId, affected, bindings);
   const validation = affected.map(point => validateTerrainCell(result.document, layerId, point, bindings));
   return { document: result.document, affected, variants: result.variants, validation };
