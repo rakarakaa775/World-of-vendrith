@@ -19,3 +19,78 @@ export function neighborMask(document:MapDocument,layerId:string,point:GridPoint
 export function terrainNeighborhood(document:MapDocument,layerId:string,point:GridPoint,terrain:TerrainKey):TerrainNeighborhood{return Object.fromEntries(DIRECTIONS.map(([key,dx,dy])=>[key,terrainAt(document,{x:point.x+dx,y:point.y+dy},layerId)===terrain])) as TerrainNeighborhood;}
 export function affectedTerrainCells(document:MapDocument,points:GridPoint[]):GridPoint[]{const seen=new Set<string>(),result:GridPoint[]=[];for(const point of points){for(const[_,dx,dy]of DIRECTIONS){const candidate={x:point.x+dx,y:point.y+dy};if(candidate.x<0||candidate.y<0||candidate.x>=document.width||candidate.y>=document.height)continue;const key=`${candidate.x}:${candidate.y}`;if(!seen.has(key)){seen.add(key);result.push(candidate);}}const key=`${point.x}:${point.y}`;if(!seen.has(key)){seen.add(key);result.push(point);}}return result;}
 export function terrainVariantKey(mask:TerrainMask):string{return`mask_${mask.toString(16).padStart(2,'0')}`;}
+
+
+export const WATER_SHORE_DISTANCE = 1;
+export const WATER_MID_DISTANCE = 3;
+
+const WATER_GRADIENT_TERRAINS = new Set<TerrainKey>(['water', 'deepwater2', 'deepwater']);
+
+export function applyWaterDepthGradient(
+  document: MapDocument,
+  layerId: string,
+): MapDocument {
+  const layer = document.layers.find(item => item.id === layerId);
+  if (!layer || layer.kind !== 'ground') return document;
+
+  // World water depth is derived from distance to the nearest non-water
+  // terrain. Eight-way distance makes diagonal shoreline cells part of the
+  // same coast band and keeps the transition visually continuous.
+  const size = document.width * document.height;
+  const distance = new Int32Array(size);
+  distance.fill(-1);
+  const queue: number[] = [];
+  let head = 0;
+
+  for (let index = 0; index < size; index += 1) {
+    const terrain = terrainFromTileId(layer.cells[index]?.tileId ?? null);
+    if (terrain !== null && !WATER_GRADIENT_TERRAINS.has(terrain)) {
+      distance[index] = 0;
+      queue.push(index);
+    }
+  }
+
+  // No land in the map: preserve the current ocean state.
+  if (!queue.length) return document;
+
+  const width = document.width;
+  const height = document.height;
+  while (head < queue.length) {
+    const index = queue[head++];
+    const x = index % width;
+    const y = Math.floor(index / width);
+    for (const [, dx, dy] of DIRECTIONS) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      const nextIndex = ny * width + nx;
+      if (distance[nextIndex] !== -1) continue;
+      distance[nextIndex] = distance[index] + 1;
+      queue.push(nextIndex);
+    }
+  }
+
+  let changed = false;
+  const cells = layer.cells.map((cell, index) => {
+    const terrain = terrainFromTileId(cell.tileId);
+    if (!terrain || !WATER_GRADIENT_TERRAINS.has(terrain)) return cell;
+
+    const d = distance[index];
+    const nextTileId =
+      d <= WATER_SHORE_DISTANCE ? 'water' :
+      d <= WATER_MID_DISTANCE ? 'deepwater2' :
+      'deepwater';
+
+    if (cell.tileId === nextTileId) return cell;
+    changed = true;
+    return { ...cell, tileId: nextTileId };
+  });
+
+  if (!changed) return document;
+  return {
+    ...document,
+    layers: document.layers.map(item =>
+      item.id === layerId ? { ...item, cells } : item,
+    ),
+  };
+}
