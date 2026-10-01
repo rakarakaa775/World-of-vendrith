@@ -44,6 +44,7 @@ export function EditorShell({
   const [tileOptions, setTileOptions] = useState<TileOption[]>(STARTER_TILES);
   const [selectedTile, setSelectedTile] = useState<string>(STARTER_TILES.find(tile => tile.terrain === "deepwater")?.id ?? STARTER_TILES[0].id);
   const [brushSize, setBrushSize] = useState(1);
+  const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
   const activeLayer = document.layers.find(layer => layer.active)?.id ?? document.layers[0]?.id ?? "ground";
@@ -95,6 +96,11 @@ export function EditorShell({
     const result = tileId === null
       ? eraseTerrainPaint(document, terrainLayer, points, terrainBindings)
       : applyTerrainPaint(document, terrainLayer, points, tileId, terrainBindings);
+    const changed = result.document !== document;
+    const changedTile = result.document.layers.find(layer => layer.id === terrainLayer)?.cells[points[0] ? points[0].y * document.width + points[0].x : -1]?.tileId ?? null;
+    setPaintDiagnostic(
+      `apply: layer=${terrainLayer} requested=${points.length} affected=${result.affected.length} changed=${changed ? "YES" : "NO"} tile=${changedTile ?? "null"} validation=${result.validation.length}`,
+    );
     commit(result.document);
   }, [document, terrainLayer, terrainBindings, commit]);
 
@@ -128,6 +134,7 @@ export function EditorShell({
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · 6 BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
+          <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
 
           <div style={{ display: "grid", gap: 6 }}>
             {tileOptions.map(tile => (
@@ -174,6 +181,7 @@ export function EditorShell({
             onPaint={handlePaint}
             onSelectionChange={() => {}}
             onCellInspect={() => {}}
+            onInputDiagnostic={setPaintDiagnostic}
             onStamp={() => {}}
             onObjectPlace={() => {}}
             onObjectMove={() => {}}
