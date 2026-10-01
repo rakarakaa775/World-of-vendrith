@@ -106,3 +106,32 @@ These findings are audit evidence, not permission to patch architecture. Each fi
 - Focused reproduction tests: audited; F-019 confirms there is currently no repository test harness for the Map Editor, and F-020 defines the deterministic test seams that should be implemented next.
 - Final foundation gate: evaluated; F-021 records that the gate is blocked until the focused tests are established and executed with evidence.
 - Remaining Phase 0 work: establish the focused test harness, implement the deterministic reproduction tests, execute them, then re-evaluate the Foundation Gate before runtime architecture fixes or Phase 1 work.
+
+
+## Phase 0 Closure Addendum — 2026-10-01
+
+Status: **Implementation complete; verification gate pending automated test execution**
+
+The final Phase 0 source pass closed the remaining active frontend identity boundaries:
+
+- openMap() now treats an existing authoritative identity snapshot as the source of truth and rejects requested/provided/adopted identity mismatches.
+- Save Slot loading now rejects a World snapshot whose document ID is not the authoritative World ID and rejects a restored exterior that is not a playable map.
+- The canonical serializer already enforces requested-map identity and width × height layer-cell invariants.
+- The database's currently applied map_editor_get_runtime_snapshot_v1 implementation already compares the runtime snapshot reference with the newest durable version and falls back to the durable version when they differ, closing the stale-runtime authority gap.
+- Focused Phase 0 regression tests now cover grid sizing, resize consistency, malformed persisted cell counts, requested identity mismatch, and persistence navigation boundaries.
+- A GitHub Actions Phase 0 gate now runs Map Editor tests and build on main and pull requests.
+
+### Final Phase 0 disposition
+
+| Gate | Disposition |
+|---|---|
+| Map identity boundary | CLOSED in source |
+| Grid/document invariant | CLOSED in source + regression coverage |
+| Runtime stale-cache authority | CLOSED in active Supabase function |
+| Save Slot identity | CLOSED in source |
+| Terrain paint foundation | CLOSED; unchanged by this pass |
+| Renderer lifecycle | CLOSED from prior audit |
+| Automated regression execution | **PENDING** — workflow run not yet exposed for the latest commit |
+| Phase 0 overall | **READY FOR FINAL TEST EXECUTION** |
+
+No existing applied migration was rewritten. The stale-runtime database behavior is already represented by the later applied migration 20260917052620_guard_runtime_snapshot_against_stale_versions; the older migration file remains historical.
