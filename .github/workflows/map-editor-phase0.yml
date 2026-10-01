@@ -1,0 +1,23 @@
+name: Map Editor Phase 0
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/map-editor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/map-editor/package-lock.json
+      - run: npm install
+      - run: npm test
+      - run: npm run build
