@@ -1,5 +1,3 @@
-[Reading 289 lines from start (total: 289 lines, 0 remaining)]
-
 export type AssetRecord = {
   id?: string | null;
   asset_path?: string | null;
