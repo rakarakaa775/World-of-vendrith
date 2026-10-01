@@ -84,10 +84,22 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       setActiveMapId(nextMapId);
       try {
         const loaded = await loadIdentityMapDocument(client, nextMapId);
-        const document = normalizeWorldCanvas(providedDocument || loaded.document || nextDocument);
+        // The authoritative identity snapshot is the source of truth whenever it exists.
+        // providedDocument is only a seed for a brand-new identity with no remote version yet.
+        if (loaded.document && loaded.document.id !== nextMapId) {
+          throw new Error("OPEN_IDENTITY_MISMATCH: authoritative document id does not match requested map");
+        }
+        if (providedDocument && providedDocument.id !== nextMapId) {
+          throw new Error("OPEN_IDENTITY_MISMATCH: provided document id does not match requested map");
+        }
+        const authoritative = loaded.document ?? providedDocument ?? nextDocument;
+        if (authoritative.id !== nextMapId) {
+          throw new Error("OPEN_IDENTITY_MISMATCH: adopted document id does not match requested map");
+        }
+        const document = normalizeWorldCanvas(authoritative);
         setMaps(cur => cur.some(m => m.id === document.id) ? cur.map(m => m.id === document.id ? document : m) : [...cur, document]);
         setConnectedMapId(nextMapId);
-        setBaseDocument(loaded.document || document);
+        setBaseDocument(loaded.document ? normalizeWorldCanvas(loaded.document) : null);
         setVersion(loaded.version);
         setLoadRevision(v => v + 1);
         setStatus(loaded.document ? `Loaded identity · version ${loaded.version}` : "Opened new identity · unsaved document");
