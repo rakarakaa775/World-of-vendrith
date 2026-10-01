@@ -17,7 +17,7 @@ type Props = {
   onDocumentChange?: (document: MapDocument) => void;
   onSave?: (document: MapDocument) => void | Promise<void>;
   onSaveLoad?: () => void | Promise<void>;
-  onQuickSave?: () => void | Promise<void>;
+  onQuickSave?: (document: MapDocument) => void | Promise<void>;
   onLoadLatest?: () => void | Promise<void>;
   busy?: boolean;
   terrainBindings?: TerrainAssetBindingMap;
