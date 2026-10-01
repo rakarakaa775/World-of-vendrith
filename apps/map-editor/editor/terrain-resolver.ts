@@ -17,11 +17,22 @@ export type TerrainResolver = (terrain: TerrainKey, mask: TerrainMask) => string
 
 const FALLBACK_TILE: Record<TerrainKey, string> = {
   grass: 'starter-tile',
+  grassalt: 'grassalt',
   sand: 'sand',
+  redsand: 'redsand',
   dirt: 'dirt',
+  dirt2: 'dirt2',
   pavement: 'stone-tile',
   water: 'water-tile',
   deepwater: 'deepwater',
+  deepwater2: 'deepwater2',
+  brackish: 'brackish',
+  tallgrass: 'tallgrass',
+  hole: 'hole',
+  holek: 'holek',
+  holemid: 'holemid',
+  lava: 'lava',
+  lavarock: 'lavarock',
 };
 
 export function resolveTerrainVariant(terrain: TerrainKey, mask: TerrainMask, resolver?: TerrainResolver): TerrainVariant {
