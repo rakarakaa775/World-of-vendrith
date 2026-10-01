@@ -53,13 +53,18 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     const resized = resizeMapDocument(document, 128, 128);
     const ground = resized.layers.find(layer => layer.id === "ground" && layer.kind === "ground");
     if (!ground) return resized;
-    const hasTerrain = ground.cells.some(cell => Boolean(cell.tileId));
-    if (hasTerrain) return resized;
+    // World ground is an ocean baseline: persisted null cells are not empty
+    // terrain. Preserve every explicit terrain tile, but normalize missing ground
+    // cells back to the canonical deepwater baseline so Load Latest cannot render
+    // the map as a white/unpainted canvas.
     return {
       ...resized,
       layers: resized.layers.map(layer =>
         layer.id === ground.id
-          ? { ...layer, cells: layer.cells.map(() => ({ tileId: "deepwater" })) }
+          ? {
+              ...layer,
+              cells: layer.cells.map(cell => ({ tileId: cell.tileId ?? "deepwater" })),
+            }
           : layer,
       ),
     };
