@@ -156,7 +156,7 @@ export function EditorShell({
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · 6 BASIC</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.length} BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
 
@@ -164,12 +164,16 @@ export function EditorShell({
             {tileOptions.map(tile => (
               <button key={tile.id} type="button" onClick={() => chooseTerrain(tile)} aria-pressed={selectedTile === tile.id}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid var(--map-editor-border)", background: selectedTile === tile.id ? "var(--map-editor-terrain-selected)" : "var(--map-editor-button)", color: "#fff" }}>
-                <span style={{ width: 28, height: 28, borderRadius: 4, background:
-                  tile.terrain === "deepwater" ? "#24527a" :
-                  tile.terrain === "water" ? "#3b82c4" :
-                  tile.terrain === "grass" ? "#4f9d50" :
-                  tile.terrain === "sand" ? "#e6c36a" :
-                  tile.terrain === "dirt" ? "#98633e" : "#8b949e" }} />
+                <span style={{ width: 28, height: 28, borderRadius: 4, background: ({
+                  grass: "#4f9d50", grassalt: "#6fae58",
+                  sand: "#e6c36a", redsand: "#c9784f",
+                  dirt: "#98633e", dirt2: "#7f5135",
+                  pavement: "#8b949e", water: "#3b82c4",
+                  deepwater: "#24527a", deepwater2: "#1d4162",
+                  brackish: "#397b78", tallgrass: "#3f873f",
+                  hole: "#3f3028", holek: "#4a372e", holemid: "#554238",
+                  lava: "#c4472d", lavarock: "#5b4542",
+                } as Record<string, string>)[tile.terrain] ?? "#8b949e" }} />
                 <span>{tile.label}</span>
               </button>
             ))}
