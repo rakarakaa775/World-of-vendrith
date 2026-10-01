@@ -4,7 +4,7 @@ import { createSupabaseMapMergePersistence, serializeResolvedMapSnapshot } from 
 import { loadMapDocumentSnapshot } from './map-persistence';
 import { normalizeMergeCommitResponse, type ProjectionStatus } from './map-merge-persistence';
 import { parseMapDocument } from './map-serialization';
-import { formatTerrainTrace, traceTerrain } from './map-save-trace';
+import { assertTerrainPreserved, formatTerrainTrace, traceTerrain } from './map-save-trace';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type ConflictSaveResult =
@@ -47,8 +47,10 @@ export async function saveWithConflictDetection(
     const serializedTrace = traceTerrain(serializedDocument, 'serialized-roundtrip', commitVersion);
     console.info('[MAP SAVE TRACE]', formatTerrainTrace(resolvedTrace));
     console.info('[MAP SAVE TRACE]', formatTerrainTrace(serializedTrace));
-    if (JSON.stringify(resolvedTrace.tileCounts) !== JSON.stringify(serializedTrace.tileCounts)) {
-      return { status: 'error', error: new Error('SAVE_TERRAIN_SERIALIZATION_MISMATCH: resolved merge differs after serialization round-trip') };
+    try {
+      assertTerrainPreserved(resolvedTrace, serializedTrace, 'resolved→serialized');
+    } catch (error) {
+      return { status: 'error', error };
     }
 
     const persistence = createSupabaseMapMergePersistence(client);
