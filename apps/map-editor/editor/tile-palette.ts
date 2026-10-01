@@ -45,3 +45,55 @@ const TERRAIN_ASSETS: ReadonlyArray<{ terrain: TerrainPaletteKey; name: string; 
   { terrain: "lava", name: "lpc_terrain__lava.png", label: "Lava" },
   { terrain: "lavarock", name: "lpc_terrain__lavarock.png", label: "Lava Rock" },
 ];
+
+
+export const STARTER_TILES: TileOption[] = TERRAIN_ASSETS.map(({ terrain, name, label }) => ({
+  id: terrain,
+  label,
+  terrain,
+  assetName: name,
+}));
+
+function normalizeRegistryTile(
+  row: RegistryTileRow,
+  definition: (typeof TERRAIN_ASSETS)[number],
+): TileOption {
+  return {
+    id: definition.terrain,
+    label: definition.label,
+    terrain: definition.terrain,
+    assetName: row.name,
+    assetPath: row.asset_path || undefined,
+    previewPath: row.preview_path || undefined,
+  };
+}
+
+export async function loadTerrainTiles(): Promise<TileOption[]> {
+  const client = createMapEditorSupabaseClient();
+  if (!client) return STARTER_TILES;
+
+  const names = TERRAIN_ASSETS.map(item => item.name);
+  const { data, error } = await client
+    .from("asset_registry")
+    .select("id,name,slug,asset_path,preview_path,tile_width,tile_height,status")
+    .eq("status", "approved")
+    .in("name", names);
+
+  if (error || !data) return STARTER_TILES;
+
+  const rows = data as RegistryTileRow[];
+  const byName = new Map(rows.map(row => [row.name.toLowerCase(), row]));
+
+  // Keep every basic terrain visible even when its asset is not yet registered.
+  return TERRAIN_ASSETS.map(definition => {
+    const row = byName.get(definition.name.toLowerCase());
+    return row
+      ? normalizeRegistryTile(row, definition)
+      : {
+          id: definition.terrain,
+          label: definition.label,
+          terrain: definition.terrain,
+          assetName: definition.name,
+        };
+  });
+}
