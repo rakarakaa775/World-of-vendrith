@@ -48,11 +48,22 @@ const DEEP_WATER_ASSET_ID = "5587526c-093a-4e3a-8813-aeaa348060eb";
 
 const COLORS: Record<string, number> = {
   grass: 0x4f9d50,
+  grassalt: 0x6fae58,
   sand: 0xe6c36a,
+  redsand: 0xc9784f,
   dirt: 0x98633e,
+  dirt2: 0x7f5135,
   pavement: 0x8b949e,
   water: 0x3b82c4,
   deepwater: 0x24527a,
+  deepwater2: 0x1d4162,
+  brackish: 0x397b78,
+  tallgrass: 0x3f873f,
+  hole: 0x3f3028,
+  holek: 0x4a372e,
+  holemid: 0x554238,
+  lava: 0xc4472d,
+  lavarock: 0x5b4542,
 };
 const colorForTile = (id: string | null) => id ? (COLORS[terrainFromTileId(id) ?? ""] ?? 0x94a3b8) : 0xffffff;
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
