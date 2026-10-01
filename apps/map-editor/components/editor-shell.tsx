@@ -95,7 +95,12 @@ export function EditorShell({
   }, []);
 
   const commit = useCallback((next: MapDocument) => {
-    if (next !== document) setHistory(current => commitHistory(current, next));
+    if (next === document) return;
+    // Update the save source synchronously with the edit. The effect below is
+    // still kept for normal synchronization, but Save must never observe the
+    // previous history.present during the tiny render/effect gap after Paint.
+    documentRef.current = next;
+    setHistory(current => commitHistory(current, next));
   }, [document]);
 
   const handlePaint = useCallback((points: GridPoint[], tileId: string | null) => {
