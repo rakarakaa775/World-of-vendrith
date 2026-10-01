@@ -231,7 +231,8 @@ export function PixiMapCanvas(props: Props) {
         const url = asset ? resolveAssetUrl(asset) : null;
         if (!url) return;
         try {
-          await mapEditorTextureCache.load(url, Assets);
+          const texture = await mapEditorTextureCache.load(url, Assets);
+          if (texture) loadedTextures.set(assetId, texture);
         } catch {
           // Missing/slow texture is a valid fallback state for the editor.
         }
@@ -321,24 +322,27 @@ export function PixiMapCanvas(props: Props) {
           }
         } else {
           for (const o of layer.objects) {
+            let objectTexture: any = null;
             if (o.assetUrl) {
-              const texture = await mapEditorTextureCache.load(o.assetUrl, Assets);
-              if (cancelled || worldRef.current !== world) return;
-              if (texture) {
-                const sprite = new Sprite(texture);
-                sprite.x = o.x * document.tileSize + 2;
-                sprite.y = o.y * document.tileSize + 2;
-                sprite.width = Math.max(4, o.width * document.tileSize - 4);
-                sprite.height = Math.max(4, o.height * document.tileSize - 4);
-                sprite.alpha = 0.95;
-                scene.addChild(sprite);
-                if (selectedObjectIds.includes(o.id)) {
-                  const outline = new Graphics();
-                  outline.rect(o.x * document.tileSize + 1, o.y * document.tileSize + 1, Math.max(6, o.width * document.tileSize - 2), Math.max(6, o.height * document.tileSize - 2)).stroke({ width: 2, color: 0x0ea5e9 });
-                  scene.addChild(outline);
-                }
-                continue;
+              objectTexture = mapEditorTextureCache.get(o.assetUrl);
+              if (!objectTexture) {
+                void mapEditorTextureCache.load(o.assetUrl, Assets);
               }
+            }
+            if (objectTexture) {
+              const sprite = new Sprite(objectTexture);
+              sprite.x = o.x * document.tileSize + 2;
+              sprite.y = o.y * document.tileSize + 2;
+              sprite.width = Math.max(4, o.width * document.tileSize - 4);
+              sprite.height = Math.max(4, o.height * document.tileSize - 4);
+              sprite.alpha = 0.95;
+              scene.addChild(sprite);
+              if (selectedObjectIds.includes(o.id)) {
+                const outline = new Graphics();
+                outline.rect(o.x * document.tileSize + 1, o.y * document.tileSize + 1, Math.max(6, o.width * document.tileSize - 2), Math.max(6, o.height * document.tileSize - 2)).stroke({ width: 2, color: 0x0ea5e9 });
+                scene.addChild(outline);
+              }
+              continue;
             }
             const g = new Graphics();
             const c = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
