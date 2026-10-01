@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PixiMapCanvas } from "./pixi-map-canvas";
 import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
@@ -47,6 +47,12 @@ export function EditorShell({
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
+  // Keep the latest editor-owned document available to toolbar handlers even while
+  // the parent mirror is catching up. Save/Load must operate on EditorShell state.
+  const documentRef = useRef<MapDocument>(document);
+  useEffect(() => {
+    documentRef.current = document;
+  }, [document]);
   const activeLayer = document.layers.find(layer => layer.active)?.id ?? document.layers[0]?.id ?? "ground";
   // Terrain painting is always a ground-layer operation. The persisted map can
   // contain a different active layer (for example objects), but the current
@@ -150,7 +156,8 @@ export function EditorShell({
           aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" style={{ padding: "6px 9px" }}>↶ Undo</button>
         <button type="button" onClick={handleRedo} disabled={!history.future.length || busy}
           aria-label="Redo" title="Redo (Ctrl/Cmd+Y)" style={{ padding: "6px 9px" }}>↷ Redo</button>
-        <button type="button" onClick={() => void onSave?.(document)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
+        <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
+        <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
       </header>
 
