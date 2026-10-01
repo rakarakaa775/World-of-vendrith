@@ -104,6 +104,30 @@ export function EditorShell({
     commit(result.document);
   }, [document, terrainLayer, terrainBindings, commit]);
 
+  const handleUndo = useCallback(() => {
+    setHistory(current => {
+      if (!current.past.length) {
+        setPaintDiagnostic("history: UNDO unavailable (no previous state)");
+        return current;
+      }
+      const next = undoHistory(current);
+      setPaintDiagnostic(`history: UNDO applied · past=${next.past.length} future=${next.future.length}`);
+      return next;
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setHistory(current => {
+      if (!current.future.length) {
+        setPaintDiagnostic("history: REDO unavailable (no future state)");
+        return current;
+      }
+      const next = redoHistory(current);
+      setPaintDiagnostic(`history: REDO applied · past=${next.past.length} future=${next.future.length}`);
+      return next;
+    });
+  }, []);
+
   const chooseTerrain = (tile: TileOption) => {
     setSelectedTile(tile.id);
     setActiveTool("Paint");
@@ -122,9 +146,9 @@ export function EditorShell({
           </button>
         ))}
         <span aria-hidden="true" style={{ width: 1, height: 22, background: "var(--map-editor-line)", margin: "0 2px" }} />
-        <button type="button" onClick={() => setHistory(current => undoHistory(current))} disabled={!history.past.length || busy}
+        <button type="button" onClick={handleUndo} disabled={!history.past.length || busy}
           aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" style={{ padding: "6px 9px" }}>↶ Undo</button>
-        <button type="button" onClick={() => setHistory(current => redoHistory(current))} disabled={!history.future.length || busy}
+        <button type="button" onClick={handleRedo} disabled={!history.future.length || busy}
           aria-label="Redo" title="Redo (Ctrl/Cmd+Y)" style={{ padding: "6px 9px" }}>↷ Redo</button>
         <button type="button" onClick={() => void onSave?.(document)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
