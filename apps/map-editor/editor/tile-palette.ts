@@ -65,12 +65,18 @@ export async function loadTerrainTiles(): Promise<TileOption[]> {
 
   const rows = data as RegistryTileRow[];
   const byName = new Map(rows.map(row => [row.name.toLowerCase(), row]));
-  const loaded = TERRAIN_ASSETS
-    .map(definition => {
-      const row = byName.get(definition.name.toLowerCase());
-      return row ? normalizeRegistryTile(row, definition) : null;
-    })
-    .filter((tile): tile is TileOption => Boolean(tile));
 
-  return loaded.length ? loaded : STARTER_TILES;
+  // The palette is a stable editor contract: a missing/filtered registry row
+  // must never make a terrain disappear from the basic paint workflow.
+  // Use registry metadata when available and keep the canonical six terrain
+  // entries as deterministic fallbacks.
+  return TERRAIN_ASSETS.map(definition => {
+    const row = byName.get(definition.name.toLowerCase());
+    return row ? normalizeRegistryTile(row, definition) : {
+      id: definition.terrain,
+      label: definition.label,
+      terrain: definition.terrain,
+      assetName: definition.name,
+    };
+  });
 }
