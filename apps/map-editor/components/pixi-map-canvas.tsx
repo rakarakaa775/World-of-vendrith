@@ -293,11 +293,13 @@ export function PixiMapCanvas(props: Props) {
                 const id = layer.cells[i]?.tileId;
                 if (!id) continue;
                 const terrain = terrainFromTileId(id);
-                if (!terrain || terrain === "deepwater") continue;
+                if (!terrain) continue;
                 const x = i % document.width;
                 const y = Math.floor(i / document.width);
                 const mask = neighborMask(document, layer.id, { x, y }, terrain);
-                const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
+                const binding = terrain === "deepwater"
+                  ? { assetId: DEEP_WATER_ASSET_ID, region: { x: 0, y: 0, width: 16, height: 16 } }
+                  : getTerrainAssetBinding(terrainBindings, terrain, mask);
                 const texture = binding ? loadedTextures.get(binding.assetId) : null;
                 if (!texture || !binding) continue;
                 const renderTexture = textureForTerrainBinding(
