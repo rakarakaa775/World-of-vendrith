@@ -244,86 +244,79 @@ export function PixiMapCanvas(props: Props) {
         }
       }));
       
+      // Terrain must have a deterministic visual representation independent of
+      // active-layer state, asset metadata, or remote textures. Draw all logical
+      // terrain cells into one Graphics batch first; textures may be layered on top.
+      // This makes a successful paint edit immediately visible even when assets fail.
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
-          // Render the seeded World deepwater as one repeated texture instead of
-          // 16,384 individual display objects. This avoids mobile canvas stalls.
-          const isSolidDeepwaterWorld =
-            layer.id === activeLayerId &&
-            layer.kind === "ground" &&
-            document.mapType === "world" &&
-            layer.cells.length === document.width * document.height &&
-            layer.cells.every(cell => cell.tileId === "deepwater");
-          if (isSolidDeepwaterWorld) {
-            const texture = loadedTextures.get(DEEP_WATER_ASSET_ID);
-            if (texture) {
-              const tileTexture = textureForTerrainBinding(texture, DEEP_WATER_ASSET_ID, {
-                x: 0,
-                y: 0,
-                width: 16,
-                height: 16,
-              });
-              const tiled = new TilingSprite({ texture: tileTexture, width, height });
-              scene.addChild(tiled);
-              continue;
-            }
-          }
+          const terrainFallback = new Graphics();
+          let fallbackCount = 0;
+
           for (let i = 0; i < document.width * document.height; i++) {
             const id = layer.cells[i]?.tileId;
             if (!id) continue;
             const x = i % document.width;
             const y = Math.floor(i / document.width);
-            const terrain = terrainFromTileId(id);
-            let renderedTexture = false;
-            if (layer.id === activeLayerId && terrain) {
-              if (terrain === "deepwater") {
-                const texture = loadedTextures.get(DEEP_WATER_ASSET_ID);
-                if (texture) {
-                  const sprite = new Sprite(texture);
-                  sprite.x = x * document.tileSize;
-                  sprite.y = y * document.tileSize;
-                  sprite.width = document.tileSize;
-                  sprite.height = document.tileSize;
-                  scene.addChild(sprite);
-                  renderedTexture = true;
-                }
-              } else {
+            terrainFallback.rect(
+              x * document.tileSize + 2,
+              y * document.tileSize + 2,
+              Math.max(1, document.tileSize - 4),
+              Math.max(1, document.tileSize - 4),
+            ).fill({
+              color: colorForTile(id),
+              alpha: layer.kind === "collision" ? 0.35 : 1,
+            });
+            fallbackCount++;
+          }
+
+          if (fallbackCount > 0) scene.addChild(terrainFallback);
+
+          // Remote textures are an enhancement only. They never determine whether
+          // the painted cell is rendered.
+          if (layer.kind === "ground") {
+            const isSolidDeepwaterWorld =
+              document.mapType === "world" &&
+              layer.cells.length === document.width * document.height &&
+              layer.cells.every(cell => cell.tileId === "deepwater");
+            if (isSolidDeepwaterWorld) {
+              const texture = loadedTextures.get(DEEP_WATER_ASSET_ID);
+              if (texture) {
+                const tileTexture = textureForTerrainBinding(texture, DEEP_WATER_ASSET_ID, {
+                  x: 0,
+                  y: 0,
+                  width: 16,
+                  height: 16,
+                });
+                const tiled = new TilingSprite({ texture: tileTexture, width, height });
+                scene.addChild(tiled);
+              }
+            } else {
+              for (let i = 0; i < document.width * document.height; i++) {
+                const id = layer.cells[i]?.tileId;
+                if (!id) continue;
+                const terrain = terrainFromTileId(id);
+                if (!terrain || terrain === "deepwater") continue;
+                const x = i % document.width;
+                const y = Math.floor(i / document.width);
                 const mask = neighborMask(document, layer.id, { x, y }, terrain);
                 const binding = getTerrainAssetBinding(terrainBindings, terrain, mask);
-                const asset = binding ? assetRecords.get(binding.assetId) : null;
-                const url = asset ? resolveAssetUrl(asset) : null;
                 const texture = binding ? loadedTextures.get(binding.assetId) : null;
-                if (cancelled || worldRef.current !== world) return;
-                if (texture) {
-                  const renderTexture = textureForTerrainBinding(
-                    texture,
-                    binding?.assetId ?? "",
-                    binding?.region ?? null,
-                  );
-                  const sprite = new Sprite(renderTexture);
-                  sprite.x = x * document.tileSize;
-                  sprite.y = y * document.tileSize;
-                  sprite.width = document.tileSize;
-                  sprite.height = document.tileSize;
-                  sprite.alpha = layer.kind === "collision" ? 0.35 : 1;
-                  scene.addChild(sprite);
-                  renderedTexture = true;
-                }
+                if (!texture || !binding) continue;
+                const renderTexture = textureForTerrainBinding(
+                  texture,
+                  binding.assetId,
+                  binding.region,
+                );
+                const sprite = new Sprite(renderTexture);
+                sprite.x = x * document.tileSize;
+                sprite.y = y * document.tileSize;
+                sprite.width = document.tileSize;
+                sprite.height = document.tileSize;
+                sprite.alpha = 1;
+                scene.addChild(sprite);
               }
-            }
-            if (!renderedTexture) {
-              const g = new Graphics();
-              g.rect(
-                x * document.tileSize + 2,
-                y * document.tileSize + 2,
-                document.tileSize - 4,
-                document.tileSize - 4,
-              ).fill({
-                color: colorForTile(id),
-                alpha: layer.kind === "collision" ? 0.35 : 1,
-              });
-              scene.addChild(g);
             }
           }
         } else {
@@ -345,16 +338,28 @@ export function PixiMapCanvas(props: Props) {
               scene.addChild(sprite);
               if (selectedObjectIds.includes(o.id)) {
                 const outline = new Graphics();
-                outline.rect(o.x * document.tileSize + 1, o.y * document.tileSize + 1, Math.max(6, o.width * document.tileSize - 2), Math.max(6, o.height * document.tileSize - 2)).stroke({ width: 2, color: 0x0ea5e9 });
+                outline.rect(
+                  o.x * document.tileSize + 1,
+                  o.y * document.tileSize + 1,
+                  Math.max(6, o.width * document.tileSize - 2),
+                  Math.max(6, o.height * document.tileSize - 2),
+                ).stroke({ width: 2, color: 0x0ea5e9 });
                 scene.addChild(outline);
               }
               continue;
             }
             const g = new Graphics();
             const c = o.category === "tree" ? 0x3f8f4b : o.category === "house" ? 0xb86b45 : 0x64748b;
-            g.roundRect(o.x * document.tileSize + 2, o.y * document.tileSize + 2, o.width * document.tileSize - 4, o.height * document.tileSize - 4, 4)
-              .fill({ color: c, alpha: 0.9 })
-              .stroke({ width: 2, color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155 });
+            g.roundRect(
+              o.x * document.tileSize + 2,
+              o.y * document.tileSize + 2,
+              o.width * document.tileSize - 4,
+              o.height * document.tileSize - 4,
+              4,
+            ).fill({ color: c, alpha: 0.9 }).stroke({
+              width: 2,
+              color: selectedObjectIds.includes(o.id) ? 0x0ea5e9 : 0x334155,
+            });
             scene.addChild(g);
           }
         }
