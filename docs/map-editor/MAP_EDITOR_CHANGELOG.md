@@ -1,3 +1,13 @@
+## 2026-10-01 — Phase 0 Foundation closure hardening
+
+- **Type:** Fixed / Added
+- **Reason:** Final Phase 0 audit found that map adoption could prefer a browser-provided document over an existing authoritative identity snapshot, Save Slot adoption lacked an explicit World identity gate, and the repository lacked focused regression coverage for the foundation invariants.
+- **Details:** `openMap()` now prefers the authoritative identity snapshot whenever one exists and rejects requested/provided/adopted ID mismatches. Save Slot loading now verifies the restored World ID and playable Exterior shape. Added Phase 0 regression tests for grid sizing, resize invariants, malformed cell counts, requested-map identity, and persistence navigation boundaries. Added a GitHub Actions Phase 0 gate for `npm test` and `npm run build`.
+- **Affected:** `apps/map-editor/components/vendrith-world-builder-app.tsx`, `apps/map-editor/tests/map-foundation.test.ts`, `apps/map-editor/tests/map-save-state.test.ts`, `.github/workflows/map-editor-phase0.yml`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Vercel production build reached READY on commit `3f801bfc072df1bf4669049ccbca1e6a4c72766b`. Supabase audit confirms the deployed `map_editor_get_runtime_snapshot_v1` already rejects stale runtime snapshots by returning the newest durable version. The new GitHub Actions workflow was committed, but no workflow run is currently exposed for the commit, so test execution is not claimed as passed here.
+- **Notes:** No terrain paint path was changed. No existing applied migration was rewritten; the database already contains the later stale-runtime guard migration.
+
 # Vandrith Map Editor — Change Log
 
 **Purpose:** Detailed historical record of what was updated, changed, added, removed, restored, or fixed in the Map Editor.
