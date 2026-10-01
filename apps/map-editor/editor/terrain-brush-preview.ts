@@ -36,7 +36,7 @@ const TERRAIN_INPUTS: Partial<Record<TerrainKey, string>> = Object.fromEntries(
 
 function normalizePaintedTileId(value: string | null): string | null {
   if (!value) return null;
-  if (value in TERRAIN_INPUTS) return TERRAIN_INPUTS[value as TerrainKey];
+  if (value in TERRAIN_INPUTS) return TERRAIN_INPUTS[value as TerrainKey] ?? null;
   const terrain = terrainFromTileId(value);
   return terrain ? tileIdForTerrain(terrain) : value;
 }
