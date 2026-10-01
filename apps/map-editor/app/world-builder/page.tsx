@@ -10,7 +10,9 @@ import { WorldBuilderWorkspaceShell } from "../../components/world-builder-works
 function WorldBuilderWorkspace() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
-  const startMode = "create" as const;
+  // World Builder opens the persisted authoritative World Map. New-map creation
+  // is not the default route and must not mount the local seed over the authority.
+  const startMode = "load" as const;
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
