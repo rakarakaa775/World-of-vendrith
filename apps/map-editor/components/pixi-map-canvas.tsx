@@ -97,6 +97,7 @@ export function PixiMapCanvas(props: Props) {
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
   const viewportInitializedRef = useRef(false);
   const propsRef = useRef(props);
+  const assetRecordsRef = useRef<Map<string, any> | null>(null);
   const brushPreviewRef = useRef<Graphics | null>(null);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -209,23 +210,28 @@ export function PixiMapCanvas(props: Props) {
         }
       }
 
+      // Asset metadata is intentionally outside the paint/render critical path.
+      // A paint edit must reach the Pixi scene even when Supabase asset lookup is
+      // slow or unavailable. The first scene therefore renders from deterministic
+      // terrain-color fallbacks; metadata/textures are hydrated in the background.
       let assetRecords = new Map<string, any>();
       const client = createMapEditorSupabaseClient();
       if (client && textureRequests.size) {
-        try { assetRecords = await resolveAssetRecords(client, [...textureRequests]); }
-        catch (error) { console.warn("Map editor asset metadata lookup failed", error); }
+        void resolveAssetRecords(client, [...textureRequests])
+          .then(records => {
+            if (!cancelled && worldRef.current === world) {
+              // Cache the records on the component instance for the next render.
+              assetRecordsRef.current = records;
+            }
+          })
+          .catch(error => console.warn("Map editor asset metadata lookup failed", error));
       }
-      if (cancelled || worldRef.current !== world) return;
 
       const loadedTextures = new Map<string, any>();
-      // Render the logical map immediately. Remote texture I/O must never sit on
-      // the critical path of a paint edit: each pointer move changes the document
-      // and therefore starts a new scene render. Waiting here can cancel every
-      // render before the fallback cells are ever drawn.
-      //
-      // Textures are loaded in the background. The current scene remains valid
-      // with deterministic terrain-color fallbacks, and the next document/render
-      // pass can upgrade cells once the cache is warm.
+      const cachedRecords = assetRecordsRef.current;
+      if (cachedRecords) assetRecords = cachedRecords;
+      // Render the logical map immediately. Remote asset I/O must never sit on
+      // the critical path of a paint edit.
       void Promise.allSettled([...textureRequests].map(async assetId => {
         const asset = assetRecords.get(assetId);
         const url = asset ? resolveAssetUrl(asset) : null;
