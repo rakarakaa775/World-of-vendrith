@@ -217,22 +217,25 @@ export function PixiMapCanvas(props: Props) {
       if (cancelled || worldRef.current !== world) return;
 
       const loadedTextures = new Map<string, any>();
-      // Never block the editor scene on remote texture I/O. A logical terrain
-      // edit must remain visible through the deterministic color fallback even
-      // when one asset is slow or unavailable on a mobile connection.
-      const loadTextureWithTimeout = async (assetId: string) => {
+      // Render the logical map immediately. Remote texture I/O must never sit on
+      // the critical path of a paint edit: each pointer move changes the document
+      // and therefore starts a new scene render. Waiting here can cancel every
+      // render before the fallback cells are ever drawn.
+      //
+      // Textures are loaded in the background. The current scene remains valid
+      // with deterministic terrain-color fallbacks, and the next document/render
+      // pass can upgrade cells once the cache is warm.
+      void Promise.allSettled([...textureRequests].map(async assetId => {
         const asset = assetRecords.get(assetId);
         const url = asset ? resolveAssetUrl(asset) : null;
         if (!url) return;
-        const texture = await Promise.race([
-          mapEditorTextureCache.load(url, Assets),
-          new Promise<null>(resolve => window.setTimeout(() => resolve(null), 1500)),
-        ]);
-        if (texture) loadedTextures.set(assetId, texture);
-      };
-      await Promise.allSettled([...textureRequests].map(loadTextureWithTimeout));
-      if (cancelled || worldRef.current !== world) return;
-
+        try {
+          await mapEditorTextureCache.load(url, Assets);
+        } catch {
+          // Missing/slow texture is a valid fallback state for the editor.
+        }
+      }));
+      
       for (const layer of document.layers) {
         if (!layer.visible) continue;
         if (layer.kind !== "objects") {
