@@ -472,6 +472,15 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     finally { setBusy(false); }
   }, [refreshSlots]);
 
+  // Do not mount the editor against the generated seed while the authoritative
+  // World Map connection is still being resolved. The editor owns its own history,
+  // so mounting it first lets its initial onDocumentChange mirror the seed back into
+  // the parent and race the async authoritative load.
+  const editorReady = startMode === "create" || (
+    connectedMapId === active.id &&
+    baseDocument?.id === active.id
+  );
+
   const browserClient = useMemo(() => createMapEditorSupabaseClient(), []);
   const documentDirty = useMemo(() => {
     if (!baseDocument || active.id !== baseDocument.id) return isNewMap;
@@ -495,7 +504,30 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         </div>
         <span style={{maxWidth:"55%",padding:"4px 7px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:10,textAlign:"right"}}>{status}</span>
       </div>
-      <EditorShell busy={busy} initialDocument={active} initialDocumentRevision={loadRevision} terrainBindings={terrainBindings} terrainStatus={terrainStatus} environmentValidation={environmentValidation} onDocumentChange={update} onSave={async (document) => { await save(document); }} onSaveLoad={async () => { const client = createMapEditorSupabaseClient(); if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID); setShowSlots(true); }} onQuickSave={async (document) => { await save(document); }} onLoadLatest={async () => { await loadLatest(); }} />
+      {editorReady ? (
+        <EditorShell
+          key={`${active.id}:${loadRevision}`}
+          busy={busy}
+          initialDocument={active}
+          initialDocumentRevision={loadRevision}
+          terrainBindings={terrainBindings}
+          terrainStatus={terrainStatus}
+          environmentValidation={environmentValidation}
+          onDocumentChange={update}
+          onSave={async (document) => { await save(document); }}
+          onSaveLoad={async () => {
+            const client = createMapEditorSupabaseClient();
+            if (client) await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+            setShowSlots(true);
+          }}
+          onQuickSave={async (document) => { await save(document); }}
+          onLoadLatest={async () => { await loadLatest(); }}
+        />
+      ) : (
+        <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#94a3b8", background: "var(--map-editor-bg)" }}>
+          Loading authoritative map…
+        </div>
+      )}
       <div style={{position:"absolute",bottom:8,right:8,zIndex:10,padding:"5px 8px",border:"1px solid #334155",borderRadius:6,background:"#0f172a",fontSize:11,opacity:.9}}>v{version} · {status}</div>
     </div>
     {showSlots && <SaveSlotsPanel busy={busy} open={showSlots} slots={slots} onSave={saveToSlot} onLoad={loadSlot} onClose={() => setShowSlots(false)} />}
