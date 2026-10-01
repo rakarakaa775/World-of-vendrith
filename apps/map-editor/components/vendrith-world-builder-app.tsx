@@ -17,6 +17,7 @@ import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
+import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -255,6 +256,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     // parent mirror. This closes the race where Paint updates the editor history
     // and Save is clicked before the parent's onDocumentChange mirror settles.
     const localCurrent = editorDocument ?? maps.find(m => m.id === activeMapId) ?? active;
+    console.info("[MAP SAVE TRACE]", formatTerrainTrace(traceTerrain(localCurrent, "editor-save-input", version)));
     setBusy(true); setStatus("Saving to Supabase…");
     try {
       let result: any;
@@ -263,13 +265,9 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         result = await saveIdentityWithConflictDetection(client, localCurrent, base, version);
       } else {
         const connection = await ensureConnection(client);
-        const current = localCurrent.id === connection.mapId
-          ? resolveSaveDocument(localCurrent, connection)
-          : {
-              ...resolveSaveDocument(localCurrent, connection),
-              id: connection.mapId,
-              mapType: "world" as const,
-            };
+        assertSaveIdentity(localCurrent, connection.document, "editor→authoritative connection");
+        const current = resolveSaveDocument(localCurrent, connection);
+        console.info("[MAP SAVE TRACE]", formatTerrainTrace(traceTerrain(current, "resolved-save-input", connection.version)));
         if (connection.version < 1) {
           const boot = await bootstrap(client, current, connection.mapId);
           result = { status: "committed", version: boot.version, document: current, projectionStatus: boot.projectionStatus, projectionError: boot.projectionError };
