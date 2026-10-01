@@ -214,7 +214,10 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           }));
           const result: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(enrichedBindingRows);
           setTerrainBindings(result.bindings);
-          setTerrainStatus(`Terrain runtime · ${result.diagnostics.accepted}/256 · ${result.rejected} rejected · ${BUILD_MARKER}`);
+          const ignoredCandidates = Math.max(0, bindingRows.length - result.diagnostics.accepted);
+          setTerrainStatus(
+            `Terrain runtime · ${result.diagnostics.accepted} base bindings · ${ignoredCandidates} non-terrain candidates ignored`,
+          );
         }
         if (startMode === "create") {
           setMaps([seed]);
