@@ -167,7 +167,7 @@ export function EditorShell({
           <PixiMapCanvas
             document={document}
             activeTool={activeTool}
-            activeLayerId={activeLayer}
+            activeLayerId={terrainLayer}
             selectedTileId={activeTool === "Erase" ? null : selectedTile}
             brushSize={brushSize}
             selection={null as Selection | null}
