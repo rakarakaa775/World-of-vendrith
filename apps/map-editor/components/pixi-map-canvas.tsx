@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useEffect, useRef, useState } from "react";
-import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture, TilingSprite } from "pixi.js";
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture, TilingSprite } from "pixi.js";
 import type { RendererPreference } from "pixi.js";
 import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
@@ -18,6 +18,7 @@ import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
 import { boxSelectObjectIds } from "../editor/object-state";
 import { DEFAULT_VIEWPORT, nextZoomLevel, panBy, snapToCell, zoomAt, type Viewport } from "../editor/viewport";
+import type { DebugViewState } from "../editor/debug-views";
 
 type Props = {
   document: MapDocument;
@@ -44,6 +45,7 @@ type Props = {
   viewportResetKey?: string | number;
   readonly?: boolean;
   showGrid?: boolean;
+  debugViews?: Partial<DebugViewState>;
   previewMode?: boolean;
 };
 
@@ -242,6 +244,35 @@ export function PixiMapCanvas(props: Props) {
       }
       scene.addChild(grid);
 
+      if (propsRef.current.debugViews?.terrainId) {
+        const debugLayer = document.layers.find(layer => layer.id === activeLayerId);
+        if (debugLayer && debugLayer.kind !== "objects") {
+          for (let i = 0; i < document.width * document.height; i++) {
+            const tileId = debugLayer.cells[i]?.tileId;
+            if (!tileId) continue;
+            const terrain = terrainFromTileId(tileId);
+            const label = terrain ?? tileId;
+            const x = i % document.width;
+            const y = Math.floor(i / document.width);
+            const text = new Text({
+              text: label,
+              style: {
+                fontFamily: "monospace",
+                fontSize: Math.max(8, Math.min(14, document.tileSize * 0.28)),
+                fill: 0x0f172a,
+                align: "center",
+                stroke: { color: 0xffffff, width: 2 },
+              },
+            });
+            text.anchor.set(0.5);
+            text.x = (x + 0.5) * document.tileSize;
+            text.y = (y + 0.5) * document.tileSize;
+            text.eventMode = "none";
+            scene.addChild(text);
+          }
+        }
+      }
+
       const textureRequests = new Set<string>();
       textureRequests.add(DEEP_WATER_ASSET_ID);
       for (const terrain of ["grass", "sand", "dirt", "pavement", "water"] as const) {
@@ -422,7 +453,7 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.environmentRuntime, props.showGrid]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.environmentRuntime, props.showGrid, props.debugViews]);
 
   useEffect(() => {
     if (!ready) return;
@@ -737,3 +768,4 @@ export function PixiMapCanvas(props: Props) {
 
   return createElement("div", { ref: hostRef, className: props.previewMode ? "pixi-map-canvas-host pixi-map-canvas-preview" : "pixi-map-canvas-host", style: { position: "absolute", left: props.previewMode ? 0 : 40, top: props.previewMode ? 0 : 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
+
