@@ -13,6 +13,8 @@ describe("layer state", () => {
     expect(locked.layers.find(layer => layer.id === "objects")?.active).toBe(true);
     expect(locked.layers.find(layer => layer.id === "objects")?.visible).toBe(false);
     expect(locked.layers.find(layer => layer.id === "objects")?.locked).toBe(true);
+    const faded = updateLayer(locked, "objects", { opacity: 0.35 });
+    expect(faded.layers.find(layer => layer.id === "objects")?.opacity).toBe(0.35);
     expect(JSON.stringify(document)).toBe(before);
   });
 

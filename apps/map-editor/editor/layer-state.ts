@@ -4,7 +4,7 @@ export function setActiveLayer(document: MapDocument, layerId: string): MapDocum
   return { ...document, layers: document.layers.map(layer => ({ ...layer, active: layer.id === layerId })) as MapLayer[] };
 }
 
-export function updateLayer(document: MapDocument, layerId: string, patch: Partial<Pick<MapLayer, 'name' | 'visible' | 'locked'>>): MapDocument {
+export function updateLayer(document: MapDocument, layerId: string, patch: Partial<Pick<MapLayer, 'name' | 'visible' | 'locked' | 'opacity'>>): MapDocument {
   return { ...document, layers: document.layers.map(layer => layer.id === layerId ? { ...layer, ...patch } : layer) };
 }
 
