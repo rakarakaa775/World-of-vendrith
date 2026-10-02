@@ -6,6 +6,13 @@ export interface NavigationGrid {
   blocked: boolean[];
 }
 
+export interface DynamicNavigationObstacle {
+  entityId: string;
+  mapId: string;
+  position: NavigationPoint;
+  blocksMovement: boolean;
+}
+
 export interface NavigationPath {
   points: NavigationPoint[];
   cost: number;

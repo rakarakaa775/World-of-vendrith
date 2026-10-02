@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeAiRequest, RuntimeObservation } from "../domain/runtime";
 import type { NavigationGrid } from "../domain/runtime-navigation";
-import { createNavigationPlan, decideNpcNavigation, findNavigationPath } from "./npc-navigation";
+import { applyDynamicNavigationObstacles, createNavigationPlan, decideNpcNavigation, findNavigationPath } from "./npc-navigation";
 
 const grid: NavigationGrid = {
   width: 5, height: 5,
@@ -35,6 +35,42 @@ describe("NPC navigation", () => {
 
   it("fails closed when the target is blocked", () => {
     expect(findNavigationPath(grid, { x: 0, y: 0 }, { x: 1, y: 1 })).toBeUndefined();
+  });
+
+  it("routes around a dynamic NPC obstacle and ignores the planning NPC itself", () => {
+    const result = applyDynamicNavigationObstacles(
+      grid,
+      [
+        { entityId: "npc-2", mapId: "region-1", position: { x: 2, y: 0 }, blocksMovement: true },
+        { entityId: "npc-1", mapId: "region-1", position: { x: 0, y: 0 }, blocksMovement: true },
+      ],
+      "npc-1",
+      "region-1",
+    );
+    const path = findNavigationPath(result, { x: 0, y: 0 }, { x: 4, y: 0 });
+    expect(path?.points).not.toContainEqual({ x: 2, y: 0 });
+    expect(path?.points[0]).toEqual({ x: 0, y: 0 });
+    expect(path?.points.at(-1)).toEqual({ x: 4, y: 0 });
+  });
+
+  it("fails closed when a dynamic obstacle occupies the target", () => {
+    const result = applyDynamicNavigationObstacles(
+      grid,
+      [{ entityId: "player-1", mapId: "region-1", position: { x: 4, y: 4 }, blocksMovement: true }],
+      "npc-1",
+      "region-1",
+    );
+    expect(findNavigationPath(result, { x: 0, y: 0 }, { x: 4, y: 4 })).toBeUndefined();
+  });
+
+  it("does not import dynamic obstacles from another map", () => {
+    const result = applyDynamicNavigationObstacles(
+      grid,
+      [{ entityId: "npc-2", mapId: "other-map", position: { x: 1, y: 0 }, blocksMovement: true }],
+      "npc-1",
+      "region-1",
+    );
+    expect(result.blocked[1]).toBe(false);
   });
 
   it("creates a navigation plan from the NPC perception", () => {

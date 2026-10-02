@@ -1,6 +1,6 @@
 import type { MapDocument } from "../../editor/map-document";
 import type { RuntimeAction, RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
-import type { NavigationGrid, NavigationPath, NavigationPlan, NavigationPoint } from "../domain/runtime-navigation";
+import type { DynamicNavigationObstacle, NavigationGrid, NavigationPath, NavigationPlan, NavigationPoint } from "../domain/runtime-navigation";
 import { createRuntimeDecision } from "./runtime-decision";
 
 const DIRECTIONS: NavigationPoint[] = [
@@ -31,6 +31,30 @@ function reconstruct(cameFrom: Map<string, NavigationPoint>, current: Navigation
     path.push(cursor);
   }
   return path.reverse();
+}
+
+export function applyDynamicNavigationObstacles(
+  grid: NavigationGrid,
+  obstacles: DynamicNavigationObstacle[],
+  selfEntityId?: string,
+  mapId?: string,
+): NavigationGrid {
+  const blocked = [...grid.blocked];
+  for (const obstacle of obstacles) {
+    if (!obstacle.blocksMovement || obstacle.entityId === selfEntityId || (mapId && obstacle.mapId !== mapId)) continue;
+    if (!inBounds(grid, obstacle.position)) continue;
+    blocked[index(grid, obstacle.position)] = true;
+  }
+  return { ...grid, blocked };
+}
+
+export function dynamicNavigationObstaclesFromObservation(observation: RuntimeObservation): DynamicNavigationObstacle[] {
+  return (observation.perception?.nearbyEntities ?? []).map(entity => ({
+    entityId: entity.id,
+    mapId: entity.mapId,
+    position: entity.position,
+    blocksMovement: entity.state?.blocksMovement !== false,
+  }));
 }
 
 export function findNavigationPath(
@@ -100,13 +124,15 @@ export function createNavigationPlan(
   observation: RuntimeObservation,
   grid: NavigationGrid,
   goal: NavigationPoint,
+  dynamicObstacles: DynamicNavigationObstacle[] = dynamicNavigationObstaclesFromObservation(observation),
 ): NavigationPlan {
   const self = observation.perception?.self;
   const start = self?.position;
-  if (!self || self.kind !== "npc") {
-    return { found: false, start: start ?? goal, goal, path: [], reason: "Navigation requires an NPC self entity." };
+  if (!self || self.kind !== "npc" || !start) {
+    return { found: false, start: start ?? goal, goal, path: [], reason: "Navigation requires an NPC self entity with a position." };
   }
-  const result = findNavigationPath(grid, start, goal);
+  const navigationGrid = applyDynamicNavigationObstacles(grid, dynamicObstacles, self.id, self.mapId);
+  const result = findNavigationPath(navigationGrid, start, goal);
   if (!result) return { found: false, start, goal, path: [], reason: "No walkable path exists between the NPC and the target." };
   return { found: true, start, goal, path: result.points, cost: result.cost, reason: "A walkable path was found using deterministic grid navigation." };
 }

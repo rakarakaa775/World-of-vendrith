@@ -84,31 +84,27 @@ export function replanNpcNavigation(
     };
   }
 
-  const replacement = createNpcNavigationAction(
-    {
-      id: action.id + ":replan",
-      surface: "game",
-      intelligence: "npc",
-      goal: "Replan NPC navigation after movement verification.",
-      observation: {
-        id: action.id + ":replan-observation",
-        surface: "game",
-        intelligence: "npc",
-        state: {
-          worldId: "runtime",
-          clock: { tick: 0, day: 0, hour: 0, minute: 0, season: "unknown" },
-          activeEventIds: [],
-          stateVersion: state.stateVersion,
-        },
-        perception: {
-          self: { id: state.entityId, kind: "npc", mapId: state.mapId, position: state.position },
-          nearbyEntities: [],
-          visibleMapIds: [state.mapId],
-          environment: {},
-        },
-        facts: [],
-      },
+  const replacementObservation = {
+    id: action.id + ":replan-observation",
+    surface: "game" as const,
+    intelligence: "npc" as const,
+    state: {
+      worldId: "runtime",
+      clock: { tick: 0, day: 0, hour: 0, minute: 0, season: "unknown" },
+      activeEventIds: [],
+      stateVersion: state.stateVersion,
     },
+    perception: {
+      self: { id: state.entityId, kind: "npc" as const, mapId: state.mapId, position: state.position },
+      nearbyEntities: [],
+      visibleMapIds: [state.mapId],
+      environment: {},
+    },
+    facts: [],
+  };
+
+  const replacement = createNpcNavigationAction(
+    replacementObservation,
     { found: true, start: state.position, goal: { x: target.x, y: target.y }, path: path.points, cost: path.cost, reason: "Replacement path generated after movement verification." },
   );
 
