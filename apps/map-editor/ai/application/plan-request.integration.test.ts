@@ -40,6 +40,7 @@ describe("Vendrith Project AI end-to-end plan flow", () => {
       repository,
       code: new RepositoryCodeGraphAdapter(repository),
       documentation: new ProjectDocumentationAdapter(repository),
+      assetRegistry: { search: async () => [] },
     });
 
     expect(plan.requestId).toBe("smoke-001");
