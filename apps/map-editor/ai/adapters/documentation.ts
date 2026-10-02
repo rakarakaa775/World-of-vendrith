@@ -3,8 +3,9 @@ import type { DocumentationPort, RepositoryPort } from "../ports/project-tools";
 
 const DOC_PATHS = [
   "AGENTS.md",
-  "docs/architecture",
   "inspirasi/README.md",
+  "docs/architecture/VENDRITH_PROJECT_AI_V1.md",
+  "docs/architecture/FOUNDATION_IMPLEMENTATION_STATE.md",
 ];
 
 export class ProjectDocumentationAdapter implements DocumentationPort {
@@ -15,7 +16,6 @@ export class ProjectDocumentationAdapter implements DocumentationPort {
     const results: Evidence[] = [];
 
     for (const path of DOC_PATHS) {
-      if (path.endsWith("/")) continue;
       const content = await this.repository.readFile(path);
       if (!content || !content.toLowerCase().includes(normalized)) continue;
 
