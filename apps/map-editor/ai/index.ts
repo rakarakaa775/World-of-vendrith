@@ -40,3 +40,5 @@ export * from "./application/map-inspector";
 export * from "./ports/content-inspectors";
 export * from "./application/content-inspectors";
 export * from "./application/content-inspectors";
+
+export * from "./application/runtime-world-adapter";
