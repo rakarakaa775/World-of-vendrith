@@ -210,6 +210,9 @@ export function EditorShell({
   const toggleLayerLock = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
     locked: !documentRef.current.layers.find(layer => layer.id === layerId)?.locked,
   }));
+  const setLayerOpacity = (layerId: string, opacity: number) => commit(updateLayer(documentRef.current, layerId, {
+    opacity: Math.max(0, Math.min(1, opacity)),
+  }));
   const moveLayer = (layerId: string, direction: "up" | "down") => commit(reorderLayer(documentRef.current, layerId, direction));
 
   const selectTool = (tool: string) => setActiveTool(tool);
@@ -283,12 +286,13 @@ export function EditorShell({
             <div role="tree" aria-label="Map layers" style={{ display: "grid", gap: 5 }}>
               {document.layers.map((layer, index) => (
                 <div key={layer.id} role="treeitem" aria-selected={layer.active}
-                  style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto", alignItems: "center", gap: 4, padding: 5, borderRadius: 6, border: "1px solid var(--map-editor-border)", background: layer.active ? "var(--map-editor-selected)" : "var(--map-editor-button)" }}>
+                  style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 84px auto auto auto auto", alignItems: "center", gap: 4, padding: 5, borderRadius: 6, border: "1px solid var(--map-editor-border)", background: layer.active ? "var(--map-editor-selected)" : "var(--map-editor-button)" }}>
                   <button type="button" onClick={() => chooseLayer(layer.id)} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", border: 0, background: "transparent", color: "#fff", textAlign: "left", cursor: "pointer" }} title={layer.name}>
                     {layer.name}
                   </button>
                   <button type="button" onClick={() => toggleLayerVisibility(layer.id)} aria-label={(layer.visible ? "Hide " : "Show ") + layer.name} title={layer.visible ? "Hide layer" : "Show layer"} style={{ padding: "2px 5px" }}>{layer.visible ? "◉" : "○"}</button>
                   <button type="button" onClick={() => toggleLayerLock(layer.id)} aria-label={(layer.locked ? "Unlock " : "Lock ") + layer.name} title={layer.locked ? "Unlock layer" : "Lock layer"} style={{ padding: "2px 5px" }}>{layer.locked ? "🔒" : "🔓"}</button>
+                  <input type="range" min="0" max="1" step="0.05" value={layer.opacity} onChange={event => setLayerOpacity(layer.id, Number(event.target.value))} aria-label={"Opacity " + layer.name} title={"Opacity " + Math.round(layer.opacity * 100) + "%"} style={{ width: 76 }} />
                   <button type="button" onClick={() => moveLayer(layer.id, "up")} disabled={index === 0} aria-label={"Move " + layer.name + " up"} title="Move up" style={{ padding: "2px 5px" }}>↑</button>
                   <button type="button" onClick={() => moveLayer(layer.id, "down")} disabled={index === document.layers.length - 1} aria-label={"Move " + layer.name + " down"} title="Move down" style={{ padding: "2px 5px" }}>↓</button>
                 </div>
