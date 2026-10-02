@@ -224,6 +224,8 @@ export function EditorShell({
           aria-label="Terrain ID view" title="Toggle terrain ID view" style={{ padding: "6px 9px" }}>{debugViews.terrainId ? "Terrain ID ✓" : "Terrain ID"}</button>
         <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "waterDepth"))} aria-pressed={debugViews.waterDepth}
           aria-label="Water depth view" title="Toggle water depth view" style={{ padding: "6px 9px" }}>{debugViews.waterDepth ? "Depth ✓" : "Depth"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "collision"))} aria-pressed={debugViews.collision}
+          aria-label="Collision passability view" title="Toggle collision/passability view" style={{ padding: "6px 9px" }}>{debugViews.collision ? "Collision ✓" : "Collision"}</button>
         <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
@@ -312,6 +314,7 @@ export function EditorShell({
     </main>
   );
 }
+
 
 
 
