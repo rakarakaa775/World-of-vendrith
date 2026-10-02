@@ -31,9 +31,12 @@ export function classifyAssetEvidence(evidence: Evidence): AssetIntelligence {
     "slug",
     "category",
     "placement_category",
+    "placementCategory",
     "role",
     "asset_path",
+    "assetPath",
     "source_name",
+    "source",
   );
 
   const region = /bridge|dock|ship|town|village|building|structure|road|street|port|landmark/.test(text);
@@ -51,9 +54,9 @@ export function classifyAssetEvidence(evidence: Evidence): AssetIntelligence {
     reason = "Asset matches both natural and structural terms; manual review is required.";
   }
 
-  const verification = String(record.license_verification_status ?? "").toLowerCase();
-  const usage = String(record.license_usage_status ?? "").toLowerCase();
-  const commercial = record.commercial_use_allowed;
+  const verification = String(record.license_verification_status ?? record.licenseVerificationStatus ?? "").toLowerCase();
+  const usage = String(record.license_usage_status ?? record.licenseUsageStatus ?? "").toLowerCase();
+  const commercial = record.commercial_use_allowed ?? record.commercialUseAllowed;
   const verified = verification === "verified";
   const allowed = usage === "allowed" || usage === "permitted";
   const explicitlyDisallowed = usage === "restricted" || usage === "prohibited" || usage === "denied";
