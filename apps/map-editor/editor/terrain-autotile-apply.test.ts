@@ -46,4 +46,26 @@ describe("terrain autotile render variants", () => {
       assetId: "grass-base",
     });
   });
+  it("propagates the derived dual-grid corner mask without persisting it", () => {
+    const base = createMap("world");
+    const document = {
+      ...base,
+      width: 3,
+      height: 3,
+      layers: base.layers.map(layer => ({
+        ...layer,
+        cells: Array.from({ length: 9 }, () => ({ tileId: "grass" })),
+      })),
+    };
+    const ground = document.layers.find(layer => layer.id === "ground")!;
+    ground.cells[0] = { tileId: "water" };
+    const before = JSON.stringify(document);
+
+    const result = applyTerrainAutotile(document, "ground", [{ x: 1, y: 1 }]);
+
+    expect(result.document).toBe(document);
+    expect(result.variants.find(v => v.point.x === 1 && v.point.y === 1)?.cornerMask).toBe(14);
+    expect(JSON.stringify(document)).toBe(before);
+  });
+
 });
