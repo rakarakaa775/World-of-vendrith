@@ -10,29 +10,36 @@ const makeMemory = (history: ImprovementHistory[] = []) => ({
 });
 
 describe("improvement engine", () => {
-  it("loads task-related history before generating a strategy", async () => {
-    const task: ImprovementTask = { id:"task-1", objective:"verify asset registry lookup", source:"verification", difficulty:"bounded", constraints:["read-only"] };
-    const history: ImprovementHistory[] = [{evaluation:{id:"old-eval",taskId:task.id,strategyId:"old-strategy",validity:"valid",verificationPassed:true,novelty:"new",difficultySignal:"frontier",evidence:["ok"]},proposal:{id:"old-proposal",taskId:task.id,strategyId:"old-strategy",strategyDescription:"search registry",strategySteps:["search","verify"],rationale:"review",evaluationId:"old-eval",requiresApproval:true}}];
-    const mem=makeMemory(history); let received:any;
+  it("rejects an exact strategy duplicate before running the candidate", async () => {
+    const task: ImprovementTask = {id:"task-1",objective:"test",source:"manual",difficulty:"bounded",constraints:[]};
+    const history: ImprovementHistory[] = [{
+      evaluation:{id:"e1",taskId:task.id,strategyId:"old",validity:"valid",verificationPassed:true,novelty:"known",difficultySignal:"frontier",evidence:[]},
+      proposal:{id:"p1",taskId:task.id,strategyId:"old",strategyDescription:"Search registry",strategySteps:["Search","Verify"],rationale:"x",evaluationId:"e1",requiresApproval:true}
+    }];
+    const runCandidate=vi.fn();
     const engine=createImprovementEngine({
       generateTask:vi.fn(async()=>task),
-      generateStrategy:vi.fn(async(_task,context)=>{received=context; return {id:"strategy-1",taskId:task.id,description:"new",steps:["verify"]};}),
-      runCandidate:vi.fn(async()=>({id:"evaluation-1",taskId:task.id,strategyId:"strategy-1",validity:"valid",verificationPassed:true,novelty:"new",difficultySignal:"frontier",evidence:["ok"]})),
-      memory:mem,
+      generateStrategy:vi.fn(async()=>({id:"new",taskId:task.id,description:" search registry ",steps:["search","verify"]})),
+      runCandidate,
+      memory:makeMemory(history),
     });
-    await engine.run();
-    expect(mem.findRelated).toHaveBeenCalledWith(task);
-    expect(received.relatedHistory).toEqual(history);
-    expect(received.repeatedStrategyIds).toEqual([]);
+    await expect(engine.run()).rejects.toThrow("duplicates a previously evaluated strategy");
+    expect(runCandidate).not.toHaveBeenCalled();
   });
 
-  it("marks repeated strategy fingerprints in context", async () => {
-    const task: ImprovementTask = {id:"task-1",objective:"test",source:"manual",difficulty:"exploratory",constraints:[]};
-    const repeated: ImprovementHistory = {evaluation:{id:"e2",taskId:task.id,strategyId:"s2",validity:"valid",verificationPassed:true,novelty:"known",difficultySignal:"frontier",evidence:[]},proposal:{id:"p2",taskId:task.id,strategyId:"s2",strategyDescription:"same",strategySteps:["verify"],rationale:"x",evaluationId:"e2",requiresApproval:true}};
-    const first: ImprovementHistory = {...repeated,evaluation:{...repeated.evaluation,id:"e1",strategyId:"s1"},proposal:{...repeated.proposal,id:"p1",strategyId:"s1",evaluationId:"e1"}};
-    const mem=makeMemory([first,repeated]); let received:any;
-    const engine=createImprovementEngine({generateTask:vi.fn(async()=>task),generateStrategy:vi.fn(async(_t,c)=>{received=c;return {id:"s3",taskId:task.id,description:"new",steps:[]};}),runCandidate:vi.fn(async()=>({id:"e3",taskId:task.id,strategyId:"s3",validity:"valid",verificationPassed:true,novelty:"new",difficultySignal:"frontier",evidence:[]})),memory:mem});
+  it("allows a materially different strategy", async () => {
+    const task: ImprovementTask = {id:"task-1",objective:"test",source:"manual",difficulty:"bounded",constraints:[]};
+    const history: ImprovementHistory[] = [{
+      evaluation:{id:"e1",taskId:task.id,strategyId:"old",validity:"valid",verificationPassed:true,novelty:"known",difficultySignal:"frontier",evidence:[]},
+      proposal:{id:"p1",taskId:task.id,strategyId:"old",strategyDescription:"Search registry",strategySteps:["Search","Verify"],rationale:"x",evaluationId:"e1",requiresApproval:true}
+    }];
+    const runCandidate=vi.fn(async()=>({id:"new",taskId:task.id,strategyId:"new",validity:"valid",verificationPassed:true,novelty:"new",difficultySignal:"frontier",evidence:[]}));
+    const engine=createImprovementEngine({
+      generateTask:vi.fn(async()=>task),
+      generateStrategy:vi.fn(async()=>({id:"new",taskId:task.id,description:"Compare graph dependencies",steps:["Analyze","Verify"]})),
+      runCandidate,memory:makeMemory(history),
+    });
     await engine.run();
-    expect(received.repeatedStrategyIds).toEqual(["s2"]);
+    expect(runCandidate).toHaveBeenCalledOnce();
   });
 });
