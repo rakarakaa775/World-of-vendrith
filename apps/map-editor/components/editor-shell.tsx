@@ -88,7 +88,7 @@ export function EditorShell({
     void loadTerrainTiles().then(tiles => {
       if (cancelled) return;
       setTileOptions(tiles);
-      const visibleTiles = tiles.filter(tile => tile.terrain !== "deepwater");
+      const visibleTiles = tiles.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain));
       setSelectedTile(current => visibleTiles.some(tile => tile.id === current) ? current : visibleTiles[0]?.id ?? current);
     });
     return () => { cancelled = true; };
@@ -168,12 +168,12 @@ export function EditorShell({
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(tile => tile.terrain !== "deepwater").length} BASIC</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).length} BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
 
           <div style={{ display: "grid", gap: 6 }}>
-            {tileOptions.filter(tile => tile.terrain !== "deepwater").map(tile => (
+            {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).map(tile => (
               <button key={tile.id} type="button" onClick={() => chooseTerrain(tile)} aria-pressed={selectedTile === tile.id}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid var(--map-editor-border)", background: selectedTile === tile.id ? "var(--map-editor-terrain-selected)" : "var(--map-editor-button)", color: "#fff" }}>
                 <span style={{ width: 28, height: 28, borderRadius: 4, background: ({
