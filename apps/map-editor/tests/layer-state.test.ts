@@ -27,9 +27,7 @@ describe("layer state", () => {
     expect(new Set(moved.layers.map(layer => layer.id))).toEqual(new Set(ids));
     expect(moved).not.toBe(document);
   });
-});
-
-  it("duplicates a layer without sharing cell/object references", () => {
+r without sharing cell/object references", () => {
     const document = createMap("playable");
     const ground = document.layers.find(layer => layer.id === "ground")!;
     ground.cells[0] = { tileId: "grass" };
@@ -65,3 +63,5 @@ describe("layer state", () => {
     const result = mergeLayers(document, "ground", "objects");
     expect(result).toBe(document);
   });
+
+});
