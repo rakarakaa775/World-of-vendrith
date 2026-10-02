@@ -28,13 +28,13 @@ Membuat painting terrain nyaman dan lengkap sebelum masuk object placement.
 - [x] 17 basic WORLD terrain keys
 - [x] Water auto-depth gradient
 - [x] Water terrain disembunyikan dari palette
-- [ ] Brush size 1x1 / 2x2 / 4x4
-- [ ] Brush preview
+- [x] Round brush sizes 1 / 3 / 5 / 7 cells
+- [x] Round brush preview
 - [ ] Rectangle brush
 - [ ] Line brush
 - [ ] Flood Fill
 - [ ] Eyedropper
-- [ ] Continuous drag painting
+- [x] Continuous drag painting
 - [ ] Modifier/shortcut behavior
 - [ ] Tool state persistence selama sesi
 - [ ] Transaction grouping untuk satu gesture menjadi satu undo step
