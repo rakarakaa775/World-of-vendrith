@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   EvaluationRecord,
+  ImprovementHistory,
   ImprovementMemory,
   ImprovementProposal,
 } from "../domain/improvement";
@@ -20,14 +21,14 @@ interface ProposalRow {
   id: string;
   task_id: string;
   strategy_id: string;
+  strategy_description: string | null;
+  strategy_steps: string[];
   rationale: string;
   evaluation_id: string;
   requires_approval: true;
 }
 
-export function createSupabaseImprovementMemory(
-  client: SupabaseClient,
-): ImprovementMemory {
+export function createSupabaseImprovementMemory(client: SupabaseClient): ImprovementMemory {
   return {
     async recordEvaluation(record) {
       const row: EvaluationRow = {
@@ -40,29 +41,70 @@ export function createSupabaseImprovementMemory(
         difficulty_signal: record.difficultySignal,
         evidence: record.evidence,
       };
-
-      const { error } = await client
-        .from("ai_improvement_evaluations")
-        .upsert(row, { onConflict: "id" });
-
+      const { error } = await client.from("ai_improvement_evaluations").upsert(row, { onConflict: "id" });
       if (error) throw error;
     },
-
     async recordProposal(proposal) {
       const row: ProposalRow = {
         id: proposal.id,
         task_id: proposal.taskId,
         strategy_id: proposal.strategyId,
+        strategy_description: proposal.strategyDescription ?? null,
+        strategy_steps: proposal.strategySteps ?? [],
         rationale: proposal.rationale,
         evaluation_id: proposal.evaluationId,
         requires_approval: true,
       };
-
-      const { error } = await client
-        .from("ai_improvement_proposals")
-        .upsert(row, { onConflict: "id" });
-
+      const { error } = await client.from("ai_improvement_proposals").upsert(row, { onConflict: "id" });
       if (error) throw error;
+    },
+    async listRecent(limit = 10) {
+      const safeLimit = Math.max(1, Math.min(limit, 50));
+      const { data: evaluations, error: evaluationError } = await client
+        .from("ai_improvement_evaluations")
+        .select("id,task_id,strategy_id,validity,verification_passed,novelty,difficulty_signal,evidence,created_at")
+        .order("created_at", { ascending: false })
+        .limit(safeLimit);
+      if (evaluationError) throw evaluationError;
+
+      const ids = (evaluations ?? []).map((row) => row.id);
+      if (ids.length === 0) return [];
+
+      const { data: proposals, error: proposalError } = await client
+        .from("ai_improvement_proposals")
+        .select("id,task_id,strategy_id,strategy_description,strategy_steps,rationale,evaluation_id,requires_approval")
+        .in("evaluation_id", ids);
+      if (proposalError) throw proposalError;
+
+      const proposalByEvaluation = new Map<string, ImprovementProposal>(
+        (proposals ?? []).map((row) => [
+          row.evaluation_id,
+          {
+            id: row.id,
+            taskId: row.task_id,
+            strategyId: row.strategy_id,
+            strategyDescription: row.strategy_description ?? undefined,
+            strategySteps: row.strategy_steps ?? [],
+            rationale: row.rationale,
+            evaluationId: row.evaluation_id,
+            requiresApproval: true,
+          },
+        ]),
+      );
+
+      return (evaluations ?? []).map((row) => ({
+        evaluation: {
+          id: row.id,
+          taskId: row.task_id,
+          strategyId: row.strategy_id,
+          validity: row.validity,
+          verificationPassed: row.verification_passed,
+          novelty: row.novelty,
+          difficultySignal: row.difficulty_signal,
+          evidence: row.evidence ?? [],
+        },
+        proposal: proposalByEvaluation.get(row.id),
+      }));
     },
   };
 }
