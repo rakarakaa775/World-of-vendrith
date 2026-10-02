@@ -1,3 +1,13 @@
+## 2026-10-02 — Phase 2D diagnostic views implemented
+
+- **Type:** Added / Updated
+- **Reason:** Complete the World Map Editor diagnostic surface so map problems can be inspected directly on the canvas without mutating authoring data.
+- **Details:** Added projection-only Grid, Terrain ID, Water Depth (D1–D4 derived bands), Collision/Passability, Layer Isolation, Object Bounds, Invalid-cell Highlight, Diagnostic Legend, and Read-only Debug Mode. Debug state is kept outside MapDocument; layer isolation does not mutate persisted layer visibility/active flags.
+- **Affected:** `apps/map-editor/components/editor-shell.tsx`, `apps/map-editor/components/pixi-map-canvas.tsx`, `apps/map-editor/editor/debug-views.ts`, `apps/map-editor/editor/terrain-engine.ts`, focused debug/depth tests.
+- **Roadmap phase:** Phase 2D — Debug & Diagnostic Views. Implementation is marked `[~]` until browser runtime verification is completed.
+- **Verification:** Focused debug/depth tests passed; TypeScript and production build checks completed locally. Existing autoprefixer warning remains non-fatal. Browser click-level verification is pending because the connected Codespace has no browser/Chromium runner.
+- **Notes:** No Supabase schema/data/RPC changes and no terrain/object persistence contract changes.
+
 ## 2026-10-01 — Phase 0 Foundation closure hardening
 
 - **Type:** Fixed / Added
