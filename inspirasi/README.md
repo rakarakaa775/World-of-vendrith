@@ -32,6 +32,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - Open Higgsfield AI (sunnychase) — Audit: ./OPEN_HIGGSFIELD_AI_SUNNYCHASE_AUDIT.md
 - Developer Roadmap (kamranahmedse) — Audit: ./DEVELOPER_ROADMAP_KAMRANAHMEDSE_AUDIT.md
 - Open-LLM-VTuber — Audit: ./OPEN_LLM_VTUBER_AUDIT.md
+- Ryza AI Revive — Audit: ./RYZA_AI_REVIVE_AUDIT.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
@@ -87,3 +88,16 @@ Open-LLM-VTuber diperlakukan sebagai referensi untuk:
 - versioned configuration/schema and migration practices.
 
 Project code is MIT, but bundled Live2D sample models have separate licensing terms. Vendrith should treat repository code and bundled assets as separate provenance/licensing subjects.
+
+## Catatan untuk Ryza AI Revive
+
+Ryza AI Revive diperlakukan sebagai referensi engineering untuk:
+- declarative module/layer boundaries;
+- injected ports/seams;
+- registry-as-data;
+- generated asset indexes/manifests;
+- regression tests for state and transport invariants;
+- single-source configuration/versioning;
+- packaging privacy/secret gates.
+
+Repository ini **bukan dependency Vendrith**. Kode repository berlisensi MIT, tetapi media game/aset besar yang dipulihkan dari release harus diperlakukan sebagai provenance/licensing terpisah dan tidak otomatis dianggap MIT. Aset Ryza tidak disetujui untuk registry Vendrith berdasarkan audit ini.
