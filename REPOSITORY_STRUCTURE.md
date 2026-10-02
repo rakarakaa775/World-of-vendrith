@@ -2,7 +2,17 @@
 
 ## Root
 
-Root contains only primary project entry/status files: README.md and PROJECT_STATUS.md.
+Root contains primary project entry/status files plus top-level project organization folders.
+
+## inspirasi/
+
+Reference and inspiration material used to evaluate architecture, engineering practices, repositories, tools, and other development ideas for Vendrith.
+
+- `README.md` — purpose and rules for the inspiration collection.
+- `NODEJS_BEST_PRACTICES_VENDRITH.md` — audit and decisions from Node.js Best Practices.
+- `REFERENCE_TEMPLATE.md` — template for future references.
+
+Material in `inspirasi/` is not automatically production code or a dependency.
 
 ## docs/
 
@@ -41,4 +51,4 @@ Large packaged historical snapshots retained as archives.
 
 ## Organization rule
 
-Do not mix historical handoff material with current implementation documents. Do not delete historical source merely to make the tree look smaller. Prefer moving current documents into the appropriate docs/ category while preserving provenance.
+Do not mix historical handoff material with current implementation documents. Do not delete historical source merely to make the tree look smaller. Preserve provenance and record durable decisions separately from raw reference material.
