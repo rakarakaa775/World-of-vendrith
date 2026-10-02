@@ -3,6 +3,7 @@ import type { Evidence, VerificationResult } from "../domain/types";
 export interface RepositoryPort {
   readFile(path: string): Promise<string | null>;
   search(query: string): Promise<Array<{ path: string; excerpt: string }>>;
+  listFiles?(prefix?: string): Promise<string[]>;
 }
 
 export interface CodeIntelligencePort {

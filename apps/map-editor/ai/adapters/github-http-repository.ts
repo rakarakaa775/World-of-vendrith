@@ -2,6 +2,7 @@ import type { GitHubRepositoryConfig, RepositoryPort } from "../ports/project-to
 
 interface GitHubContent { content?: string; encoding?: string }
 interface GitHubSearchResponse { items?: Array<{ path: string; text_matches?: Array<{ fragment?: string }> }> }
+interface GitHubTreeResponse { tree?: Array<{ path: string; type: string }> }
 
 async function requestJson<T>(url: string, token?: string): Promise<T> {
   const response = await fetch(url, { headers: { Accept: "application/vnd.github+json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
@@ -17,6 +18,19 @@ export class GitHubHttpRepositoryAdapter implements RepositoryPort {
     const result = await requestJson<GitHubContent>(`https://api.github.com/repos/${this.config.owner}/${this.config.repository}/contents/${encodedPath}?ref=${encodeURIComponent(this.config.ref)}`, this.token);
     if (!result.content || result.encoding !== "base64") return null;
     return Buffer.from(result.content.replace(/\n/g, ""), "base64").toString("utf8");
+  }
+
+  async listFiles(prefix = ""): Promise<string[]> {
+    const response = await requestJson<GitHubTreeResponse>(
+      `https://api.github.com/repos/${this.config.owner}/${this.config.repository}/git/trees/${encodeURIComponent(this.config.ref)}?recursive=1`,
+      this.token,
+    );
+    const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, "");
+    return (response.tree ?? [])
+      .filter((item) => item.type === "blob")
+      .map((item) => item.path)
+      .filter((path) => !normalizedPrefix || path.startsWith(`${normalizedPrefix}/`) || path === normalizedPrefix)
+      .sort();
   }
 
   async search(query: string): Promise<Array<{ path: string; excerpt: string }>> {

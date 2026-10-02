@@ -10,6 +10,7 @@ import {
   type ToolDefinition,
 } from "../ports/tool-router";
 import { classifyAssetEvidence } from "../policies/asset-policy";
+import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
 
 export interface ProjectTools {
   repository: RepositoryPort;
@@ -29,6 +30,21 @@ function pathArgument(name: string) {
 
 export function createProjectTools(dependencies: ProjectTools): ToolDefinition[] {
   return [
+    {
+      name: "project.inspect",
+      description: "Inspect the evidence-backed Vendrith project intelligence snapshot: repository manifest, structure, dependencies, documentation, and asset intelligence.",
+      access: "read-only",
+      parameters: pathArgument("query"),
+      validate: hasStringArgument("query"),
+      async execute(args) {
+        return buildProjectIntelligenceSnapshot((args as { query: string }).query, {
+          repository: dependencies.repository,
+          code: dependencies.codeIntelligence,
+          documentation: dependencies.documentation,
+          assetRegistry: dependencies.assetRegistry,
+        });
+      },
+    },
     {
       name: "repository.read_file",
       description: "Read a text file from the project repository.",
