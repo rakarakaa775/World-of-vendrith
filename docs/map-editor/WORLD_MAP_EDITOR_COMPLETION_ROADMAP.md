@@ -114,20 +114,22 @@ memiliki undo/redo transaction yang benar.
 ### Tujuan
 Membuat masalah map dapat dilihat langsung di canvas, bukan hanya lewat source.
 
-- [ ] Grid overlay
-- [ ] Terrain ID view
-- [ ] Water depth view
-- [ ] Collision/passability view
-- [ ] Layer isolation
-- [ ] Object bounds
+- [~] Grid overlay — implemented; browser click-level verification pending
+- [~] Terrain ID view — implemented; browser click-level verification pending
+- [~] Water depth view — implemented; browser click-level verification pending
+- [~] Collision/passability view — implemented; browser click-level verification pending
+- [~] Layer isolation — implemented; browser click-level verification pending
+- [~] Object bounds — implemented; browser click-level verification pending
 - [ ] Chunk/debug bounds bila chunking diperkenalkan
-- [ ] Invalid-cell highlight
-- [ ] Diagnostic legend
-- [ ] Read-only debug mode
+- [~] Invalid-cell highlight — implemented; browser click-level verification pending
+- [~] Diagnostic legend — implemented; browser click-level verification pending
+- [~] Read-only debug mode — implemented; browser click-level verification pending
 
 ### Exit gate
 Setiap mode debug hanya merupakan projection/overlay dan tidak mengubah
 MapDocument.
+
+**Implementation status:** Phase 2D diagnostic views are implemented and merged. The remaining gate is browser runtime verification; the connected Codespace currently has no browser/Chromium runner.
 
 ---
 
