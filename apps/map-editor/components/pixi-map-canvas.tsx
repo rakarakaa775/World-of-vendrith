@@ -46,6 +46,7 @@ type Props = {
   readonly?: boolean;
   showGrid?: boolean;
   debugViews?: Partial<DebugViewState>;
+  layerIsolationId?: string | null;
   previewMode?: boolean;
 };
 
@@ -206,7 +207,8 @@ export function PixiMapCanvas(props: Props) {
       const app = appRef.current;
       const host = hostRef.current;
       if (!world || !app || !host) return;
-      const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds } = propsRef.current;
+      const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds, layerIsolationId = null } = propsRef.current;
+      const layerVisible = (layerId: string) => layerIsolationId === null || layerIsolationId === layerId;
       const scene = new Container();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
@@ -219,7 +221,7 @@ export function PixiMapCanvas(props: Props) {
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
       for (const layer of document.layers) {
-        if (!layer.visible || layer.kind === "objects") continue;
+        if (!layer.visible || !layerVisible(layer.id) || layer.kind === "objects") continue;
         for (let i = 0; i < document.width * document.height; i++) {
           const id = layer.cells[i]?.tileId;
           if (!id) continue;
@@ -246,7 +248,7 @@ export function PixiMapCanvas(props: Props) {
 
       if (propsRef.current.debugViews?.collision) {
         const collisionLayer = document.layers.find(layer => layer.kind === "collision");
-        if (collisionLayer) {
+        if (collisionLayer && layerVisible(collisionLayer.id)) {
           const collisionOverlay = new Graphics();
           for (let i = 0; i < document.width * document.height; i++) {
             const blocked = Boolean(collisionLayer.cells[i]?.tileId);
@@ -266,7 +268,7 @@ export function PixiMapCanvas(props: Props) {
       if (propsRef.current.debugViews?.objectBounds) {
         const objectBounds = new Graphics();
         for (const layer of document.layers) {
-          if (!layer.visible || layer.kind !== "objects") continue;
+          if (!layer.visible || !layerVisible(layer.id) || layer.kind !== "objects") continue;
           for (const object of layer.objects) {
             objectBounds.rect(
               object.x * document.tileSize + 1,
@@ -282,7 +284,7 @@ export function PixiMapCanvas(props: Props) {
       if (propsRef.current.debugViews?.invalidCells) {
         const invalidCells = new Graphics();
         for (const layer of document.layers) {
-          if (!layer.visible || layer.kind !== "ground") continue;
+          if (!layer.visible || !layerVisible(layer.id) || layer.kind !== "ground") continue;
           for (let i = 0; i < document.width * document.height; i++) {
             const tileId = layer.cells[i]?.tileId;
             if (!tileId || terrainFromTileId(tileId)) continue;
@@ -300,7 +302,7 @@ export function PixiMapCanvas(props: Props) {
       }
 
       if (propsRef.current.debugViews?.terrainId || propsRef.current.debugViews?.waterDepth) {
-        const debugLayer = document.layers.find(layer => layer.id === activeLayerId);
+        const debugLayer = document.layers.find(layer => layer.id === (layerIsolationId ?? activeLayerId));
         if (debugLayer && debugLayer.kind !== "objects") {
           for (let i = 0; i < document.width * document.height; i++) {
             const tileId = debugLayer.cells[i]?.tileId;
@@ -387,7 +389,7 @@ export function PixiMapCanvas(props: Props) {
       // Remote textures are an enhancement only. They never determine whether
       // the painted cell is rendered.
       for (const layer of document.layers) {
-        if (!layer.visible) continue;
+        if (!layer.visible || !layerVisible(layer.id)) continue;
         if (layer.kind !== "objects") {
           if (layer.kind === "ground") {
             const isSolidDeepwaterWorld =
@@ -512,7 +514,7 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.environmentRuntime, props.showGrid, props.debugViews]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.environmentRuntime, props.showGrid, props.debugViews, props.layerIsolationId]);
 
   useEffect(() => {
     if (!ready) return;
@@ -827,6 +829,7 @@ export function PixiMapCanvas(props: Props) {
 
   return createElement("div", { ref: hostRef, className: props.previewMode ? "pixi-map-canvas-host pixi-map-canvas-preview" : "pixi-map-canvas-host", style: { position: "absolute", left: props.previewMode ? 0 : 40, top: props.previewMode ? 0 : 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
+
 
 
 
