@@ -42,3 +42,4 @@ export * from "./application/content-inspectors";
 export * from "./application/content-inspectors";
 
 export * from "./application/runtime-world-adapter";
+export * from "./application/npc-runtime-loop";

@@ -143,7 +143,7 @@ export function createNpcNavigationAction(observation: RuntimeObservation, plan:
     id: observation.id + ":navigate:" + plan.goal.x + ":" + plan.goal.y,
     intelligence: "npc",
     type: "npc.navigate",
-    payload: { path: plan.path, targetLocation: { mapId: observation.perception?.self?.mapId, x: plan.goal.x, y: plan.goal.y }, cost: plan.cost },
+    payload: { entityId: observation.perception?.self?.id, path: plan.path, targetLocation: { mapId: observation.perception?.self?.mapId, x: plan.goal.x, y: plan.goal.y }, cost: plan.cost },
     risk: "safe",
     reason: plan.reason,
   };
