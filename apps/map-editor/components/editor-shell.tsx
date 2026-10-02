@@ -50,6 +50,7 @@ export function EditorShell({
   // Keep the latest editor-owned document available to toolbar handlers even while
   // the parent mirror is catching up. Save/Load must operate on EditorShell state.
   const documentRef = useRef<MapDocument>(document);
+  const paintGestureRef = useRef<number | null>(null);
   useEffect(() => {
     documentRef.current = document;
   }, [document]);
@@ -103,7 +104,7 @@ export function EditorShell({
     setHistory(current => commitHistory(current, next));
   }, [document]);
 
-  const handlePaint = useCallback((points: GridPoint[], tileId: string | null) => {
+  const handlePaint = useCallback((points: GridPoint[], tileId: string | null, gestureId?: number) => {
     const result = tileId === null
       ? eraseTerrainPaint(document, terrainLayer, points, terrainBindings)
       : applyTerrainPaint(document, terrainLayer, points, tileId, terrainBindings);
@@ -112,7 +113,15 @@ export function EditorShell({
     setPaintDiagnostic(
       `apply: layer=${terrainLayer} requested=${points.length} affected=${result.affected.length} changed=${changed ? "YES" : "NO"} tile=${changedTile ?? "null"} validation=${result.validation.length}`,
     );
-    commit(result.document);
+    if (gestureId !== undefined && paintGestureRef.current === gestureId) {
+      documentRef.current = result.document;
+      setHistory(current => current.present === result.document
+        ? current
+        : { ...current, present: result.document, future: [] });
+    } else {
+      if (gestureId !== undefined) paintGestureRef.current = gestureId;
+      commit(result.document);
+    }
   }, [document, terrainLayer, terrainBindings, commit]);
 
   const handleUndo = useCallback(() => {
