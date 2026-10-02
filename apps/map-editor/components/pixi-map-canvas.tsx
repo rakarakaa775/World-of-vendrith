@@ -8,9 +8,10 @@ import type { GridPoint } from "../editor/grid";
 import type { Selection } from "../editor/selection";
 import { normalizeSelection } from "../editor/selection";
 import { pointsInFloodFill, pointsInLine, pointsInRectangle } from "../editor/paint-tools";
-import { neighborMask, terrainFromTileId } from "../editor/terrain-engine";
+import { terrainFromTileId } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
+import { resolveTerrainRenderCell } from "../editor/terrain-resolver";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
@@ -66,24 +67,6 @@ const COLORS: Record<string, number> = {
   lavarock: 0x5b4542,
 };
 const colorForTile = (id: string | null) => id ? (COLORS[terrainFromTileId(id) ?? ""] ?? 0x94a3b8) : 0xffffff;
-const SHORE_WATER_TERRAINS = new Set(["water", "brackish", "deepwater2", "deepwater"]);
-const isWaterTerrain = (terrain: ReturnType<typeof terrainFromTileId>) =>
-  terrain !== null && SHORE_WATER_TERRAINS.has(terrain);
-const hasWaterNeighbor = (document: MapDocument, layerId: string, point: GridPoint) => {
-  for (const dy of [-1, 0, 1]) {
-    for (const dx of [-1, 0, 1]) {
-      if (dx === 0 && dy === 0) continue;
-      const terrain = terrainFromTileId(
-        document.layers.find(layer => layer.id === layerId)?.cells[
-          (point.y + dy) * document.width + (point.x + dx)
-        ]?.tileId ?? null,
-      );
-      if (point.x + dx < 0 || point.y + dy < 0 || point.x + dx >= document.width || point.y + dy >= document.height) continue;
-      if (isWaterTerrain(terrain)) return true;
-    }
-  }
-  return false;
-};
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
 const terrainRegionTextureCache = new Map<string, Texture>();
 const textureForTerrainBinding = (texture: Texture, assetId: string, region: NonNullable<ReturnType<typeof getTerrainAssetBinding>>["region"]) => {
@@ -259,7 +242,8 @@ export function PixiMapCanvas(props: Props) {
           const id = activeLayer.cells[i]?.tileId;
           const terrain = terrainFromTileId(id ?? null);
           if (!terrain) continue;
-          const binding = getTerrainAssetBinding(terrainBindings, terrain, neighborMask(document, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrain));
+          const resolved = resolveTerrainRenderCell(document, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrainBindings);
+          const binding = resolved?.assetId ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask) : null;
           if (binding) textureRequests.add(binding.assetId);
         }
       }
@@ -329,14 +313,12 @@ export function PixiMapCanvas(props: Props) {
                 const x = i % document.width;
                 const y = Math.floor(i / document.width);
                 const point = { x, y };
-                const mask = neighborMask(document, layer.id, point, terrain);
-                // Land touching any water depth uses its base terrain tile rather
-                // than a cliff/isolated-edge variant. This keeps dirt, grass,
-                // sand, etc. able to meet water directly as a walkable shoreline.
-                const shorelineMask = hasWaterNeighbor(document, layer.id, point) ? 255 : mask;
+                const resolved = resolveTerrainRenderCell(document, layer.id, point, terrainBindings);
                 const binding = terrain === "deepwater"
                   ? { assetId: DEEP_WATER_ASSET_ID, region: { x: 0, y: 0, width: 16, height: 16 } }
-                  : getTerrainAssetBinding(terrainBindings, terrain, shorelineMask);
+                  : resolved?.assetId
+                    ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask)
+                    : null;
                 const texture = binding ? loadedTextures.get(binding.assetId) : null;
                 if (!texture || !binding) continue;
                 const renderTexture = textureForTerrainBinding(
