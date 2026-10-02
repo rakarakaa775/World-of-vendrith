@@ -66,6 +66,24 @@ const COLORS: Record<string, number> = {
   lavarock: 0x5b4542,
 };
 const colorForTile = (id: string | null) => id ? (COLORS[terrainFromTileId(id) ?? ""] ?? 0x94a3b8) : 0xffffff;
+const SHORE_WATER_TERRAINS = new Set(["water", "brackish", "deepwater2", "deepwater"]);
+const isWaterTerrain = (terrain: ReturnType<typeof terrainFromTileId>) =>
+  terrain !== null && SHORE_WATER_TERRAINS.has(terrain);
+const hasWaterNeighbor = (document: MapDocument, layerId: string, point: GridPoint) => {
+  for (const dy of [-1, 0, 1]) {
+    for (const dx of [-1, 0, 1]) {
+      if (dx === 0 && dy === 0) continue;
+      const terrain = terrainFromTileId(
+        document.layers.find(layer => layer.id === layerId)?.cells[
+          (point.y + dy) * document.width + (point.x + dx)
+        ]?.tileId ?? null,
+      );
+      if (point.x + dx < 0 || point.y + dy < 0 || point.x + dx >= document.width || point.y + dy >= document.height) continue;
+      if (isWaterTerrain(terrain)) return true;
+    }
+  }
+  return false;
+};
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
 const terrainRegionTextureCache = new Map<string, Texture>();
 const textureForTerrainBinding = (texture: Texture, assetId: string, region: NonNullable<ReturnType<typeof getTerrainAssetBinding>>["region"]) => {
@@ -307,10 +325,15 @@ export function PixiMapCanvas(props: Props) {
                 if (!terrain) continue;
                 const x = i % document.width;
                 const y = Math.floor(i / document.width);
-                const mask = neighborMask(document, layer.id, { x, y }, terrain);
+                const point = { x, y };
+                const mask = neighborMask(document, layer.id, point, terrain);
+                // Land touching any water depth uses its base terrain tile rather
+                // than a cliff/isolated-edge variant. This keeps dirt, grass,
+                // sand, etc. able to meet water directly as a walkable shoreline.
+                const shorelineMask = hasWaterNeighbor(document, layer.id, point) ? 255 : mask;
                 const binding = terrain === "deepwater"
                   ? { assetId: DEEP_WATER_ASSET_ID, region: { x: 0, y: 0, width: 16, height: 16 } }
-                  : getTerrainAssetBinding(terrainBindings, terrain, mask);
+                  : getTerrainAssetBinding(terrainBindings, terrain, shorelineMask);
                 const texture = binding ? loadedTextures.get(binding.assetId) : null;
                 if (!texture || !binding) continue;
                 const renderTexture = textureForTerrainBinding(
