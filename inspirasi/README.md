@@ -31,6 +31,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - codebase-memory-mcp vs CodeGraph — Perbandingan: ./CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md
 - Open Higgsfield AI (sunnychase) — Audit: ./OPEN_HIGGSFIELD_AI_SUNNYCHASE_AUDIT.md
 - Developer Roadmap (kamranahmedse) — Audit: ./DEVELOPER_ROADMAP_KAMRANAHMEDSE_AUDIT.md
+- Open-LLM-VTuber — Audit: ./OPEN_LLM_VTUBER_AUDIT.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
@@ -71,3 +72,18 @@ Developer Roadmap diperlakukan sebagai referensi untuk:
 - browser/integration testing.
 
 Roadmap content, images, diagrams, dan project material tidak boleh disalin ke Vendrith tanpa izin karena lisensinya restriktif.
+
+## Catatan untuk Open-LLM-VTuber
+
+Open-LLM-VTuber diperlakukan sebagai referensi untuk:
+- frontend/backend separation;
+- provider and engine abstraction;
+- typed configuration and validation;
+- configuration overrides/presets;
+- scoped service context;
+- typed command/message routing;
+- optional MCP/tool boundaries;
+- repository-specific AI development instructions;
+- versioned configuration/schema and migration practices.
+
+Project code is MIT, but bundled Live2D sample models have separate licensing terms. Vendrith should treat repository code and bundled assets as separate provenance/licensing subjects.
