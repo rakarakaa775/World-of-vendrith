@@ -27,7 +27,12 @@ type Props = {
 };
 
 const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper"] as const;
-const BRUSH_PRESETS = [\n  { name: "Fine", size: 1 },\n  { name: "Medium", size: 3 },\n  { name: "Large", size: 5 },\n  { name: "XL", size: 7 },\n] as const;
+const BRUSH_PRESETS = [
+  { name: "Fine", size: 1 },
+  { name: "Medium", size: 3 },
+  { name: "Large", size: 5 },
+  { name: "XL", size: 7 },
+] as const;
 
 export function EditorShell({
   initialDocument = createMap("world"),
@@ -47,7 +52,8 @@ export function EditorShell({
   const [brushSize, setBrushSize] = useState(1);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
-  const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);\n  const [brushPreset, setBrushPreset] = useState("Fine");
+  const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);
+  const [brushPreset, setBrushPreset] = useState("Fine");
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
@@ -89,7 +95,14 @@ export function EditorShell({
         setPaintDiagnostic("selection: pasted");
         return;
       }
-      if (modifier && event.shiftKey && event.key.toLowerCase() === "r" && selection) {\n        event.preventDefault();\n        const next = replaceSelection(documentRef.current, terrainLayer, selection, selectedTile);\n        commit(next);\n        setPaintDiagnostic("selection: replaced");\n        return;\n      }\n      if (event.key === "Escape" && selection) {
+      if (modifier && event.shiftKey && event.key.toLowerCase() === "r" && selection) {
+        event.preventDefault();
+        const next = replaceSelection(documentRef.current, terrainLayer, selection, selectedTile);
+        commit(next);
+        setPaintDiagnostic("selection: replaced");
+        return;
+      }
+      if (event.key === "Escape" && selection) {
         event.preventDefault();
         setSelection(null);
         setPaintDiagnostic("selection: cleared");
