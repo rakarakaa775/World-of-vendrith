@@ -23,6 +23,9 @@ describe("debug view state", () => {
     const invalid = toggleDebugView(diagnostics, "invalidCells");
     expect(invalid.objectBounds).toBe(true);
     expect(invalid.invalidCells).toBe(true);
+
+    const readOnly = toggleDebugView(invalid, "readOnly");
+    expect(readOnly.readOnly).toBe(true);
     expect(JSON.stringify(document)).toBe(before);
   });
 
@@ -34,6 +37,7 @@ describe("debug view state", () => {
     expect(unchanged.grid).toBe(true);
   });
 });
+
 
 
 

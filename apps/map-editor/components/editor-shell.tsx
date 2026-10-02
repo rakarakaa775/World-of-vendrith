@@ -202,6 +202,7 @@ export function EditorShell({
   };
 
   const selectTool = (tool: string) => setActiveTool(tool);
+  const hasDebugOverlay = debugViews.grid || debugViews.terrainId || debugViews.waterDepth || debugViews.collision || debugViews.objectBounds || debugViews.invalidCells;
 
   return (
     <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "var(--map-editor-bg)", color: "var(--map-editor-text)" }}>
@@ -230,6 +231,8 @@ export function EditorShell({
           aria-label="Object bounds view" title="Toggle object bounds view" style={{ padding: "6px 9px" }}>{debugViews.objectBounds ? "Bounds ✓" : "Bounds"}</button>
         <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "invalidCells"))} aria-pressed={debugViews.invalidCells}
           aria-label="Invalid cell highlight" title="Toggle invalid-cell highlight" style={{ padding: "6px 9px" }}>{debugViews.invalidCells ? "Invalid ✓" : "Invalid"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "readOnly"))} aria-pressed={debugViews.readOnly}
+          aria-label="Read-only debug mode" title="Disable map editing input" style={{ padding: "6px 9px" }}>{debugViews.readOnly ? "Read-only ✓" : "Read-only"}</button>
         <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
@@ -240,6 +243,16 @@ export function EditorShell({
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).length} BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
+          {hasDebugOverlay && <div role="note" aria-label="Diagnostic legend" style={{ marginBottom: 10, padding: 8, border: "1px solid var(--map-editor-border)", borderRadius: 7, fontSize: 10, lineHeight: 1.45, color: "#cbd5e1" }}>
+            <strong style={{ display: "block", marginBottom: 4 }}>Diagnostic Legend</strong>
+            {debugViews.grid && <div>Grid · cell boundaries</div>}
+            {debugViews.terrainId && <div>Terrain ID · semantic tile key</div>}
+            {debugViews.waterDepth && <div>Depth · D1 water → D4 deepwater</div>}
+            {debugViews.collision && <div>Collision · red blocked / green open</div>}
+            {debugViews.objectBounds && <div>Bounds · orange object footprint</div>}
+            {debugViews.invalidCells && <div>Invalid · red unknown ground tile</div>}
+            {debugViews.readOnly && <div>Read-only · map input disabled</div>}
+          </div>}
 
           <div style={{ display: "grid", gap: 6 }}>
             {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).map(tile => (
@@ -312,12 +325,14 @@ export function EditorShell({
             viewportResetKey={initialDocumentRevision}
             showGrid={debugViews.grid}
             debugViews={debugViews}
+            readonly={debugViews.readOnly}
           />
         </section>
       </div>
     </main>
   );
 }
+
 
 
 
