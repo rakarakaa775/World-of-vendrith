@@ -6,8 +6,8 @@ import type {
   ImprovementStrategyContext,
   ImprovementTask,
   StrategyCandidate,
-  validateEvaluationQuality,
 } from "../domain/improvement";
+import { validateEvaluationQuality } from "../domain/improvement";
 
 export interface ImprovementEngineDependencies {
   generateTask(): Promise<ImprovementTask>;
