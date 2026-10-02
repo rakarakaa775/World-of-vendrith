@@ -39,14 +39,24 @@ export function createTerrainAssetBindingMap(bindings: TerrainAssetBinding[]): T
  * other mask until transition assets are approved and bound. This keeps the
  * renderer textured instead of falling back to flat debug colors at edges.
  */
+export function getExactTerrainAssetBinding(
+  bindings: TerrainAssetBindingMap,
+  terrain: TerrainKey,
+  mask: TerrainMask,
+): TerrainAssetBinding | null {
+  return bindings[terrain]?.[mask] ?? null;
+}
+
 export function getTerrainAssetBinding(
   bindings: TerrainAssetBindingMap,
   terrain: TerrainKey,
   mask: TerrainMask,
 ): TerrainAssetBinding | null {
+  const exact = getExactTerrainAssetBinding(bindings, terrain, mask);
+  if (exact) return exact;
   const terrainBindings = bindings[terrain];
   if (!terrainBindings) return null;
-  return terrainBindings[mask] ?? terrainBindings[255] ?? null;
+  return terrainBindings[255] ?? null;
 }
 
 export function terrainAssetIdForMask(
