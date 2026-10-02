@@ -85,6 +85,7 @@ describe("terrain render resolution", () => {
     const resolved = resolveTerrainRenderCell(document, "ground", { x: 1, y: 1 }, map);
     expect(resolved?.mask).toBe(255);
     expect(resolved?.assetId).toBe("grass-base");
+    expect(resolved?.shorelineMask).toBe(2);
   });
 
   it("keeps deepwater on its canonical render mask", () => {
@@ -92,5 +93,6 @@ describe("terrain render resolution", () => {
     const resolved = resolveTerrainRenderCell(base, "ground", { x: 0, y: 0 }, createTerrainAssetBindingMap([]));
     expect(resolved?.terrain).toBe("deepwater");
     expect(resolved?.mask).toBe(255);
+    expect(resolved?.shorelineMask).toBeNull();
   });
 });
