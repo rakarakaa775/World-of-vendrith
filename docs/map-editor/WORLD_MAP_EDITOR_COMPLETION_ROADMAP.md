@@ -58,8 +58,8 @@ Memisahkan terrain semantic dari cara terrain divisualkan.
 - [ ] Dual-grid/corner-mask strategy bila dibutuhkan
 - [x] Transition validation — reports unregistered cardinal terrain transitions without mutating or blocking logical authoring
 - [x] Deterministic visual variation utility
-- [ ] World-space variation/noise tanpa menyimpan random state per cell
-- [ ] Fallback visual untuk transition yang belum tersedia
+- [x] World-space variation/noise tanpa menyimpan random state per cell — renderer-only deterministic variation
+- [x] Fallback visual untuk transition yang belum tersedia — renderer memakai terrain fallback deterministik saat approved binding tidak tersedia
 
 ### Asset/binding boundary
 
