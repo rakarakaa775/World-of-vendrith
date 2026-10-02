@@ -226,6 +226,10 @@ export function EditorShell({
           aria-label="Water depth view" title="Toggle water depth view" style={{ padding: "6px 9px" }}>{debugViews.waterDepth ? "Depth ✓" : "Depth"}</button>
         <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "collision"))} aria-pressed={debugViews.collision}
           aria-label="Collision passability view" title="Toggle collision/passability view" style={{ padding: "6px 9px" }}>{debugViews.collision ? "Collision ✓" : "Collision"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "objectBounds"))} aria-pressed={debugViews.objectBounds}
+          aria-label="Object bounds view" title="Toggle object bounds view" style={{ padding: "6px 9px" }}>{debugViews.objectBounds ? "Bounds ✓" : "Bounds"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "invalidCells"))} aria-pressed={debugViews.invalidCells}
+          aria-label="Invalid cell highlight" title="Toggle invalid-cell highlight" style={{ padding: "6px 9px" }}>{debugViews.invalidCells ? "Invalid ✓" : "Invalid"}</button>
         <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
@@ -314,6 +318,7 @@ export function EditorShell({
     </main>
   );
 }
+
 
 
 
