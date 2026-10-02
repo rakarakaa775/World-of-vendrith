@@ -209,6 +209,7 @@ export function PixiMapCanvas(props: Props) {
       if (!world || !app || !host) return;
       const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds, layerIsolationId = null } = propsRef.current;
       const layerVisible = (layerId: string) => layerIsolationId === null || layerIsolationId === layerId;
+      const groupVisible = (layer: { groupId?: string | null }) => !layer.groupId || (document.layerGroups.find(group => group.id === layer.groupId)?.visible ?? true);
       const scene = new Container();
       const overlay = new Graphics();
       const width = document.width * document.tileSize;
@@ -221,7 +222,7 @@ export function PixiMapCanvas(props: Props) {
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
       for (const layer of document.layers) {
-        if (!layer.visible || !layerVisible(layer.id) || layer.kind === "objects") continue;
+        if (!layer.visible || !groupVisible(layer) || !layerVisible(layer.id) || layer.kind === "objects") continue;
         for (let i = 0; i < document.width * document.height; i++) {
           const id = layer.cells[i]?.tileId;
           if (!id) continue;
@@ -268,7 +269,7 @@ export function PixiMapCanvas(props: Props) {
       if (propsRef.current.debugViews?.objectBounds) {
         const objectBounds = new Graphics();
         for (const layer of document.layers) {
-          if (!layer.visible || !layerVisible(layer.id) || layer.kind !== "objects") continue;
+          if (!layer.visible || !groupVisible(layer) || !layerVisible(layer.id) || layer.kind !== "objects") continue;
           for (const object of layer.objects) {
             objectBounds.rect(
               object.x * document.tileSize + 1,
@@ -284,7 +285,7 @@ export function PixiMapCanvas(props: Props) {
       if (propsRef.current.debugViews?.invalidCells) {
         const invalidCells = new Graphics();
         for (const layer of document.layers) {
-          if (!layer.visible || !layerVisible(layer.id) || layer.kind !== "ground") continue;
+          if (!layer.visible || !groupVisible(layer) || !layerVisible(layer.id) || layer.kind !== "ground") continue;
           for (let i = 0; i < document.width * document.height; i++) {
             const tileId = layer.cells[i]?.tileId;
             if (!tileId || terrainFromTileId(tileId)) continue;
@@ -389,7 +390,7 @@ export function PixiMapCanvas(props: Props) {
       // Remote textures are an enhancement only. They never determine whether
       // the painted cell is rendered.
       for (const layer of document.layers) {
-        if (!layer.visible || !layerVisible(layer.id)) continue;
+        if (!layer.visible || !groupVisible(layer) || !layerVisible(layer.id)) continue;
         if (layer.kind !== "objects") {
           if (layer.kind === "ground") {
             const isSolidDeepwaterWorld =

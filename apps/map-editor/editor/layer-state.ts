@@ -1,4 +1,4 @@
-import type { MapDocument, MapLayer } from './map-document';
+import type { MapDocument, MapLayer, MapLayerGroup } from './map-document';
 
 export function setActiveLayer(document: MapDocument, layerId: string): MapDocument {
   return { ...document, layers: document.layers.map(layer => ({ ...layer, active: layer.id === layerId })) as MapLayer[] };
@@ -84,4 +84,45 @@ export function mergeLayers(document: MapDocument, targetLayerId: string, source
   };
   const layers = document.layers.filter(layer => layer.id !== sourceLayerId).map(layer => layer.id === targetLayerId ? mergedTarget : layer);
   return { ...document, layers };
+}
+
+function nextGroupIdentity(document: MapDocument): { id: string; name: string } {
+  let n = document.layerGroups.length + 1;
+  let id = `group-${n}`;
+  while (document.layerGroups.some(group => group.id === id)) { n += 1; id = `group-${n}`; }
+  return { id, name: `Layer Group ${n}` };
+}
+
+export function createLayerGroup(document: MapDocument, name?: string): MapDocument {
+  const identity = nextGroupIdentity(document);
+  const group: MapLayerGroup = { id: identity.id, name: name?.trim() || identity.name, visible: true, locked: false, expanded: true };
+  return { ...document, layerGroups: [...document.layerGroups, group] };
+}
+
+export function updateLayerGroup(document: MapDocument, groupId: string, patch: Partial<Pick<MapLayerGroup, 'name' | 'visible' | 'locked' | 'expanded'>>): MapDocument {
+  return { ...document, layerGroups: document.layerGroups.map(group => group.id === groupId ? { ...group, ...patch } : group) };
+}
+
+export function assignLayerToGroup(document: MapDocument, layerId: string, groupId: string | null): MapDocument {
+  if (groupId !== null && !document.layerGroups.some(group => group.id === groupId)) return document;
+  return { ...document, layers: document.layers.map(layer => layer.id === layerId ? { ...layer, groupId } : layer) };
+}
+
+export function deleteLayerGroup(document: MapDocument, groupId: string): MapDocument {
+  if (!document.layerGroups.some(group => group.id === groupId)) return document;
+  return {
+    ...document,
+    layerGroups: document.layerGroups.filter(group => group.id !== groupId),
+    layers: document.layers.map(layer => layer.groupId === groupId ? { ...layer, groupId: null } : layer),
+  };
+}
+
+export function isLayerEffectivelyVisible(document: MapDocument, layer: MapLayer): boolean {
+  const group = layer.groupId ? document.layerGroups.find(candidate => candidate.id === layer.groupId) : undefined;
+  return layer.visible && (group?.visible ?? true);
+}
+
+export function isLayerEffectivelyLocked(document: MapDocument, layer: MapLayer): boolean {
+  const group = layer.groupId ? document.layerGroups.find(candidate => candidate.id === layer.groupId) : undefined;
+  return layer.locked || (group?.locked ?? false);
 }
