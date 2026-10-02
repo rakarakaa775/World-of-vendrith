@@ -395,3 +395,14 @@
 - **Roadmap phase:** Phase 2C — Terrain & Selection Suite.
 - **Verification:** Verified with Desktop Commander: `paint-tools.test.ts` 8/8 passed; official Map Editor suite 11/11 files and 43/43 tests passed.
 - **Notes:** No Supabase schema/data, RPC, asset binary, or production runtime logic changed.
+
+
+## 2026-10-02 — Phase 2E Layer System foundation
+
+- **Type:** Added
+- **Reason:** Start the Layer System phase without changing the terrain or building foundations.
+- **Details:** Added Layer Tree controls for active selection, visibility, lock/unlock, ordering, and per-layer opacity. Opacity is part of MapLayer document metadata and is rendered through Pixi layer alpha. Existing immutable layer-state operations continue through EditorShell history, preserving undo/redo behavior.
+- **Affected:** `apps/map-editor/components/editor-shell.tsx`, `apps/map-editor/editor/layer-state.ts`, `apps/map-editor/editor/map-document.ts`, `apps/map-editor/components/pixi-map-canvas.tsx`, `apps/map-editor/tests/layer-state.test.ts`.
+- **Roadmap phase:** Phase 2E — Layer System.
+- **Verification:** PR #25 and #26 merged. Phase 2E preview build for the Layer Tree reached Vercel READY; click-level browser verification remains pending because `agent-browser` is unavailable in Codespace. The opacity branch did not receive a separate preview deployment through the API commit sequence.
+- **Notes:** No Supabase schema/data/RPC or asset binary changes.
