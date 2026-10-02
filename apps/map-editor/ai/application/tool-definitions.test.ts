@@ -16,7 +16,7 @@ function dependencies(): ProjectTools {
       async search(query) { return [{ id: "doc-1", kind: "project-rule", source: "AGENTS.md", fact: query, confidence: "high" }]; },
     },
     assetRegistry: {
-      async search(query) { return [{ id: "asset-1", kind: "verified-fact", source: "asset_license_registry", fact: query, confidence: "high" }]; },
+      async search(query) { return [{ id: "asset-1", kind: "verified-fact", source: "asset_license_registry", fact: JSON.stringify({ name: "LPC Grass", category: "terrain", licenseVerificationStatus: "verified", licenseUsageStatus: "allowed", commercialUseAllowed: true }), confidence: "high" }]; },
     },
     verification: {
       async verify(scope) { return { ok: true, checks: scope.map(name => ({ name, ok: true })) }; },
@@ -53,6 +53,6 @@ describe("project tool definitions", () => {
     });
 
     expect(graphResult).toEqual(["dep:src/editor.ts"]);
-    expect(assetResult).toMatchObject([{ source: "asset_license_registry" }]);
+    expect(assetResult).toMatchObject([{ source: "asset_license_registry", usageDomain: "world", licenseState: "clear" }]);
   });
 });
