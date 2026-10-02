@@ -12,6 +12,7 @@ import {
 } from './terrain-engine';
 import { terrainRuleKey } from './terrain-rule-catalog';
 import {
+  getExactTerrainAssetBinding,
   getTerrainAssetBinding,
   terrainAssetIdForMask,
   type TerrainAssetBindingMap,
@@ -98,8 +99,8 @@ export function resolveTerrainCell(
  * Render-time terrain resolution. The MapDocument remains semantic/source data;
  * this helper derives the visual mask and approved asset binding without
  * persisting a render variant. Land directly touching any derived water depth
- * intentionally uses its verified base mask (255), avoiding an invented cliff
- * transition until an approved shoreline mask exists.
+ * uses an exact approved shoreline mask when one exists. If no exact shoreline
+ * binding is approved, it safely falls back to the verified base mask (255).
  */
 export function resolveTerrainRenderCell(
   document: MapDocument,
@@ -113,9 +114,12 @@ export function resolveTerrainRenderCell(
   const semanticMask = neighborMask(document, layerId, point, terrain);
   const cornerMask = terrainCornerMask(document, layerId, point, terrain);
   const shorelineMask = WATER_TERRAINS.has(terrain) ? null : waterNeighborMask(document, layerId, point);
+  const shorelineBinding = shorelineMask
+    ? getExactTerrainAssetBinding(bindings, terrain, shorelineMask)
+    : null;
   const renderMask = terrain === 'deepwater'
     ? 255
-    : (shorelineMask ? 255 : semanticMask);
+    : (shorelineBinding ? shorelineMask! : semanticMask);
   const binding = getTerrainAssetBinding(bindings, terrain, renderMask);
 
   return {
