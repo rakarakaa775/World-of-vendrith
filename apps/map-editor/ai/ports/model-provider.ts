@@ -6,6 +6,7 @@ export interface ModelMessage {
   role: ModelRole;
   content: string;
   toolCallId?: string;
+  toolCalls?: ModelToolCall[];
 }
 
 export interface ModelToolDefinition {
