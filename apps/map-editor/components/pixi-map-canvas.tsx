@@ -597,7 +597,7 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
-        if (valid(p)) { current.onCellInspect?.(p); paint([p]); }
+        if (valid(p)) { current.onCellInspect?.(p); paint([p]); lastPaintPoint = p; }
         startPoint = p;
         return;
       }
@@ -636,7 +636,12 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
       if ((current.activeTool === "Paint" || current.activeTool === "Erase") && startPoint && valid(p)) {
-        paint([p]);
+        // Pointer events can jump across several cells on a fast mouse/touch
+        // movement. Paint every cell along the segment so the brush stroke has
+        // no gaps. The brush footprint is still expanded at each sampled cell.
+        const from = lastPaintPoint ?? startPoint;
+        paint(pointsInLine(from, p));
+        lastPaintPoint = p;
         return;
       }
       if (selecting && startPoint && valid(p)) { current.onSelectionChange(normalizeSelection(startPoint, p)); return; }
@@ -678,6 +683,7 @@ export function PixiMapCanvas(props: Props) {
         paint(current.activeTool === "Line" ? pointsInLine(startPoint, p) : pointsInRectangle(startPoint, p));
       }
       startPoint = null;
+      lastPaintPoint = null;
       selecting = false;
       movingObjectId = null;
       panning = false;
