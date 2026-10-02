@@ -374,3 +374,14 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Save was observed working in browser at version 7. Direct durable Load Latest is implemented in commit `5fa15f7897728ff6f727c5628bbad85a05ca00e0`; Vercel/browser verification of this commit remains pending.
 - **Notes:** No Supabase schema/data or asset binaries were changed.
+
+
+## 2026-10-02 — Paint shape regression coverage expanded
+
+- **Type:** Added
+- **Reason:** The Terrain & Selection Suite already exposed Rectangle and Flood tools, but executable test coverage only verified Line behavior.
+- **Details:** Added regression coverage for Rectangle normal/reverse drag ordering and Flood Fill contiguous-region boundaries without changing production paint behavior.
+- **Affected:** `apps/map-editor/tests/paint-tools.test.ts`.
+- **Roadmap phase:** Phase 2C — Terrain & Selection Suite.
+- **Verification:** Verified with Desktop Commander: `paint-tools.test.ts` 8/8 passed; official Map Editor suite 11/11 files and 43/43 tests passed.
+- **Notes:** No Supabase schema/data, RPC, asset binary, or production runtime logic changed.
