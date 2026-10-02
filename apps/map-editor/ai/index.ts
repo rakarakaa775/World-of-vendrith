@@ -16,6 +16,8 @@ export * from "./application/improvement-engine";
 export * from "./application/improvement-agent-runner";
 export * from "./domain/runtime";
 export * from "./domain/runtime-behavior";
+export * from "./domain/runtime-goal";
+export * from "./application/npc-goals";
 export * from "./ports/runtime";
 export * from "./policies/runtime-policy";
 export * from "./application/runtime-orchestrator";
