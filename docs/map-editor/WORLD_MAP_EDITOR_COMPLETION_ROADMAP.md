@@ -35,8 +35,8 @@ Membuat painting terrain nyaman dan lengkap sebelum masuk object placement.
 - [x] Flood Fill
 - [x] Eyedropper
 - [x] Continuous drag painting
-- [ ] Modifier/shortcut behavior
-- [ ] Tool state persistence selama sesi
+- [x] Modifier/shortcut behavior
+- [x] Tool state persistence selama sesi
 - [x] Transaction grouping untuk satu gesture menjadi satu undo step
 
 ### Exit gate
@@ -92,15 +92,15 @@ Membawa workflow editor mendekati editor map open-source yang telah direview.
 
 - [x] Selection rectangle
 - [x] Multi-cell selection
-- [ ] Move selection
-- [ ] Copy selection
-- [ ] Paste selection
-- [ ] Replace selection
-- [ ] Brush presets
-- [ ] Rectangle fill
-- [ ] Line
-- [ ] Flood
-- [ ] Eyedropper
+- [x] Move selection
+- [x] Copy selection
+- [x] Paste selection
+- [x] Replace selection
+- [x] Brush presets
+- [x] Rectangle fill
+- [x] Line
+- [x] Flood
+- [x] Eyedropper
 - [ ] Future lasso (staged, bukan blocker)
 
 ### Exit gate
