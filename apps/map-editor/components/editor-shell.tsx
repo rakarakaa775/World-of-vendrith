@@ -44,6 +44,8 @@ export function EditorShell({
   const [tileOptions, setTileOptions] = useState<TileOption[]>(STARTER_TILES);
   const [selectedTile, setSelectedTile] = useState<string>(STARTER_TILES.find(tile => tile.terrain !== "deepwater")?.id ?? STARTER_TILES[0].id);
   const [brushSize, setBrushSize] = useState(1);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
@@ -226,9 +228,9 @@ export function EditorShell({
             activeLayerId={terrainLayer}
             selectedTileId={activeTool === "Erase" ? null : selectedTile}
             brushSize={brushSize}
-            selection={null as Selection | null}
+            selection={selection}
             onPaint={handlePaint}
-            onSelectionChange={() => {}}
+            onSelectionChange={setSelection}
             onCellInspect={() => {}}
             onTerrainPick={(tileId) => {
               const picked = tileOptions.find(tile => tile.id === tileId);
@@ -245,8 +247,8 @@ export function EditorShell({
             onObjectPlace={() => {}}
             onObjectMove={() => {}}
             selectedObjectId={null}
-            selectedObjectIds={[]}
-            onObjectSelectionChange={() => {}}
+            selectedObjectIds={selectedObjectIds}
+            onObjectSelectionChange={setSelectedObjectIds}
             terrainBindings={terrainBindings}
             environmentRuntime={null}
             viewportResetKey={initialDocumentRevision}
