@@ -54,7 +54,7 @@ Memisahkan terrain semantic dari cara terrain divisualkan.
 - [x] Edge/neighbor masks
 - [x] Shoreline masks — derived 8-way water-neighbor mask is exposed at render time without persisting it
 - [x] Transition rule registry — registry semantic sudah dibuat berdasarkan pasangan transition yang saat ini terverifikasi di Supabase
-- [ ] Autotiling
+- [x] Autotiling — render-time perimeter re-evaluation resolves terrain masks/bindings without persisting visual variants
 - [x] Dual-grid/corner-mask strategy foundation — derived 2x2 corner mask is available to the render projection without persisting visual state
 - [x] Transition validation — reports unregistered cardinal terrain transitions without mutating or blocking logical authoring
 - [x] Deterministic visual variation utility
