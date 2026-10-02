@@ -29,6 +29,7 @@ type Props = {
   onPaint: (points: GridPoint[], tileId: string | null, gestureId?: number) => void;
   onSelectionChange: (selection: Selection | null) => void;
   onCellInspect?: (point: GridPoint) => void;
+  onTerrainPick?: (tileId: string) => void;
   onInputDiagnostic?: (message: string) => void;
   onStamp: (point: GridPoint) => void;
   onObjectPlace: (point: GridPoint) => void;
@@ -590,6 +591,16 @@ export function PixiMapCanvas(props: Props) {
         panning = true;
         lastX = e.clientX;
         lastY = e.clientY;
+        return;
+      }
+      if (current.activeTool === "Eyedropper") {
+        if (valid(p)) {
+          const layer = current.document.layers.find(item => item.id === current.activeLayerId);
+          const tileId = layer?.cells[p.y * current.document.width + p.x]?.tileId;
+          if (tileId) current.onTerrainPick?.(tileId);
+          current.onCellInspect?.(p);
+        }
+        startPoint = null;
         return;
       }
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
