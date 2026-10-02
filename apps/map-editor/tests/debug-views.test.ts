@@ -1,5 +1,3 @@
-[Reading 23 lines from start (total: 23 lines, 0 remaining)]
-
 import { describe, expect, it } from "vitest";
 import { createMap } from "../editor/map-document";
 import { DEFAULT_DEBUG_VIEW_STATE, setDebugViewEnabled, toggleDebugView } from "../editor/debug-views";
@@ -12,6 +10,10 @@ describe("debug view state", () => {
 
     expect(state.grid).toBe(true);
     expect(DEFAULT_DEBUG_VIEW_STATE.grid).toBe(false);
+
+    const terrainIds = toggleDebugView(state, "terrainId");
+    expect(terrainIds.terrainId).toBe(true);
+    expect(state.terrainId).toBe(false);
     expect(JSON.stringify(document)).toBe(before);
   });
 
@@ -24,4 +26,4 @@ describe("debug view state", () => {
   });
 });
 
-[executed on device: codespaces-e54cf0 (395fa14b-836a-48d6-b3c2-3cdaa0f364fc)]
+
