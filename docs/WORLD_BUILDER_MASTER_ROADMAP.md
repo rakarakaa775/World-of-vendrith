@@ -127,16 +127,16 @@ This phase is now the active UI integration phase. The established World Map edi
 
 ## World Builder shell
 
-- [ ] World overview/dashboard entry surface
+- [x] World overview/dashboard entry surface
 - [x] World metadata/project context
-- [ ] World hierarchy shell
-- [ ] World-level settings entry surface
-- [ ] Asset/library access entry surface
+- [x] World hierarchy shell
+- [x] World-level settings entry surface
+- [x] Asset/library access entry surface
 - [x] Navigation between the four World Builder scopes without replacing the established editor foundation
 
 ### Phase 1 current implementation boundary
 
-The World Builder shell and Control Center are established, but downstream workspace implementations remain intentionally staged. Region/Playable/Interior currently expose additive workspace landing surfaces and do not replace or modify the existing Building World foundation.
+The World Builder shell, Control Center, and Phase 1 entry surfaces are established. Overview, hierarchy, world settings, and asset/library access are available as additive shell surfaces. Downstream workspace implementations remain intentionally staged. Region/Playable/Interior continue to expose additive workspace landing surfaces and do not replace or modify the existing Building World foundation.
 
 ---
 
