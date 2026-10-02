@@ -82,7 +82,10 @@ export function moveSelection(
   selection: Selection,
   delta: { x: number; y: number },
 ): { document: MapDocument; selection: Selection } {
-  const destination = {\n    x: Math.max(0, Math.min(document.width - selection.width, selection.x + delta.x)),\n    y: Math.max(0, Math.min(document.height - selection.height, selection.y + delta.y)),\n  };
+  const destination = {
+    x: Math.max(0, Math.min(document.width - selection.width, selection.x + delta.x)),
+    y: Math.max(0, Math.min(document.height - selection.height, selection.y + delta.y)),
+  };
   const clipboard = copySelection(document, layerId, selection);
   const blank = {
     width: clipboard.width,
