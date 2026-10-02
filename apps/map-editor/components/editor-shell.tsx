@@ -231,7 +231,7 @@ export function EditorShell({
             terrainBindings={terrainBindings}
             environmentRuntime={null}
             viewportResetKey={initialDocumentRevision}
-            showGrid
+            showGrid={false}
           />
         </section>
       </div>
