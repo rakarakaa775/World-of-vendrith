@@ -33,7 +33,7 @@ describe("improvement engine", () => {
       evaluation:{id:"e1",taskId:task.id,strategyId:"old",validity:"valid",verificationPassed:true,novelty:"known",difficultySignal:"frontier",evidence:[]},
       proposal:{id:"p1",taskId:task.id,strategyId:"old",strategyDescription:"Search registry",strategySteps:["Search","Verify"],rationale:"x",evaluationId:"e1",requiresApproval:true}
     }];
-    const runCandidate=vi.fn(async()=>({id:"new",taskId:task.id,strategyId:"new",validity:"valid",verificationPassed:true,novelty:"new",difficultySignal:"frontier",evidence:[]}));
+    const runCandidate=vi.fn(async()=>({id:"new",taskId:task.id,strategyId:"new",validity:"valid",verificationPassed:true,novelty:"new",difficultySignal:"frontier",evidence:["verification log"]}));
     const engine=createImprovementEngine({
       generateTask:vi.fn(async()=>task),
       generateStrategy:vi.fn(async()=>({id:"new",taskId:task.id,description:"Compare graph dependencies",steps:["Analyze","Verify"]})),
