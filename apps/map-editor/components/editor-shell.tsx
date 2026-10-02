@@ -13,6 +13,7 @@ import { copySelection, pasteSelection, moveSelection, replaceSelection, type Se
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
+import { AiAssistantPanel } from "./ai-assistant-panel";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -256,6 +257,7 @@ export function EditorShell({
     <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "var(--map-editor-bg)", color: "var(--map-editor-text)" }}>
       <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", flexWrap: "wrap" }}>
         <strong style={{ marginRight: 8 }}>World Map</strong>
+        <AiAssistantPanel />
         {TOOLS.map(tool => (
           <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
             style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: activeTool === tool ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
