@@ -263,6 +263,42 @@ export function PixiMapCanvas(props: Props) {
         }
       }
 
+      if (propsRef.current.debugViews?.objectBounds) {
+        const objectBounds = new Graphics();
+        for (const layer of document.layers) {
+          if (!layer.visible || layer.kind !== "objects") continue;
+          for (const object of layer.objects) {
+            objectBounds.rect(
+              object.x * document.tileSize + 1,
+              object.y * document.tileSize + 1,
+              Math.max(2, object.width * document.tileSize - 2),
+              Math.max(2, object.height * document.tileSize - 2),
+            ).stroke({ width: 2, color: 0xf59e0b });
+          }
+        }
+        scene.addChild(objectBounds);
+      }
+
+      if (propsRef.current.debugViews?.invalidCells) {
+        const invalidCells = new Graphics();
+        for (const layer of document.layers) {
+          if (!layer.visible || layer.kind !== "ground") continue;
+          for (let i = 0; i < document.width * document.height; i++) {
+            const tileId = layer.cells[i]?.tileId;
+            if (!tileId || terrainFromTileId(tileId)) continue;
+            const x = i % document.width;
+            const y = Math.floor(i / document.width);
+            invalidCells.rect(
+              x * document.tileSize + 3,
+              y * document.tileSize + 3,
+              Math.max(1, document.tileSize - 6),
+              Math.max(1, document.tileSize - 6),
+            ).fill({ color: 0xef4444, alpha: 0.45 }).stroke({ width: 1, color: 0x991b1b });
+          }
+        }
+        scene.addChild(invalidCells);
+      }
+
       if (propsRef.current.debugViews?.terrainId || propsRef.current.debugViews?.waterDepth) {
         const debugLayer = document.layers.find(layer => layer.id === activeLayerId);
         if (debugLayer && debugLayer.kind !== "objects") {
@@ -791,6 +827,7 @@ export function PixiMapCanvas(props: Props) {
 
   return createElement("div", { ref: hostRef, className: props.previewMode ? "pixi-map-canvas-host pixi-map-canvas-preview" : "pixi-map-canvas-host", style: { position: "absolute", left: props.previewMode ? 0 : 40, top: props.previewMode ? 0 : 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
+
 
 
 
