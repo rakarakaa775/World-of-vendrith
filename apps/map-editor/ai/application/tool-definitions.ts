@@ -1,25 +1,38 @@
-import type { RepositoryPort, VerificationPort } from "../ports/project-tools";
+import type {
+  AssetRegistryPort,
+  CodeIntelligencePort,
+  DocumentationPort,
+  RepositoryPort,
+  VerificationPort,
+} from "../ports/project-tools";
 import {
   hasStringArgument,
   type ToolDefinition,
 } from "../ports/tool-router";
 
-export interface RepositoryTools {
+export interface ProjectTools {
   repository: RepositoryPort;
+  codeIntelligence: CodeIntelligencePort;
+  documentation: DocumentationPort;
+  assetRegistry: AssetRegistryPort;
   verification: VerificationPort;
 }
 
-export function createRepositoryTools(dependencies: RepositoryTools): ToolDefinition[] {
+function pathArgument(name: string) {
+  return {
+    type: "object",
+    properties: { [name]: { type: "string" } },
+    required: [name],
+  };
+}
+
+export function createProjectTools(dependencies: ProjectTools): ToolDefinition[] {
   return [
     {
       name: "repository.read_file",
       description: "Read a text file from the project repository.",
       access: "read-only",
-      parameters: {
-        type: "object",
-        properties: { path: { type: "string" } },
-        required: ["path"],
-      },
+      parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
       async execute(args) {
         return { path: args.path, content: await dependencies.repository.readFile(args.path) };
@@ -29,19 +42,55 @@ export function createRepositoryTools(dependencies: RepositoryTools): ToolDefini
       name: "repository.search",
       description: "Search project repository text for a query.",
       access: "read-only",
-      parameters: {
-        type: "object",
-        properties: { query: { type: "string" } },
-        required: ["query"],
-      },
+      parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
       async execute(args) {
         return dependencies.repository.search(args.query);
       },
     },
     {
+      name: "codegraph.dependencies",
+      description: "Find direct structural dependencies imported by a repository file.",
+      access: "read-only",
+      parameters: pathArgument("path"),
+      validate: hasStringArgument("path"),
+      async execute(args) {
+        return dependencies.codeIntelligence.findDependencies(args.path);
+      },
+    },
+    {
+      name: "codegraph.dependents",
+      description: "Find repository files that depend on a target file.",
+      access: "read-only",
+      parameters: pathArgument("path"),
+      validate: hasStringArgument("path"),
+      async execute(args) {
+        return dependencies.codeIntelligence.findDependents(args.path);
+      },
+    },
+    {
+      name: "documentation.search",
+      description: "Search authoritative Vendrith project documentation and rules.",
+      access: "read-only",
+      parameters: pathArgument("query"),
+      validate: hasStringArgument("query"),
+      async execute(args) {
+        return dependencies.documentation.search(args.query);
+      },
+    },
+    {
+      name: "asset_registry.search",
+      description: "Search asset provenance, license, attribution, and approval evidence.",
+      access: "read-only",
+      parameters: pathArgument("query"),
+      validate: hasStringArgument("query"),
+      async execute(args) {
+        return dependencies.assetRegistry.search(args.query);
+      },
+    },
+    {
       name: "verification.run",
-      description: "Run bounded project verification for the requested scopes.",
+      description: "Run bounded project verification for requested scopes.",
       access: "read-only",
       parameters: {
         type: "object",
@@ -62,3 +111,5 @@ export function createRepositoryTools(dependencies: RepositoryTools): ToolDefini
     },
   ];
 }
+
+export const createRepositoryTools = createProjectTools;
