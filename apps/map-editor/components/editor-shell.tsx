@@ -8,7 +8,7 @@ import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
-import { copySelection, pasteSelection, moveSelection, type SelectionClipboard } from "../editor/selection-clipboard";
+import { copySelection, pasteSelection, moveSelection, replaceSelection, type SelectionClipboard } from "../editor/selection-clipboard";
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
@@ -27,7 +27,7 @@ type Props = {
 };
 
 const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper"] as const;
-const BRUSH_SIZES = [1, 3, 5, 7];
+const BRUSH_PRESETS = [\n  { name: "Fine", size: 1 },\n  { name: "Medium", size: 3 },\n  { name: "Large", size: 5 },\n  { name: "XL", size: 7 },\n] as const;
 
 export function EditorShell({
   initialDocument = createMap("world"),
@@ -47,7 +47,7 @@ export function EditorShell({
   const [brushSize, setBrushSize] = useState(1);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
-  const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);
+  const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);\n  const [brushPreset, setBrushPreset] = useState("Fine");
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
@@ -89,7 +89,7 @@ export function EditorShell({
         setPaintDiagnostic("selection: pasted");
         return;
       }
-      if (event.key === "Escape" && selection) {
+      if (modifier && event.shiftKey && event.key.toLowerCase() === "r" && selection) {\n        event.preventDefault();\n        const next = replaceSelection(documentRef.current, terrainLayer, selection, selectedTile);\n        commit(next);\n        setPaintDiagnostic("selection: replaced");\n        return;\n      }\n      if (event.key === "Escape" && selection) {
         event.preventDefault();
         setSelection(null);
         setPaintDiagnostic("selection: cleared");
@@ -115,7 +115,7 @@ export function EditorShell({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [commit, selection, selectionClipboard, selectedTile, terrainLayer]);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,7 +244,7 @@ export function EditorShell({
           </div>
 
           <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
-            Tools: Paint · Erase · Line · Rectangle · Flood · Eyedropper<br />
+            Tools: Paint · Erase · Line · Rectangle · Flood · Eyedropper<br />            Selection: Ctrl/Cmd+C · Ctrl/Cmd+V · Shift+Ctrl/Cmd+R · Alt+Arrow · Esc<br />
             Undo/Redo: Ctrl/Cmd+Z · Ctrl/Cmd+Y<br />
             World: {document.width}×{document.height}<br />
             Active layer: {activeLayer}<br />
