@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "./map-document";
-import { applyWaterDepthGradient, neighborMask, TERRAIN_MASK_BITS } from "./terrain-engine";
+import { applyWaterDepthGradient, neighborMask, terrainCornerMask, TERRAIN_CORNER_BITS, TERRAIN_MASK_BITS } from "./terrain-engine";
 
 describe("water depth gradient", () => {
   it("collapses leftover shoreline bands to deepwater when a WORLD map has no land", () => {
@@ -113,5 +113,49 @@ describe("terrain edge and neighbor masks", () => {
 
     expect(neighborMask(document, "ground", { x: 1, y: 1 }, "grass"))
       .toBe(255 & ~TERRAIN_MASK_BITS.n);
+  });
+});
+
+
+describe("terrain dual-grid corner masks", () => {
+  it("marks all four solid 2x2 quadrants for a uniform terrain", () => {
+    const base = createMap("world");
+    const document = {
+      ...base,
+      width: 3,
+      height: 3,
+      layers: base.layers.map(layer => ({
+        ...layer,
+        cells: Array.from({ length: 9 }, () => ({ tileId: "grass" })),
+      })),
+    };
+
+    expect(terrainCornerMask(document, "ground", { x: 1, y: 1 }, "grass"))
+      .toBe(TERRAIN_CORNER_BITS.nw | TERRAIN_CORNER_BITS.ne | TERRAIN_CORNER_BITS.se | TERRAIN_CORNER_BITS.sw);
+  });
+
+  it("clears only the corner whose 2x2 quadrant crosses another terrain", () => {
+    const base = createMap("world");
+    const document = {
+      ...base,
+      width: 3,
+      height: 3,
+      layers: base.layers.map(layer => ({
+        ...layer,
+        cells: Array.from({ length: 9 }, () => ({ tileId: "grass" })),
+      })),
+    };
+    const ground = document.layers.find(layer => layer.id === "ground")!;
+    ground.cells[0] = { tileId: "water" };
+
+    expect(terrainCornerMask(document, "ground", { x: 1, y: 1 }, "grass"))
+      .toBe(TERRAIN_CORNER_BITS.ne | TERRAIN_CORNER_BITS.se | TERRAIN_CORNER_BITS.sw);
+  });
+
+  it("does not persist or mutate terrain when resolving the corner mask", () => {
+    const base = createMap("world");
+    const before = JSON.stringify(base);
+    terrainCornerMask(base, "ground", { x: 0, y: 0 }, "deepwater");
+    expect(JSON.stringify(base)).toBe(before);
   });
 });
