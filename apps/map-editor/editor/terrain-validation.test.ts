@@ -16,7 +16,7 @@ function mapWithCenter(centerTile: string, northTile = "grass") {
       layer.id === "ground"
         ? {
             ...layer,
-            cells: Array.from({ length: 9 }, () => ({ tileId: "grass" })).map(
+            cells: Array.from({ length: 9 }, () => ({ tileId: "deepwater" })).map(
               (cell, index) =>
                 index === 4
                   ? { tileId: centerTile }
