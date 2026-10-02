@@ -36,7 +36,8 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
       async execute(args) {
-        return { path: args.path, content: await dependencies.repository.readFile(args.path) };
+        const input = args as { path: string };
+        return { path: input.path, content: await dependencies.repository.readFile(input.path) };
       },
     },
     {
@@ -46,7 +47,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
       async execute(args) {
-        return dependencies.repository.search(args.query);
+        return dependencies.repository.search((args as { query: string }).query);
       },
     },
     {
@@ -56,7 +57,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
       async execute(args) {
-        return dependencies.codeIntelligence.findDependencies(args.path);
+        return dependencies.codeIntelligence.findDependencies((args as { path: string }).path);
       },
     },
     {
@@ -66,7 +67,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
       async execute(args) {
-        return dependencies.codeIntelligence.findDependents(args.path);
+        return dependencies.codeIntelligence.findDependents((args as { path: string }).path);
       },
     },
     {
@@ -76,7 +77,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
       async execute(args) {
-        return dependencies.documentation.search(args.query);
+        return dependencies.documentation.search((args as { query: string }).query);
       },
     },
     {
@@ -86,7 +87,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
       async execute(args) {
-        const evidence = await dependencies.assetRegistry.search(args.query);
+        const evidence = await dependencies.assetRegistry.search((args as { query: string }).query);
         return evidence.map((item) => {
           const intelligence = classifyAssetEvidence(item);
           return { ...intelligence.evidence, usageDomain: intelligence.usageDomain, licenseState: intelligence.licenseState, reason: intelligence.reason };
@@ -111,7 +112,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
         (args as { scope: unknown[] }).scope.length <= 20 &&
         (args as { scope: unknown[] }).scope.every((item) => typeof item === "string"),
       async execute(args) {
-        return dependencies.verification.verify(args.scope);
+        return dependencies.verification.verify((args as { scope: string[] }).scope);
       },
     },
   ];
