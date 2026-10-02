@@ -1,4 +1,4 @@
-export type DebugViewId = "grid" | "terrainId" | "waterDepth";
+export type DebugViewId = "grid" | "terrainId" | "waterDepth" | "collision";
 
 export type DebugViewState = Readonly<Record<DebugViewId, boolean>>;
 
@@ -6,6 +6,7 @@ export const DEFAULT_DEBUG_VIEW_STATE: DebugViewState = Object.freeze({
   grid: false,
   terrainId: false,
   waterDepth: false,
+  collision: false,
 });
 
 export function setDebugViewEnabled(state: DebugViewState, view: DebugViewId, enabled: boolean): DebugViewState {
@@ -16,6 +17,7 @@ export function setDebugViewEnabled(state: DebugViewState, view: DebugViewId, en
 export function toggleDebugView(state: DebugViewState, view: DebugViewId): DebugViewState {
   return setDebugViewEnabled(state, view, !state[view]);
 }
+
 
 
 

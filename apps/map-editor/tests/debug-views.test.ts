@@ -14,6 +14,10 @@ describe("debug view state", () => {
     const terrainIds = toggleDebugView(state, "terrainId");
     expect(terrainIds.terrainId).toBe(true);
     expect(state.terrainId).toBe(false);
+
+    const collision = toggleDebugView(terrainIds, "collision");
+    expect(collision.collision).toBe(true);
+    expect(terrainIds.collision).toBe(false);
     expect(JSON.stringify(document)).toBe(before);
   });
 
@@ -25,5 +29,6 @@ describe("debug view state", () => {
     expect(unchanged.grid).toBe(true);
   });
 });
+
 
 
