@@ -1,8 +1,19 @@
 import type { MapDocument } from './map-document';
 import type { GridPoint } from './grid';
-import { neighborMask, terrainAt, terrainFromTileId, terrainVariantKey, type TerrainKey, type TerrainMask } from './terrain-engine';
+import {
+  neighborMask,
+  terrainAt,
+  terrainFromTileId,
+  terrainVariantKey,
+  type TerrainKey,
+  type TerrainMask,
+} from './terrain-engine';
 import { terrainRuleKey } from './terrain-rule-catalog';
-import { terrainAssetIdForMask, type TerrainAssetBindingMap } from './terrain-asset-binding';
+import {
+  getTerrainAssetBinding,
+  terrainAssetIdForMask,
+  type TerrainAssetBindingMap,
+} from './terrain-asset-binding';
 
 export type TerrainVariant = {
   terrain: TerrainKey;
@@ -35,7 +46,26 @@ const FALLBACK_TILE: Record<TerrainKey, string> = {
   lavarock: 'lavarock',
 };
 
-export function resolveTerrainVariant(terrain: TerrainKey, mask: TerrainMask, resolver?: TerrainResolver): TerrainVariant {
+const WATER_TERRAINS = new Set<TerrainKey>(['water', 'brackish', 'deepwater2', 'deepwater']);
+
+function hasWaterNeighbor(document: MapDocument, layerId: string, point: GridPoint): boolean {
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      if (dx === 0 && dy === 0) continue;
+      const x = point.x + dx;
+      const y = point.y + dy;
+      if (x < 0 || y < 0 || x >= document.width || y >= document.height) continue;
+      if (WATER_TERRAINS.has(terrainAt(document, { x, y }, layerId) as TerrainKey)) return true;
+    }
+  }
+  return false;
+}
+
+export function resolveTerrainVariant(
+  terrain: TerrainKey,
+  mask: TerrainMask,
+  resolver?: TerrainResolver,
+): TerrainVariant {
   const assetId = resolver?.(terrain, mask) ?? null;
   return {
     terrain,
@@ -47,13 +77,55 @@ export function resolveTerrainVariant(terrain: TerrainKey, mask: TerrainMask, re
   };
 }
 
-export function resolveTerrainCell(document: MapDocument, layerId: string, point: GridPoint, resolver?: TerrainResolver): TerrainVariant | null {
+export function resolveTerrainCell(
+  document: MapDocument,
+  layerId: string,
+  point: GridPoint,
+  resolver?: TerrainResolver,
+): TerrainVariant | null {
   const terrain = terrainAt(document, point, layerId);
   if (!terrain) return null;
   return resolveTerrainVariant(terrain, neighborMask(document, layerId, point, terrain), resolver);
 }
 
-export function resolveTerrainArea(document: MapDocument, layerId: string, points: GridPoint[], resolver?: TerrainResolver): TerrainVariant[] {
+/**
+ * Render-time terrain resolution. The MapDocument remains semantic/source data;
+ * this helper derives the visual mask and approved asset binding without
+ * persisting a render variant. Land directly touching any derived water depth
+ * intentionally uses its verified base mask (255), avoiding an invented cliff
+ * transition until an approved shoreline mask exists.
+ */
+export function resolveTerrainRenderCell(
+  document: MapDocument,
+  layerId: string,
+  point: GridPoint,
+  bindings: TerrainAssetBindingMap,
+): TerrainVariant | null {
+  const terrain = terrainAt(document, point, layerId);
+  if (!terrain) return null;
+
+  const semanticMask = neighborMask(document, layerId, point, terrain);
+  const renderMask = terrain === 'deepwater'
+    ? 255
+    : (!WATER_TERRAINS.has(terrain) && hasWaterNeighbor(document, layerId, point) ? 255 : semanticMask);
+  const binding = getTerrainAssetBinding(bindings, terrain, renderMask);
+
+  return {
+    terrain,
+    mask: renderMask,
+    variantKey: terrainVariantKey(renderMask),
+    ruleKey: terrainRuleKey(terrain),
+    assetId: binding?.assetId ?? null,
+    tileId: binding?.assetId ?? FALLBACK_TILE[terrain] ?? null,
+  };
+}
+
+export function resolveTerrainArea(
+  document: MapDocument,
+  layerId: string,
+  points: GridPoint[],
+  resolver?: TerrainResolver,
+): TerrainVariant[] {
   const seen = new Set<string>();
   const result: TerrainVariant[] = [];
   for (const point of points) {
@@ -70,7 +142,12 @@ export function createTerrainAssetResolver(bindings: TerrainAssetBindingMap): Te
   return (terrain, mask) => terrainAssetIdForMask(bindings, terrain, mask);
 }
 
-export function resolveTerrainCellWithAssets(document: MapDocument, layerId: string, point: GridPoint, bindings: TerrainAssetBindingMap): TerrainVariant | null {
+export function resolveTerrainCellWithAssets(
+  document: MapDocument,
+  layerId: string,
+  point: GridPoint,
+  bindings: TerrainAssetBindingMap,
+): TerrainVariant | null {
   return resolveTerrainCell(document, layerId, point, createTerrainAssetResolver(bindings));
 }
 
