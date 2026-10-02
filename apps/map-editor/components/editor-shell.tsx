@@ -6,7 +6,7 @@ import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
-import { setActiveLayer, updateLayer, reorderLayer } from "../editor/layer-state";
+import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers } from "../editor/layer-state";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
 import { copySelection, pasteSelection, moveSelection, replaceSelection, type SelectionClipboard } from "../editor/selection-clipboard";
@@ -214,6 +214,11 @@ export function EditorShell({
     opacity: Math.max(0, Math.min(1, opacity)),
   }));
   const moveLayer = (layerId: string, direction: "up" | "down") => commit(reorderLayer(documentRef.current, layerId, direction));
+  const handleDuplicateLayer = (layerId: string) => commit(duplicateLayer(documentRef.current, layerId));
+  const handleMergeLayer = (sourceLayerId: string) => {
+    const target = documentRef.current.layers.find(layer => layer.id !== sourceLayerId && layer.kind === documentRef.current.layers.find(candidate => candidate.id === sourceLayerId)?.kind);
+    if (target) commit(mergeLayers(documentRef.current, target.id, sourceLayerId));
+  };
 
   const selectTool = (tool: string) => setActiveTool(tool);
   const cycleLayerIsolation = () => {
@@ -293,6 +298,8 @@ export function EditorShell({
                   <button type="button" onClick={() => toggleLayerVisibility(layer.id)} aria-label={(layer.visible ? "Hide " : "Show ") + layer.name} title={layer.visible ? "Hide layer" : "Show layer"} style={{ padding: "2px 5px" }}>{layer.visible ? "◉" : "○"}</button>
                   <button type="button" onClick={() => toggleLayerLock(layer.id)} aria-label={(layer.locked ? "Unlock " : "Lock ") + layer.name} title={layer.locked ? "Unlock layer" : "Lock layer"} style={{ padding: "2px 5px" }}>{layer.locked ? "🔒" : "🔓"}</button>
                   <input type="range" min="0" max="1" step="0.05" value={layer.opacity} onChange={event => setLayerOpacity(layer.id, Number(event.target.value))} aria-label={"Opacity " + layer.name} title={"Opacity " + Math.round(layer.opacity * 100) + "%"} style={{ width: 76 }} />
+                  <button type="button" onClick={() => handleDuplicateLayer(layer.id)} aria-label={"Duplicate " + layer.name} title="Duplicate layer" style={{ padding: "2px 5px" }}>⧉</button>
+                  <button type="button" onClick={() => handleMergeLayer(layer.id)} disabled={!document.layers.some(other => other.id !== layer.id && other.kind === layer.kind)} aria-label={"Merge " + layer.name} title="Merge into adjacent same-kind layer" style={{ padding: "2px 5px" }}>⊕</button>
                   <button type="button" onClick={() => moveLayer(layer.id, "up")} disabled={index === 0} aria-label={"Move " + layer.name + " up"} title="Move up" style={{ padding: "2px 5px" }}>↑</button>
                   <button type="button" onClick={() => moveLayer(layer.id, "down")} disabled={index === document.layers.length - 1} aria-label={"Move " + layer.name + " down"} title="Move down" style={{ padding: "2px 5px" }}>↓</button>
                 </div>
