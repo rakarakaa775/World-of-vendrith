@@ -15,6 +15,7 @@ import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
 import { buildProjectSchemaSummary } from "./schema-intelligence";
 import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
 import { inspectMap } from "./map-inspector";
+import { inspectAsset, inspectRegion, inspectWorld } from "./content-inspectors";
 
 export interface ProjectTools {
   repository: RepositoryPort;
@@ -62,7 +63,33 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
   ];
 
   if (dependencies.mapInspector) {
-    tools.push({
+    const contentDeps = { map: dependencies.mapInspector, assetRegistry: dependencies.assetRegistry };
+    tools.push(
+      {
+        name: "world.inspect",
+        description: "Inspect an authoritative World map, its hierarchy, content, terrain, linked Regions, and asset provenance. Read-only.",
+        access: "read-only",
+        parameters: pathArgument("worldId"),
+        validate: hasStringArgument("worldId"),
+        async execute(args) { return inspectWorld((args as { worldId: string }).worldId, contentDeps); },
+      },
+      {
+        name: "region.inspect",
+        description: "Inspect an authoritative Region map, its hierarchy, content, linked Playable maps, and asset provenance. Read-only.",
+        access: "read-only",
+        parameters: pathArgument("regionId"),
+        validate: hasStringArgument("regionId"),
+        async execute(args) { return inspectRegion((args as { regionId: string }).regionId, contentDeps); },
+      },
+      {
+        name: "asset.inspect",
+        description: "Inspect verified asset registry evidence, placement domain, license state, attribution, and usage permissions. Read-only.",
+        access: "read-only",
+        parameters: pathArgument("assetId"),
+        validate: hasStringArgument("assetId"),
+        async execute(args) { return inspectAsset((args as { assetId: string }).assetId, contentDeps); },
+      },
+      {
       name: "map.inspect",
       description: "Inspect an authoritative Vendrith map by ID: identity, hierarchy, layers, terrain, objects, linked maps, and verified asset provenance. Read-only and evidence-backed.",
       access: "read-only",
@@ -74,7 +101,8 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
           assetRegistry: dependencies.assetRegistry,
         });
       },
-    });
+      },
+    );
   }
 
   tools.push(
