@@ -1,11 +1,12 @@
 import type { Evidence } from "../domain/types";
-import type { CodeIntelligencePort, DocumentationPort, RepositoryPort } from "../ports/project-tools";
+import type { AssetRegistryPort, CodeIntelligencePort, DocumentationPort, RepositoryPort } from "../ports/project-tools";
 
 export interface ProjectContextRequest {
   prompt: string;
   repositoryQuery?: string;
   maxRepositoryMatches?: number;
   maxDocumentationEvidence?: number;
+  maxAssetEvidence?: number;
 }
 
 export interface ProjectContext {
@@ -13,12 +14,14 @@ export interface ProjectContext {
   repositoryMatches: Array<{ path: string; excerpt: string }>;
   dependencyMap: Array<{ path: string; dependencies: string[]; dependents: string[] }>;
   documentationEvidence: Evidence[];
+  assetEvidence: Evidence[];
 }
 
 export interface ProjectContextDependencies {
   repository: RepositoryPort;
   code: CodeIntelligencePort;
   documentation: DocumentationPort;
+  assetRegistry: AssetRegistryPort;
 }
 
 export async function buildProjectContext(
@@ -38,6 +41,10 @@ export async function buildProjectContext(
     0,
     request.maxDocumentationEvidence ?? 8,
   );
+  const assetEvidence = (await deps.assetRegistry.search(request.prompt)).slice(
+    0,
+    request.maxAssetEvidence ?? 8,
+  );
 
-  return { query, repositoryMatches: matches, dependencyMap, documentationEvidence };
+  return { query, repositoryMatches: matches, dependencyMap, documentationEvidence, assetEvidence };
 }
