@@ -1,0 +1,244 @@
+# Vendrith WORLD Asset Audit
+
+**Status:** WORLD classification and provenance audit complete; binary repository transfer remains pending where the binary blob has not been individually verified.
+
+## Scope
+WORLD contains natural environment and macro-terrain only: ground and terrain materials, water, mountains, hills, cliffs, natural rock formations, forests, jungle, desert environment, swamp environment, and snow/ice biomes.
+
+Man-made structures such as bridges, docks, ships, houses, villages, towns, cities, castles and ruins belong to REGION, not WORLD.
+
+Living entities are handled by the separate Life Generation system and are not classified as ordinary WORLD assets.
+
+## Canonical WORLD structure
+```text
+01_WORLD
+├── 01_GROUND
+│   ├── 01_GRASS
+│   ├── 02_DIRT
+│   ├── 03_SAND
+│   ├── 04_STONE
+│   ├── 05_MUD
+│   ├── 06_BEACH
+│   └── 07_GROUND_TRANSITIONS
+├── 02_WATER
+│   ├── 01_COASTAL_WATER
+│   ├── 02_NORMAL_WATER
+│   ├── 03_DEEP_WATER
+│   ├── 04_WATER_TRANSITIONS
+│   ├── 05_FLOWING_WATER
+│   └── 06_FROZEN_WATER
+├── 03_MOUNTAINS
+├── 04_HILLS
+├── 05_CLIFFS
+├── 06_NATURAL_ROCK_FORMATIONS
+├── 07_FOREST
+├── 08_JUNGLE
+├── 09_DESERT
+├── 10_SWAMP
+└── 11_SNOW_BIOMES
+```
+
+
+## World style rule: MEDIEVAL FANTASY ONLY
+
+Vandrith World uses a **medieval-fantasy visual and technological baseline**. Fantasy elements may be added when they fit the setting, but modern/industrial-world assets are excluded unless the project explicitly changes this rule.
+
+### Allowed
+
+- Medieval natural environments and terrain
+- Fantasy natural environments
+- Magical natural phenomena
+- Medieval/fantasy materials and scenery
+- Floating islands, magical crystals, enchanted forests and similar fantasy nature when appropriate
+
+### Excluded from WORLD
+
+- Modern city terrain
+- Asphalt highways and modern road surfaces
+- Modern urban landscaping
+- Industrial/sci-fi terrain
+- Airport/runway environments
+- Modern infrastructure
+- Contemporary urban props
+- Modern vehicles and machines
+- Modern/industrial watercraft
+
+Fantasy does **not** mean "anything unusual is allowed". The asset must still fit the medieval-fantasy world and the WORLD natural-environment role.
+
+## Provenance register
+
+| WORLD area | Source evidence | License / attribution | Audit state |
+|---|---|---|---|
+| Ground: grass/dirt/stone/mud/bog/sand/beach | [LPC] Terrains | CC-BY-SA 4.0 + CC-BY-SA 3.0; retain source attribution | Source verified; exact binary mapping pending unless separately recorded |
+| Sand + deep water | [LPC] Colorful Sand + Deep Water! | CC-BY-SA 3.0 + GPL 3.0; attribution required | Source verified; exact binary mapping pending |
+| Water animation / waterfalls | [LPC] Animated Water and waterfalls | CC-BY-SA 3.0; retain LPC attribution | Source verified; exact binary mapping pending |
+| Water transitions / deep-water transitions | [LPC] More Water Transitions | GPL 3.0 + CC-BY-SA 3.0; original author attribution required | Source verified; exact binary mapping pending |
+| Mountains / hills / cliffs / rocks | [LPC] Mountains | CC-BY-SA 4.0 + CC-BY-SA 3.0; retain CREDITS-mountains.txt attribution | Source verified; exact binary mapping pending |
+| LPC mountains/cliffs alternate source | LPC cliffs/mountains with grass top and more! | CC-BY-SA 3.0 / GPL 3.0; retain component attribution | Source verified; exact binary mapping pending |
+| Forest | [LPC] Forest tiles | Multi-license LPC source; retain credits.txt | Source verified; exact binary mapping pending |
+| Jungle | [LPC] Jungle | Current source: CC-BY 4.0; use the applicable version's attribution | Source verified; exact binary mapping pending |
+| Desert environment | [LPC] Beach / Desert and LPC terrain sources | CC-BY-SA 3.0 for Beach / Desert; sand source must be credited separately | Source verified; exact binary mapping pending |
+| Swamp terrain | [LPC] Terrains | CC-BY-SA 4.0 + CC-BY-SA 3.0 | Terrain source verified; swamp-specific vegetation remains review pending |
+| Snow / seasonal terrain | [LPC] Overworld; [LPC Revised] 4-Season Terrain | Source-specific attribution; 4-Season Terrain uses OGA-BY 3.0 | Source verified; exact binary mapping pending |
+| Frozen water | Frozen Lake [LPC]; LPC Terrains adaptation | CC-BY 3.0 for Frozen Lake source; preserve attribution | Source verified; exact binary mapping pending |
+
+## Existing repository-approved terrain records
+The repository's assets/_documentation/ASSET_LIBRARY_REGISTRY.md already records individually verified originals for assets/map-editor/terrain/tile_grass.png and assets/map-editor/terrain/tile_dirt.png.
+
+It also records tile_sand.png and tile_water.png as approved registry records while explicitly keeping their binary repository status pending until checksum and binary transfer are verified.
+
+## Audit rules
+1. Finding an OpenGameArt source does not by itself prove that a repository binary came from that source.
+2. A binary becomes repository-present only after binary content, repository path, provenance/license, registry identity and checksum are verified.
+3. Original attribution/readme/license files must remain available with the relevant source record.
+4. Mixed packs such as [LPC] Overworld must be split logically: natural terrain goes to WORLD; buildings, docks, ships, towns and similar structures go to REGION.
+5. One canonical asset may be reused by multiple biomes without duplicating its provenance record.
+6. Unknown or unverified provenance remains review-pending and is never assigned a guessed creator/license.
+
+## Important binary-transfer limitation
+The current GitHub connector can create/update UTF-8 documentation files but does not provide a verified binary upload path for the supplied large asset libraries. Therefore this audit document records classification and provenance without falsely claiming that every WORLD binary has already been transferred into GitHub.
+
+## Next stage
+WORLD is now the completed classification/audit unit. REGION can be audited as a separate unit after the WORLD documentation is accepted.
+
+## Primary source pages
+- https://opengameart.org/content/lpc-terrains
+- https://opengameart.org/content/lpc-colorful-sand-deep-water
+- https://opengameart.org/content/lpc-animated-water-and-waterfalls
+- https://opengameart.org/content/lpc-more-water-transitions
+- https://opengameart.org/content/lpc-mountains
+- https://opengameart.org/content/lpc-cliffsmountains-with-grass-top-and-more
+- https://opengameart.org/content/lpc-forest-tiles
+- https://opengameart.org/content/lpc-jungle
+- https://opengameart.org/content/lpc-beach-desert
+- https://opengameart.org/content/lpc-overworld-0
+- https://opengameart.org/content/lpc-revised-4-season-terrain
+- https://opengameart.org/content/frozen-lake-lpc
+
+## LPC Terrains focused audit — 2026-09-26
+
+The repository contains exactly **59** `lpc_terrain__*.png` binaries in the WORLD terrain staging path. Their classification is locked in `LPC_TERRAINS_WORLD_AUDIT_2026-09-26.md`.
+
+For water, the canonical taxonomy is:
+
+- **Coastal / Shallow** — transition tiles involving sand, red sand or grass.
+- **Open Water** — `lpc_terrain__water.png`.
+- **Deep Water** — `lpc_terrain__deepwater.png`, `lpc_terrain__deepwater2.png`.
+- **Brackish** — `lpc_terrain__brackish.png`.
+- **Cold Water** — `coldwater*` and related cold-water transitions.
+- **Frozen / Ice** — `ice*` and `snowice`, without assuming sea-ice origin.
+
+The six `tileset01a-f` files remain source-tileset candidates pending visual/source verification. This prevents filename-based overclassification.
+
+This focused audit is metadata-only: no PNG duplication or relocation is required. Provenance and checksum approval remain controlled separately.
+
+
+## Natural landforms focused audit — 2026-09-26
+
+A filename-level audit now covers **23 natural landform binaries** staged under WORLD terrain:
+- 9 mountain-related
+- 3 hills
+- 4 cliffs
+- 7 natural rocks
+
+The detailed classification and provenance boundaries are recorded in `WORLD_MOUNTAINS_HILLS_CLIFFS_ROCKS_AUDIT_2026-09-26.md`.
+
+Important provenance separation:
+- ordinary [LPC] Mountains → CC-BY-SA 4.0 / CC-BY-SA 3.0 source family;
+- Mountains from The Mana World → separate GPL 2.0 source family;
+- [LPC] Overworld → separate CC-BY-SA 3.0 / GPL 3.0 source family;
+- [LPC] Rocks → separate multi-author CC-BY-SA source family;
+- grass-topped cliff/mountain derivatives → separate source record until binary identity is confirmed.
+
+Filename classification is not binary provenance approval. Ambiguous assets remain pending exact source/binary verification.
+
+
+## Natural vegetation focused audit — Forest / Woodland / Conifer / Jungle — 2026-09-26
+
+A focused enumeration identified **25 PNG candidates** in WORLD terrain staging whose filenames indicate forest, trees, plants, seasonal vegetation or jungle roles. The detailed audit is recorded in `WORLD_FOREST_WOODLAND_CONIFER_JUNGLE_AUDIT_2026-09-26.md`.
+
+Canonical logical bindings now distinguish:
+- FOREST / woodland / deciduous;
+- CONIFER as a separate class, but only after visual/source verification;
+- seasonal vegetation;
+- orchard / fruit trees;
+- understory / plants;
+- JUNGLE with giant trees, viney trees, giant plants and giant fungi.
+
+No current binary is promoted to CONIFER merely because the official LPC Conifers source exists; the current 25-file filename enumeration contains no explicit dedicated conifer filename. Repacked/edited/submission sheets remain provenance-pending.
+
+The main source boundaries are preserved: [LPC] Forest tiles, [LPC] Trees, [LPC] Conifers, [LPC] Jungle, [LPC] Fruit Trees, All Seasons Apple Tree, LPC Orange Trees, and Flowers / Plants / Fungi / Wood are separate source records with different attribution/license requirements. 
+
+This is metadata classification only. No PNG duplication is required, and filename/source-family similarity is not binary approval.
+
+
+## Natural desert focused audit — 2026-09-26
+
+A focused enumeration identified **17 PNG candidates** in WORLD terrain staging whose filenames indicate desert/sand semantics. The detailed audit is recorded in `WORLD_DESERT_DESERT_VEGETATION_AUDIT_2026-09-26.md`.
+
+The candidates are separated into desert terrain, sand/water transitions, and desert landforms. Importantly, **0 filename-explicit dedicated desert-vegetation binaries** were found in the current WORLD terrain staging path. The existence of the official [LPC] Beach / Desert source does not justify assigning a repository binary to it without an actual source/binary match.
+
+Desert vegetation therefore remains a valid Asset Library subtype (cactus, succulents, dry shrubs, desert trees) but currently has no approved/identified binary in this staging set.
+
+The [LPC] Beach / Desert source is CC-BY-SA 3.0 and has its own multi-author credits requirements; its vegetation must not inherit the license/credits of the separate [LPC] Terrains sand source merely because both are used in desert environments. citeturn0search0turn0search2
+
+
+## Natural wetlands focused audit — 2026-09-26
+
+A filename-focused scan identified **21 PNG candidates** related to brackish water, water-grass transitions, dirt/grass variants, depressions and wetland-adjacent terrain. Only a subset is swamp-specific from filename semantics: `lpc_terrain__brackish.png` plus water-grass transition variants are the strongest candidates. Generic dirt, grass and hole/depression tiles remain context-dependent.
+
+No generic plant/dead-tree/fungi binary is automatically classified as swamp vegetation. The detailed audit is recorded in `WORLD_SWAMP_WETLANDS_AUDIT_2026-09-26.md`.
+
+The upstream [LPC] Terrains ecosystem includes bog among its terrain content, but that does not prove exact binary identity for any current repository PNG. 
+
+
+## Snow / Tundra / Frozen Landscapes focused audit — 2026-09-26
+
+Filename scan found **33 PNG candidates** containing snow, ice, frozen, winter or cold semantics. Strong groups include snow ground, snow transitions, frozen/ice terrain, snowy mountains/hills/cliffs/rocks, and snowy forest/tree variants. Cold-water combinations remain distinct from frozen water until visually verified.
+
+The repository has a substantial winter/frozen asset family, but no filename-explicit dedicated tundra vegetation family. Tundra therefore remains a metadata-defined biome context rather than an invented binary classification. Detailed audit: `WORLD_SNOW_TUNDRA_FROZEN_AUDIT_2026-09-26.md`.
+
+
+## Ground / Terrain Core focused audit — 2026-09-26
+
+A broad filename discovery scan returned 144 PNG paths because generic words such as terrain, grass, dirt, sand and rock occur throughout biome-specific sheets. This is a discovery count, not a Ground Core approval count.
+
+Conservative Ground Core candidates include grass variants (`LPC_Overworld__Grass.png`, `lpc_terrain__grass*.png`), dirt/soil variants (`lpc_terrain__dirt*.png`, `tilesets_edit__10_dirt.png`), and beach candidates (`LPC_Overworld__Beach.png`, `tilesets_edit__9_beach.png`). Stone remains sheet-level pending visual/source verification. Mud is confirmed as a source-family terrain in LPC Terrains but no filename-explicit mud binary is promoted yet.
+
+Detailed audit: `WORLD_GROUND_TERRAIN_CORE_AUDIT_2026-09-26.md`.
+
+
+## Ground Transitions / Edge & Blend Library — 2026-09-26
+
+Focused filename scan found **29 transition-related PNG candidates**. Strong families include grass↔water, sand↔water, snow↔grass/water/ice, cold-water transitions, and ice↔grass. These are modeled as relationships between materials rather than new biome categories. Detailed audit: `WORLD_GROUND_TRANSITIONS_AUDIT_2026-09-26.md`.
+
+
+## Natural Hazards / Special Terrain — 2026-09-26
+
+Focused scan found **14 PNG candidates**: lava/volcanic terrain, waterfall, cave sheets, and natural hole/depression variants. Lava, waterfall and volcanic rock receive dedicated special-terrain metadata; holes remain natural-depression mechanics and are not automatically caves. Cave sheets remain role-pending until visual verification. Detailed audit: `WORLD_NATURAL_HAZARDS_SPECIAL_TERRAIN_AUDIT_2026-09-26.md`.
+
+
+## Shorelines / Rivers / Lakes / Water Features — 2026-09-26
+
+A focused water-feature audit found **40 filename matches**, then conservatively separated false positives from actual water assets. Strong feature candidates include `LPC_Overworld__River.png`, `LPC_Overworld__Water.png`, `LPC_Overworld__Beach.png`, dedicated water tilesheets, `brackish`, `deepwater`, `coldwater`, and the existing waterfall sheet. Existing coastal/open/deep/cold/frozen water state taxonomy remains authoritative; river/lake/shoreline are feature roles layered over water state, not replacement water states.
+
+Recommended model:
+- `water_state`: COASTAL/SHALLOW, OPEN, DEEP, BRACKISH, COLD, FROZEN
+- `water_feature`: SHORELINE, RIVER, LAKE, WATERFALL, OCEAN/SEA
+- `transition`: LAND↔WATER, SHALLOW↔DEEP, OPEN↔DEEP, COLD↔SNOW, etc.
+
+`LPC_Overworld__River.png` is a RIVER feature candidate, while `lpc_terrain__deepwater*.png` remains DEEP water state. Do not infer a lake binary merely because a water tilesheet can be used to build a lake.
+
+Web research confirms LPC water resources distinguish animated/flowing water and waterfalls, and source discussion distinguishes visual behavior for ponds, rivers, depth and shore edges. citeturn0search1turn0search11
+
+Detailed audit: `WORLD_SHORELINES_RIVERS_LAKES_WATER_FEATURES_AUDIT_2026-09-26.md`.
+
+
+## Vegetation Ecology — 2026-09-26
+
+Focused vegetation scan returned **52 filename-related candidates**; terrain transitions and generic grass materials were excluded. Strong families: forest/woodland, seasonal/snow trees, orchard/fruit trees, jungle, understory/plants/fungi, and dead vegetation. Desert and wetland vegetation remain source-supported but binary-pending where filename evidence is insufficient. Vegetation is modeled as `family + biome compatibility + season + ecology role + provenance`, so one verified binary can serve multiple biome palettes without duplication. Detailed audit: `WORLD_VEGETATION_ECOLOGY_AUDIT_2026-09-26.md`.
+
+
+## Biome Composition & Ecology Rules — 2026-09-26
+
+WORLD biomes are now modeled as compositions of ground, water state/features, landforms, vegetation, transitions, seasonal modifiers and special features. Canonical recipes cover FOREST, JUNGLE, DESERT, SWAMP/WETLAND, SNOW/TUNDRA and COASTAL, with MOUNTAIN/HILLS treated as orthogonal landform modifiers. No biome creates duplicate PNGs. Detailed rules: `WORLD_BIOME_COMPOSITION_ECOLOGY_RULES_2026-09-26.md`.

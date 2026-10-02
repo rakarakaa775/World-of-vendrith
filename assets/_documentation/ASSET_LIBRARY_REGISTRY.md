@@ -61,7 +61,7 @@ No asset directory in this library may be glob-imported wholesale. Runtime/edito
 
 ## 7. Binary transfer note
 
-The current GitHub connector used for this project can create/update UTF-8 repository files but does not provide a suitable verified binary upload workflow for the supplied large ZIP libraries. Individual binary assets are only declared repository-present after a verified binary transfer.
+The binary import checkpoint of 2026-09-26 is now present in the repository through Git LFS pointers. Individual assets still require binary-object availability plus provenance/license/checksum reconciliation before being marked approved. See `assets/_documentation/BINARY_ASSET_RECONCILIATION_2026-09-26.md`.
 
 ## 8. Map Editor terrain assets — verified originals
 
@@ -97,3 +97,23 @@ The canonical LPC source remains the selected source, with its required attribut
 ## 10. Transfer rule
 
 Binary assets are considered repository-present only after the binary blob, repository path, registry identity, provenance/license record, and checksum have all been verified. Future asset additions must follow the same sequence and must not modify the foundation contracts merely to accommodate an asset.
+
+
+## 11. Asset Library schema v1 — WORLD
+
+The live Asset Library now uses `asset_registry.id` as the **single canonical asset identity**. WORLD compatibility is represented through normalized bindings rather than duplicated binaries.
+
+New live schema tables:
+
+- `asset_binary_verifications` — binary SHA-256/size/repository/LFS verification.
+- `world_biome_compatibility` — many-to-many biome compatibility.
+- `world_water_bindings` — coastal/shallow, open, deep, brackish, cold and frozen water states plus geographic water features.
+- `world_landform_bindings` — mountains, hills, cliffs, natural rocks, caves, pits, holes and volcanic roles.
+- `world_vegetation_bindings` — ecological vegetation families and seasonal roles.
+- `world_transition_bindings` — material/state transitions and tile-region evidence.
+
+All six tables have RLS enabled. They intentionally have no broad client-facing policies yet; World Builder read access will be added through a reviewed read contract after query semantics are finalized.
+
+Schema contract: `assets/_documentation/ASSET_LIBRARY_SCHEMA_V1_2026-09-26.md`.
+
+The migration is `supabase/migrations/20260926100000_asset_library_world_schema_v1.sql`.

@@ -9,6 +9,7 @@ import {
   hasStringArgument,
   type ToolDefinition,
 } from "../ports/tool-router";
+import { classifyAssetEvidence } from "../policies/asset-policy";
 
 export interface ProjectTools {
   repository: RepositoryPort;
@@ -85,7 +86,11 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
       async execute(args) {
-        const evidence = await dependencies.assetRegistry.search(args.query);\n        return evidence.map(classifyAssetEvidence);
+        const evidence = await dependencies.assetRegistry.search(args.query);
+        return evidence.map((item) => {
+          const intelligence = classifyAssetEvidence(item);
+          return { ...intelligence.evidence, usageDomain: intelligence.usageDomain, licenseState: intelligence.licenseState, reason: intelligence.reason };
+        });
       },
     },
     {

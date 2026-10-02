@@ -1,3 +1,23 @@
+## 2026-10-02 — Phase 2D diagnostic views implemented
+
+- **Type:** Added / Updated
+- **Reason:** Complete the World Map Editor diagnostic surface so map problems can be inspected directly on the canvas without mutating authoring data.
+- **Details:** Added projection-only Grid, Terrain ID, Water Depth (D1–D4 derived bands), Collision/Passability, Layer Isolation, Object Bounds, Invalid-cell Highlight, Diagnostic Legend, and Read-only Debug Mode. Debug state is kept outside MapDocument; layer isolation does not mutate persisted layer visibility/active flags.
+- **Affected:** `apps/map-editor/components/editor-shell.tsx`, `apps/map-editor/components/pixi-map-canvas.tsx`, `apps/map-editor/editor/debug-views.ts`, `apps/map-editor/editor/terrain-engine.ts`, focused debug/depth tests.
+- **Roadmap phase:** Phase 2D — Debug & Diagnostic Views. Implementation is marked `[~]` until browser runtime verification is completed.
+- **Verification:** Focused debug/depth tests passed; TypeScript and production build checks completed locally. Existing autoprefixer warning remains non-fatal. Browser click-level verification is pending because the connected Codespace has no browser/Chromium runner.
+- **Notes:** No Supabase schema/data/RPC changes and no terrain/object persistence contract changes.
+
+## 2026-10-01 — Phase 0 Foundation closure hardening
+
+- **Type:** Fixed / Added
+- **Reason:** Final Phase 0 audit found that map adoption could prefer a browser-provided document over an existing authoritative identity snapshot, Save Slot adoption lacked an explicit World identity gate, and the repository lacked focused regression coverage for the foundation invariants.
+- **Details:** `openMap()` now prefers the authoritative identity snapshot whenever one exists and rejects requested/provided/adopted ID mismatches. Save Slot loading now verifies the restored World ID and playable Exterior shape. Added Phase 0 regression tests for grid sizing, resize invariants, malformed cell counts, requested-map identity, and persistence navigation boundaries. Added a GitHub Actions Phase 0 gate for `npm test` and `npm run build`.
+- **Affected:** `apps/map-editor/components/vendrith-world-builder-app.tsx`, `apps/map-editor/tests/map-foundation.test.ts`, `apps/map-editor/tests/map-save-state.test.ts`, `.github/workflows/map-editor-phase0.yml`.
+- **Roadmap phase:** Phase 0 — Foundation Audit.
+- **Verification:** Vercel production build reached READY on commit `3f801bfc072df1bf4669049ccbca1e6a4c72766b`. Supabase audit confirms the deployed `map_editor_get_runtime_snapshot_v1` already rejects stale runtime snapshots by returning the newest durable version. The new GitHub Actions workflow was committed, but no workflow run is currently exposed for the commit, so test execution is not claimed as passed here.
+- **Notes:** No terrain paint path was changed. No existing applied migration was rewritten; the database already contains the later stale-runtime guard migration.
+
 # Vandrith Map Editor — Change Log
 
 **Purpose:** Detailed historical record of what was updated, changed, added, removed, restored, or fixed in the Map Editor.
@@ -364,3 +384,39 @@
 - **Roadmap phase:** Phase 0 — Foundation Audit.
 - **Verification:** Save was observed working in browser at version 7. Direct durable Load Latest is implemented in commit `5fa15f7897728ff6f727c5628bbad85a05ca00e0`; Vercel/browser verification of this commit remains pending.
 - **Notes:** No Supabase schema/data or asset binaries were changed.
+
+
+## 2026-10-02 — Paint shape regression coverage expanded
+
+- **Type:** Added
+- **Reason:** The Terrain & Selection Suite already exposed Rectangle and Flood tools, but executable test coverage only verified Line behavior.
+- **Details:** Added regression coverage for Rectangle normal/reverse drag ordering and Flood Fill contiguous-region boundaries without changing production paint behavior.
+- **Affected:** `apps/map-editor/tests/paint-tools.test.ts`.
+- **Roadmap phase:** Phase 2C — Terrain & Selection Suite.
+- **Verification:** Verified with Desktop Commander: `paint-tools.test.ts` 8/8 passed; official Map Editor suite 11/11 files and 43/43 tests passed.
+- **Notes:** No Supabase schema/data, RPC, asset binary, or production runtime logic changed.
+
+
+## 2026-10-02 — Phase 2E Layer System foundation
+
+- **Type:** Added
+- **Reason:** Start the Layer System phase without changing the terrain or building foundations.
+- **Details:** Added Layer Tree controls for active selection, visibility, lock/unlock, ordering, and per-layer opacity. Opacity is part of MapLayer document metadata and is rendered through Pixi layer alpha. Existing immutable layer-state operations continue through EditorShell history, preserving undo/redo behavior.
+- **Affected:** `apps/map-editor/components/editor-shell.tsx`, `apps/map-editor/editor/layer-state.ts`, `apps/map-editor/editor/map-document.ts`, `apps/map-editor/components/pixi-map-canvas.tsx`, `apps/map-editor/tests/layer-state.test.ts`.
+- **Roadmap phase:** Phase 2E — Layer System.
+- **Verification:** PR #25 and #26 merged. Phase 2E preview build for the Layer Tree reached Vercel READY; click-level browser verification remains pending because `agent-browser` is unavailable in Codespace. The opacity branch did not receive a separate preview deployment through the API commit sequence.
+- **Notes:** No Supabase schema/data/RPC or asset binary changes.
+
+
+## 2026-10-02 — Duplicate and merge layer operations
+
+- **Type:** Added
+- **Reason:** Continue Phase 2E Layer System with safe layer composition operations.
+- **Details:** Duplicate Layer creates an independent layer/cell/object copy with collision-safe identities. Merge Layer only accepts same-kind layers, overlays populated source cells, preserves objects with collision-safe IDs, and removes the source layer. Both operations use the existing EditorShell history path.
+- **Affected:** `apps/map-editor/editor/layer-state.ts`, `apps/map-editor/components/editor-shell.tsx`, `apps/map-editor/tests/layer-state.test.ts`.
+- **Roadmap phase:** Phase 2E — Layer System.
+- **Verification:** PR #28 merged. Browser click-level verification remains pending.
+- **Notes:** No Supabase schema/data/RPC or asset binary changes.
+\n\n## 2026-10-02 — Layer Groups\n\n- **Type:** Added\n- **Details:** Added document-level layer groups with visibility, lock, expand/collapse, layer assignment, safe group deletion, and effective renderer visibility. Older serialized documents normalize missing group/opacity metadata safely.\n- **Roadmap phase:** Phase 2E — Layer System.\n- **Verification:** PR #30 merged. Browser click-level verification remains pending.\n- **Notes:** No Supabase schema/data/RPC or asset binary changes.\n
+
+## 2026-10-02 — Layer Templates\n\n- **Type:** Added\n- **Details:** Added reusable layer templates capturing layer kind/presentation metadata. Applying a template creates a fresh empty layer; deleting a template does not affect existing layers.\n- **Roadmap phase:** Phase 2E — Layer System.\n- **Verification:** PR #32 merged. Browser click-level verification remains pending.\n- **Notes:** No Supabase schema/data/RPC or asset binary changes.

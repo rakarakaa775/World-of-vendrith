@@ -26,17 +26,17 @@ export type TerrainBrushPreview = {
   junctionCounts: Record<'none' | 'single' | 'dual' | 'triple' | 'quad', number>;
 };
 
-const TERRAIN_INPUTS: Record<TerrainKey, string> = {
-  grass: tileIdForTerrain('grass'),
-  sand: tileIdForTerrain('sand'),
-  dirt: tileIdForTerrain('dirt'),
-  pavement: tileIdForTerrain('pavement'),
-  water: tileIdForTerrain('water'),
-};
+const TERRAIN_INPUTS: Partial<Record<TerrainKey, string>> = Object.fromEntries(
+  ([
+    'grass','grassalt','sand','redsand','dirt','dirt2','pavement',
+    'water','deepwater','deepwater2','brackish','tallgrass',
+    'hole','holek','holemid','lava','lavarock',
+  ] as TerrainKey[]).map(terrain => [terrain, tileIdForTerrain(terrain)]),
+) as Partial<Record<TerrainKey, string>>;
 
 function normalizePaintedTileId(value: string | null): string | null {
   if (!value) return null;
-  if (value in TERRAIN_INPUTS) return TERRAIN_INPUTS[value as TerrainKey];
+  if (value in TERRAIN_INPUTS) return TERRAIN_INPUTS[value as TerrainKey] ?? null;
   const terrain = terrainFromTileId(value);
   return terrain ? tileIdForTerrain(terrain) : value;
 }

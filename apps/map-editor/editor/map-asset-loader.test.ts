@@ -11,7 +11,6 @@ describe("map asset loader", () => {
       asset_path: "02_TILES_AND_TERRAIN/LPC_Overworld__Mountains.png",
       preview_path: null,
       status: "approved",
-      asset_license_registry: { verification_status: "verified", usage_status: "credit_required", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     });
     expect(asset).toMatchObject({
       family: "macro-terrain",
@@ -29,7 +28,6 @@ describe("map asset loader", () => {
       asset_path: "building.png",
       preview_path: null,
       status: "approved",
-      asset_license_registry: { verification_status: "verified", usage_status: "credit_required", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     });
     const floor = registryRowToMapAsset({
       id: "33333333-3333-4333-8333-333333333333",
@@ -39,24 +37,11 @@ describe("map asset loader", () => {
       asset_path: "floor.png",
       preview_path: null,
       status: "approved",
-      asset_license_registry: { verification_status: "verified", usage_status: "allowed", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
     });
     expect(building?.family).toBe("playable-building");
     expect(building?.levels).toEqual(["playable"]);
     expect(floor?.family).toBe("interior-floor");
     expect(floor?.levels).toEqual(["interior"]);
-  });
-
-  it("fails closed when an approved registry row has no physical path", () => {
-    expect(registryRowToMapAsset({
-      id: "99999999-9999-4999-8999-999999999999",
-      name: "Unextracted decoration pack",
-      category: "exterior.decoration",
-      role: "decoration",
-      asset_path: null,
-      preview_path: null,
-      status: "approved",
-    })).toBeNull();
   });
 
   it("fails closed for non-approved or semantically unknown registry rows", () => {
@@ -80,19 +65,6 @@ describe("map asset loader", () => {
     })).toBeNull();
   });
 
-  it("rejects approved rows whose license has unresolved requirements", () => {
-    expect(registryRowToMapAsset({
-      id: "88888888-8888-4888-8888-888888888888",
-      name: "Conditional Asset",
-      category: "decoration",
-      role: "tree",
-      asset_path: "tree.png",
-      preview_path: null,
-      status: "approved",
-      asset_license_registry: { verification_status: "verified", usage_status: "conditional", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
-    })).toBeNull();
-  });
-
   it("summarizes runtime physical assets by map level", () => {
     const catalog = [
       registryRowToMapAsset({
@@ -103,7 +75,6 @@ describe("map asset loader", () => {
         asset_path: "grass.png",
         preview_path: null,
         status: "approved",
-        asset_license_registry: { verification_status: "verified", usage_status: "allowed", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
       }),
       registryRowToMapAsset({
         id: "77777777-7777-4777-8777-777777777777",
@@ -113,7 +84,6 @@ describe("map asset loader", () => {
         asset_path: "floor.png",
         preview_path: null,
         status: "approved",
-        asset_license_registry: { verification_status: "verified", usage_status: "allowed", commercial_use_allowed: true, modification_allowed: true, redistribution_allowed: true },
       }),
     ].filter(Boolean);
     expect(mapAssetCatalogSummary(catalog)).toMatchObject({

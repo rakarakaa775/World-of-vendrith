@@ -1,4 +1,4 @@
-import type { MapDocument } from './map-document';
+import type { MapDocument, MapLayer } from './map-document';
 
 export const MAP_DOCUMENT_SCHEMA = 'vandrith.map-document';
 export const MAP_DOCUMENT_VERSION = 1 as const;
@@ -35,6 +35,8 @@ function validateLayerSemantics(layer: unknown, expectedCellCount: number): void
   for (const field of ['visible', 'locked', 'active']) {
     if (typeof candidate[field] !== 'boolean') throw new Error(`Map layer ${field} flag is invalid`);
   }
+  if (candidate.opacity !== undefined && (typeof candidate.opacity !== 'number' || !Number.isFinite(candidate.opacity) || candidate.opacity < 0 || candidate.opacity > 1)) throw new Error('Map layer opacity is invalid');
+  if (candidate.groupId !== undefined && candidate.groupId !== null && typeof candidate.groupId !== 'string') throw new Error('Map layer groupId is invalid');
   if (!Array.isArray(candidate.cells)) throw new Error('Map layer cells are invalid');
   if (candidate.cells.length !== expectedCellCount) throw new Error('Layer cell count must equal width × height');
   for (const cell of candidate.cells) {
@@ -173,10 +175,49 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
   const tileSize = requirePositiveInteger(normalizedDocument.tileSize, 'tileSize');
   const layers = normalizedDocument.layers;
   if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
+  const rawGroups = rawDocument.layerGroups;
+  const rawTemplates = rawDocument.layerTemplates;
+  const layerTemplates = Array.isArray(rawTemplates) ? rawTemplates.map(template => ({
+    ...(template as Record<string, unknown>),
+    id: typeof (template as Record<string, unknown>).id === 'string' ? (template as Record<string, unknown>).id : '',
+    name: typeof (template as Record<string, unknown>).name === 'string' ? (template as Record<string, unknown>).name : '',
+    kind: (template as Record<string, unknown>).kind,
+    visible: (template as Record<string, unknown>).visible !== false,
+    locked: (template as Record<string, unknown>).locked === true,
+    opacity: typeof (template as Record<string, unknown>).opacity === 'number' ? (template as Record<string, unknown>).opacity : 1,
+    groupId: (template as Record<string, unknown>).groupId ?? null,
+  })) : [];
+  const layerGroups = Array.isArray(rawGroups) ? rawGroups.map(group => ({
+    ...(group as Record<string, unknown>),
+    id: typeof (group as Record<string, unknown>).id === 'string' ? (group as Record<string, unknown>).id : '',
+    name: typeof (group as Record<string, unknown>).name === 'string' ? (group as Record<string, unknown>).name : '',
+    visible: (group as Record<string, unknown>).visible !== false,
+    locked: (group as Record<string, unknown>).locked === true,
+    expanded: (group as Record<string, unknown>).expanded !== false,
+  })) : [];
   const expectedCellCount = width * height;
   validateRelationshipMetadata(normalizedDocument);
   validateHierarchySemantics(normalizedDocument);
   for (const layer of layers) validateLayerSemantics(layer, expectedCellCount);
+  const templateIds = new Set<string>();
+  for (const template of layerTemplates) {
+    if (!template.id || templateIds.has(template.id) || !template.name || !['ground','objects','collision'].includes(String(template.kind))) throw new Error('Map layer template metadata is invalid');
+    if (typeof template.opacity !== 'number' || template.opacity < 0 || template.opacity > 1) throw new Error('Map layer template opacity is invalid');
+    if (template.groupId !== null && typeof template.groupId !== 'string') throw new Error('Map layer template groupId is invalid');
+    templateIds.add(template.id);
+  }
+  const groupIds = new Set<string>();
+  for (const group of layerGroups) {
+    if (!group.id || groupIds.has(group.id) || !group.name) throw new Error('Map layer group metadata is invalid');
+    groupIds.add(group.id);
+  }
+  const normalizedLayers = layers.map(layer => ({
+    ...(layer as MapLayer),
+    opacity: typeof (layer as MapLayer).opacity === 'number' ? (layer as MapLayer).opacity : 1,
+    groupId: (layer as MapLayer).groupId ?? null,
+  }));
+  for (const layer of normalizedLayers) if (layer.groupId && !groupIds.has(layer.groupId)) throw new Error('Map layer references an unknown group');
+  for (const template of layerTemplates) if (template.groupId && !groupIds.has(template.groupId)) throw new Error('Map layer template references an unknown group');
 
   return {
     ...normalizedDocument,
@@ -186,7 +227,9 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
     width,
     height,
     tileSize,
-    layers,
+    layers: normalizedLayers,
+    layerGroups,
+    layerTemplates,
     version: MAP_DOCUMENT_VERSION,
   } as MapDocument;
 }

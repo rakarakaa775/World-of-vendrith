@@ -1,71 +1,448 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PixiMapCanvas } from "./pixi-map-canvas";
-import { createStarterMap, type MapDocument } from "../editor/map-document";
-import { paintCell } from "../editor/map-state";
-import { BUILDINGS, placeBuilding, placePaletteAsset, moveObject, deleteObject, objectAt, alignObjects, distributeObjects, mirrorObjects, updateObjectTransform, selectAllObjectIds, duplicateObjects, selectObjectIdsByFilter, scaleObjects } from "../editor/object-state";
+import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
-import { commitHistory, createHistory, redoHistory, undoHistory, type MapHistory } from "../editor/map-history";
-import { createStamp, applyStamp, type Stamp } from "../editor/stamp";
-import { copyTileSelection, pasteTileSelection, type TileSelectionClipboard } from "../editor/selection-ops";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
-import { inspectTerrainCell } from "../editor/terrain-inspector";
-import { terrainMaskPreviewCells } from "../editor/terrain-mask-preview";
-import { terrainMaskTopology } from "../editor/terrain-mask-topology";
+import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
+import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers, createLayerGroup, updateLayerGroup, assignLayerToGroup, deleteLayerGroup, createLayerTemplate, applyLayerTemplate, deleteLayerTemplate } from "../editor/layer-state";
+import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
+import { copySelection, pasteSelection, moveSelection, replaceSelection, type SelectionClipboard } from "../editor/selection-clipboard";
 import type { GridPoint } from "../editor/grid";
-import { setActiveLayer, updateLayer, reorderLayer } from "../editor/layer-state";
-import { bindingDiagnostics, type TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
-import type { EnvironmentCatalog, EnvironmentReadiness } from "../editor/supabase-environment-loader";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
-import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
-import { environmentTerrainContextReady, resolveEnvironmentTerrainAsset } from "../editor/environment-terrain-bridge";
-import { terrainFromTileId } from "../editor/terrain-engine";
-import { getMapAssetsByFamily, isMapAssetAllowed, isMapEditorToolAllowed, isPlayableInterior, mapEditorLevelKey, type MapAssetDefinition } from "../editor/map-tool-registry";
-import { linkBuildingToInterior, linkRegionObjectToPlayable, unlinkObjectMapTarget } from "../editor/map-navigation";
-import { clampParentBounds } from "../editor/map-bounds";
+import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
 
-const tools = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Stamp", "Building", "Collision"] as const;
-const brushSizes = [1, 2, 3, 5];
-type TerrainPreview = "grass" | "sand" | "dirt" | "pavement" | "water";
-type ViewportAction = { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" } | { id: number; type: "zoom-selection" };
-type ViewportActionInput = { type: "pan"; dx: number; dy: number } | { type: "zoom"; zoom: number } | { type: "fit" } | { type: "zoom-map" } | { type: "zoom-selection" };
-type Props = { onOpenMapTarget?: (object: MapDocument["layers"][number]["objects"][number]) => void | Promise<void>; maps?: MapDocument[]; mapAssets?: MapAssetDefinition[]; initialDocument?: MapDocument; initialDocumentRevision?: number; onDocumentChange?: (document: MapDocument) => void; onSave?: (document: MapDocument) => void | Promise<void>; onSaveLoad?: () => void | Promise<void>; onQuickSave?: () => void | Promise<void>; onLoadLatest?: () => void | Promise<void>; terrainBindings?: TerrainAssetBindingMap; terrainStatus?: string; environmentCatalog?: EnvironmentCatalog | null; environmentReadiness?: EnvironmentReadiness | null; environmentRuntime?: EnvironmentRuntimeState | null; environmentValidation?: EnvironmentRuntimeValidation | null };
-type ReadinessMetric = number | { bound: number; expected: number; unbound: number; complete: boolean };
-function CanvasRulers({document,viewport}:{document:MapDocument;viewport:{x:number;y:number;zoom:number}}){const cellPx=document.tileSize*viewport.zoom;const step=cellPx>=48?1:cellPx>=24?2:cellPx>=12?4:8;const horizontal=[];const vertical=[];const width=Math.max(1,Math.ceil(1600/cellPx));const height=Math.max(1,Math.ceil(1200/cellPx));for(let i=-2;i<width;i+=step){const x=i*cellPx+viewport.x;horizontal.push(<span key={'x'+i} style={{left:x}}>{i}</span>)}for(let i=-2;i<height;i+=step){const y=i*cellPx+viewport.y;vertical.push(<span key={'y'+i} style={{top:y}}>{i}</span>)}return <><div className="canvas-ruler-top" aria-label="Coordinate ruler horizontal">{horizontal}</div><div className="canvas-ruler-left" aria-label="Coordinate ruler vertical">{vertical}</div><div className="canvas-ruler-corner">0,0</div></>}
-const MINIMAP_COLORS: Record<string,string>={grass:"#4f9d50",sand:"#e6c36a",dirt:"#98633e",pavement:"#8b949e",water:"#3b82c4"};
-function MapMinimap({document}:{document:MapDocument}){const canvasRef=useRef<HTMLCanvasElement>(null);useEffect(()=>{const canvas=canvasRef.current;if(!canvas)return;const ctx=canvas.getContext("2d");if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle="#f8fafc";ctx.fillRect(0,0,w,h);const sx=w/document.width,sy=h/document.height;for(const layer of document.layers){if(!layer.visible||layer.kind==="objects")continue;for(let i=0;i<document.width*document.height;i++){const terrain=terrainFromTileId(layer.cells[i]?.tileId??null);if(!terrain)continue;ctx.fillStyle=MINIMAP_COLORS[terrain]??"#94a3b8";ctx.fillRect((i%document.width)*sx,Math.floor(i/document.width)*sy,Math.ceil(sx),Math.ceil(sy));}}ctx.strokeStyle="#334155";ctx.lineWidth=2;ctx.strokeRect(1,1,w-2,h-2);},[document]);return <div className="map-minimap"><h3>Minimap</h3><canvas ref={canvasRef} width={160} height={160} aria-label="Map minimap"/></div>;}
-const readinessBound=(value:ReadinessMetric|null)=>typeof value==='number'?value:(value?.bound??0);
-const readinessExpected=(value:ReadinessMetric|null,fallback:number)=>typeof value==='number'?fallback:(value?.expected??fallback);
-const readinessRows=(r:EnvironmentReadiness|null)=>r?[['Season Definitions',r.seasonDefinitions,4],['Weather Definitions',r.weatherDefinitions,7],['Season Rules',r.seasonRules,4],['Season Cycle Rules',r.seasonCycleRules,4],['Season Weather Rules',r.seasonWeatherRules,28],['Weather Transitions',r.weatherTransitionPolicies,7],['Terrain Seasonal Binding',r.terrainSeasonalBindings,1]] as const:[];
-const TERRAIN_KEYS: TerrainPreview[] = ['grass','sand','dirt','pavement','water'];
-export function EditorShell({onOpenMapTarget,maps=[],mapAssets=[],initialDocument=createStarterMap(),initialDocumentRevision=0,onDocumentChange,onSave,onSaveLoad,onQuickSave,onLoadLatest,terrainBindings={},terrainStatus='No terrain binding data',environmentCatalog=null,environmentReadiness=null,environmentRuntime=null,environmentValidation=null}:Props){const[activeTool,setActiveTool]=useState("Select");const[openMenu,setOpenMenu]=useState<"editor"|"save"|"none">("none");const[tileOptions,setTileOptions]=useState<TileOption[]>(STARTER_TILES);const[selectedTile,setSelectedTile]=useState(STARTER_TILES[0].id);const[selectedBuilding,setSelectedBuilding]=useState(BUILDINGS[0]);const[selectedPaletteAsset,setSelectedPaletteAsset]=useState<{id:string;label:string;family:string}|null>(null);const[brushSize,setBrushSize]=useState(1);const[history,setHistory]=useState<MapHistory>(()=>createHistory(initialDocument));const[selection,setSelection]=useState<Selection|null>(null);const[stamp,setStamp]=useState<Stamp|null>(null);const[clipboard,setClipboard]=useState<TileSelectionClipboard|null>(null);const[selectedObjectId,setSelectedObjectId]=useState<string|null>(null);const[selectedObjectIds,setSelectedObjectIds]=useState<string[]>([]);const[selectedObjectCategory,setSelectedObjectCategory]=useState('all');const[inspectedPoint,setInspectedPoint]=useState<GridPoint|null>(null);const[previewTerrain,setPreviewTerrain]=useState<TerrainPreview>('grass');const[previewMask,setPreviewMask]=useState<number|null>(null);const[showEnvironment,setShowEnvironment]=useState(true);const[tilesExpanded,setTilesExpanded]=useState(false);const[viewport,setViewport]=useState({x:0,y:0,zoom:1});const[viewportAction,setViewportAction]=useState<ViewportAction>({id:0,type:"zoom",zoom:1});const document=history.present;const paletteAssets=useMemo(()=>({macroTerrain:getMapAssetsByFamily(document,"macro-terrain",mapAssets),nature:getMapAssetsByFamily(document,"playable-nature",mapAssets),regionSettlements:getMapAssetsByFamily(document,"region-settlement",mapAssets),regionInfrastructure:getMapAssetsByFamily(document,"region-infrastructure",mapAssets),regionLandmarks:getMapAssetsByFamily(document,"region-landmark",mapAssets),buildings:getMapAssetsByFamily(document,"playable-building",mapAssets),decorations:getMapAssetsByFamily(document,"playable-decoration",mapAssets),interiorFloor:getMapAssetsByFamily(document,"interior-floor",mapAssets),interiorWall:getMapAssetsByFamily(document,"interior-wall",mapAssets),interiorDoor:getMapAssetsByFamily(document,"interior-door",mapAssets),interiorFurniture:getMapAssetsByFamily(document,"interior-furniture",mapAssets)}),[document,mapAssets]);const levelKey=mapEditorLevelKey(document);const interiorMap=isPlayableInterior(document);const visibleTools=tools.filter(tool=>{if(tool==="Building")return isMapEditorToolAllowed(document,"building");if(tool==="Collision")return isMapEditorToolAllowed(document,"collision");return true});const activeLayer=document.layers.find(l=>l.active)?.id??'ground';const commit=useCallback((next:MapDocument)=>setHistory(c=>commitHistory(c,next)),[]);useEffect(()=>{setHistory(createHistory(initialDocument));setSelection(null);setStamp(null);setClipboard(null);setSelectedObjectId(null);setSelectedObjectIds([]);setInspectedPoint(null)},[initialDocument.id,initialDocumentRevision]);useEffect(()=>{let active=true;void loadTerrainTiles().then(tiles=>{if(!active)return;setTileOptions(tiles);setSelectedTile(tiles[0]?.id??STARTER_TILES[0].id)});return()=>{active=false}},[]);useEffect(()=>{onDocumentChange?.(document)},[document,onDocumentChange]);const handlePaint=useCallback((points:GridPoint[],tileId:string|null)=>{if(activeLayer==='ground'){const result=tileId===null?eraseTerrainPaint(document,activeLayer,points,terrainBindings):applyTerrainPaint(document,activeLayer,points,tileId,terrainBindings);if(result.document!==document)commit(result.document);return;}let next=document;for(const point of points)next=paintCell(next,activeLayer,point,tileId);if(next!==document)commit(next)},[commit,document,activeLayer,terrainBindings]);const handleSelection=useCallback((next:Selection|null)=>{setSelection(next);if(next)setStamp(null)},[]);const handleObjectSelection=useCallback((ids:string[])=>{setSelectedObjectIds(ids);setSelectedObjectId(ids.at(-1)??null)},[]);
-const handleOpenMapTarget=useCallback(async(object:MapDocument["layers"][number]["objects"][number])=>{if(!onOpenMapTarget)return;await onOpenMapTarget(object)},[onOpenMapTarget]);const transformSelected=useCallback((changes:{x?:number;y?:number;width?:number;height?:number;rotation?:number})=>{if(!selectedObjectIds.length)return;let next=document;for(const id of selectedObjectIds)next=updateObjectTransform(next,'objects',id,changes);if(next!==document)commit(next)},[commit,document,selectedObjectIds]);const objectCount=document.layers.find(l=>l.id==='objects')?.objects.length??0;const selectAll=()=>{setActiveTool('Select');const ids=selectAllObjectIds(document,'objects');handleObjectSelection(ids);};const selectByCategory=()=>{setActiveTool('Select');const ids=selectObjectIdsByFilter(document,'objects',selectedObjectCategory);handleObjectSelection(ids);};const clearObjectSelection=()=>{setActiveTool('Select');handleObjectSelection([])};const scaleSelected=(factor:number)=>{if(!selectedObjectIds.length)return;const next=scaleObjects(document,'objects',selectedObjectIds,factor);if(next!==document)commit(next)};
-const duplicateSelected=()=>{if(!selectedObjectIds.length)return;const next=duplicateObjects(document,'objects',selectedObjectIds);if(next!==document){commit(next);const objects=next.layers.find(l=>l.id==='objects')?.objects??[];const sourceIds=new Set(selectedObjectIds);handleObjectSelection(objects.filter(o=>o.id.startsWith('building-copy-')&&sourceIds.size>0).slice(-selectedObjectIds.length).map(o=>o.id));}};const prepareStamp=()=>{if(!selection)return;setStamp(createStamp(document,activeLayer,selection.x,selection.y,selection.width,selection.height));setActiveTool('Stamp')};const handleStamp=useCallback((point:GridPoint)=>{if(!stamp)return;commit(applyStamp(document,activeLayer,point.x,point.y,stamp))},[stamp,commit,document,activeLayer]);const handlePaletteAsset=useCallback((point:GridPoint)=>{if(!selectedPaletteAsset||!isMapAssetAllowed(document,selectedPaletteAsset.id,mapAssets)||activeLayer!=="objects")return;const next=placePaletteAsset(document,"objects",point,selectedPaletteAsset);if(next!==document){commit(next);setSelectedObjectId(next.layers.find(l=>l.id==="objects")?.objects.at(-1)?.id??null)}},[commit,document,activeLayer,selectedPaletteAsset,mapAssets]);const handleBuilding=useCallback((point:GridPoint)=>{if(activeLayer!=='objects')return;const hit=objectAt(document,'objects',point);if(hit){setSelectedObjectId(hit.id);setActiveTool('Select');return;}const next=placeBuilding(document,'objects',point,selectedBuilding);if(next!==document){commit(next);setSelectedObjectId(next.layers.find(l=>l.id==='objects')?.objects.at(-1)?.id??null)}},[commit,document,activeLayer,selectedBuilding]);const handleObjectMove=useCallback((objectId:string,point:GridPoint)=>commit(moveObject(document,'objects',objectId,point)),[commit,document]);const deleteSelected=()=>{if(!selectedObjectIds.length)return;let next=document;for(const id of selectedObjectIds)next=deleteObject(next,'objects',id);if(next!==document)commit(next);handleObjectSelection([])};const changeLayer=(id:string)=>{commit(setActiveLayer(document,id));setInspectedPoint(null)};const toggleVisible=(id:string)=>commit(updateLayer(document,id,{visible:!document.layers.find(l=>l.id===id)?.visible}));const toggleLocked=(id:string)=>commit(updateLayer(document,id,{locked:!document.layers.find(l=>l.id===id)?.locked}));const moveLayer=(id:string,direction:'up'|'down')=>commit(reorderLayer(document,id,direction));const undo=()=>setHistory(c=>undoHistory(c)),redo=()=>setHistory(c=>redoHistory(c));const canUndo=history.past.length>0;const canRedo=history.future.length>0;useEffect(()=>{const onKeyDown=(event:KeyboardEvent)=>{const mod=event.ctrlKey||event.metaKey;if(!mod||event.altKey)return;const key=event.key.toLowerCase();if(key==="z"){event.preventDefault();event.shiftKey?redo():undo()}else if(key==="y"){event.preventDefault();redo()}};window.addEventListener("keydown",onKeyDown);return()=>window.removeEventListener("keydown",onKeyDown)},[undo,redo]);const copy=()=>{if(selection){const value=copyTileSelection(document,activeLayer,selection);if(value)setClipboard(value)}};const paste=()=>{if(clipboard&&selection)commit(pasteTileSelection(document,activeLayer,{x:selection.x,y:selection.y},clipboard))};const selected=document.layers.find(l=>l.id==='objects')?.objects.find(o=>o.id===selectedObjectId);
-const mapLinkTargets=useMemo(()=>{
-  if(!selected)return [];
-  if(document.mapType==='region' && selected.kind==='poi'){
-    return maps.filter(map=>map.mapType==='playable' && (map.playableSpace??'exterior')==='exterior' && map.parentMapId===document.id);
-  }
-  if(document.mapType==='playable' && (document.playableSpace??'exterior')==='exterior' && selected.kind==='building'){
-    return maps.filter(map=>map.mapType==='playable' && map.playableSpace==='interior' && map.parentPlayableMapId===document.id);
-  }
-  return [];
-},[document.id,document.mapType,document.playableSpace,maps,selected]);
-const selectedMapLinkId=document.mapType==='region'?selected?.childMapId??'':selected?.interiorMapId??'';
-const linkSelectedMap=(targetId:string)=>{
-  if(!selected)return;
-  const target=mapLinkTargets.find(map=>map.id===targetId);
-  if(!target)return;
-  const next=document.mapType==='region'
-    ? linkRegionObjectToPlayable(document,selected.id,target)
-    : linkBuildingToInterior(document,selected.id,target);
-  commit(next);
+type Props = {
+  initialDocument?: MapDocument;
+  initialDocumentRevision?: number;
+  onDocumentChange?: (document: MapDocument) => void;
+  onSave?: (document: MapDocument) => void | Promise<void>;
+  onSaveLoad?: () => void | Promise<void>;
+  onQuickSave?: (document: MapDocument) => void | Promise<void>;
+  onLoadLatest?: () => void | Promise<void>;
+  busy?: boolean;
+  terrainBindings?: TerrainAssetBindingMap;
+  terrainStatus?: string;
+  environmentValidation?: EnvironmentRuntimeValidation | null;
 };
-const unlinkSelectedMap=()=>{
-  if(!selected)return;
-  commit(unlinkObjectMapTarget(document,selected.id));
-};const objectCategories=useMemo(()=>['all',...Array.from(new Set((document.layers.find(l=>l.id==='objects')?.objects??[]).map(o=>o.category))).sort()], [document]);const terrainInspector=inspectedPoint?inspectTerrainCell(document,activeLayer,inspectedPoint,terrainBindings):null;const terrainPreviewCells=terrainInspector&&terrainInspector.terrain!==null?terrainMaskPreviewCells(terrainInspector.terrain,terrainBindings):[];const terrainPreviewCount=terrainPreviewCells.length;const topology=terrainInspector&&terrainInspector.terrain!==null&&terrainInspector.mask!==null?terrainMaskTopology(terrainInspector.terrain,terrainInspector.mask,terrainBindings):null;const environmentReady=environmentRuntime?environmentTerrainContextReady(environmentRuntime):false;const runtimeTerrain=terrainInspector&&environmentRuntime&&terrainInspector.terrain?resolveEnvironmentTerrainAsset(terrainInspector.terrain,terrainBindings,environmentRuntime):null;const diagnostics=useMemo(()=>bindingDiagnostics(terrainBindings),[terrainBindings]);const verifiedBaseTerrains=useMemo(()=>TERRAIN_KEYS.filter(terrain=>Boolean(terrainBindings[terrain]?.[255])).length,[terrainBindings]);const transitionBindings=Math.max(0,diagnostics.bound-verifiedBaseTerrains);const issueViewportAction=(action:ViewportActionInput)=>setViewportAction(previous=>{const id=previous.id+1;if(action.type==="pan")return{id,type:"pan",dx:action.dx,dy:action.dy};if(action.type==="zoom")return{id,type:"zoom",zoom:action.zoom};return{id,type:action.type};});
-return <main className="editor-shell"><header style={{position:"relative"}}><div className="editor-menu-bar"><button className="editor-menu-trigger" onClick={()=>setOpenMenu(v=>v==="editor"?"none":"editor")} aria-expanded={openMenu==="editor"}>Vandrith Editor ▾</button><button className="editor-menu-trigger" onClick={()=>setOpenMenu(v=>v==="save"?"none":"save")} aria-expanded={openMenu==="save"}>Save / Load ▾</button><span className="editor-active-tool">Level: {levelKey} · Tool: {activeTool}</span></div>{openMenu==="editor"&&<div className="editor-menu-panel"><div className="editor-menu-title">Vandrith Editor</div><div className="editor-menu-grid">{visibleTools.map(tool=><button key={tool} onClick={()=>{if(tool==="Collision"){const collisionLayer=document.layers.find(layer=>layer.kind==="collision");if(collisionLayer)changeLayer(collisionLayer.id)}setActiveTool(tool);setOpenMenu("none")}} aria-pressed={activeTool===tool}>{tool}</button>)}<button onClick={undo} disabled={!canUndo}>Undo</button><button onClick={redo} disabled={!canRedo}>Redo</button><button onClick={()=>void onSave?.(document)}>Save</button></div></div>}{openMenu==="save"&&<div className="editor-menu-panel save-menu-panel"><div className="editor-menu-title">Save / Load</div><button onClick={()=>{void onSaveLoad?.();setOpenMenu("none")}}>Save / Load</button><button onClick={()=>{void onQuickSave?.();setOpenMenu("none")}}>Quick Save</button><button onClick={()=>{void onLoadLatest?.();setOpenMenu("none")}}>Load Latest</button></div>}</header><section className="editor-body"><aside className="sidebar"><h2>Layers</h2>{document.layers.map(layer=><div key={layer.id}><button onClick={()=>changeLayer(layer.id)} aria-pressed={layer.active}>{layer.name}</button><button onClick={()=>toggleVisible(layer.id)}>{layer.visible?'Hide':'Show'}</button><button onClick={()=>toggleLocked(layer.id)}>{layer.locked?'Unlock':'Lock'}</button><button onClick={()=>moveLayer(layer.id,'up')}>↑</button><button onClick={()=>moveLayer(layer.id,'down')}>↓</button></div>)}<div className="sidebar-section-header"><h2>{interiorMap ? "Interior Tiles (legacy)" : levelKey === "world" ? "World Terrain" : levelKey === "region" ? "Region Terrain" : "Playable Terrain"}</h2><button className="sidebar-section-toggle" onClick={()=>setTilesExpanded(v=>!v)} aria-expanded={tilesExpanded} aria-controls="tile-palette-panel" title={tilesExpanded?"Tutup panel Tiles":"Buka panel Tiles"}>{tilesExpanded?"▲":"▼"}</button></div>{!interiorMap&&tilesExpanded&&<div id="tile-palette-panel" className="sidebar-tile-palette" onWheel={e=>{const el=e.currentTarget;el.scrollTop+=e.deltaY}}>{tileOptions.map(tile=><button className="tile-palette-card" key={tile.id} onClick={()=>{setSelectedTile(tile.id);setActiveTool("Paint")}} aria-pressed={selectedTile===tile.id} title={tile.assetName}><span className="tile-preview">{tile.previewUrl?<img src={tile.previewUrl} alt={tile.assetName} loading="lazy"/>:<span className="tile-preview-missing">Preview unavailable</span>}</span><span className="tile-palette-label">{tile.label}</span><span className="tile-palette-asset">{tile.assetName}</span></button>)}</div>}<h2>Brush</h2>{brushSizes.map(size=><button key={size} onClick={()=>setBrushSize(size)} aria-pressed={brushSize===size}>{size}</button>)}{levelKey === "world" && <><h2>World Assets</h2>{paletteAssets.macroTerrain.map(asset=><button key={asset.id} onClick={()=>{setSelectedPaletteAsset(asset);setActiveTool("Asset")}} title="Place approved registry asset">{asset.label}</button>)}</>} {!interiorMap && document.mapType === "playable" && <><h2>Playable Nature</h2>{paletteAssets.nature.map(asset=><button key={asset.id} onClick={()=>{setSelectedPaletteAsset(asset);setActiveTool("Asset")}} title="Place asset on the canvas">{asset.label}</button>)}<h2>Playable Assets</h2>{[...paletteAssets.buildings,...paletteAssets.decorations].map(asset=><button key={asset.id} onClick={()=>{setSelectedPaletteAsset(asset);setActiveTool("Asset")}} title="Place approved registry asset">{asset.label}</button>)}<h2>Playable Objects</h2>{BUILDINGS.filter(building=>paletteAssets.buildings.some(asset=>asset.id===building.id || asset.id===building.category)).map(building=><button key={building.id} onClick={()=>{setSelectedBuilding(building);setActiveTool("Building")}} aria-pressed={selectedBuilding.id===building.id}>{building.label}</button>)}</>} {levelKey === "region" && <><h2>Region Assets</h2>{[...paletteAssets.macroTerrain,...paletteAssets.regionSettlements,...paletteAssets.regionInfrastructure,...paletteAssets.regionLandmarks].map(asset=><button key={asset.id} onClick={()=>{setSelectedPaletteAsset(asset);setActiveTool("Asset")}} title="Place approved registry asset">{asset.label}</button>)}</>} {interiorMap && <><h2>Interior Palette</h2>{[...paletteAssets.interiorFloor,...paletteAssets.interiorWall,...paletteAssets.interiorDoor,...paletteAssets.interiorFurniture].map(asset=><button key={asset.id} onClick={()=>{setSelectedPaletteAsset(asset);setActiveTool("Asset")}}>{asset.label}</button>)}</>}<h2>Canvas</h2><MapMinimap document={document}/><label className="viewport-zoom-control">Zoom <strong>{Math.round(viewport.zoom*100)}%</strong><input type="range" min="25" max="400" step="25" value={Math.round(viewport.zoom*100)} onChange={e=>{const value=Number(e.target.value)/100;issueViewportAction({type:"zoom",zoom:value})}} /></label><div className="viewport-focus-controls"><button onClick={()=>issueViewportAction({type:"zoom-selection"})} disabled={!selection}>Zoom Selection</button><button onClick={()=>issueViewportAction({type:"zoom-map"})}>Zoom Map</button><button onClick={()=>issueViewportAction({type:"fit"})}>Fit Canvas</button></div><div className="viewport-pan-controls" aria-label="Canvas pan controls"><button onClick={()=>issueViewportAction({type:"pan",dx:0,dy:80})} title="Geser ke atas">↑</button><div><button onClick={()=>issueViewportAction({type:"pan",dx:80,dy:0})} title="Geser ke kiri">←</button><button onClick={()=>issueViewportAction({type:"pan",dx:0,dy:-80})} title="Geser ke bawah">↓</button><button onClick={()=>issueViewportAction({type:"pan",dx:-80,dy:0})} title="Geser ke kanan">→</button></div></div><button onClick={prepareStamp} disabled={!selection}>Create Stamp</button><button onClick={copy} disabled={!selection}>Copy</button><button onClick={paste} disabled={!clipboard||!selection}>Paste</button><h2>Selection & Transform</h2><div className="selection-status" aria-live="polite">Selected: <strong>{selectedObjectIds.length}</strong> / Objects: <strong>{objectCount}</strong>{selectedObjectCategory!=='all'?` · Type: ${selectedObjectCategory}`:''}</div><button onClick={selectAll} disabled={!objectCount}>Select All</button><label>Type <select value={selectedObjectCategory} onChange={e=>{const value=e.target.value;setSelectedObjectCategory(value);setActiveTool('Select');handleObjectSelection(selectObjectIdsByFilter(document,'objects',value))}}><option value="all">All types</option>{objectCategories.filter(c=>c!=='all').map(c=><option key={c} value={c}>{c}</option>)}</select></label><button onClick={selectByCategory} disabled={!objectCount}>Select Type</button><button onClick={clearObjectSelection} disabled={!selectedObjectIds.length}>Clear Selection</button><button onClick={()=>transformSelected({rotation:0})} disabled={!selectedObjectIds.length}>Reset Rotation</button><button onClick={()=>transformSelected({rotation:90})} disabled={!selectedObjectIds.length}>Rotate 90°</button><button onClick={()=>scaleSelected(0.5)} disabled={!selectedObjectIds.length}>Scale 50%</button><button onClick={()=>scaleSelected(1.25)} disabled={!selectedObjectIds.length}>Scale 125%</button><button onClick={()=>scaleSelected(2)} disabled={!selectedObjectIds.length}>Scale 200%</button><button onClick={duplicateSelected} disabled={!selectedObjectIds.length}>Duplicate Selected</button><button onClick={()=>{const n=alignObjects(document,'objects',selectedObjectIds,'left');if(n!==document)commit(n)}} disabled={selectedObjectIds.length<2}>Align Left</button><button onClick={()=>{const n=alignObjects(document,'objects',selectedObjectIds,'center-x');if(n!==document)commit(n)}} disabled={selectedObjectIds.length<2}>Align Center X</button><button onClick={()=>{const n=alignObjects(document,'objects',selectedObjectIds,'top');if(n!==document)commit(n)}} disabled={selectedObjectIds.length<2}>Align Top</button><button onClick={()=>{const n=distributeObjects(document,'objects',selectedObjectIds,'horizontal');if(n!==document)commit(n)}} disabled={selectedObjectIds.length<3}>Distribute X</button><button onClick={()=>{const n=distributeObjects(document,'objects',selectedObjectIds,'vertical');if(n!==document)commit(n)}} disabled={selectedObjectIds.length<3}>Distribute Y</button><button onClick={()=>{const n=mirrorObjects(document,'objects',selectedObjectIds,'horizontal');if(n!==document)commit(n)}} disabled={!selectedObjectIds.length}>Mirror X</button><button onClick={()=>{const n=mirrorObjects(document,'objects',selectedObjectIds,'vertical');if(n!==document)commit(n)}} disabled={!selectedObjectIds.length}>Mirror Y</button>{selected&&<><div className="object-transform-inspector"><strong>Numeric Transform</strong><label>X <input type="number" value={selected.x} disabled={selectedObjectIds.length!==1} onChange={e=>transformSelected({x:Number(e.target.value)})}/></label><label>Y <input type="number" value={selected.y} disabled={selectedObjectIds.length!==1} onChange={e=>transformSelected({y:Number(e.target.value)})}/></label><label>Width <input type="number" min="1" value={selected.width} disabled={selectedObjectIds.length!==1} onChange={e=>transformSelected({width:Number(e.target.value)})}/></label><label>Height <input type="number" min="1" value={selected.height} disabled={selectedObjectIds.length!==1} onChange={e=>transformSelected({height:Number(e.target.value)})}/></label><label>Rotation <input type="number" min="0" max="359" value={selected.rotation} disabled={selectedObjectIds.length!==1} onChange={e=>transformSelected({rotation:Number(e.target.value)})}/></label><small>Shift+drag = box select · Alt+drag = move object</small></div>{mapLinkTargets.length>0&&<div className="object-map-link-inspector"><strong>Map Link</strong><select value={selectedMapLinkId} onChange={e=>{if(e.target.value)linkSelectedMap(e.target.value);else unlinkSelectedMap()}}><option value="">Not linked</option>{mapLinkTargets.map(map=><option key={map.id} value={map.id}>{map.name}</option>)}</select><small>{document.mapType==='region'?'POI → Playable Exterior':'Building → Interior'}</small></div>}<button onClick={deleteSelected}>Delete Selected</button></>}</aside><section className="canvas-panel"><CanvasRulers document={document} viewport={viewport}/><PixiMapCanvas document={document} activeTool={activeTool} activeLayerId={activeLayer} selectedTileId={activeTool==='Erase'?null:selectedTile} brushSize={brushSize} selection={selection} onPaint={handlePaint} onSelectionChange={handleSelection} onCellInspect={setInspectedPoint} onStamp={handleStamp} onObjectPlace={activeTool==="Asset"?handlePaletteAsset:handleBuilding} onObjectMove={handleObjectMove} selectedObjectId={selectedObjectId} selectedObjectIds={selectedObjectIds} onObjectSelectionChange={handleObjectSelection} onOpenMapTarget={handleOpenMapTarget} terrainBindings={terrainBindings} environmentRuntime={environmentRuntime} viewportAction={viewportAction} viewportResetKey={initialDocumentRevision} onViewportChange={setViewport}/></section><aside className="inspector"><h2>Inspector</h2>{document.mapType==='region'&&(()=>{const parent=maps.find(map=>map.id===document.parentMapId);const bounds=document.parentBounds??(parent?{x:0,y:0,width:parent.width,height:parent.height}:null);if(!parent||!bounds)return null;const updateBounds=(patch:Partial<typeof bounds>)=>commit({...document,parentBounds:clampParentBounds({...bounds,...patch},parent)});return <div className="region-bounds-inspector"><h3>Region Bounds</h3><p>Parent: {parent.name}</p><label>X <input type="number" value={bounds.x} onChange={e=>updateBounds({x:Number(e.target.value)})}/></label><label>Y <input type="number" value={bounds.y} onChange={e=>updateBounds({y:Number(e.target.value)})}/></label><label>Width <input type="number" min="1" value={bounds.width} onChange={e=>updateBounds({width:Number(e.target.value)})}/></label><label>Height <input type="number" min="1" value={bounds.height} onChange={e=>updateBounds({height:Number(e.target.value)})}/></label><small>Region coordinates are relative to the parent map.</small></div>})()}{terrainInspector?(<><p>Terrain: {terrainInspector.terrain??'None'}</p>{runtimeTerrain&&<p>Runtime Asset: {runtimeTerrain.assetId}</p>}{topology&&<p>Topology: {topology.mask}</p>}{terrainPreviewCount>0&&<p>Preview Cells: {terrainPreviewCount}</p>}<p>Junction: {terrainInspector.junction?.kind??'none'}</p><p>Geometry: {terrainInspector.junction?.mode??'none'}</p><p>Strength: {(terrainInspector.junction?.strength??0).toFixed(2)}</p><p>Secondary: {terrainInspector.junction?.secondaryTerrains?.length?terrainInspector.junction.secondaryTerrains.join(', '):'None'}</p><p>Directions: {terrainInspector.junction?.directions?.length?terrainInspector.junction.directions.join(', '):'None'}</p></>):document.mapType==='world'?<p>World map editing surface.</p>:<p>{selected?`${selected.category} · ${selected.width}x${selected.height}`:'Select a building to inspect.'}</p>}<h2>Environment</h2><button onClick={()=>setShowEnvironment(v=>!v)}>{showEnvironment?'Hide':'Show'} Environment</button>{showEnvironment&&<><p>Status: {terrainStatus}</p><p>Context: {environmentReady?'Ready':'Not ready'}</p><h3>Runtime Validation</h3>{environmentValidation?.status==='READY'?<p>Season / Weather: READY</p>:environmentValidation?.status==='BLOCKED'?<><p>Season / Weather: BLOCKED</p><p>Reason: {environmentValidation.reason??'Configuration incomplete'}</p>{environmentValidation.blockingCount!==null&&<p>Blocking rules: {environmentValidation.blockingCount}</p>}<p>Season mapping: {environmentValidation.seasonMappingReady?'Ready':'Blocked'}</p><p>Weather transitions: {environmentValidation.weatherTransitionsReady?'Ready':'Blocked'}</p></>:<p>Season / Weather: diagnostics unavailable</p>}{readinessRows(environmentReadiness).map(([label,value,total])=><p key={label}>{label}: {readinessBound(value)}/{readinessExpected(value,total)}</p>)}<p>Verified base terrain: {verifiedBaseTerrains}/5</p><p>Transition bindings: {transitionBindings}/256</p></>}</aside></section></main>;
+
+const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper"] as const;
+const BRUSH_PRESETS = [
+  { name: "Fine", size: 1 },
+  { name: "Medium", size: 3 },
+  { name: "Large", size: 5 },
+  { name: "XL", size: 7 },
+] as const;
+
+export function EditorShell({
+  initialDocument = createMap("world"),
+  initialDocumentRevision = 0,
+  onDocumentChange,
+  onSave,
+  onSaveLoad,
+  onQuickSave,
+  onLoadLatest,
+  busy = false,
+  terrainBindings = {},
+  terrainStatus = "Terrain runtime unavailable",
+}: Props) {
+  const [activeTool, setActiveTool] = useState<string>("Select");
+  const [tileOptions, setTileOptions] = useState<TileOption[]>(STARTER_TILES);
+  const [selectedTile, setSelectedTile] = useState<string>(STARTER_TILES.find(tile => tile.terrain !== "deepwater")?.id ?? STARTER_TILES[0].id);
+  const [brushSize, setBrushSize] = useState(1);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
+  const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);
+  const [brushPreset, setBrushPreset] = useState("Fine");
+  const [debugViews, setDebugViews] = useState(DEFAULT_DEBUG_VIEW_STATE);
+  const [isolatedLayerId, setIsolatedLayerId] = useState<string | null>(null);
+  const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
+  const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
+  const document = history.present;
+  // Keep the latest editor-owned document available to toolbar handlers even while
+  // the parent mirror is catching up. Save/Load must operate on EditorShell state.
+  const documentRef = useRef<MapDocument>(document);
+  const paintGestureRef = useRef<number | null>(null);
+  useEffect(() => {
+    documentRef.current = document;
+  }, [document]);
+  const activeLayer = document.layers.find(layer => layer.active)?.id ?? document.layers[0]?.id ?? "ground";
+  // Terrain painting is always a ground-layer operation. The persisted map can
+  // contain a different active layer (for example objects), but the current
+  // World Map UI has no terrain-layer picker and must never silently discard a
+  // Paint/Erase request because of that persisted active flag.
+  const terrainLayer = document.layers.find(layer => layer.kind === "ground")?.id ?? "ground";
+
+  useEffect(() => {
+    setHistory(createHistory(initialDocument));
+  }, [initialDocument.id, initialDocumentRevision]);
+
+  useEffect(() => {
+    onDocumentChange?.(document);
+  }, [document, onDocumentChange]);
+
+  const commit = useCallback((next: MapDocument) => {
+    if (next === document) return;
+    // Update the save source synchronously with the edit. The effect below is
+    // still kept for normal synchronization, but Save must never observe the
+    // previous history.present during the tiny render/effect gap after Paint.
+    documentRef.current = next;
+    setHistory(current => commitHistory(current, next));
+  }, [document]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const modifier = event.ctrlKey || event.metaKey;
+      if (modifier && event.key.toLowerCase() === "c" && selection) {
+        event.preventDefault();
+        setSelectionClipboard(copySelection(documentRef.current, terrainLayer, selection));
+        setPaintDiagnostic("selection: copied");
+        return;
+      }
+      if (modifier && event.key.toLowerCase() === "v" && selectionClipboard && selection) {
+        event.preventDefault();
+        const next = pasteSelection(documentRef.current, terrainLayer, selectionClipboard, { x: selection.x, y: selection.y });
+        commit(next);
+        setPaintDiagnostic("selection: pasted");
+        return;
+      }
+      if (modifier && event.shiftKey && event.key.toLowerCase() === "r" && selection) {
+        event.preventDefault();
+        const next = replaceSelection(documentRef.current, terrainLayer, selection, selectedTile);
+        commit(next);
+        setPaintDiagnostic("selection: replaced");
+        return;
+      }
+      if (event.key === "Escape" && selection) {
+        event.preventDefault();
+        setSelection(null);
+        setPaintDiagnostic("selection: cleared");
+        return;
+      }
+      if (event.altKey && selection && ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+        const delta = event.key === "ArrowLeft" ? { x: -1, y: 0 } : event.key === "ArrowRight" ? { x: 1, y: 0 } : event.key === "ArrowUp" ? { x: 0, y: -1 } : { x: 0, y: 1 };
+        const moved = moveSelection(documentRef.current, terrainLayer, selection, delta);
+        commit(moved.document);
+        setSelection(moved.selection);
+        setPaintDiagnostic("selection: moved");
+        return;
+      }
+      if (!modifier) return;
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        setHistory(current => event.shiftKey ? redoHistory(current) : undoHistory(current));
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        setHistory(current => redoHistory(current));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [commit, selection, selectionClipboard, selectedTile, terrainLayer]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadTerrainTiles().then(tiles => {
+      if (cancelled) return;
+      setTileOptions(tiles);
+      const visibleTiles = tiles.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain));
+      setSelectedTile(current => visibleTiles.some(tile => tile.id === current) ? current : visibleTiles[0]?.id ?? current);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handlePaint = useCallback((points: GridPoint[], tileId: string | null, gestureId?: number) => {
+    const result = tileId === null
+      ? eraseTerrainPaint(document, terrainLayer, points, terrainBindings)
+      : applyTerrainPaint(document, terrainLayer, points, tileId, terrainBindings);
+    const changed = result.document !== document;
+    const changedTile = result.document.layers.find(layer => layer.id === terrainLayer)?.cells[points[0] ? points[0].y * document.width + points[0].x : -1]?.tileId ?? null;
+    setPaintDiagnostic(
+      `apply: layer=${terrainLayer} requested=${points.length} affected=${result.affected.length} changed=${changed ? "YES" : "NO"} tile=${changedTile ?? "null"} validation=${result.validation.length}`,
+    );
+    if (gestureId !== undefined && paintGestureRef.current === gestureId) {
+      documentRef.current = result.document;
+      setHistory(current => current.present === result.document
+        ? current
+        : { ...current, present: result.document, future: [] });
+    } else {
+      if (gestureId !== undefined) paintGestureRef.current = gestureId;
+      commit(result.document);
+    }
+  }, [document, terrainLayer, terrainBindings, commit]);
+
+  const handleUndo = useCallback(() => {
+    setHistory(current => {
+      if (!current.past.length) {
+        setPaintDiagnostic("history: UNDO unavailable (no previous state)");
+        return current;
+      }
+      const next = undoHistory(current);
+      setPaintDiagnostic(`history: UNDO applied · past=${next.past.length} future=${next.future.length}`);
+      return next;
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setHistory(current => {
+      if (!current.future.length) {
+        setPaintDiagnostic("history: REDO unavailable (no future state)");
+        return current;
+      }
+      const next = redoHistory(current);
+      setPaintDiagnostic(`history: REDO applied · past=${next.past.length} future=${next.future.length}`);
+      return next;
+    });
+  }, []);
+
+  const chooseTerrain = (tile: TileOption) => {
+    setSelectedTile(tile.id);
+    setActiveTool("Paint");
+  };
+
+  const chooseLayer = (layerId: string) => commit(setActiveLayer(documentRef.current, layerId));
+  const toggleLayerVisibility = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
+    visible: !documentRef.current.layers.find(layer => layer.id === layerId)?.visible,
+  }));
+  const toggleLayerLock = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
+    locked: !documentRef.current.layers.find(layer => layer.id === layerId)?.locked,
+  }));
+  const setLayerOpacity = (layerId: string, opacity: number) => commit(updateLayer(documentRef.current, layerId, {
+    opacity: Math.max(0, Math.min(1, opacity)),
+  }));
+  const moveLayer = (layerId: string, direction: "up" | "down") => commit(reorderLayer(documentRef.current, layerId, direction));
+  const handleDuplicateLayer = (layerId: string) => commit(duplicateLayer(documentRef.current, layerId));
+  const handleCreateGroup = () => commit(createLayerGroup(documentRef.current));
+  const handleToggleGroup = (groupId: string) => {
+    const group = documentRef.current.layerGroups.find(item => item.id === groupId);
+    if (group) commit(updateLayerGroup(documentRef.current, groupId, { expanded: !group.expanded }));
+  };
+  const handleToggleGroupVisibility = (groupId: string) => {
+    const group = documentRef.current.layerGroups.find(item => item.id === groupId);
+    if (group) commit(updateLayerGroup(documentRef.current, groupId, { visible: !group.visible }));
+  };
+  const handleToggleGroupLock = (groupId: string) => {
+    const group = documentRef.current.layerGroups.find(item => item.id === groupId);
+    if (group) commit(updateLayerGroup(documentRef.current, groupId, { locked: !group.locked }));
+  };
+  const handleDeleteGroup = (groupId: string) => commit(deleteLayerGroup(documentRef.current, groupId));
+  const handleAssignGroup = (layerId: string, groupId: string) => commit(assignLayerToGroup(documentRef.current, layerId, groupId));
+  const handleCreateTemplate = (layerId: string) => commit(createLayerTemplate(documentRef.current, layerId));
+  const handleApplyTemplate = (templateId: string) => commit(applyLayerTemplate(documentRef.current, templateId));
+  const handleDeleteTemplate = (templateId: string) => commit(deleteLayerTemplate(documentRef.current, templateId));
+  const handleMergeLayer = (sourceLayerId: string) => {
+    const target = documentRef.current.layers.find(layer => layer.id !== sourceLayerId && layer.kind === documentRef.current.layers.find(candidate => candidate.id === sourceLayerId)?.kind);
+    if (target) commit(mergeLayers(documentRef.current, target.id, sourceLayerId));
+  };
+
+  const selectTool = (tool: string) => setActiveTool(tool);
+  const cycleLayerIsolation = () => {
+    const layers = document.layers;
+    if (!layers.length) return;
+    if (!isolatedLayerId) {
+      setIsolatedLayerId(layers[0].id);
+      return;
+    }
+    const currentIndex = layers.findIndex(layer => layer.id === isolatedLayerId);
+    setIsolatedLayerId(currentIndex < 0 || currentIndex === layers.length - 1 ? null : layers[currentIndex + 1].id);
+  };
+  const isolatedLayerLabel = isolatedLayerId ? (document.layers.find(layer => layer.id === isolatedLayerId)?.name ?? isolatedLayerId) : "All layers";
+  const hasDebugOverlay = debugViews.grid || debugViews.terrainId || debugViews.waterDepth || debugViews.collision || debugViews.objectBounds || debugViews.invalidCells;
+
+  return (
+    <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "var(--map-editor-bg)", color: "var(--map-editor-text)" }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", flexWrap: "wrap" }}>
+        <strong style={{ marginRight: 8 }}>World Map</strong>
+        {TOOLS.map(tool => (
+          <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
+            style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: activeTool === tool ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
+            {tool}
+          </button>
+        ))}
+        <span aria-hidden="true" style={{ width: 1, height: 22, background: "var(--map-editor-line)", margin: "0 2px" }} />
+        <button type="button" onClick={handleUndo} disabled={!history.past.length || busy}
+          aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" style={{ padding: "6px 9px" }}>↶ Undo</button>
+        <button type="button" onClick={handleRedo} disabled={!history.future.length || busy}
+          aria-label="Redo" title="Redo (Ctrl/Cmd+Y)" style={{ padding: "6px 9px" }}>↷ Redo</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "grid"))} aria-pressed={debugViews.grid}
+          aria-label="Grid overlay" title="Toggle grid overlay" style={{ padding: "6px 9px" }}>{debugViews.grid ? "Grid ✓" : "Grid"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "terrainId"))} aria-pressed={debugViews.terrainId}
+          aria-label="Terrain ID view" title="Toggle terrain ID view" style={{ padding: "6px 9px" }}>{debugViews.terrainId ? "Terrain ID ✓" : "Terrain ID"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "waterDepth"))} aria-pressed={debugViews.waterDepth}
+          aria-label="Water depth view" title="Toggle water depth view" style={{ padding: "6px 9px" }}>{debugViews.waterDepth ? "Depth ✓" : "Depth"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "collision"))} aria-pressed={debugViews.collision}
+          aria-label="Collision passability view" title="Toggle collision/passability view" style={{ padding: "6px 9px" }}>{debugViews.collision ? "Collision ✓" : "Collision"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "objectBounds"))} aria-pressed={debugViews.objectBounds}
+          aria-label="Object bounds view" title="Toggle object bounds view" style={{ padding: "6px 9px" }}>{debugViews.objectBounds ? "Bounds ✓" : "Bounds"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "invalidCells"))} aria-pressed={debugViews.invalidCells}
+          aria-label="Invalid cell highlight" title="Toggle invalid-cell highlight" style={{ padding: "6px 9px" }}>{debugViews.invalidCells ? "Invalid ✓" : "Invalid"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "readOnly"))} aria-pressed={debugViews.readOnly}
+          aria-label="Read-only debug mode" title="Disable map editing input" style={{ padding: "6px 9px" }}>{debugViews.readOnly ? "Read-only ✓" : "Read-only"}</button>
+        <button type="button" onClick={cycleLayerIsolation} aria-pressed={isolatedLayerId !== null}
+          aria-label="Layer isolation" title="Cycle layer isolation" style={{ padding: "6px 9px" }}>{isolatedLayerId ? "Layer: " + isolatedLayerLabel : "Layer Iso"}</button>
+        <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
+        <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
+        <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
+      </header>
+
+      <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
+        <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).length} BASIC</div>
+          <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
+          <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
+          {hasDebugOverlay && <div role="note" aria-label="Diagnostic legend" style={{ marginBottom: 10, padding: 8, border: "1px solid var(--map-editor-border)", borderRadius: 7, fontSize: 10, lineHeight: 1.45, color: "#cbd5e1" }}>
+            <strong style={{ display: "block", marginBottom: 4 }}>Diagnostic Legend</strong>
+            {debugViews.grid && <div>Grid · cell boundaries</div>}
+            {debugViews.terrainId && <div>Terrain ID · semantic tile key</div>}
+            {debugViews.waterDepth && <div>Depth · D1 water → D4 deepwater</div>}
+            {debugViews.collision && <div>Collision · red blocked / green open</div>}
+            {debugViews.objectBounds && <div>Bounds · orange object footprint</div>}
+            {debugViews.invalidCells && <div>Invalid · red unknown ground tile</div>}
+            {debugViews.readOnly && <div>Read-only · map input disabled</div>}
+          </div>}
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYERS</div>
+            <div role="tree" aria-label="Map layers" style={{ display: "grid", gap: 5 }}>
+              <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                <button type="button" onClick={handleCreateGroup} title="Create layer group">+ Group</button>
+              </div>
+              {document.layerGroups.map(group => (
+                <div key={group.id} role="treeitem" aria-expanded={group.expanded} style={{ border: "1px solid var(--map-editor-border)", borderRadius: 6, padding: 5 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <button type="button" onClick={() => handleToggleGroup(group.id)} aria-label={(group.expanded ? "Collapse " : "Expand ") + group.name}>{group.expanded ? "▾" : "▸"}</button>
+                    <strong style={{ flex: 1 }}>{group.name}</strong>
+                    <button type="button" onClick={() => handleToggleGroupVisibility(group.id)} aria-label={(group.visible ? "Hide " : "Show ") + group.name}>{group.visible ? "◉" : "○"}</button>
+                    <button type="button" onClick={() => handleToggleGroupLock(group.id)} aria-label={(group.locked ? "Unlock " : "Lock ") + group.name}>{group.locked ? "🔒" : "🔓"}</button>
+                    <button type="button" onClick={() => handleDeleteGroup(group.id)} aria-label={"Delete " + group.name}>×</button>
+                  </div>
+                  {group.expanded && document.layers.filter(layer => layer.groupId === group.id).map(layer => (
+                    <button type="button" onClick={() => chooseLayer(layer.id)} style={{ marginLeft: 16, fontSize: 12, paddingTop: 3, border: 0, background: "transparent", color: "#fff", cursor: "pointer" }}>↳ {layer.name}</button>
+                  ))}
+                </div>
+              ))}
+
+              {document.layers.filter(layer => !layer.groupId).map((layer, index) => (
+                <div key={layer.id} role="treeitem" aria-selected={layer.active}
+                  style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 84px auto auto auto auto", alignItems: "center", gap: 4, padding: 5, borderRadius: 6, border: "1px solid var(--map-editor-border)", background: layer.active ? "var(--map-editor-selected)" : "var(--map-editor-button)" }}>
+                  <button type="button" onClick={() => chooseLayer(layer.id)} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", border: 0, background: "transparent", color: "#fff", textAlign: "left", cursor: "pointer" }} title={layer.name}>
+                    {layer.name}
+                  </button>
+                  <button type="button" onClick={() => toggleLayerVisibility(layer.id)} aria-label={(layer.visible ? "Hide " : "Show ") + layer.name} title={layer.visible ? "Hide layer" : "Show layer"} style={{ padding: "2px 5px" }}>{layer.visible ? "◉" : "○"}</button>
+                  <button type="button" onClick={() => toggleLayerLock(layer.id)} aria-label={(layer.locked ? "Unlock " : "Lock ") + layer.name} title={layer.locked ? "Unlock layer" : "Lock layer"} style={{ padding: "2px 5px" }}>{layer.locked ? "🔒" : "🔓"}</button>
+                  <input type="range" min="0" max="1" step="0.05" value={layer.opacity} onChange={event => setLayerOpacity(layer.id, Number(event.target.value))} aria-label={"Opacity " + layer.name} title={"Opacity " + Math.round(layer.opacity * 100) + "%"} style={{ width: 76 }} />
+                  <button type="button" onClick={() => handleDuplicateLayer(layer.id)} aria-label={"Duplicate " + layer.name} title="Duplicate layer" style={{ padding: "2px 5px" }}>⧉</button>
+                  <button type="button" onClick={() => handleCreateTemplate(layer.id)} aria-label={"Create template from " + layer.name} title="Create layer template" style={{ padding: "2px 5px" }}>☆</button>
+                  <button type="button" onClick={() => handleMergeLayer(layer.id)} disabled={!document.layers.some(other => other.id !== layer.id && other.kind === layer.kind)} aria-label={"Merge " + layer.name} title="Merge into adjacent same-kind layer" style={{ padding: "2px 5px" }}>⊕</button>
+                  <select value={layer.groupId ?? ""} onChange={event => handleAssignGroup(layer.id, event.target.value || null)} aria-label={"Group " + layer.name} title="Assign layer group" style={{ width: 70 }}><option value="">—</option>{document.layerGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
+                  <button type="button" onClick={() => moveLayer(layer.id, "up")} disabled={index === 0} aria-label={"Move " + layer.name + " up"} title="Move up" style={{ padding: "2px 5px" }}>↑</button>
+                  <button type="button" onClick={() => moveLayer(layer.id, "down")} disabled={index === document.layers.length - 1} aria-label={"Move " + layer.name + " down"} title="Move down" style={{ padding: "2px 5px" }}>↓</button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYER TEMPLATES</div>
+            {document.layerTemplates.length === 0 ? <div style={{ fontSize: 11, color: "#64748b" }}>Create a template from any layer using ☆.</div> : (
+              <div style={{ display: "grid", gap: 4 }}>
+                {document.layerTemplates.map(template => (
+                  <div key={template.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto", gap: 4, alignItems: "center" }}>
+                    <span title={template.name} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11 }}>{template.name}</span>
+                    <button type="button" onClick={() => handleApplyTemplate(template.id)} aria-label={"Apply " + template.name} title="Create layer from template">+</button>
+                    <button type="button" onClick={() => handleDeleteTemplate(template.id)} aria-label={"Delete " + template.name} title="Delete template">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gap: 6 }}>
+            {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).map(tile => (
+              <button key={tile.id} type="button" onClick={() => chooseTerrain(tile)} aria-pressed={selectedTile === tile.id}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid var(--map-editor-border)", background: selectedTile === tile.id ? "var(--map-editor-terrain-selected)" : "var(--map-editor-button)", color: "#fff" }}>
+                <span style={{ width: 28, height: 28, borderRadius: 4, background: ({
+                  grass: "#4f9d50", grassalt: "#6fae58",
+                  sand: "#e6c36a", redsand: "#c9784f",
+                  dirt: "#98633e", dirt2: "#7f5135",
+                  pavement: "#8b949e", water: "#3b82c4",
+                  deepwater: "#24527a", deepwater2: "#1d4162",
+                  brackish: "#397b78", tallgrass: "#3f873f",
+                  hole: "#3f3028", holek: "#4a372e", holemid: "#554238",
+                  lava: "#c4472d", lavarock: "#5b4542",
+                } as Record<string, string>)[tile.terrain] ?? "#8b949e" }} />
+                <span>{tile.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Brush presets</div>
+          <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
+            {BRUSH_PRESETS.map(preset => (
+              <button key={preset.name} type="button" onClick={() => { setBrushPreset(preset.name); setBrushSize(preset.size); }} aria-label={"Brush preset " + preset.name} aria-pressed={brushPreset === preset.name}
+                style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid var(--map-editor-border)", background: brushPreset === preset.name ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
+                {preset.name}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
+            Tools: Paint · Erase · Line · Rectangle · Flood · Eyedropper<br />            Selection: Ctrl/Cmd+C · Ctrl/Cmd+V · Shift+Ctrl/Cmd+R · Alt+Arrow · Esc<br />
+            Undo/Redo: Ctrl/Cmd+Z · Ctrl/Cmd+Y<br />
+            World: {document.width}×{document.height}<br />
+            Active layer: {activeLayer}<br />
+            Selected: {tileOptions.find(tile => tile.id === selectedTile)?.label ?? "—"}
+          </div>
+        </aside>
+
+        <section className="map-editor-canvas" style={{ minWidth: 0, minHeight: 0, position: "relative" }}>
+          <PixiMapCanvas
+            document={document}
+            activeTool={activeTool}
+            activeLayerId={terrainLayer}
+            selectedTileId={activeTool === "Erase" ? null : selectedTile}
+            brushSize={brushSize}
+            selection={selection}
+            onPaint={handlePaint}
+            onSelectionChange={setSelection}
+            onCellInspect={() => {}}
+            onTerrainPick={(tileId) => {
+              const picked = tileOptions.find(tile => tile.id === tileId);
+              if (!picked || ["water", "brackish", "deepwater2", "deepwater"].includes(picked.terrain)) {
+                setPaintDiagnostic(`eyedropper: ${picked?.terrain ?? tileId} tidak dapat dipilih (water adalah derived)`);
+                return;
+              }
+              setSelectedTile(picked.id);
+              setActiveTool("Paint");
+              setPaintDiagnostic(`eyedropper: picked=${picked.terrain} tile=${picked.id}`);
+            }}
+            onInputDiagnostic={setPaintDiagnostic}
+            onStamp={() => {}}
+            onObjectPlace={() => {}}
+            onObjectMove={() => {}}
+            selectedObjectId={null}
+            selectedObjectIds={selectedObjectIds}
+            onObjectSelectionChange={setSelectedObjectIds}
+            terrainBindings={terrainBindings}
+            environmentRuntime={null}
+            viewportResetKey={initialDocumentRevision}
+            showGrid={debugViews.grid}
+            debugViews={debugViews}
+            layerIsolationId={isolatedLayerId}
+            readonly={debugViews.readOnly}
+          />
+        </section>
+      </div>
+    </main>
+  );
 }
+
+
+
+
+
+
+

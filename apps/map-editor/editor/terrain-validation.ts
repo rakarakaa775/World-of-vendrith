@@ -10,6 +10,7 @@ import {
   type TerrainMask,
 } from './terrain-engine';
 import { getTerrainAssetBinding, type TerrainAssetBindingMap } from './terrain-asset-binding';
+import { classifyTerrainTransition } from './terrain-transition-registry';
 
 export type TerrainValidationStatus =
   | 'valid-logical'
@@ -25,7 +26,8 @@ export type TerrainValidationIssueCode =
   | 'outside-grid'
   | 'invalid-tile'
   | 'invalid-terrain'
-  | 'invalid-mask';
+  | 'invalid-mask'
+  | 'unregistered-transition';
 
 export type TerrainValidationIssue = {
   code: TerrainValidationIssueCode;
@@ -71,6 +73,46 @@ export function isValidTerrainMask(value: unknown): value is TerrainMask {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xff;
 }
 
+function isWaterTerrain(terrain: TerrainKey): boolean {
+  return terrain === 'water' || terrain === 'brackish' || terrain === 'deepwater2' || terrain === 'deepwater';
+}
+
+function terrainAtNeighbor(document: MapDocument, layerId: string, point: GridPoint, dx: number, dy: number): TerrainKey | null {
+  const x = point.x + dx;
+  const y = point.y + dy;
+  if (x < 0 || y < 0 || x >= document.width || y >= document.height) return null;
+  return terrainAt(document, { x, y }, layerId);
+}
+
+export function terrainPairIsCompatible(from: TerrainKey, to: TerrainKey): boolean {
+  if (from === to) return true;
+  // Water depth bands are one derived semantic family. Any authored land
+  // terrain may border that family; the water engine owns the depth transition.
+  if (isWaterTerrain(from) || isWaterTerrain(to)) return true;
+  return classifyTerrainTransition(from, to) === 'registered' ||
+    classifyTerrainTransition(to, from) === 'registered';
+}
+
+export function terrainTransitionIssues(
+  document: MapDocument,
+  layerId: string,
+  point: GridPoint,
+  terrain: TerrainKey,
+): TerrainValidationIssue[] {
+  const issues: TerrainValidationIssue[] = [];
+  const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+  for (const [dx, dy] of directions) {
+    const neighbor = terrainAtNeighbor(document, layerId, point, dx, dy);
+    if (!neighbor || terrainPairIsCompatible(terrain, neighbor)) continue;
+    issues.push({
+      code: 'unregistered-transition',
+      message: 'Unregistered terrain transition: ' + terrain + ' -> ' + neighbor + '.',
+      point,
+      terrain,
+    });
+  }
+  return issues;
+}
 function invalidResult(
   point: GridPoint,
   issues: TerrainValidationIssue[],
@@ -152,6 +194,9 @@ export function validateTerrainCell(
     ]);
   }
 
+  const transitionIssues = terrainTransitionIssues(document, layerId, point, terrain);
+  issues.push(...transitionIssues);
+
   const binding = getTerrainAssetBinding(bindings, terrain, mask);
   return {
     valid: true,
@@ -161,7 +206,7 @@ export function validateTerrainCell(
     mask,
     variantKey: terrainVariantKey(mask),
     assetId: binding?.assetId ?? null,
-    issues: [],
+    issues,
   };
 }
 

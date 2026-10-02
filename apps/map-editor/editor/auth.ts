@@ -5,10 +5,6 @@ import { createMapEditorSupabaseClient } from "./supabase-client";
 
 export type AuthUser = { id: string; username: string };
 
-function authEmail(username: string) {
-  return `${username.trim().toLowerCase()}@vandrith.local`;
-}
-
 export async function loadCurrentAuthUser(): Promise<AuthUser | null> {
   const client = createMapEditorSupabaseClient();
   if (!client) return null;
@@ -41,32 +37,60 @@ export function useAuthUser() {
   return { user, loading };
 }
 
-export async function signInWithUsername(username: string, password: string) {
+export async function signInWithEmail(email: string, password: string) {
   const client = createMapEditorSupabaseClient();
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
-  const { error } = await client.auth.signInWithPassword({ email: authEmail(username), password });
+  const { error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error) throw error;
   const { error: claimError } = await client.rpc("claim_vandrith_legacy_save_slots_v1");
   if (claimError) throw claimError;
 }
 
-export async function signUpWithUsername(username: string, password: string) {
+export async function signUpWithEmail(email: string, password: string, username?: string) {
   const client = createMapEditorSupabaseClient();
   if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
-  const clean = username.trim();
-  if (!/^[a-zA-Z0-9_]{3,32}$/.test(clean)) throw new Error("Username 3-32 karakter: huruf, angka, dan underscore.");
-  if (password.length < 6) throw new Error("Password minimal 6 karakter.");
+  const cleanEmail = email.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
+  if (password.length < 8) throw new Error("Password minimal 8 karakter.");
+  const { data: userData } = await client.auth.getUser();
+  if (!userData.user) throw new Error("Sesi login tidak ditemukan. Silakan login kembali sebelum mengganti password.");
   const { data, error } = await client.auth.signUp({
-    email: authEmail(clean),
+    email: cleanEmail,
     password,
-    options: { data: { username: clean } },
+    options: { data: { username: username?.trim() || cleanEmail.split("@")[0] } },
   });
   if (error) throw error;
   if (data.session) {
     const { error: claimError } = await client.rpc("claim_vandrith_legacy_save_slots_v1");
     if (claimError) throw claimError;
   }
-  return { sessionCreated: Boolean(data.session) };
+  return { sessionCreated: Boolean(data.session), emailConfirmationRequired: !data.session };
+}
+
+export async function requestPasswordReset(email: string) {
+  const client = createMapEditorSupabaseClient();
+  if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
+  const cleanEmail = email.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) throw new Error("Masukkan alamat email yang valid.");
+  const redirectTo = typeof window !== "undefined"
+    ? new URL("/reset-password", window.location.origin).toString()
+    : undefined;
+  const { error } = await client.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+  if (error) throw error;
+}
+
+export async function updatePassword(password: string, currentPassword?: string) {
+  const client = createMapEditorSupabaseClient();
+  if (!client) throw new Error("Supabase Auth belum dikonfigurasi.");
+  if (password.length < 8) throw new Error("Password minimal 8 karakter.");
+  if (currentPassword !== undefined && currentPassword.length === 0) {
+    throw new Error("Masukkan password saat ini.");
+  }
+  const { error } = await client.auth.updateUser({
+    password,
+    ...(currentPassword !== undefined ? { current_password: currentPassword } : {}),
+  });
+  if (error) throw error;
 }
 
 export async function signOut() {

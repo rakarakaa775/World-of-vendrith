@@ -30,6 +30,28 @@ begin
     from public.map_versions mv
     where mv.id = r.version_id;
 
+    -- A runtime snapshot is only authoritative when it is not older than
+    -- the newest durable version. If it is stale, return the durable version.
+    select * into v_latest
+    from public.map_versions mv
+    where mv.map_id = p_map_id
+    order by mv.version_number desc
+    limit 1;
+
+    if found and coalesce(v_version_number, 0) < v_latest.version_number then
+      return jsonb_build_object(
+        'ok',true,
+        'found',true,
+        'id',v_latest.id,
+        'map_id',v_latest.map_id,
+        'version_id',v_latest.id,
+        'version_number',v_latest.version_number,
+        'snapshot',v_latest.snapshot,
+        'updated_at',v_latest.created_at,
+        'code','durable-version-newer-than-runtime'
+      );
+    end if;
+
     return jsonb_build_object(
       'ok',true,
       'found',true,

@@ -39,12 +39,17 @@ export function classifyAssetEvidence(evidence: Evidence): AssetIntelligence {
     "source",
   );
 
+  const structuralFields = textValue(record, "category", "placement_category", "placementCategory", "role");
   const region = /bridge|dock|ship|town|village|building|structure|road|street|port|landmark/.test(text);
   const world = /terrain|grass|dirt|sand|stone|mud|beach|water|river|lake|sea|ocean|mountain|hill|cliff|rock|forest|jungle|desert|swamp|snow|vegetation|tree|plant/.test(text);
+  const structuralCategory = /bridge|dock|ship|town|village|building|structure|road|street|port|landmark/.test(structuralFields);
 
   let usageDomain: AssetUsageDomain = "review";
   let reason = "Asset classification is ambiguous or lacks sufficient semantic evidence.";
-  if (region && !world) {
+  if (structuralCategory) {
+    usageDomain = "region";
+    reason = "Asset registry category/placement identifies a structural asset assigned to REGION.";
+  } else if (region && !world) {
     usageDomain = "region";
     reason = "Asset matches Vendrith structural/settlement categories assigned to REGION.";
   } else if (world && !region) {
