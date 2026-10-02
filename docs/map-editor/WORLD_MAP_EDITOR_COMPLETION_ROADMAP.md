@@ -30,10 +30,10 @@ Membuat painting terrain nyaman dan lengkap sebelum masuk object placement.
 - [x] Water terrain disembunyikan dari palette
 - [x] Round brush sizes 1 / 3 / 5 / 7 cells
 - [x] Round brush preview
-- [ ] Rectangle brush
-- [ ] Line brush
-- [ ] Flood Fill
-- [ ] Eyedropper
+- [x] Rectangle brush
+- [x] Line brush
+- [x] Flood Fill
+- [x] Eyedropper
 - [x] Continuous drag painting
 - [ ] Modifier/shortcut behavior
 - [ ] Tool state persistence selama sesi
@@ -90,8 +90,8 @@ dan rendering tetap deterministic setelah save/load.
 ### Tujuan
 Membawa workflow editor mendekati editor map open-source yang telah direview.
 
-- [ ] Selection rectangle
-- [ ] Multi-cell selection
+- [x] Selection rectangle
+- [x] Multi-cell selection
 - [ ] Move selection
 - [ ] Copy selection
 - [ ] Paste selection
