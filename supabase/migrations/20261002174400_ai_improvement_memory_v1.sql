@@ -1,0 +1,16 @@
+create table if not exists public.ai_improvement_evaluations (id text primary key, owner_id uuid not null default auth.uid(), task_id text not null, strategy_id text not null, validity text not null check (validity in ('valid','invalid','unknown')), verification_passed boolean not null, novelty text not null check (novelty in ('new','known','unknown')), difficulty_signal text not null check (difficulty_signal in ('below-frontier','frontier','beyond-frontier','unknown')), evidence jsonb not null default '[]'::jsonb, created_at timestamptz not null default now());
+create table if not exists public.ai_improvement_proposals (id text primary key, owner_id uuid not null default auth.uid(), task_id text not null, strategy_id text not null, rationale text not null, evaluation_id text not null references public.ai_improvement_evaluations(id), requires_approval boolean not null default true check (requires_approval = true), created_at timestamptz not null default now());
+create index if not exists ai_improvement_evaluations_owner_created_idx on public.ai_improvement_evaluations(owner_id, created_at desc);
+create index if not exists ai_improvement_evaluations_task_idx on public.ai_improvement_evaluations(task_id, created_at desc);
+create index if not exists ai_improvement_proposals_owner_created_idx on public.ai_improvement_proposals(owner_id, created_at desc);
+create index if not exists ai_improvement_proposals_evaluation_idx on public.ai_improvement_proposals(evaluation_id);
+alter table public.ai_improvement_evaluations enable row level security;
+alter table public.ai_improvement_proposals enable row level security;
+drop policy if exists ai_improvement_evaluations_select_own on public.ai_improvement_evaluations;
+create policy ai_improvement_evaluations_select_own on public.ai_improvement_evaluations for select to authenticated using (owner_id = auth.uid());
+drop policy if exists ai_improvement_evaluations_insert_own on public.ai_improvement_evaluations;
+create policy ai_improvement_evaluations_insert_own on public.ai_improvement_evaluations for insert to authenticated with check (owner_id = auth.uid());
+drop policy if exists ai_improvement_proposals_select_own on public.ai_improvement_proposals;
+create policy ai_improvement_proposals_select_own on public.ai_improvement_proposals for select to authenticated using (owner_id = auth.uid());
+drop policy if exists ai_improvement_proposals_insert_own on public.ai_improvement_proposals;
+create policy ai_improvement_proposals_insert_own on public.ai_improvement_proposals for insert to authenticated with check (owner_id = auth.uid());
