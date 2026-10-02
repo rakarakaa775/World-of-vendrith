@@ -9,6 +9,8 @@ import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "..
 import type { MapDocument } from "../../editor/map-document";
 import type { TerrainAssetBindingMap } from "../../editor/terrain-asset-binding";
 import { PixiMapCanvas } from "../../components/pixi-map-canvas";
+import type { RuntimeEntity } from "../../ai/domain/runtime";
+import { PreviewRuntimeSimulation } from "../../ai/application/preview-runtime-simulation";
 
 const previewLayers = ["World Terrain", "Region Boundaries", "Playable", "Life", "Events"];
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -24,6 +26,9 @@ export default function PreviewPage() {
   const [zoom, setZoom] = useState(100);
   const [layers, setLayers] = useState([true, true, false, false, false]);
   const [playing, setPlaying] = useState(false);
+  const [runtimeEntities, setRuntimeEntities] = useState<RuntimeEntity[]>([]);
+  const [runtimeTick, setRuntimeTick] = useState(0);
+  const [simulation, setSimulation] = useState<PreviewRuntimeSimulation | null>(null);
   const [showGrid, setShowGrid] = useState(false);
   const [showCoordinates, setShowCoordinates] = useState(true);
   const [viewportAction, setViewportAction] = useState<PreviewViewportAction>({ id: 1, type: "fit" });
@@ -83,6 +88,35 @@ export default function PreviewPage() {
       ),
     };
   }, [document, layers]);
+
+  useEffect(() => {
+    if (!document) {
+      setSimulation(null);
+      setRuntimeEntities([]);
+      setRuntimeTick(0);
+      setPlaying(false);
+      return;
+    }
+    const next = new PreviewRuntimeSimulation(document);
+    setSimulation(next);
+    setRuntimeEntities(next.snapshot().entities);
+    setRuntimeTick(0);
+    setPlaying(false);
+  }, [document]);
+
+  useEffect(() => {
+    if (!playing || !simulation) return;
+    let cancelled = false;
+    const runTick = async () => {
+      const result = await simulation.tick();
+      if (cancelled) return;
+      setRuntimeEntities(simulation.snapshot().entities);
+      setRuntimeTick(simulation.snapshot().state.clock.tick);
+      if (result.status === "rejected" || result.status === "invalid") setPlaying(false);
+    };
+    const timer = window.setInterval(() => { void runTick(); }, 350);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [playing, simulation]);
 
   const changeZoom = (next: number) => {
     const value = Math.max(50, Math.min(200, next));
@@ -147,6 +181,7 @@ export default function PreviewPage() {
               onObjectSelectionChange={() => undefined}
               selectedObjectId={null}
               terrainBindings={terrainBindings}
+              runtimeEntities={runtimeEntities}
               viewportAction={viewportAction}
               viewportResetKey={document.id}
               readonly
@@ -207,7 +242,7 @@ export default function PreviewPage() {
           <button type="button" aria-label="Play preview" aria-pressed={playing} onClick={() => setPlaying(true)}>▶</button>
           <button type="button" aria-label="Pause preview" aria-pressed={!playing} onClick={() => setPlaying(false)}>Ⅱ</button>
           <button type="button" aria-label="Reset preview" onClick={() => { setPlaying(false); setZoom(100); setViewportAction(previous => ({ id: previous.id + 1, type: "fit" })); }}>↺</button>
-          <span>{playing ? "PLAYING" : "00:00:00"}</span>
+          <span>{playing ? `PLAYING · TICK ${runtimeTick}` : `00:00:${String(runtimeTick).padStart(2, "0")}`}</span>
         </div>
         <div className="vandrith-preview-mode">
           <span>AUTHORITATIVE MAP</span>

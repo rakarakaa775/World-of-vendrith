@@ -19,6 +19,7 @@ import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
 import { boxSelectObjectIds } from "../editor/object-state";
 import { DEFAULT_VIEWPORT, nextZoomLevel, panBy, snapToCell, zoomAt, type Viewport } from "../editor/viewport";
 import type { DebugViewState } from "../editor/debug-views";
+import type { RuntimeEntity } from "../ai/domain/runtime";
 
 type Props = {
   document: MapDocument;
@@ -39,6 +40,7 @@ type Props = {
   onObjectSelectionChange: (objectIds: string[]) => void;
   selectedObjectId: string | null;
   terrainBindings?: TerrainAssetBindingMap;
+  runtimeEntities?: RuntimeEntity[];
   environmentRuntime?: EnvironmentRuntimeState | null;
   viewportAction?: { id: number; type: "pan"; dx: number; dy: number } | { id: number; type: "zoom"; zoom: number } | { id: number; type: "fit" } | { id: number; type: "zoom-map" } | { id: number; type: "zoom-selection" };
   onViewportChange?: (viewport: Viewport) => void;
@@ -487,6 +489,23 @@ export function PixiMapCanvas(props: Props) {
         }
       }
 
+      for (const entity of propsRef.current.runtimeEntities ?? []) {
+        const marker = new Graphics();
+        const isNpc = entity.kind === "npc";
+        const size = Math.max(7, document.tileSize * 0.28);
+        const centerX = (entity.position.x + 0.5) * document.tileSize;
+        const centerY = (entity.position.y + 0.5) * document.tileSize;
+        marker.circle(centerX, centerY, size).fill({ color: isNpc ? 0xef4444 : 0x2563eb, alpha: 0.95 });
+        marker.circle(centerX, centerY, size + 3).stroke({ width: 2, color: 0xffffff, alpha: 0.9 });
+        marker.eventMode = "none";
+        scene.addChild(marker);
+        const label = new Text({ text: isNpc ? "NPC" : "PLAYER", style: { fontSize: 10, fill: 0xffffff, fontWeight: "700" } });
+        label.x = centerX - label.width / 2;
+        label.y = centerY - size - label.height - 3;
+        label.eventMode = "none";
+        scene.addChild(label);
+      }
+
       scene.addChild(overlay);
       const preview = new Graphics();
       preview.eventMode = "none";
@@ -515,7 +534,7 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.environmentRuntime, props.showGrid, props.debugViews, props.layerIsolationId]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.runtimeEntities, props.environmentRuntime, props.showGrid, props.debugViews, props.layerIsolationId]);
 
   useEffect(() => {
     if (!ready) return;
