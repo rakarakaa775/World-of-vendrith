@@ -234,7 +234,7 @@ export function PixiMapCanvas(props: Props) {
             Math.max(1, document.tileSize - 2),
           ).fill({
             color: colorForTile(id, document.id, x, y),
-            alpha: layer.kind === "collision" ? 0.35 : 1,
+            alpha: layer.kind === "collision" ? 0.35 * layer.opacity : layer.opacity,
           });
         }
       }
@@ -435,7 +435,7 @@ export function PixiMapCanvas(props: Props) {
                 sprite.y = y * document.tileSize;
                 sprite.width = document.tileSize;
                 sprite.height = document.tileSize;
-                sprite.alpha = 1;
+                sprite.alpha = layer.opacity;
                 scene.addChild(sprite);
               }
             }
@@ -455,7 +455,7 @@ export function PixiMapCanvas(props: Props) {
               sprite.y = o.y * document.tileSize + 2;
               sprite.width = Math.max(4, o.width * document.tileSize - 4);
               sprite.height = Math.max(4, o.height * document.tileSize - 4);
-              sprite.alpha = 0.95;
+              sprite.alpha = 0.95 * layer.opacity;
               scene.addChild(sprite);
               if (selectedObjectIds.includes(o.id)) {
                 const outline = new Graphics();
