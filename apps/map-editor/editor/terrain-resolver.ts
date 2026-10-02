@@ -4,6 +4,7 @@ import {
   neighborMask,
   terrainAt,
   waterNeighborMask,
+  terrainCornerMask,
   terrainFromTileId,
   terrainVariantKey,
   type TerrainKey,
@@ -24,6 +25,7 @@ export type TerrainVariant = {
   assetId: string | null;
   tileId: string | null;
   shorelineMask: TerrainMask | null;
+  cornerMask: number;
 };
 
 export type TerrainResolver = (terrain: TerrainKey, mask: TerrainMask) => string | null;
@@ -77,6 +79,7 @@ export function resolveTerrainVariant(
     assetId,
     tileId: assetId ?? FALLBACK_TILE[terrain] ?? null,
     shorelineMask: null,
+    cornerMask: 0,
   };
 }
 
@@ -108,6 +111,7 @@ export function resolveTerrainRenderCell(
   if (!terrain) return null;
 
   const semanticMask = neighborMask(document, layerId, point, terrain);
+  const cornerMask = terrainCornerMask(document, layerId, point, terrain);
   const shorelineMask = WATER_TERRAINS.has(terrain) ? null : waterNeighborMask(document, layerId, point);
   const renderMask = terrain === 'deepwater'
     ? 255
@@ -122,6 +126,7 @@ export function resolveTerrainRenderCell(
     assetId: binding?.assetId ?? null,
     tileId: binding?.assetId ?? FALLBACK_TILE[terrain] ?? null,
     shorelineMask,
+    cornerMask,
   };
 }
 
