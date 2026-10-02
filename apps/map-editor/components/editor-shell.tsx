@@ -56,6 +56,7 @@ export function EditorShell({
   const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);
   const [brushPreset, setBrushPreset] = useState("Fine");
   const [debugViews, setDebugViews] = useState(DEFAULT_DEBUG_VIEW_STATE);
+  const [isolatedLayerId, setIsolatedLayerId] = useState<string | null>(null);
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
@@ -202,6 +203,17 @@ export function EditorShell({
   };
 
   const selectTool = (tool: string) => setActiveTool(tool);
+  const cycleLayerIsolation = () => {
+    const layers = document.layers;
+    if (!layers.length) return;
+    if (!isolatedLayerId) {
+      setIsolatedLayerId(layers[0].id);
+      return;
+    }
+    const currentIndex = layers.findIndex(layer => layer.id === isolatedLayerId);
+    setIsolatedLayerId(currentIndex < 0 || currentIndex === layers.length - 1 ? null : layers[currentIndex + 1].id);
+  };
+  const isolatedLayerLabel = isolatedLayerId ? (document.layers.find(layer => layer.id === isolatedLayerId)?.name ?? isolatedLayerId) : "All layers";
   const hasDebugOverlay = debugViews.grid || debugViews.terrainId || debugViews.waterDepth || debugViews.collision || debugViews.objectBounds || debugViews.invalidCells;
 
   return (
@@ -233,6 +245,8 @@ export function EditorShell({
           aria-label="Invalid cell highlight" title="Toggle invalid-cell highlight" style={{ padding: "6px 9px" }}>{debugViews.invalidCells ? "Invalid ✓" : "Invalid"}</button>
         <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "readOnly"))} aria-pressed={debugViews.readOnly}
           aria-label="Read-only debug mode" title="Disable map editing input" style={{ padding: "6px 9px" }}>{debugViews.readOnly ? "Read-only ✓" : "Read-only"}</button>
+        <button type="button" onClick={cycleLayerIsolation} aria-pressed={isolatedLayerId !== null}
+          aria-label="Layer isolation" title="Cycle layer isolation" style={{ padding: "6px 9px" }}>{isolatedLayerId ? "Layer: " + isolatedLayerLabel : "Layer Iso"}</button>
         <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
@@ -325,6 +339,7 @@ export function EditorShell({
             viewportResetKey={initialDocumentRevision}
             showGrid={debugViews.grid}
             debugViews={debugViews}
+            layerIsolationId={isolatedLayerId}
             readonly={debugViews.readOnly}
           />
         </section>
@@ -332,6 +347,7 @@ export function EditorShell({
     </main>
   );
 }
+
 
 
 
