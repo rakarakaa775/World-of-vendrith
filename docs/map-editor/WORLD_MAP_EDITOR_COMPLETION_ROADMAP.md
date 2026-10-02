@@ -52,7 +52,7 @@ Memisahkan terrain semantic dari cara terrain divisualkan.
 
 - [x] Terrain compatibility matrix — validation distinguishes verified non-water transitions from unregistered pairs; derived water family remains compatible with authored land
 - [x] Edge/neighbor masks
-- [ ] Shoreline masks
+- [x] Shoreline masks — derived 8-way water-neighbor mask is exposed at render time without persisting it
 - [x] Transition rule registry — registry semantic sudah dibuat berdasarkan pasangan transition yang saat ini terverifikasi di Supabase
 - [ ] Autotiling
 - [ ] Dual-grid/corner-mask strategy bila dibutuhkan
@@ -76,7 +76,7 @@ baru hanya untuk membuat visual terlihat lengkap.
 - [x] Water depth derived dari jarak ke land
 - [x] water → brackish → deepwater2 → deepwater
 - [ ] Shoreline visual variants
-- [ ] Water transition validation
+- [x] Water transition validation — all derived water-depth bands are treated as one compatible family at validation time
 - [ ] Large-water-body stress test
 
 ### Exit gate
