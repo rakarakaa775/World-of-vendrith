@@ -144,7 +144,7 @@ MapDocument.
 - [~] Duplicate layer — implemented; browser click-level verification pending
 - [~] Merge layer — implemented; browser click-level verification pending
 - [~] Layer isolation — implemented in Phase 2D; browser click-level verification pending
-- [ ] Layer template
+- [~] Layer template — implemented; browser click-level verification pending
 
 ### Exit gate
 Layer operation mempertahankan identity, serialization, dan undo/redo.
