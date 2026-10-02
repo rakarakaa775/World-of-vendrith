@@ -1,5 +1,4 @@
-import type { AiSurface } from "../domain/runtime";
-import type { RuntimeAction, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
+import type { AiSurface, RuntimeAction, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 
 export interface RuntimeValidationResult {
   ok: boolean;
@@ -38,5 +37,28 @@ export function canExecuteRuntimeAction(
   approved: boolean,
 ): boolean {
   if (action.risk === "safe") return true;
+  return approved;
+}
+
+/**
+ * Runtime execution policy with an explicit surface boundary.
+ *
+ * Creator is never a runtime execution surface. Engine and Game are the
+ * runtime surfaces; game-rule actions require the runtime surface itself to
+ * authorize them, while high-risk actions additionally require approval.
+ */
+export function canExecuteRuntimeActionForSurface(
+  action: RuntimeAction,
+  surface: AiSurface,
+  approved: boolean,
+): boolean {
+  if (surface === "creator") return false;
+
+  if (action.risk === "safe") return true;
+
+  if (action.risk === "game-rule") {
+    return surface === "engine" || surface === "game";
+  }
+
   return approved;
 }
