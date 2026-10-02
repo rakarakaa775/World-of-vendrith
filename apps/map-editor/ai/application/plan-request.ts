@@ -1,5 +1,6 @@
 import type { AiPlan, AiRequest, Evidence } from "../domain/types";
 import { classifyApproval } from "../policies/ai-policy";
+import { buildProjectContext } from "./project-context";
 import type { CodeIntelligencePort, DocumentationPort, RepositoryPort } from "../ports/project-tools";
 
 export interface PlanRequestDependencies {
@@ -12,7 +13,8 @@ export async function createReadOnlyPlan(
   request: AiRequest,
   deps: PlanRequestDependencies,
 ): Promise<AiPlan> {
-  const matches = await deps.repository.search(request.prompt);
+  const context = await buildProjectContext({ prompt: request.prompt }, deps);
+  const matches = context.repositoryMatches;
   const dependencyEvidence: Evidence[] = [];
   for (const [index, match] of matches.slice(0, 5).entries()) {
     const dependencies = await deps.code.findDependencies(match.path);
@@ -35,7 +37,7 @@ export async function createReadOnlyPlan(
       confidence: "high" as const,
     })),
     ...dependencyEvidence,
-    ...(await deps.documentation.search(request.prompt)),
+    ...context.documentationEvidence,
   ];
 
   const approval = classifyApproval(request.mode, request.prompt);
