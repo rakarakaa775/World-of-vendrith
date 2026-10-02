@@ -6,7 +6,7 @@ import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
 import { buildProjectSchemaSummary } from "./schema-intelligence";
 import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
 import { inspectMap } from "./map-inspector";
-import { inspectAsset, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
+import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
 export interface ProjectTools {
   repository: RepositoryPort;
@@ -47,6 +47,15 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       {
         name: "region.inspect", description: "Inspect an authoritative Region map, hierarchy, content, linked Playable maps, and asset provenance. Read-only.", access: "read-only", parameters: pathArgument("regionId"), validate: hasStringArgument("regionId"),
         async execute(args) { return inspectRegion((args as { regionId: string }).regionId, contentDeps); },
+      },
+      {
+        name: "playable.inspect", description: "Inspect an authoritative Playable map, its parent Region or Playable exterior, interior links, content, and asset provenance. Read-only.", access: "read-only", parameters: pathArgument("playableId"), validate: hasStringArgument("playableId"),
+        async execute(args) { return inspectPlayable((args as { playableId: string }).playableId, contentDeps); },
+      },
+      {
+        name: "content.inspect", description: "Unified read-only content inspector. Inspect World, Region, Playable, or Asset by ID; with type auto, authoritative map identity is checked before falling back to verified asset evidence.", access: "read-only", parameters: { type: "object", properties: { id: { type: "string" }, type: { type: "string", enum: ["auto", "world", "region", "playable", "asset"] } }, required: ["id", "type"] },
+        validate: (args): args is { id: string; type: "auto" | "world" | "region" | "playable" | "asset" } => typeof args === "object" && args !== null && typeof (args as { id?: unknown }).id === "string" && ["auto", "world", "region", "playable", "asset"].includes((args as { type?: unknown }).type as string),
+        async execute(args) { const input = args as { id: string; type: "auto" | "world" | "region" | "playable" | "asset" }; return inspectContent(input.id, input.type, contentDeps); },
       },
       {
         name: "asset.inspect", description: "Inspect verified asset registry evidence, placement domain, license state, attribution, and usage permissions. Read-only.", access: "read-only", parameters: pathArgument("assetId"), validate: hasStringArgument("assetId"),

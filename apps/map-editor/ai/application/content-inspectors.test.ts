@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { inspectAsset, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
+import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
-const world = (type: "world" | "region", id: string, parentMapId: string | null = null) => ({
+const world = (type: "world" | "region" | "playable", id: string, parentMapId: string | null = null) => ({
   document: {
     id, name: id, mapType: type, parentMapId, width: 2, height: 2, tileSize: 32,
     layers: [{ id: "ground", name: "Ground", kind: "ground" as const, visible: true, cells: [{ tileId: "grass" }], objects: [{ id: "link", kind: "poi" as const, category: "region", x: 0, y: 0, width: 1, height: 1, assetId: "asset-1", childMapId: "child-1" }] }],
@@ -64,5 +64,32 @@ describe("traceContentHierarchy", () => {
     const result = await traceContentHierarchy("world-1", { map: { resolveMap: async (id: string) => id === "world-1" ? world("world", "world-1") : null }, assetRegistry: { search: async () => [] } });
     expect(result.found).toBe(true);
     expect(result.warnings).toContain("Linked map child-1 has no authoritative snapshot.");
+  });
+});
+
+
+describe("playable and unified inspectors", () => {
+  it("inspects an authoritative Playable", async () => {
+    const playable: any = world("playable", "playable-1", "region-1");
+    playable.document.parentPlayableMapId = "playable-exterior";
+    const result = await inspectPlayable("playable-1", { map: { resolveMap: async () => playable }, assetRegistry: { search: async () => [] } });
+    expect(result.found).toBe(true);
+    expect(result.type).toBe("playable");
+    expect(result.hierarchy?.parentMapId).toBe("region-1");
+    expect(result.hierarchy?.parentPlayableMapId).toBe("playable-exterior");
+  });
+
+  it("unified auto inspection prefers authoritative map identity", async () => {
+    const playable: any = world("playable", "content-1", "region-1");
+    const result = await inspectContent("content-1", "auto", { map: { resolveMap: async () => playable }, assetRegistry: { search: async () => [] } });
+    expect(result.found).toBe(true);
+    expect(result.type).toBe("playable");
+  });
+
+  it("unified auto inspection falls back to verified asset evidence", async () => {
+    const evidence = { id: "asset-7", kind: "verified-fact", source: "asset_registry:asset-7", fact: JSON.stringify({ id: "asset-7", category: "tree", licenseVerificationStatus: "verified", licenseUsageStatus: "allowed", commercialUseAllowed: true }), confidence: "high" };
+    const result = await inspectContent("asset-7", "auto", { map: { resolveMap: async () => null }, assetRegistry: { search: async () => [evidence] } });
+    expect(result.found).toBe(true);
+    expect(result.type).toBe("asset");
   });
 });
