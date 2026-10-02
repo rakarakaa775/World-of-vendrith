@@ -2,6 +2,11 @@
 
 Tanggal audit: 2026-10-02
 
+## Freshness / version note
+
+- codebase-memory-mcp: GitHub Releases currently shows v0.11.0 as latest release at audit time. Some older documentation pages still mention 0.8.x/0.10.x, so release metadata should be checked before installation. citeturn2search3turn2search4
+- CodeGraph: current workspace metadata identifies version 0.21.0. citeturn1search2
+
 ## Sumber
 
 ### A — codebase-memory-mcp
