@@ -79,6 +79,15 @@ export function EditorShell({
     onDocumentChange?.(document);
   }, [document, onDocumentChange]);
 
+  const commit = useCallback((next: MapDocument) => {
+    if (next === document) return;
+    // Update the save source synchronously with the edit. The effect below is
+    // still kept for normal synchronization, but Save must never observe the
+    // previous history.present during the tiny render/effect gap after Paint.
+    documentRef.current = next;
+    setHistory(current => commitHistory(current, next));
+  }, [document]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const modifier = event.ctrlKey || event.metaKey;
@@ -140,15 +149,6 @@ export function EditorShell({
     });
     return () => { cancelled = true; };
   }, []);
-
-  const commit = useCallback((next: MapDocument) => {
-    if (next === document) return;
-    // Update the save source synchronously with the edit. The effect below is
-    // still kept for normal synchronization, but Save must never observe the
-    // previous history.present during the tiny render/effect gap after Paint.
-    documentRef.current = next;
-    setHistory(current => commitHistory(current, next));
-  }, [document]);
 
   const handlePaint = useCallback((points: GridPoint[], tileId: string | null, gestureId?: number) => {
     const result = tileId === null
