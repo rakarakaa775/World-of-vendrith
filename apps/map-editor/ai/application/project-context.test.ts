@@ -14,7 +14,7 @@ describe("project context", () => {
       findDependencies: vi.fn(async (path: string) => path === "src/editor.ts" ? ["src/map.ts"] : []),
       findDependents: vi.fn(async (path: string) => path === "src/editor.ts" ? ["src/app.ts"] : []),
     };
-    const documentation = {
+    const assetRegistry = {\n      search: vi.fn(async () => [{\n        id: "asset-1", kind: "verified-fact" as const, source: "asset_license_registry",\n        fact: "CC-BY attribution required", confidence: "high" as const,\n      }]),\n    };\n    const documentation = {
       search: vi.fn(async () => [{
         id: "doc-1", kind: "project-rule" as const, source: "AGENTS.md",
         fact: "Use project rules", confidence: "high" as const,
@@ -23,7 +23,7 @@ describe("project context", () => {
 
     const context = await buildProjectContext(
       { prompt: "map editor", maxRepositoryMatches: 1 },
-      { repository, code, documentation },
+      { repository, code, documentation, assetRegistry },
     );
 
     expect(context.query).toBe("map editor");
@@ -33,7 +33,7 @@ describe("project context", () => {
       dependencies: ["src/map.ts"],
       dependents: ["src/app.ts"],
     });
-    expect(context.documentationEvidence[0].source).toBe("AGENTS.md");
+    expect(context.documentationEvidence[0].source).toBe("AGENTS.md");\n    expect(context.assetEvidence[0].source).toBe("asset_license_registry");
     expect(repository.search).toHaveBeenCalledWith("map editor");
   });
 });
