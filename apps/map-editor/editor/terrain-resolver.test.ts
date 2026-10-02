@@ -62,6 +62,32 @@ describe("terrain render resolution", () => {
     expect(resolved?.assetId).toBe("grass-mask-3");
   });
 
+  it("uses an exact approved shoreline binding when available", () => {
+    const base = createMap("world");
+    const document = {
+      ...base,
+      width: 3,
+      height: 3,
+      layers: base.layers.map(layer => ({
+        ...layer,
+        cells: Array.from({ length: 9 }, () => ({ tileId: "deepwater" })),
+      })),
+    };
+    const ground = document.layers.find(layer => layer.id === "ground")!;
+    ground.cells[4] = { tileId: "grass" };
+    ground.cells[1] = { tileId: "grass" };
+    ground.cells[5] = { tileId: "water" };
+    const map = createTerrainAssetBindingMap([
+      binding("grass", 255, "grass-base"),
+      binding("grass", 2, "grass-shore-2"),
+    ]);
+
+    const resolved = resolveTerrainRenderCell(document, "ground", { x: 1, y: 1 }, map);
+    expect(resolved?.shorelineMask).toBe(2);
+    expect(resolved?.mask).toBe(2);
+    expect(resolved?.assetId).toBe("grass-shore-2");
+  });
+
   it("forces the verified base mask for land touching water", () => {
     const base = createMap("world");
     const document = {
