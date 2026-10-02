@@ -1,4 +1,5 @@
 import type { Evidence } from "../domain/types";
+import { classifyAssetEvidence, type AssetIntelligence } from "../policies/asset-policy";
 import type { AssetRegistryPort, CodeIntelligencePort, DocumentationPort, RepositoryPort } from "../ports/project-tools";
 
 export interface ProjectContextRequest {
@@ -15,6 +16,7 @@ export interface ProjectContext {
   dependencyMap: Array<{ path: string; dependencies: string[]; dependents: string[] }>;
   documentationEvidence: Evidence[];
   assetEvidence: Evidence[];
+  assetIntelligence: AssetIntelligence[];
 }
 
 export interface ProjectContextDependencies {
@@ -45,6 +47,14 @@ export async function buildProjectContext(
     0,
     request.maxAssetEvidence ?? 8,
   );
+  const assetIntelligence = assetEvidence.map(classifyAssetEvidence);
 
-  return { query, repositoryMatches: matches, dependencyMap, documentationEvidence, assetEvidence };
+  return {
+    query,
+    repositoryMatches: matches,
+    dependencyMap,
+    documentationEvidence,
+    assetEvidence,
+    assetIntelligence,
+  };
 }
