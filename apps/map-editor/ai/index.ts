@@ -12,3 +12,5 @@ export * from "./application/agent-orchestrator";
 export * from "./domain/approval";
 export * from "./domain/improvement";
 export * from "./application/improvement-engine";
+
+export * from "./application/improvement-agent-runner";
