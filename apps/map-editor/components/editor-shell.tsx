@@ -26,7 +26,7 @@ type Props = {
 };
 
 const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood"] as const;
-const BRUSH_SIZES = [1, 2, 3, 5];
+const BRUSH_SIZES = [1, 3, 5, 7];
 
 export function EditorShell({
   initialDocument = createMap("world"),
@@ -191,10 +191,10 @@ export function EditorShell({
             ))}
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Brush size</div>
+          <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Round brush</div>
           <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
             {BRUSH_SIZES.map(size => (
-              <button key={size} type="button" onClick={() => setBrushSize(size)} aria-label={"Brush size " + size} aria-pressed={brushSize === size}
+              <button key={size} type="button" onClick={() => setBrushSize(size)} aria-label={"Round brush " + size + " cells"} aria-pressed={brushSize === size}
                 style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid var(--map-editor-border)", background: brushSize === size ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
                 {size}
               </button>
