@@ -16,9 +16,13 @@ export interface ImprovementEngineDependencies {
   memory: ImprovementMemory;
 }
 
-function strategyKey(strategy: ImprovementHistory["proposal"] | StrategyCandidate): string {
-  const description = "strategyDescription" in strategy ? strategy.strategyDescription : strategy.description;
-  const steps = strategy.strategySteps ?? strategy.steps;
+function strategyKey(strategy: NonNullable<ImprovementHistory["proposal"]> | StrategyCandidate): string {
+  const description = "description" in strategy
+    ? strategy.description
+    : strategy.strategyDescription ?? "";
+  const steps = "steps" in strategy
+    ? strategy.steps
+    : strategy.strategySteps ?? [];
   return [description.trim().toLowerCase(), ...steps.map((step) => step.trim().toLowerCase())].join("|");
 }
 
