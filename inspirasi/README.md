@@ -33,6 +33,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - Developer Roadmap (kamranahmedse) — Audit: ./DEVELOPER_ROADMAP_KAMRANAHMEDSE_AUDIT.md
 - Open-LLM-VTuber — Audit: ./OPEN_LLM_VTUBER_AUDIT.md
 - Ryza AI Revive — Audit: ./RYZA_AI_REVIVE_AUDIT.md
+- MiniMind — Audit Vendrith Project AI: ./MINIMIND_AUDIT.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
