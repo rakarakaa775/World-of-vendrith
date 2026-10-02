@@ -18,6 +18,7 @@ export * from "./domain/runtime";
 export * from "./ports/runtime";
 export * from "./policies/runtime-policy";
 export * from "./application/runtime-orchestrator";
+export * from "./application/runtime-observation";
 
 export * from "./application/project-intelligence";
 export * from "./application/schema-intelligence";

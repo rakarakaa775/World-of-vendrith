@@ -29,11 +29,31 @@ export interface GameWorldState {
   stateVersion: string;
 }
 
+export interface RuntimeEntity {
+  id: string;
+  kind: "player" | "npc" | "animal" | "object";
+  mapId: string;
+  position: { x: number; y: number };
+  state?: Record<string, unknown>;
+}
+
+export interface RuntimePerception {
+  self?: RuntimeEntity;
+  nearbyEntities: RuntimeEntity[];
+  visibleMapIds: string[];
+  environment: {
+    weather?: string;
+    season?: string;
+    activeRegionId?: string;
+  };
+}
+
 export interface RuntimeObservation {
   id: string;
   surface: "engine" | "game";
   intelligence: RuntimeIntelligence;
   state: GameWorldState;
+  perception?: RuntimePerception;
   facts: Evidence[];
 }
 

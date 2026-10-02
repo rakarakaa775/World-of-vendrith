@@ -6,6 +6,14 @@ import type {
 } from "../domain/runtime";
 import type { VerificationResult } from "../domain/types";
 
+export interface RuntimeObservationSource {
+  snapshot(request: RuntimeAiRequest): Promise<{
+    state: RuntimeObservation["state"];
+    perception: RuntimeObservation["perception"];
+    facts: RuntimeObservation["facts"];
+  }>;
+}
+
 export interface RuntimeObservationPort {
   observe(request: RuntimeAiRequest): Promise<RuntimeObservation>;
 }
