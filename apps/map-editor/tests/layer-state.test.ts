@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "../editor/map-document";
-import { reorderLayer, setActiveLayer, updateLayer } from "../editor/layer-state";
+import { duplicateLayer, mergeLayers, reorderLayer, setActiveLayer, updateLayer } from "../editor/layer-state";
 
 describe("layer state", () => {
   it("changes active, visibility, and lock metadata without mutating the source", () => {
@@ -27,4 +27,41 @@ describe("layer state", () => {
     expect(new Set(moved.layers.map(layer => layer.id))).toEqual(new Set(ids));
     expect(moved).not.toBe(document);
   });
+r without sharing cell/object references", () => {
+    const document = createMap("playable");
+    const ground = document.layers.find(layer => layer.id === "ground")!;
+    ground.cells[0] = { tileId: "grass" };
+    ground.objects.push({ id: "tree-1", kind: "decoration", category: "nature", x: 1, y: 1, width: 1, height: 1, assetId: "tree", rotation: 0, zIndex: 1, collision: false });
+    const duplicated = duplicateLayer(document, "ground");
+    const copy = duplicated.layers.find(layer => layer.id === "ground-copy")!;
+    expect(copy.name).toBe("World Ocean Copy");
+    expect(copy.active).toBe(false);
+    expect(copy.cells[0]).toEqual({ tileId: "grass" });
+    expect(copy.cells[0]).not.toBe(ground.cells[0]);
+    expect(copy.objects[0].id).toBe("ground-copy-tree-1");
+    expect(copy.objects[0]).not.toBe(ground.objects[0]);
+    expect(duplicated.layers.map(layer => layer.id)).toContain("ground-copy");
+    expect(document.layers).toHaveLength(3);
+  });
+
+  it("merges same-kind layers into the target and removes the source", () => {
+    const document = createMap("playable");
+    const target = document.layers.find(layer => layer.id === "ground")!;
+    const source = document.layers.find(layer => layer.id === "objects")!;
+    const sameKindSource = { ...source, id: "objects-2", kind: "objects" as const, cells: source.cells.map(cell => ({ ...cell })), objects: source.objects.map(object => ({ ...object })) };
+    const withSource = { ...document, layers: [...document.layers, sameKindSource] };
+    const result = mergeLayers(withSource, "objects", "objects-2");
+    expect(result.layers.map(layer => layer.id)).not.toContain("objects-2");
+    expect(result.layers.filter(layer => layer.kind === "objects")).toHaveLength(1);
+    expect(result.layers.find(layer => layer.id === "ground")?.cells[0].tileId).toBeNull();
+    expect(result).not.toBe(withSource);
+    expect(target.kind).toBe("ground");
+  });
+
+  it("rejects cross-kind merges without mutating the source", () => {
+    const document = createMap("playable");
+    const result = mergeLayers(document, "ground", "objects");
+    expect(result).toBe(document);
+  });
+
 });
