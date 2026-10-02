@@ -11,6 +11,7 @@ import {
 } from "../ports/tool-router";
 import { classifyAssetEvidence } from "../policies/asset-policy";
 import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
+import { buildProjectSchemaSummary } from "./schema-intelligence";
 
 export interface ProjectTools {
   repository: RepositoryPort;
@@ -30,6 +31,16 @@ function pathArgument(name: string) {
 
 export function createProjectTools(dependencies: ProjectTools): ToolDefinition[] {
   return [
+    {
+      name: "schema.inspect",
+      description: "Inspect evidence-backed Map, World, Region, NPC, Dialogue, and Event schema areas found in the repository.",
+      access: "read-only",
+      parameters: { type: "object", properties: {} },
+      validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() {
+        return buildProjectSchemaSummary(dependencies.repository);
+      },
+    },
     {
       name: "project.inspect",
       description: "Inspect the evidence-backed Vendrith project intelligence snapshot: repository manifest, structure, dependencies, documentation, and asset intelligence.",

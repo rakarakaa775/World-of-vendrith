@@ -20,3 +20,4 @@ export * from "./policies/runtime-policy";
 export * from "./application/runtime-orchestrator";
 
 export * from "./application/project-intelligence";
+export * from "./application/schema-intelligence";
