@@ -29,6 +29,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - Node.js Best Practices — Audit Vendrith: ./NODEJS_BEST_PRACTICES_VENDRITH.md
 - codebase-memory-mcp — Audit Menyeluruh: ./CODEBASE_MEMORY_MCP_AUDIT.md
 - codebase-memory-mcp vs CodeGraph — Perbandingan: ./CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md
+- Open Higgsfield AI (sunnychase) — Audit: ./OPEN_HIGGSFIELD_AI_SUNNYCHASE_AUDIT.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
@@ -44,3 +45,14 @@ Keduanya tidak otomatis dipasang sebagai dependency. Yang dicatat adalah pola ya
 - incremental indexing;
 - security dan local-first processing.
 
+## Catatan untuk Open Higgsfield AI
+
+Open Higgsfield AI dari sunnychase diperlakukan sebagai referensi UX/arsitektur ringan untuk:
+- capability-driven controls;
+- registry-as-data;
+- visual asset/model selectors;
+- asynchronous job lifecycle;
+- generation/artifact history;
+- provider abstraction.
+
+Repository tersebut adalah fork dan bukan dependency Vendrith. Provenance dan lisensi harus diverifikasi sebelum menyalin kode atau asset.
