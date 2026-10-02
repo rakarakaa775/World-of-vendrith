@@ -85,7 +85,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
       async execute(args) {
-        return dependencies.assetRegistry.search(args.query);
+        const evidence = await dependencies.assetRegistry.search(args.query);\n        return evidence.map(classifyAssetEvidence);
       },
     },
     {
