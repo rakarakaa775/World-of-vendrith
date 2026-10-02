@@ -52,7 +52,7 @@ describe("asset policy", () => {
     expect(result.licenseState).toBe("restricted");
   });
 
-  it("does not call a license clear without verified permission", () => {
+  it("accepts the registry adapter camelCase license fields", () => {\n    const result = classifyAssetEvidence(evidence({\n      name: "Grass", category: "terrain", licenseVerificationStatus: "verified", licenseUsageStatus: "allowed", commercialUseAllowed: true,\n    }));\n    expect(result.licenseState).toBe("clear");\n  });\n\n  it("does not call a license clear without verified permission", () => {
     const result = classifyAssetEvidence(evidence({
       name: "Grass",
       category: "terrain",
