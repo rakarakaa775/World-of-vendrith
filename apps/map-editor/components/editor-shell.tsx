@@ -6,7 +6,7 @@ import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
-import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers, createLayerGroup, updateLayerGroup, assignLayerToGroup, deleteLayerGroup } from "../editor/layer-state";
+import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers, createLayerGroup, updateLayerGroup, assignLayerToGroup, deleteLayerGroup, createLayerTemplate, applyLayerTemplate, deleteLayerTemplate } from "../editor/layer-state";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
 import { copySelection, pasteSelection, moveSelection, replaceSelection, type SelectionClipboard } from "../editor/selection-clipboard";
@@ -230,6 +230,9 @@ export function EditorShell({
   };
   const handleDeleteGroup = (groupId: string) => commit(deleteLayerGroup(documentRef.current, groupId));
   const handleAssignGroup = (layerId: string, groupId: string) => commit(assignLayerToGroup(documentRef.current, layerId, groupId));
+  const handleCreateTemplate = (layerId: string) => commit(createLayerTemplate(documentRef.current, layerId));
+  const handleApplyTemplate = (templateId: string) => commit(applyLayerTemplate(documentRef.current, templateId));
+  const handleDeleteTemplate = (templateId: string) => commit(deleteLayerTemplate(documentRef.current, templateId));
   const handleMergeLayer = (sourceLayerId: string) => {
     const target = documentRef.current.layers.find(layer => layer.id !== sourceLayerId && layer.kind === documentRef.current.layers.find(candidate => candidate.id === sourceLayerId)?.kind);
     if (target) commit(mergeLayers(documentRef.current, target.id, sourceLayerId));
@@ -332,6 +335,7 @@ export function EditorShell({
                   <button type="button" onClick={() => toggleLayerLock(layer.id)} aria-label={(layer.locked ? "Unlock " : "Lock ") + layer.name} title={layer.locked ? "Unlock layer" : "Lock layer"} style={{ padding: "2px 5px" }}>{layer.locked ? "🔒" : "🔓"}</button>
                   <input type="range" min="0" max="1" step="0.05" value={layer.opacity} onChange={event => setLayerOpacity(layer.id, Number(event.target.value))} aria-label={"Opacity " + layer.name} title={"Opacity " + Math.round(layer.opacity * 100) + "%"} style={{ width: 76 }} />
                   <button type="button" onClick={() => handleDuplicateLayer(layer.id)} aria-label={"Duplicate " + layer.name} title="Duplicate layer" style={{ padding: "2px 5px" }}>⧉</button>
+                  <button type="button" onClick={() => handleCreateTemplate(layer.id)} aria-label={"Create template from " + layer.name} title="Create layer template" style={{ padding: "2px 5px" }}>☆</button>
                   <button type="button" onClick={() => handleMergeLayer(layer.id)} disabled={!document.layers.some(other => other.id !== layer.id && other.kind === layer.kind)} aria-label={"Merge " + layer.name} title="Merge into adjacent same-kind layer" style={{ padding: "2px 5px" }}>⊕</button>
                   <select value={layer.groupId ?? ""} onChange={event => handleAssignGroup(layer.id, event.target.value || null)} aria-label={"Group " + layer.name} title="Assign layer group" style={{ width: 70 }}><option value="">—</option>{document.layerGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
                   <button type="button" onClick={() => moveLayer(layer.id, "up")} disabled={index === 0} aria-label={"Move " + layer.name + " up"} title="Move up" style={{ padding: "2px 5px" }}>↑</button>
@@ -339,6 +343,21 @@ export function EditorShell({
                 </div>
               ))}
             </div>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYER TEMPLATES</div>
+            {document.layerTemplates.length === 0 ? <div style={{ fontSize: 11, color: "#64748b" }}>Create a template from any layer using ☆.</div> : (
+              <div style={{ display: "grid", gap: 4 }}>
+                {document.layerTemplates.map(template => (
+                  <div key={template.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto", gap: 4, alignItems: "center" }}>
+                    <span title={template.name} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11 }}>{template.name}</span>
+                    <button type="button" onClick={() => handleApplyTemplate(template.id)} aria-label={"Apply " + template.name} title="Create layer from template">+</button>
+                    <button type="button" onClick={() => handleDeleteTemplate(template.id)} aria-label={"Delete " + template.name} title="Delete template">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div style={{ display: "grid", gap: 6 }}>

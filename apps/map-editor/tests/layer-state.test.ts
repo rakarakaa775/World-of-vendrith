@@ -60,6 +60,24 @@ describe("layer state", () => {
     expect(result).toBe(document);
   });
 
+  it("creates, applies, and deletes layer templates without copying source data", () => {
+    const document = createMap("playable");
+    const withTemplate = createLayerTemplate(document, "ground", "Terrain Base");
+    const template = withTemplate.layerTemplates[0];
+    expect(template.kind).toBe("ground");
+    expect(template.opacity).toBe(1);
+    const applied = applyLayerTemplate(withTemplate, template.id);
+    const created = applied.layers.find(layer => layer.id === "template-ground-layer")!;
+    expect(created.name).toBe("Terrain Base");
+    expect(created.kind).toBe("ground");
+    expect(created.cells.every(cell => cell.tileId === null)).toBe(true);
+    expect(created.objects).toEqual([]);
+    expect(created).not.toBe(document.layers.find(layer => layer.id === "ground"));
+    const removed = deleteLayerTemplate(applied, template.id);
+    expect(removed.layerTemplates).toHaveLength(0);
+    expect(removed.layers).toHaveLength(document.layers.length + 1);
+  });
+
   it("creates, assigns, updates, and deletes layer groups without data loss", () => {
     const document = createMap("playable");
     const grouped = createLayerGroup(document, "Terrain Stack");
