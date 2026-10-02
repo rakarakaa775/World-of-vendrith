@@ -1,5 +1,3 @@
-[Reading 309 lines from start (total: 309 lines, 0 remaining)]
-
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -222,6 +220,8 @@ export function EditorShell({
           aria-label="Redo" title="Redo (Ctrl/Cmd+Y)" style={{ padding: "6px 9px" }}>↷ Redo</button>
         <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "grid"))} aria-pressed={debugViews.grid}
           aria-label="Grid overlay" title="Toggle grid overlay" style={{ padding: "6px 9px" }}>{debugViews.grid ? "Grid ✓" : "Grid"}</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "terrainId"))} aria-pressed={debugViews.terrainId}
+          aria-label="Terrain ID view" title="Toggle terrain ID view" style={{ padding: "6px 9px" }}>{debugViews.terrainId ? "Terrain ID ✓" : "Terrain ID"}</button>
         <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
@@ -303,6 +303,7 @@ export function EditorShell({
             environmentRuntime={null}
             viewportResetKey={initialDocumentRevision}
             showGrid={debugViews.grid}
+            debugViews={debugViews}
           />
         </section>
       </div>
@@ -310,4 +311,4 @@ export function EditorShell({
   );
 }
 
-[executed on device: codespaces-e54cf0 (395fa14b-836a-48d6-b3c2-3cdaa0f364fc)]
+
