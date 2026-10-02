@@ -24,7 +24,7 @@ type Props = {
   selectedTileId: string | null;
   brushSize: number;
   selection: Selection | null;
-  onPaint: (points: GridPoint[], tileId: string | null) => void;
+  onPaint: (points: GridPoint[], tileId: string | null, gestureId?: number) => void;
   onSelectionChange: (selection: Selection | null) => void;
   onCellInspect?: (point: GridPoint) => void;
   onInputDiagnostic?: (message: string) => void;
@@ -553,7 +553,7 @@ export function PixiMapCanvas(props: Props) {
           ? `paint-path: valid=${validPts.length} tool=${activeTool} tile=${selectedTileId ?? "null"}`
           : `paint-path: BLOCKED valid=0 tool=${activeTool} tile=${selectedTileId ?? "null"} raw=${pts.length}`,
       );
-      if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : selectedTileId);
+      if (validPts.length) onPaint(validPts, activeTool === "Erase" ? null : selectedTileId, activePaintGestureId ?? undefined);
     };
     const down = (e: PointerEvent) => {
       if (activePointerId !== null && e.pointerId !== activePointerId) return;
@@ -597,7 +597,13 @@ export function PixiMapCanvas(props: Props) {
         return;
       }
       if (current.activeTool === "Paint" || current.activeTool === "Erase") {
-        if (valid(p)) { current.onCellInspect?.(p); paint([p]); lastPaintPoint = p; }
+        if (valid(p)) {
+          current.onCellInspect?.(p);
+          paintGestureId += 1;
+          activePaintGestureId = paintGestureId;
+          paint([p]);
+          lastPaintPoint = p;
+        }
         startPoint = p;
         return;
       }
@@ -684,6 +690,7 @@ export function PixiMapCanvas(props: Props) {
       }
       startPoint = null;
       lastPaintPoint = null;
+      activePaintGestureId = null;
       selecting = false;
       movingObjectId = null;
       panning = false;
