@@ -119,7 +119,9 @@ export function resolveTerrainRenderCell(
     : null;
   const renderMask = terrain === 'deepwater'
     ? 255
-    : (shorelineBinding ? shorelineMask! : semanticMask);
+    : (shorelineMask
+      ? (shorelineBinding ? shorelineMask : 255)
+      : semanticMask);
   const binding = getTerrainAssetBinding(bindings, terrain, renderMask);
 
   return {
