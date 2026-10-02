@@ -25,7 +25,7 @@ type Props = {
   environmentValidation?: EnvironmentRuntimeValidation | null;
 };
 
-const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood"] as const;
+const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper"] as const;
 const BRUSH_SIZES = [1, 3, 5, 7];
 
 export function EditorShell({
@@ -211,7 +211,7 @@ export function EditorShell({
           </div>
 
           <div style={{ marginTop: 14, fontSize: 11, color: "#94a3b8" }}>
-            Tools: Paint · Erase · Line · Rectangle · Flood<br />
+            Tools: Paint · Erase · Line · Rectangle · Flood · Eyedropper<br />
             Undo/Redo: Ctrl/Cmd+Z · Ctrl/Cmd+Y<br />
             World: {document.width}×{document.height}<br />
             Active layer: {activeLayer}<br />
@@ -230,6 +230,16 @@ export function EditorShell({
             onPaint={handlePaint}
             onSelectionChange={() => {}}
             onCellInspect={() => {}}
+            onTerrainPick={(tileId) => {
+              const picked = tileOptions.find(tile => tile.id === tileId);
+              if (!picked || ["water", "brackish", "deepwater2", "deepwater"].includes(picked.terrain)) {
+                setPaintDiagnostic(`eyedropper: ${picked?.terrain ?? tileId} tidak dapat dipilih (water adalah derived)`);
+                return;
+              }
+              setSelectedTile(picked.id);
+              setActiveTool("Paint");
+              setPaintDiagnostic(`eyedropper: picked=${picked.terrain} tile=${picked.id}`);
+            }}
             onInputDiagnostic={setPaintDiagnostic}
             onStamp={() => {}}
             onObjectPlace={() => {}}
