@@ -53,6 +53,7 @@ describe("Vendrith AI runtime service", () => {
       repository,
       code: new RepositoryCodeGraphAdapter(repository),
       documentation: new ProjectDocumentationAdapter(repository),
+      assetRegistry: { search: async () => [] },
     });
 
     const response = await service.handle({
