@@ -37,7 +37,7 @@ Membuat painting terrain nyaman dan lengkap sebelum masuk object placement.
 - [x] Continuous drag painting
 - [ ] Modifier/shortcut behavior
 - [ ] Tool state persistence selama sesi
-- [ ] Transaction grouping untuk satu gesture menjadi satu undo step
+- [x] Transaction grouping untuk satu gesture menjadi satu undo step
 
 ### Exit gate
 Semua tool menghasilkan perubahan MapDocument yang deterministic, undoable,
