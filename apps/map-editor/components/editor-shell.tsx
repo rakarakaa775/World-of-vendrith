@@ -1,3 +1,5 @@
+[Reading 309 lines from start (total: 309 lines, 0 remaining)]
+
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,6 +13,7 @@ import type { Selection } from "../editor/selection";
 import { copySelection, pasteSelection, moveSelection, replaceSelection, type SelectionClipboard } from "../editor/selection-clipboard";
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
+import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -54,6 +57,7 @@ export function EditorShell({
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
   const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);
   const [brushPreset, setBrushPreset] = useState("Fine");
+  const [debugViews, setDebugViews] = useState(DEFAULT_DEBUG_VIEW_STATE);
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
@@ -216,6 +220,8 @@ export function EditorShell({
           aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" style={{ padding: "6px 9px" }}>↶ Undo</button>
         <button type="button" onClick={handleRedo} disabled={!history.future.length || busy}
           aria-label="Redo" title="Redo (Ctrl/Cmd+Y)" style={{ padding: "6px 9px" }}>↷ Redo</button>
+        <button type="button" onClick={() => setDebugViews(current => toggleDebugView(current, "grid"))} aria-pressed={debugViews.grid}
+          aria-label="Grid overlay" title="Toggle grid overlay" style={{ padding: "6px 9px" }}>{debugViews.grid ? "Grid ✓" : "Grid"}</button>
         <button type="button" onClick={() => void onSave?.(documentRef.current)} disabled={busy} aria-busy={busy} style={{ marginLeft: "auto", padding: "6px 10px" }}>Save</button>
         <button type="button" onClick={() => void onSaveLoad?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Save / Load</button>
         <button type="button" onClick={() => void onLoadLatest?.()} disabled={busy} aria-busy={busy} style={{ padding: "6px 10px" }}>Load Latest</button>
@@ -296,10 +302,12 @@ export function EditorShell({
             terrainBindings={terrainBindings}
             environmentRuntime={null}
             viewportResetKey={initialDocumentRevision}
-            showGrid={false}
+            showGrid={debugViews.grid}
           />
         </section>
       </div>
     </main>
   );
 }
+
+[executed on device: codespaces-e54cf0 (395fa14b-836a-48d6-b3c2-3cdaa0f364fc)]
