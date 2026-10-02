@@ -1,4 +1,5 @@
 import type { AiRequest, Evidence, ApprovalState } from "../domain/types";
+import { createApprovalRecord, transitionApproval, type ApprovalRecord, type ApprovalAction } from "../domain/approval";
 import type { ModelProviderPort } from "../ports/model-provider";
 import type { ToolRouter, ToolContext } from "../ports/tool-router";
 import { classifyApproval } from "../policies/ai-policy";
@@ -19,7 +20,9 @@ export interface AgentRunResult {
 }
 
 export interface VendrithAgentOrchestrator {
-  run(request: AiRequest): Promise<AgentRunResult>;
+  prepare(request: AiRequest): ApprovalRecord;
+  transition(record: ApprovalRecord, action: ApprovalAction): ApprovalRecord;
+  run(request: AiRequest, approval?: ApprovalRecord): Promise<AgentRunResult>;
 }
 
 function collectEvidence(toolResults: AgentRunResult["toolResults"]): Evidence[] {
@@ -60,9 +63,24 @@ export function createVendrithAgentOrchestrator(
   dependencies: AgentOrchestratorDependencies,
 ): VendrithAgentOrchestrator {
   return {
-    async run(request) {
-      const approval = classifyApproval(request.mode, request.prompt);
-      const context: ToolContext = { mode: request.mode, requestId: request.id };
+    prepare(request) {
+      return createApprovalRecord(request);
+    },
+
+    transition(record, action) {
+      const result = transitionApproval(record, action);
+      if (!result.ok) throw new Error(result.error);
+      return result.record;
+    },
+
+    async run(request, approvalRecord) {
+      const classified = classifyApproval(request.mode, request.prompt);
+      const approval = approvalRecord?.state ?? classified;
+      const context: ToolContext = {
+        mode: request.mode,
+        requestId: request.id,
+        approvalState: approval,
+      };
 
       // Execute mode may prepare a run, but approval remains pending until an
       // explicit approval transition. The router separately blocks mutation tools.
