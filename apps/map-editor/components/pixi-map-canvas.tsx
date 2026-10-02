@@ -244,6 +244,25 @@ export function PixiMapCanvas(props: Props) {
       }
       scene.addChild(grid);
 
+      if (propsRef.current.debugViews?.collision) {
+        const collisionLayer = document.layers.find(layer => layer.kind === "collision");
+        if (collisionLayer) {
+          const collisionOverlay = new Graphics();
+          for (let i = 0; i < document.width * document.height; i++) {
+            const blocked = Boolean(collisionLayer.cells[i]?.tileId);
+            const x = i % document.width;
+            const y = Math.floor(i / document.width);
+            collisionOverlay.rect(
+              x * document.tileSize + 2,
+              y * document.tileSize + 2,
+              Math.max(1, document.tileSize - 4),
+              Math.max(1, document.tileSize - 4),
+            ).fill({ color: blocked ? 0xdc2626 : 0x16a34a, alpha: blocked ? 0.28 : 0.08 });
+          }
+          scene.addChild(collisionOverlay);
+        }
+      }
+
       if (propsRef.current.debugViews?.terrainId || propsRef.current.debugViews?.waterDepth) {
         const debugLayer = document.layers.find(layer => layer.id === activeLayerId);
         if (debugLayer && debugLayer.kind !== "objects") {
@@ -772,5 +791,6 @@ export function PixiMapCanvas(props: Props) {
 
   return createElement("div", { ref: hostRef, className: props.previewMode ? "pixi-map-canvas-host pixi-map-canvas-preview" : "pixi-map-canvas-host", style: { position: "absolute", left: props.previewMode ? 0 : 40, top: props.previewMode ? 0 : 28, right: 0, bottom: 0, minWidth: 0, minHeight: 0, background: "#f5f7fa", touchAction: "none", overflow: "hidden" } }, initError ? createElement("div", { role: "alert", style: { position: "absolute", inset: 12, zIndex: 20, display: "grid", placeItems: "center", padding: 16, textAlign: "center", border: "1px solid #7f1d1d", borderRadius: 10, background: "rgba(2,6,23,.94)", color: "#fecaca", fontFamily: "system-ui, sans-serif" } }, createElement("div", null, createElement("strong", null, "Canvas renderer gagal dimulai"), createElement("p", { style: { margin: "8px 0 0", fontSize: 12, color: "#cbd5e1" } }, initError))) : null);
 }
+
 
 
