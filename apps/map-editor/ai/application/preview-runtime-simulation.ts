@@ -12,6 +12,13 @@ export interface PreviewRuntimeSnapshot {
   state: RuntimeObservation["state"];
 }
 
+export interface PreviewNpcSeed {
+  seedKey: string;
+  name: string;
+  race?: string | null;
+  occupationName?: string | null;
+}
+
 class MemoryStore implements NpcBehaviorMemoryStore {
   private readonly values = new Map<string, NpcBehaviorMemory>();
   get(npcId: string) { return this.values.get(npcId); }
@@ -45,11 +52,24 @@ export class PreviewRuntimeSimulation {
   private readonly ports: RuntimeAiPorts;
   private readonly request: RuntimeAiRequest;
 
-  constructor(document: MapDocument) {
+  constructor(document: MapDocument, npcSeeds: PreviewNpcSeed[] = []) {
     const centerX = Math.max(1, Math.floor(document.width / 2));
     const centerY = Math.max(1, Math.floor(document.height / 2));
+    const seeds = npcSeeds.length > 0 ? npcSeeds : [{ seedKey: "preview-fallback", name: "Preview NPC", race: "human", occupationName: "wanderer" }];
+    const npcs = seeds.slice(0, 8).map((seed, index) => ({
+      id: `npc:${seed.seedKey}`,
+      kind: "npc" as const,
+      mapId: document.id,
+      position: { x: Math.max(0, centerX - 3 - (index % 3)), y: Math.max(0, centerY + Math.floor(index / 3)) },
+      state: {
+        role: seed.occupationName ?? "wanderer",
+        name: seed.name,
+        race: seed.race ?? undefined,
+        seedKey: seed.seedKey,
+      },
+    }));
     this.entities = [
-      { id: "preview-npc", kind: "npc", mapId: document.id, position: { x: centerX - 3, y: centerY }, state: { role: "wanderer" } },
+      ...npcs,
       { id: "preview-player", kind: "player", mapId: document.id, position: { x: centerX + 3, y: centerY }, state: { role: "player", blocksMovement: false } },
     ];
     this.gridValue = buildGrid(document);

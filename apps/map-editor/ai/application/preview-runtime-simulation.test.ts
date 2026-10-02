@@ -6,16 +6,16 @@ describe("PreviewRuntimeSimulation", () => {
   it("moves the preview NPC toward the nearby player without mutating the map document", async () => {
     const document = createMap("world", null, "exterior", null, 32, 32);
     const originalCells = document.layers[0].cells;
-    const simulation = new PreviewRuntimeSimulation(document);
+    const simulation = new PreviewRuntimeSimulation(document, [{ seedKey: "seed-001", name: "Test NPC", race: "human", occupationName: "farmer" }]);
     const before = simulation.snapshot();
-    const npcBefore = before.entities.find(entity => entity.id === "preview-npc");
+    const npcBefore = before.entities.find(entity => entity.id === "npc:seed-001");
     const player = before.entities.find(entity => entity.id === "preview-player");
     expect(npcBefore?.position).toEqual({ x: 13, y: 16 });
     expect(player?.position).toEqual({ x: 19, y: 16 });
 
     const result = await simulation.tick();
     const after = simulation.snapshot();
-    const npcAfter = after.entities.find(entity => entity.id === "preview-npc");
+    const npcAfter = after.entities.find(entity => entity.id === "npc:seed-001");
 
     expect(result.status).toBe("moved");
     expect(npcAfter?.position).toEqual({ x: 14, y: 16 });

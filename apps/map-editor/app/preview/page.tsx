@@ -10,7 +10,7 @@ import type { MapDocument } from "../../editor/map-document";
 import type { TerrainAssetBindingMap } from "../../editor/terrain-asset-binding";
 import { PixiMapCanvas } from "../../components/pixi-map-canvas";
 import type { RuntimeEntity } from "../../ai/domain/runtime";
-import { PreviewRuntimeSimulation } from "../../ai/application/preview-runtime-simulation";
+import { PreviewRuntimeSimulation, type PreviewNpcSeed } from "../../ai/application/preview-runtime-simulation";
 
 const previewLayers = ["World Terrain", "Region Boundaries", "Playable", "Life", "Events"];
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -21,6 +21,7 @@ export default function PreviewPage() {
   const { user, loading } = useAuthUser();
   const [document, setDocument] = useState<MapDocument | null>(null);
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
+  const [npcSeeds, setNpcSeeds] = useState<PreviewNpcSeed[]>([]);
   const [loadStatus, setLoadStatus] = useState("Loading authoritative World Map…");
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [zoom, setZoom] = useState(100);
@@ -57,8 +58,21 @@ export default function PreviewPage() {
         .select("terrain_key,neighbor_mask,asset_id,candidate_status,asset_status,autotile_capable,license_registry_id,tile_region");
       if (binding.error) throw binding.error;
       const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
+      const npcResult = await client
+        .from("npc_seed_catalog")
+        .select("seed_key,name,race,occupation_name")
+        .eq("active", true)
+        .order("seed_key")
+        .limit(8);
+      if (npcResult.error) throw npcResult.error;
       setDocument(loaded.document);
       setTerrainBindings(terrain.bindings);
+      setNpcSeeds((npcResult.data ?? []).map((row) => ({
+        seedKey: row.seed_key,
+        name: row.name,
+        race: row.race,
+        occupationName: row.occupation_name,
+      })));
       setLoadState("ready");
       setLoadStatus(
         loaded.result.code === "durable-version-fallback"
@@ -68,6 +82,7 @@ export default function PreviewPage() {
     } catch (error) {
       setDocument(null);
       setTerrainBindings({});
+      setNpcSeeds([]);
       setLoadState("error");
       setLoadStatus(error instanceof Error ? error.message : String(error));
     }
@@ -97,12 +112,12 @@ export default function PreviewPage() {
       setPlaying(false);
       return;
     }
-    const next = new PreviewRuntimeSimulation(document);
+    const next = new PreviewRuntimeSimulation(document, npcSeeds);
     setSimulation(next);
     setRuntimeEntities(next.snapshot().entities);
     setRuntimeTick(0);
     setPlaying(false);
-  }, [document]);
+  }, [document, npcSeeds]);
 
   useEffect(() => {
     if (!playing || !simulation) return;

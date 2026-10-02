@@ -499,7 +499,8 @@ export function PixiMapCanvas(props: Props) {
         marker.circle(centerX, centerY, size + 3).stroke({ width: 2, color: 0xffffff, alpha: 0.9 });
         marker.eventMode = "none";
         scene.addChild(marker);
-        const label = new Text({ text: isNpc ? "NPC" : "PLAYER", style: { fontSize: 10, fill: 0xffffff, fontWeight: "700" } });
+        const labelText = isNpc && typeof entity.state?.name === "string" ? entity.state.name : isNpc ? "NPC" : "PLAYER";
+        const label = new Text({ text: labelText, style: { fontSize: 10, fill: 0xffffff, fontWeight: "700" } });
         label.x = centerX - label.width / 2;
         label.y = centerY - size - label.height - 3;
         label.eventMode = "none";
