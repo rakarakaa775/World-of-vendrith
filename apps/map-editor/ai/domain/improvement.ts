@@ -30,12 +30,20 @@ export interface ImprovementProposal {
   id: string;
   taskId: string;
   strategyId: string;
+  strategyDescription?: string;
+  strategySteps?: string[];
   rationale: string;
   evaluationId: string;
   requiresApproval: true;
 }
 
+export interface ImprovementHistory {
+  evaluation: EvaluationRecord;
+  proposal?: ImprovementProposal;
+}
+
 export interface ImprovementMemory {
   recordEvaluation(record: EvaluationRecord): Promise<void>;
   recordProposal(proposal: ImprovementProposal): Promise<void>;
+  listRecent(limit?: number): Promise<ImprovementHistory[]>;
 }
