@@ -51,8 +51,28 @@ export function applyWaterDepthGradient(
     }
   }
 
-  // No land in the map: preserve the current ocean state.
-  if (!queue.length) return document;
+  // A WORLD map has a permanent deep-water floor. When the last land cell
+  // is erased, existing shoreline bands (water/brackish/deepwater2) must not
+  // remain stranded in an all-ocean map. Collapse the derived bands to the
+  // canonical deep-water floor; this is the water-engine invariant that keeps
+  // "erase everything" deterministic.
+  if (!queue.length) {
+    if (document.mapType !== 'world') return document;
+    let changed = false;
+    const cells = layer.cells.map(cell => {
+      const terrain = terrainFromTileId(cell.tileId);
+      if (!terrain || !WATER_GRADIENT_TERRAINS.has(terrain) || cell.tileId === 'deepwater') return cell;
+      changed = true;
+      return { ...cell, tileId: 'deepwater' };
+    });
+    if (!changed) return document;
+    return {
+      ...document,
+      layers: document.layers.map(item =>
+        item.id === layerId ? { ...item, cells } : item,
+      ),
+    };
+  }
 
   const width = document.width;
   const height = document.height;
