@@ -3,15 +3,39 @@ import type {
   ImprovementHistory,
   ImprovementMemory,
   ImprovementProposal,
+  ImprovementStrategyContext,
   ImprovementTask,
   StrategyCandidate,
 } from "../domain/improvement";
 
 export interface ImprovementEngineDependencies {
   generateTask(): Promise<ImprovementTask>;
-  generateStrategy(task: ImprovementTask, history: ImprovementHistory[]): Promise<StrategyCandidate>;
+  generateStrategy(task: ImprovementTask, context: ImprovementStrategyContext): Promise<StrategyCandidate>;
   runCandidate(task: ImprovementTask, strategy: StrategyCandidate): Promise<EvaluationRecord>;
   memory: ImprovementMemory;
+}
+
+function strategyKey(strategy: ImprovementHistory["proposal"]): string | undefined {
+  if (!strategy?.strategyDescription) return undefined;
+  return [
+    strategy.strategyDescription.trim().toLowerCase(),
+    ...(strategy.strategySteps ?? []).map((step) => step.trim().toLowerCase()),
+  ].join("|");
+}
+
+function buildStrategyContext(history: ImprovementHistory[]): ImprovementStrategyContext {
+  const seen = new Set<string>();
+  const repeatedStrategyIds: string[] = [];
+  for (const item of history) {
+    const key = strategyKey(item.proposal);
+    if (!key) continue;
+    if (seen.has(key)) repeatedStrategyIds.push(item.evaluation.strategyId);
+    seen.add(key);
+  }
+  return {
+    relatedHistory: history,
+    repeatedStrategyIds: [...new Set(repeatedStrategyIds)],
+  };
 }
 
 export interface ImprovementRun {
@@ -31,8 +55,9 @@ export function createImprovementEngine(
   return {
     async run() {
       const task = await dependencies.generateTask();
-      const history = await dependencies.memory.listRecent();
-      const strategy = await dependencies.generateStrategy(task, history);
+      const history = await dependencies.memory.findRelated(task);
+      const context = buildStrategyContext(history);
+      const strategy = await dependencies.generateStrategy(task, context);
 
       if (strategy.taskId !== task.id) {
         throw new Error("Strategy candidate does not belong to generated task");
