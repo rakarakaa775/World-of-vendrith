@@ -1,4 +1,4 @@
-import type { AiRequest, ApprovalState } from "../domain/types";
+import type { AiRequest, ApprovalState } from "./types";
 
 export type ApprovalAction = "approve" | "reject" | "complete";
 
