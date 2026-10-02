@@ -317,7 +317,7 @@ export function EditorShell({
                     <button type="button" onClick={() => handleDeleteGroup(group.id)} aria-label={"Delete " + group.name}>×</button>
                   </div>
                   {group.expanded && document.layers.filter(layer => layer.groupId === group.id).map(layer => (
-                    <div key={layer.id} style={{ marginLeft: 16, fontSize: 12, paddingTop: 3 }}>↳ {layer.name}</div>
+                    <button type="button" onClick={() => chooseLayer(layer.id)} style={{ marginLeft: 16, fontSize: 12, paddingTop: 3, border: 0, background: "transparent", color: "#fff", cursor: "pointer" }}>↳ {layer.name}</button>
                   ))}
                 </div>
               ))}
@@ -333,6 +333,7 @@ export function EditorShell({
                   <input type="range" min="0" max="1" step="0.05" value={layer.opacity} onChange={event => setLayerOpacity(layer.id, Number(event.target.value))} aria-label={"Opacity " + layer.name} title={"Opacity " + Math.round(layer.opacity * 100) + "%"} style={{ width: 76 }} />
                   <button type="button" onClick={() => handleDuplicateLayer(layer.id)} aria-label={"Duplicate " + layer.name} title="Duplicate layer" style={{ padding: "2px 5px" }}>⧉</button>
                   <button type="button" onClick={() => handleMergeLayer(layer.id)} disabled={!document.layers.some(other => other.id !== layer.id && other.kind === layer.kind)} aria-label={"Merge " + layer.name} title="Merge into adjacent same-kind layer" style={{ padding: "2px 5px" }}>⊕</button>
+                  <select value={layer.groupId ?? ""} onChange={event => handleAssignGroup(layer.id, event.target.value || null)} aria-label={"Group " + layer.name} title="Assign layer group" style={{ width: 70 }}><option value="">—</option>{document.layerGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
                   <button type="button" onClick={() => moveLayer(layer.id, "up")} disabled={index === 0} aria-label={"Move " + layer.name + " up"} title="Move up" style={{ padding: "2px 5px" }}>↑</button>
                   <button type="button" onClick={() => moveLayer(layer.id, "down")} disabled={index === document.layers.length - 1} aria-label={"Move " + layer.name + " down"} title="Move down" style={{ padding: "2px 5px" }}>↓</button>
                 </div>
