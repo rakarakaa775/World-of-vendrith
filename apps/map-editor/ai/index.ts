@@ -10,3 +10,5 @@ export * from "./application/tool-definitions";
 export * from "./application/tool-loop";
 export * from "./application/agent-orchestrator";
 export * from "./domain/approval";
+export * from "./domain/improvement";
+export * from "./application/improvement-engine";
