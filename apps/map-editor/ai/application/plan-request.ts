@@ -38,7 +38,8 @@ export async function createReadOnlyPlan(
       confidence: "high" as const,
     })),
     ...dependencyEvidence,
-    ...context.documentationEvidence,\n    ...context.assetEvidence,
+    ...context.documentationEvidence,
+    ...context.assetEvidence,
   ];
 
   const approval = classifyApproval(request.mode, request.prompt);
