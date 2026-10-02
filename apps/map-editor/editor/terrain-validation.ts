@@ -9,7 +9,8 @@ import {
   type TerrainKey,
   type TerrainMask,
 } from './terrain-engine';
-import { getTerrainAssetBinding, type TerrainAssetBindingMap } from './terrain-asset-binding';\nimport { classifyTerrainTransition } from './terrain-transition-registry';
+import { getTerrainAssetBinding, type TerrainAssetBindingMap } from './terrain-asset-binding';
+import { classifyTerrainTransition } from './terrain-transition-registry';
 
 export type TerrainValidationStatus =
   | 'valid-logical'
@@ -25,7 +26,8 @@ export type TerrainValidationIssueCode =
   | 'outside-grid'
   | 'invalid-tile'
   | 'invalid-terrain'
-  | 'invalid-mask'\n  | 'unregistered-transition';
+  | 'invalid-mask'
+  | 'unregistered-transition';
 
 export type TerrainValidationIssue = {
   code: TerrainValidationIssueCode;
@@ -192,7 +194,10 @@ export function validateTerrainCell(
     ]);
   }
 
-  const transitionIssues = terrainTransitionIssues(document, layerId, point, terrain);\n  issues.push(...transitionIssues);\n\n  const binding = getTerrainAssetBinding(bindings, terrain, mask);
+  const transitionIssues = terrainTransitionIssues(document, layerId, point, terrain);
+  issues.push(...transitionIssues);
+
+  const binding = getTerrainAssetBinding(bindings, terrain, mask);
   return {
     valid: true,
     status: binding ? 'valid-bound' : 'valid-fallback',
