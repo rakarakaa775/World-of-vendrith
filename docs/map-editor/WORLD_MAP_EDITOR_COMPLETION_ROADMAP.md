@@ -51,15 +51,24 @@ dan tidak merusak water derivation.
 Memisahkan terrain semantic dari cara terrain divisualkan.
 
 - [ ] Terrain compatibility matrix
-- [ ] Edge/neighbor masks
+- [x] Edge/neighbor masks
 - [ ] Shoreline masks
-- [ ] Transition rule registry
+- [x] Transition rule registry — registry semantic sudah dibuat berdasarkan pasangan transition yang saat ini terverifikasi di Supabase
 - [ ] Autotiling
 - [ ] Dual-grid/corner-mask strategy bila dibutuhkan
 - [ ] Transition validation
-- [ ] Deterministic visual variation
+- [x] Deterministic visual variation utility
 - [ ] World-space variation/noise tanpa menyimpan random state per cell
 - [ ] Fallback visual untuk transition yang belum tersedia
+
+### Asset/binding boundary
+
+Runtime binding tetap hanya menerima candidate dan asset yang telah melewati
+approval/provenance boundary. Saat ini database authoritative memiliki full
+256-mask rule tiles untuk beberapa rule, tetapi approved runtime workbench
+belum menyediakan seluruh pasangan mask tersebut untuk semua terrain semantic.
+Karena itu implementasi tidak akan melewati workbench atau mensintesis binding
+baru hanya untuk membuat visual terlihat lengkap.
 
 ### Water rules
 
