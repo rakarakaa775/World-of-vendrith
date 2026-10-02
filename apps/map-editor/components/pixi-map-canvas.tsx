@@ -488,6 +488,7 @@ export function PixiMapCanvas(props: Props) {
     const world = worldRef.current;
     if (!host || !world) return;
     let startPoint: GridPoint | null = null;
+    let activePaintGestureId: number | null = null;
     let selecting = false;
     let panning = false;
     let lastX = 0;
