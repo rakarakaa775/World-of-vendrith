@@ -1,0 +1,99 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import {
+  GitHubHttpRepositoryAdapter,
+  ProjectDocumentationAdapter,
+  RepositoryCodeGraphAdapter,
+  VercelAiGatewayModelProvider,
+  createSupabaseAssetRegistryAdapter,
+  createProjectTools,
+  createToolRouter,
+  createVendrithAgentOrchestrator,
+} from "../../../../ai";
+
+export const runtime = "nodejs";
+
+function createRepository() {
+  return new GitHubHttpRepositoryAdapter({
+    owner: process.env.VENDRITH_GITHUB_OWNER ?? "rakarakaa775",
+    repository: process.env.VENDRITH_GITHUB_REPOSITORY ?? "World-of-vendrith",
+    ref: process.env.VENDRITH_GITHUB_REF ?? "feat/vendrith-ecc-v1",
+  });
+}
+
+function createSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://ojtmfokjcirvjvhnbnos.supabase.co";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    "sb_publishable_DIe0amy6Q4qVXV6srZTCRQ_DHe6NANN";
+  return createClient(url, key);
+}
+
+function createVerification(repository: GitHubHttpRepositoryAdapter) {
+  return {
+    async verify(scope: string[]) {
+      const checks = await Promise.all(scope.map(async (item) => {
+        const matches = await repository.search(item);
+        return { name: `repository-search:${item}`, ok: matches.length > 0, detail: `${matches.length} matching files` };
+      }));
+      return { ok: checks.every((check) => check.ok), checks };
+    },
+  };
+}
+
+function createOrchestrator() {
+  const repository = createRepository();
+  const documentation = new ProjectDocumentationAdapter(repository);
+  const codeIntelligence = new RepositoryCodeGraphAdapter(repository);
+  const assetRegistry = createSupabaseAssetRegistryAdapter(createSupabase());
+  const tools = createProjectTools({
+    repository,
+    documentation,
+    codeIntelligence,
+    assetRegistry,
+    verification: createVerification(repository),
+  });
+  return createVendrithAgentOrchestrator({
+    modelProvider: new VercelAiGatewayModelProvider(),
+    toolRouter: createToolRouter(tools),
+  });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json() as { prompt?: string; mode?: "explain" | "plan" | "execute" | "high-risk" };
+    const prompt = body.prompt?.trim();
+    if (!prompt) return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
+
+    const mode = body.mode ?? "explain";
+    if (mode !== "explain" && mode !== "plan") {
+      return NextResponse.json({ error: "The Creator AI endpoint currently exposes read/analyze modes only." }, { status: 403 });
+    }
+
+    const result = await createOrchestrator().run({
+      id: crypto.randomUUID(),
+      mode,
+      prompt,
+    });
+
+    return NextResponse.json({
+      response: result.response.content,
+      model: result.response.model,
+      provider: result.response.provider,
+      iterations: result.iterations,
+      approval: result.approval,
+      evidence: result.evidence,
+      toolResults: result.toolResults.map((item) => ({
+        id: item.id,
+        name: item.name,
+        ok: item.ok,
+        error: item.error,
+      })),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Vendrith AI request failed." },
+      { status: 500 },
+    );
+  }
+}
