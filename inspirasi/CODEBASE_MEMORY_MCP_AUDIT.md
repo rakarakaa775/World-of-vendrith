@@ -20,7 +20,11 @@ Fokus:
 - security dan supply-chain;
 - kecocokan dengan Next.js/TypeScript/PixiJS/Supabase/Vercel.
 
-## 2. Ringkasan teknis
+## 2. Versi dan freshness catatan
+
+Pada saat audit, GitHub Releases menunjukkan v0.11.0 sebagai latest release (dipublikasikan 2026-09-15). Beberapa halaman/dokumen lama masih menyebut versi 0.8.x/0.10.x, sehingga angka versi harus selalu diambil dari halaman Releases terbaru sebelum instalasi. Audit ini memakai repository main dan current release metadata sebagai referensi utama. citeturn2search3turn2search4
+
+## 3. Ringkasan teknis
 
 Menurut repository saat audit:
 - native executable utama ditulis dalam C;
@@ -40,7 +44,7 @@ Menurut repository saat audit:
 
 Sumber primer: README dan dokumentasi repository resmi.
 
-## 3. Parsing berlapis
+## 4. Parsing berlapis
 
 Pola arsitektur:
 
@@ -59,7 +63,7 @@ Vendrith decision: ADOPT sebagai prinsip, bukan implementasi internal.
 
 Yang diadopsi adalah ide bahwa AI sebaiknya mempunyai structural index sehingga pertanyaan seperti caller, dependency, blast radius, route relation, dan related tests tidak selalu membutuhkan grep/read berulang.
 
-## 4. Graph sebagai secondary representation
+## 5. Graph sebagai secondary representation
 
 Vendrith tidak boleh menjadikan graph sebagai source of truth.
 
@@ -74,7 +78,7 @@ Graph hanya derived intelligence index.
 
 Decision: ADOPT.
 
-## 5. Multi-pass indexing
+## 6. Multi-pass indexing
 
 Pipeline terpisah untuk structure, definitions, calls, service links, configuration, tests, dan relationship enrichment merupakan pola yang berguna.
 
@@ -82,7 +86,7 @@ Decision: ADOPT secara konseptual untuk future code-intelligence tooling.
 
 Tidak perlu menyalin pipeline C-nya ke aplikasi Vendrith.
 
-## 6. Incremental watcher
+## 7. Incremental watcher
 
 Background watcher yang hanya memperbarui graph ketika source berubah mengurangi pekerjaan berulang.
 
@@ -95,7 +99,7 @@ Untuk Vendrith, watcher harus:
 - tidak menjadi source of truth;
 - tidak membuat perubahan pada source code.
 
-## 7. Semantic search
+## 8. Semantic search
 
 Sumber menggabungkan structural search, BM25/full-text, dan semantic vector search.
 
@@ -105,7 +109,7 @@ Decision: ADOPT sebagai future capability.
 
 Untuk Vendrith, semantic search sebaiknya datang setelah structural search stabil. Jangan menambah embedding infrastructure hanya untuk mengejar fitur.
 
-## 8. Call graph dan impact analysis
+## 9. Call graph dan impact analysis
 
 Ini sangat relevan untuk Vendrith.
 
@@ -120,7 +124,7 @@ Decision: ADOPT.
 
 Prioritasnya developer tooling, bukan runtime game.
 
-## 9. Architecture overview dan clustering
+## 10. Architecture overview dan clustering
 
 get_architecture menggabungkan bahasa, package, entry point, route, hotspot, boundary, layer, dan cluster.
 
@@ -132,7 +136,7 @@ Decision:
 
 Untuk Vendrith, architecture overview lebih penting daripada visualisasi graph mentah.
 
-## 10. ADR persistence
+## 11. ADR persistence
 
 manage_adr memungkinkan architectural decisions bertahan antar-session.
 
@@ -142,7 +146,7 @@ Decision: ADAPT.
 
 Jangan membuat sumber keputusan kedua yang bertentangan dengan .ai/memory atau docs. Jika tooling memory dipakai, satu canonical decision source harus tetap ditentukan.
 
-## 11. Cross-service analysis
+## 12. Cross-service analysis
 
 CBM mampu menghubungkan HTTP routes/call sites dan beberapa pola service communication.
 
@@ -154,7 +158,7 @@ Untuk Vendrith ini berguna pada:
 
 Decision: ADOPT secara konseptual, DEFER implementasi sampai service boundary cukup kompleks.
 
-## 12. Infrastructure-as-code indexing
+## 13. Infrastructure-as-code indexing
 
 CBM mengindex Docker/Kubernetes/Kustomize.
 
@@ -162,7 +166,7 @@ Vendrith saat ini deployment target-nya Vercel dan tidak membutuhkan Docker/Kube
 
 Decision: DEFER.
 
-## 13. Data-flow analysis
+## 14. Data-flow analysis
 
 DATA_FLOWS dapat mengikuti argument -> parameter dan field access.
 
@@ -175,7 +179,7 @@ Potensial untuk:
 
 Decision: ADOPT sebagai future security/debugging capability, bukan runtime feature.
 
-## 14. Dead-code detection
+## 15. Dead-code detection
 
 Useful untuk repository yang tumbuh besar.
 
@@ -185,7 +189,7 @@ Decision: ADAPT.
 
 Tooling harus memahami framework boundaries sebelum hasil dead-code dianggap valid.
 
-## 15. Security
+## 16. Security
 
 Dokumentasi repository menjelaskan:
 - CodeQL;
@@ -218,7 +222,7 @@ Jika tooling code intelligence digunakan:
 - file read harus tetap berada dalam project root;
 - binary release harus diverifikasi jika memakai prebuilt executable.
 
-## 16. Network/privacy
+## 17. Network/privacy
 
 CBM mendokumentasikan bahwa indexing, query, dan MCP handling berlangsung lokal dan tidak meng-upload source code. Current security policy juga menyebut background update check ke GitHub Releases setelah MCP initialization. citeturn2search0
 
@@ -229,7 +233,7 @@ Vendrith:
 
 Decision: ADOPT local-first principle; ADAPT update behavior.
 
-## 17. Supply-chain / installation
+## 18. Supply-chain / installation
 
 CBM menyediakan native binary dan installer yang dapat menulis konfigurasi agent. Ini praktis, tetapi memperbesar trust boundary.
 
@@ -244,7 +248,7 @@ Decision: ADOPT.
 
 Untuk Vendrith, jangan memasukkan binary CBM ke repository produksi.
 
-## 18. Language coverage
+## 19. Language coverage
 
 CBM menargetkan coverage sangat luas dengan tree-sitter.
 
@@ -258,7 +262,7 @@ Jadi 162 bahasa bukan alasan menambah dependency/runtime complexity.
 
 Decision: ADAPT. Prinsip yang penting adalah accurate TypeScript/JavaScript structural intelligence, bukan jumlah bahasa maksimum.
 
-## 19. Performance claims
+## 20. Performance claims
 
 Repository mempublikasikan benchmark indexing dan query, termasuk Linux kernel dan Django, serta klaim penghematan token pada structural queries. citeturn1search1turn1search0
 
@@ -275,7 +279,7 @@ Sebelum dipakai, benchmark lokal harus mengukur:
 
 Decision: ADOPT benchmark methodology; jangan mengasumsikan angka benchmark berpindah otomatis.
 
-## 20. Testing / maintainability
+## 21. Testing / maintainability
 
 Repository menampilkan ribuan passing tests dan security-specific test layers.
 
@@ -288,7 +292,7 @@ Yang relevan:
 
 Decision: ADOPT secara konseptual.
 
-## 21. Apa yang tidak disalin
+## 22. Apa yang tidak disalin
 
 N/A:
 - pure-C implementation;
@@ -301,7 +305,7 @@ N/A:
 - internal storage schema;
 - Cypher engine implementation.
 
-## 22. Keputusan Vendrith
+## 23. Keputusan Vendrith
 
 ### ADOPT
 1. Structural code graph sebagai derived developer index.
@@ -340,7 +344,7 @@ N/A:
 3. Adding Docker/Kubernetes only to support the tool.
 4. Shipping CBM as part of Vendrith production runtime.
 
-## 23. Final assessment
+## 24. Final assessment
 
 codebase-memory-mcp paling bernilai sebagai reference untuk structural code intelligence dan local knowledge-graph architecture.
 
