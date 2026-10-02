@@ -7,7 +7,7 @@ import type { MapDocument } from "../editor/map-document";
 import type { GridPoint } from "../editor/grid";
 import type { Selection } from "../editor/selection";
 import { normalizeSelection } from "../editor/selection";
-import { pointsInFloodFill, pointsInLine, pointsInRectangle } from "../editor/paint-tools";
+import { pointsInFloodFill, pointsInLine, pointsInRectangle, tileIdAtPoint } from "../editor/paint-tools";
 import { terrainFromTileId } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
@@ -595,8 +595,7 @@ export function PixiMapCanvas(props: Props) {
       }
       if (current.activeTool === "Eyedropper") {
         if (valid(p)) {
-          const layer = current.document.layers.find(item => item.id === current.activeLayerId);
-          const tileId = layer?.cells[p.y * current.document.width + p.x]?.tileId;
+          const tileId = tileIdAtPoint(current.document, current.activeLayerId, p);
           if (tileId) current.onTerrainPick?.(tileId);
           current.onCellInspect?.(p);
         }
