@@ -6,13 +6,13 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 
 - Menyimpan sumber inspirasi secara terpisah dari source code produksi.
 - Mencatat bagian mana dari suatu referensi yang relevan untuk Vendrith.
-- Membedakan **inspirasi/referensi** dari **keputusan implementasi**.
+- Membedakan inspirasi/referensi dari keputusan implementasi.
 - Menjaga provenance: setiap referensi harus mencantumkan sumber aslinya.
 - Menjadi tempat untuk menambahkan repository atau referensi lain di masa depan.
 
 ## Aturan
 
-1. Referensi di folder ini **tidak otomatis menjadi dependency Vendrith**.
+1. Referensi di folder ini tidak otomatis menjadi dependency Vendrith.
 2. Jangan menyalin kode/asset hanya karena ada di referensi; periksa lisensi dan izin terlebih dahulu.
 3. Setiap referensi baru sebaiknya memiliki:
    - nama sumber;
@@ -26,5 +26,21 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 
 ## Isi saat ini
 
-- [Node.js Best Practices — Audit Vendrith](./NODEJS_BEST_PRACTICES_VENDRITH.md)
-- [Template Referensi Baru](./REFERENCE_TEMPLATE.md)
+- Node.js Best Practices — Audit Vendrith: ./NODEJS_BEST_PRACTICES_VENDRITH.md
+- codebase-memory-mcp — Audit Menyeluruh: ./CODEBASE_MEMORY_MCP_AUDIT.md
+- codebase-memory-mcp vs CodeGraph — Perbandingan: ./CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md
+- Template Referensi Baru: ./REFERENCE_TEMPLATE.md
+
+## Catatan untuk referensi code-intelligence
+
+codebase-memory-mcp dan CodeGraph diperlakukan sebagai referensi komplementer.
+
+Keduanya tidak otomatis dipasang sebagai dependency. Yang dicatat adalah pola yang relevan:
+- structural code graph;
+- impact analysis;
+- AI context composition;
+- persistent project memory;
+- documentation/code verification;
+- incremental indexing;
+- security dan local-first processing.
+
