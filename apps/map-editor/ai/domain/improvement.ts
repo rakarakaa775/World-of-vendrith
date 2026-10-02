@@ -42,8 +42,19 @@ export interface ImprovementHistory {
   proposal?: ImprovementProposal;
 }
 
+export interface ImprovementMemoryQuery {
+  taskId?: string;
+  limit?: number;
+}
+
 export interface ImprovementMemory {
   recordEvaluation(record: EvaluationRecord): Promise<void>;
   recordProposal(proposal: ImprovementProposal): Promise<void>;
   listRecent(limit?: number): Promise<ImprovementHistory[]>;
+  findRelated(task: ImprovementTask, query?: Omit<ImprovementMemoryQuery, "taskId">): Promise<ImprovementHistory[]>;
+}
+
+export interface ImprovementStrategyContext {
+  relatedHistory: ImprovementHistory[];
+  repeatedStrategyIds: string[];
 }
