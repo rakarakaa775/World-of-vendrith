@@ -6,6 +6,7 @@ import type {
   ImprovementStrategyContext,
   ImprovementTask,
   StrategyCandidate,
+  validateEvaluationQuality,
 } from "../domain/improvement";
 
 export interface ImprovementEngineDependencies {
@@ -74,6 +75,14 @@ export function createImprovementEngine(
 
       if (evaluation.taskId !== task.id || evaluation.strategyId !== strategy.id) {
         throw new Error("Evaluation references do not match the candidate run");
+      }
+
+      const evaluationQualityIssues = validateEvaluationQuality(evaluation);
+      if (evaluationQualityIssues.length > 0) {
+        throw new Error(
+          "Evaluation quality check failed: " +
+            evaluationQualityIssues.map((issue) => issue.code).join(", "),
+        );
       }
 
       const proposal: ImprovementProposal = {
