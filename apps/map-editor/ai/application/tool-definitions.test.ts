@@ -59,3 +59,20 @@ describe("project tool definitions", () => {
     expect(assetResult).toMatchObject([{ source: "asset_license_registry", usageDomain: "world", licenseState: "clear" }]);
   });
 });
+
+
+describe("map.inspect tool registration", () => {
+  it("is exposed only when an authoritative map inspector is configured", async () => {
+    const { createProjectTools } = await import("./tool-definitions");
+    const repository = { readFile: async () => null, search: async () => [] };
+    const base = {
+      repository,
+      codeIntelligence: { findDependencies: async () => [], findDependents: async () => [] },
+      documentation: { search: async () => [] },
+      assetRegistry: { search: async () => [] },
+      verification: { verify: async () => ({ ok: true, checks: [] }) },
+    } as any;
+    expect(createProjectTools(base).some((tool) => tool.name === "map.inspect")).toBe(false);
+    expect(createProjectTools({ ...base, mapInspector: { resolveMap: async () => null } }).some((tool) => tool.name === "map.inspect")).toBe(true);
+  });
+});

@@ -5,6 +5,7 @@ import type {
   RepositoryPort,
   VerificationPort,
 } from "../ports/project-tools";
+import type { MapInspectorPort } from "../ports/map-tools";
 import {
   hasStringArgument,
   type ToolDefinition,
@@ -13,6 +14,7 @@ import { classifyAssetEvidence } from "../policies/asset-policy";
 import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
 import { buildProjectSchemaSummary } from "./schema-intelligence";
 import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
+import { inspectMap } from "./map-inspector";
 
 export interface ProjectTools {
   repository: RepositoryPort;
@@ -20,6 +22,7 @@ export interface ProjectTools {
   documentation: DocumentationPort;
   assetRegistry: AssetRegistryPort;
   verification: VerificationPort;
+  mapInspector?: MapInspectorPort;
 }
 
 function pathArgument(name: string) {
@@ -31,16 +34,14 @@ function pathArgument(name: string) {
 }
 
 export function createProjectTools(dependencies: ProjectTools): ToolDefinition[] {
-  return [
+  const tools: ToolDefinition[] = [
     {
       name: "schema.graph",
       description: "Inspect the evidence-backed Vendrith schema knowledge graph and verified relationships between project entities.",
       access: "read-only",
       parameters: { type: "object", properties: {} },
       validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
-      async execute() {
-        return buildProjectSchemaKnowledgeGraph(dependencies.repository);
-      },
+      async execute() { return buildProjectSchemaKnowledgeGraph(dependencies.repository); },
     },
     {
       name: "schema.inspect",
@@ -48,9 +49,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       access: "read-only",
       parameters: { type: "object", properties: {} },
       validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
-      async execute() {
-        return buildProjectSchemaSummary(dependencies.repository);
-      },
+      async execute() { return buildProjectSchemaSummary(dependencies.repository); },
     },
     {
       name: "project.inspect",
@@ -58,25 +57,34 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       access: "read-only",
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
+      async execute(args) { return buildProjectIntelligenceSnapshot((args as { query: string }).query, { repository: dependencies.repository, code: dependencies.codeIntelligence, documentation: dependencies.documentation, assetRegistry: dependencies.assetRegistry }); },
+    },
+  ];
+
+  if (dependencies.mapInspector) {
+    tools.push({
+      name: "map.inspect",
+      description: "Inspect an authoritative Vendrith map by ID: identity, hierarchy, layers, terrain, objects, linked maps, and verified asset provenance. Read-only and evidence-backed.",
+      access: "read-only",
+      parameters: pathArgument("mapId"),
+      validate: hasStringArgument("mapId"),
       async execute(args) {
-        return buildProjectIntelligenceSnapshot((args as { query: string }).query, {
-          repository: dependencies.repository,
-          code: dependencies.codeIntelligence,
-          documentation: dependencies.documentation,
+        return inspectMap((args as { mapId: string }).mapId, {
+          map: dependencies.mapInspector!,
           assetRegistry: dependencies.assetRegistry,
         });
       },
-    },
+    });
+  }
+
+  tools.push(
     {
       name: "repository.read_file",
       description: "Read a text file from the project repository.",
       access: "read-only",
       parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
-      async execute(args) {
-        const input = args as { path: string };
-        return { path: input.path, content: await dependencies.repository.readFile(input.path) };
-      },
+      async execute(args) { const input = args as { path: string }; return { path: input.path, content: await dependencies.repository.readFile(input.path) }; },
     },
     {
       name: "repository.search",
@@ -84,9 +92,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       access: "read-only",
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
-      async execute(args) {
-        return dependencies.repository.search((args as { query: string }).query);
-      },
+      async execute(args) { return dependencies.repository.search((args as { query: string }).query); },
     },
     {
       name: "codegraph.dependencies",
@@ -94,9 +100,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       access: "read-only",
       parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
-      async execute(args) {
-        return dependencies.codeIntelligence.findDependencies((args as { path: string }).path);
-      },
+      async execute(args) { return dependencies.codeIntelligence.findDependencies((args as { path: string }).path); },
     },
     {
       name: "codegraph.dependents",
@@ -104,9 +108,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       access: "read-only",
       parameters: pathArgument("path"),
       validate: hasStringArgument("path"),
-      async execute(args) {
-        return dependencies.codeIntelligence.findDependents((args as { path: string }).path);
-      },
+      async execute(args) { return dependencies.codeIntelligence.findDependents((args as { path: string }).path); },
     },
     {
       name: "documentation.search",
@@ -114,9 +116,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       access: "read-only",
       parameters: pathArgument("query"),
       validate: hasStringArgument("query"),
-      async execute(args) {
-        return dependencies.documentation.search((args as { query: string }).query);
-      },
+      async execute(args) { return dependencies.documentation.search((args as { query: string }).query); },
     },
     {
       name: "asset_registry.search",
@@ -126,34 +126,20 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       validate: hasStringArgument("query"),
       async execute(args) {
         const evidence = await dependencies.assetRegistry.search((args as { query: string }).query);
-        return evidence.map((item) => {
-          const intelligence = classifyAssetEvidence(item);
-          return { ...intelligence.evidence, usageDomain: intelligence.usageDomain, licenseState: intelligence.licenseState, reason: intelligence.reason };
-        });
+        return evidence.map((item) => { const intelligence = classifyAssetEvidence(item); return { ...intelligence.evidence, usageDomain: intelligence.usageDomain, licenseState: intelligence.licenseState, reason: intelligence.reason }; });
       },
     },
     {
       name: "verification.run",
       description: "Run bounded project verification for requested scopes.",
       access: "read-only",
-      parameters: {
-        type: "object",
-        properties: {
-          scope: { type: "array", items: { type: "string" }, maxItems: 20 },
-        },
-        required: ["scope"],
-      },
-      validate: (args): args is { scope: string[] } =>
-        typeof args === "object" &&
-        args !== null &&
-        Array.isArray((args as { scope?: unknown }).scope) &&
-        (args as { scope: unknown[] }).scope.length <= 20 &&
-        (args as { scope: unknown[] }).scope.every((item) => typeof item === "string"),
-      async execute(args) {
-        return dependencies.verification.verify((args as { scope: string[] }).scope);
-      },
+      parameters: { type: "object", properties: { scope: { type: "array", items: { type: "string" }, maxItems: 20 } }, required: ["scope"] },
+      validate: (args): args is { scope: string[] } => typeof args === "object" && args !== null && Array.isArray((args as { scope?: unknown }).scope) && (args as { scope: unknown[] }).scope.length <= 20 && (args as { scope: unknown[] }).scope.every((item) => typeof item === "string"),
+      async execute(args) { return dependencies.verification.verify((args as { scope: string[] }).scope); },
     },
-  ];
+  );
+
+  return tools;
 }
 
 export const createRepositoryTools = createProjectTools;
