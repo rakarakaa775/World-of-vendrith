@@ -1,10 +1,11 @@
-import type { AiMode } from "../domain/types";
+import type { AiMode, ApprovalState } from "../domain/types";
 
 export type ToolAccess = "read-only" | "mutation";
 
 export interface ToolContext {
   mode: AiMode;
   requestId: string;
+  approvalState?: ApprovalState;
 }
 
 export interface ToolDefinition<TArgs = unknown, TResult = unknown> {
@@ -49,7 +50,7 @@ export function createToolRouter(tools: ToolDefinition[]): ToolRouter {
         return { id: call.id, name: call.name, ok: false, error: "Unknown tool" };
       }
 
-      if (tool.access === "mutation") {
+      if (tool.access === "mutation" && context.approvalState !== "approved") {
         return {
           id: call.id,
           name: call.name,
