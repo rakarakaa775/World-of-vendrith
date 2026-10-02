@@ -4,6 +4,8 @@ import { saveWithConflictDetection } from '../editor/map-conflict-save-controlle
 import { serializeMapDocument } from '../editor/map-serialization';
 
 function clientForRemote(remote: ReturnType<typeof createMap>, remoteVersion: number) {
+  const authoritative = structuredClone(remote);
+  authoritative.layers[0].cells[0].tileId = 'grass';
   return {
     rpc: vi.fn()
       .mockResolvedValueOnce({
@@ -26,6 +28,16 @@ function clientForRemote(remote: ReturnType<typeof createMap>, remoteVersion: nu
           projection_error: null,
         }],
         error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          ok: true,
+          found: true,
+          map_id: remote.id,
+          version_number: remoteVersion + 1,
+          snapshot: JSON.parse(serializeMapDocument(authoritative)),
+        },
+        error: null,
       }),
   } as any;
 }
@@ -47,7 +59,7 @@ describe('Map conflict save controller', () => {
     expect(result.version).toBe(5);
     expect(result.document.layers[0].cells[0].tileId).toBe('grass');
     expect(result.document.layers[0].cells[1].tileId).toBe('sand');
-    expect(client.rpc).toHaveBeenCalledTimes(2);
+    expect(client.rpc).toHaveBeenCalledTimes(3);
     expect(client.rpc.mock.calls[1][0]).toBe('map_editor_commit_merge_v1');
     expect(client.rpc.mock.calls[1][1].p_expected_version).toBe(4);
   });
