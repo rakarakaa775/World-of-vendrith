@@ -141,8 +141,8 @@ MapDocument.
 - [~] Opacity — implemented; browser click-level verification pending
 - [~] Ordering — implemented; browser click-level verification pending
 - [ ] Layer groups
-- [ ] Duplicate layer
-- [ ] Merge layer
+- [~] Duplicate layer — implemented; browser click-level verification pending
+- [~] Merge layer — implemented; browser click-level verification pending
 - [~] Layer isolation — implemented in Phase 2D; browser click-level verification pending
 - [ ] Layer template
 
