@@ -422,7 +422,7 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.terrainBindings, props.environmentRuntime, props.showGrid]);
+  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.environmentRuntime, props.showGrid]);
 
   useEffect(() => {
     if (!ready) return;
@@ -582,15 +582,9 @@ export function PixiMapCanvas(props: Props) {
           movingObjectId = object.id;
           return;
         }
-        if (e.shiftKey) {
-          selecting = true;
-          startPoint = p;
-          current.onSelectionChange(normalizeSelection(p, p));
-          return;
-        }
-        panning = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
+        selecting = true;
+        startPoint = p;
+        current.onSelectionChange(normalizeSelection(p, p));
         return;
       }
       if (current.activeTool === "Eyedropper") {
