@@ -1,5 +1,6 @@
 import type {
   EvaluationRecord,
+  ImprovementHistory,
   ImprovementMemory,
   ImprovementProposal,
   ImprovementTask,
@@ -8,7 +9,7 @@ import type {
 
 export interface ImprovementEngineDependencies {
   generateTask(): Promise<ImprovementTask>;
-  generateStrategy(task: ImprovementTask): Promise<StrategyCandidate>;
+  generateStrategy(task: ImprovementTask, history: ImprovementHistory[]): Promise<StrategyCandidate>;
   runCandidate(task: ImprovementTask, strategy: StrategyCandidate): Promise<EvaluationRecord>;
   memory: ImprovementMemory;
 }
@@ -30,7 +31,8 @@ export function createImprovementEngine(
   return {
     async run() {
       const task = await dependencies.generateTask();
-      const strategy = await dependencies.generateStrategy(task);
+      const history = await dependencies.memory.listRecent();
+      const strategy = await dependencies.generateStrategy(task, history);
 
       if (strategy.taskId !== task.id) {
         throw new Error("Strategy candidate does not belong to generated task");
@@ -46,6 +48,8 @@ export function createImprovementEngine(
         id: "proposal-" + task.id + "-" + strategy.id,
         taskId: task.id,
         strategyId: strategy.id,
+        strategyDescription: strategy.description,
+        strategySteps: strategy.steps,
         rationale: evaluation.verificationPassed
           ? "Candidate completed verification and can be reviewed as an improvement proposal."
           : "Candidate did not complete verification; proposal is retained for review rather than treated as a successful improvement.",
