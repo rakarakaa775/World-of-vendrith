@@ -24,6 +24,7 @@ export * from "./domain/runtime-navigation";
 export * from "./application/npc-navigation";
 export * from "./domain/runtime-movement";
 export * from "./application/npc-movement";
+export * from "./application/npc-movement-verification";
 export * from "./ports/runtime";
 export * from "./policies/runtime-policy";
 export * from "./application/runtime-orchestrator";
