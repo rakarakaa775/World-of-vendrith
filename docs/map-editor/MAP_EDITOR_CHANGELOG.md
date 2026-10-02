@@ -417,3 +417,4 @@
 - **Roadmap phase:** Phase 2E — Layer System.
 - **Verification:** PR #28 merged. Browser click-level verification remains pending.
 - **Notes:** No Supabase schema/data/RPC or asset binary changes.
+\n\n## 2026-10-02 — Layer Groups\n\n- **Type:** Added\n- **Details:** Added document-level layer groups with visibility, lock, expand/collapse, layer assignment, safe group deletion, and effective renderer visibility. Older serialized documents normalize missing group/opacity metadata safely.\n- **Roadmap phase:** Phase 2E — Layer System.\n- **Verification:** PR #30 merged. Browser click-level verification remains pending.\n- **Notes:** No Supabase schema/data/RPC or asset binary changes.\n

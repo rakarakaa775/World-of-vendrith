@@ -140,7 +140,7 @@ MapDocument.
 - [~] Lock — implemented; browser click-level verification pending
 - [~] Opacity — implemented; browser click-level verification pending
 - [~] Ordering — implemented; browser click-level verification pending
-- [ ] Layer groups
+- [~] Layer groups — implemented; browser click-level verification pending
 - [~] Duplicate layer — implemented; browser click-level verification pending
 - [~] Merge layer — implemented; browser click-level verification pending
 - [~] Layer isolation — implemented in Phase 2D; browser click-level verification pending
