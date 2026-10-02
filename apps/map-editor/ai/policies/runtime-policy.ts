@@ -23,9 +23,26 @@ export function validateRuntimeDecision(
     errors.push("Decision must contain at least one runtime action.");
   }
 
+  if (
+    decision.expiresAtTick !== undefined &&
+    decision.expiresAtTick < observation.state.clock.tick
+  ) {
+    errors.push("Decision has already expired for the current simulation tick.");
+  }
+
   for (const action of decision.actions) {
     if (!action.id || !action.type || !action.reason) {
       errors.push(`Runtime action ${action.id || "<unknown>"} is missing required metadata.`);
+    }
+
+    if (action.intelligence !== observation.intelligence) {
+      errors.push(
+        `Runtime action ${action.id || "<unknown>"} targets intelligence ${action.intelligence}, but observation is ${observation.intelligence}.`,
+      );
+    }
+
+    if (!["safe", "game-rule", "high-risk"].includes(action.risk)) {
+      errors.push(`Runtime action ${action.id || "<unknown>"} has an unsupported risk level.`);
     }
   }
 
