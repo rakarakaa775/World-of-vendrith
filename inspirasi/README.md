@@ -30,6 +30,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - codebase-memory-mcp — Audit Menyeluruh: ./CODEBASE_MEMORY_MCP_AUDIT.md
 - codebase-memory-mcp vs CodeGraph — Perbandingan: ./CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md
 - Open Higgsfield AI (sunnychase) — Audit: ./OPEN_HIGGSFIELD_AI_SUNNYCHASE_AUDIT.md
+- Developer Roadmap (kamranahmedse) — Audit: ./DEVELOPER_ROADMAP_KAMRANAHMEDSE_AUDIT.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
@@ -56,3 +57,17 @@ Open Higgsfield AI dari sunnychase diperlakukan sebagai referensi UX/arsitektur 
 - provider abstraction.
 
 Repository tersebut adalah fork dan bukan dependency Vendrith. Provenance dan lisensi harus diverifikasi sebelum menyalin kode atau asset.
+
+## Catatan untuk Developer Roadmap
+
+Developer Roadmap diperlakukan sebagai referensi untuk:
+- structured content;
+- authoring/editor vs renderer separation;
+- content validation;
+- derived/generated representations;
+- interactive documentation;
+- best-practice content;
+- questions/verification;
+- browser/integration testing.
+
+Roadmap content, images, diagrams, dan project material tidak boleh disalin ke Vendrith tanpa izin karena lisensinya restriktif.
