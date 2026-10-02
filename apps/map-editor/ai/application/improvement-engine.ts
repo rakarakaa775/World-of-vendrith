@@ -15,27 +15,32 @@ export interface ImprovementEngineDependencies {
   memory: ImprovementMemory;
 }
 
-function strategyKey(strategy: ImprovementHistory["proposal"]): string | undefined {
-  if (!strategy?.strategyDescription) return undefined;
-  return [
-    strategy.strategyDescription.trim().toLowerCase(),
-    ...(strategy.strategySteps ?? []).map((step) => step.trim().toLowerCase()),
-  ].join("|");
+function strategyKey(strategy: ImprovementHistory["proposal"] | StrategyCandidate): string {
+  const description = "strategyDescription" in strategy ? strategy.strategyDescription : strategy.description;
+  const steps = strategy.strategySteps ?? strategy.steps;
+  return [description.trim().toLowerCase(), ...steps.map((step) => step.trim().toLowerCase())].join("|");
 }
 
 function buildStrategyContext(history: ImprovementHistory[]): ImprovementStrategyContext {
   const seen = new Set<string>();
   const repeatedStrategyIds: string[] = [];
   for (const item of history) {
-    const key = strategyKey(item.proposal);
+    const key = item.proposal ? strategyKey(item.proposal) : undefined;
     if (!key) continue;
     if (seen.has(key)) repeatedStrategyIds.push(item.evaluation.strategyId);
     seen.add(key);
   }
-  return {
-    relatedHistory: history,
-    repeatedStrategyIds: [...new Set(repeatedStrategyIds)],
-  };
+  return { relatedHistory: history, repeatedStrategyIds: [...new Set(repeatedStrategyIds)] };
+}
+
+function assertNovelStrategy(strategy: StrategyCandidate, history: ImprovementHistory[]): void {
+  const candidateKey = strategyKey(strategy);
+  const exactMatch = history.find((item) => item.proposal && strategyKey(item.proposal) === candidateKey);
+  if (exactMatch) {
+    throw new Error(
+      "Strategy candidate duplicates a previously evaluated strategy: " + exactMatch.evaluation.strategyId,
+    );
+  }
 }
 
 export interface ImprovementRun {
@@ -62,6 +67,8 @@ export function createImprovementEngine(
       if (strategy.taskId !== task.id) {
         throw new Error("Strategy candidate does not belong to generated task");
       }
+
+      assertNovelStrategy(strategy, history);
 
       const evaluation = await dependencies.runCandidate(task, strategy);
 
