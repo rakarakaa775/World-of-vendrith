@@ -44,3 +44,5 @@
 
 | 2026-10-02 | Duplicate and merge layer operations implemented | Phase 2E — Layer System | Added immutable Duplicate Layer and Merge Layer operations with collision-safe object IDs and same-kind merge guards. EditorShell exposes both operations through the existing history commit path. PR #28 merged to main. Browser click-level verification remains pending. No Supabase schema/data/RPC changes. |
 \n| 2026-10-02 | Layer Groups implemented | Phase 2E — Layer System | Added group metadata, create/update/delete, layer assignment, group visibility/lock/expand controls, effective renderer visibility, and backward-compatible serialization normalization. PR #30 merged to main. Browser click-level verification remains pending. No Supabase schema/data/RPC changes. |\n
+
+| 2026-10-02 | Layer Templates implemented | Phase 2E — Layer System | Added reusable layer templates, apply/delete operations, serialization normalization, and history-safe UI controls. PR #32 merged to main. Browser click-level verification remains pending. No Supabase schema/data/RPC changes. |
