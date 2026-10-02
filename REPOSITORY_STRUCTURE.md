@@ -8,11 +8,13 @@ Root contains primary project entry/status files plus top-level project organiza
 
 Reference and inspiration material used to evaluate architecture, engineering practices, repositories, tools, and other development ideas for Vendrith.
 
-- `README.md` — purpose and rules for the inspiration collection.
-- `NODEJS_BEST_PRACTICES_VENDRITH.md` — audit and decisions from Node.js Best Practices.
-- `REFERENCE_TEMPLATE.md` — template for future references.
+- README.md — purpose and rules for the inspiration collection.
+- NODEJS_BEST_PRACTICES_VENDRITH.md — audit and decisions from Node.js Best Practices.
+- CODEBASE_MEMORY_MCP_AUDIT.md — comprehensive audit of codebase-memory-mcp.
+- CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md — comparison of codebase-memory-mcp and CodeGraph.
+- REFERENCE_TEMPLATE.md — template for future references.
 
-Material in `inspirasi/` is not automatically production code or a dependency.
+Material in inspirasi/ is not automatically production code or a dependency.
 
 ## docs/
 
