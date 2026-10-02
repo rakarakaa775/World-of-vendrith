@@ -6,6 +6,7 @@ import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
+import { setActiveLayer, updateLayer, reorderLayer } from "../editor/layer-state";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
 import { copySelection, pasteSelection, moveSelection, replaceSelection, type SelectionClipboard } from "../editor/selection-clipboard";
@@ -202,6 +203,15 @@ export function EditorShell({
     setActiveTool("Paint");
   };
 
+  const chooseLayer = (layerId: string) => commit(setActiveLayer(documentRef.current, layerId));
+  const toggleLayerVisibility = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
+    visible: !documentRef.current.layers.find(layer => layer.id === layerId)?.visible,
+  }));
+  const toggleLayerLock = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
+    locked: !documentRef.current.layers.find(layer => layer.id === layerId)?.locked,
+  }));
+  const moveLayer = (layerId: string, direction: "up" | "down") => commit(reorderLayer(documentRef.current, layerId, direction));
+
   const selectTool = (tool: string) => setActiveTool(tool);
   const cycleLayerIsolation = () => {
     const layers = document.layers;
@@ -267,6 +277,24 @@ export function EditorShell({
             {debugViews.invalidCells && <div>Invalid · red unknown ground tile</div>}
             {debugViews.readOnly && <div>Read-only · map input disabled</div>}
           </div>}
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYERS</div>
+            <div role="tree" aria-label="Map layers" style={{ display: "grid", gap: 5 }}>
+              {document.layers.map((layer, index) => (
+                <div key={layer.id} role="treeitem" aria-selected={layer.active}
+                  style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto auto auto auto", alignItems: "center", gap: 4, padding: 5, borderRadius: 6, border: "1px solid var(--map-editor-border)", background: layer.active ? "var(--map-editor-selected)" : "var(--map-editor-button)" }}>
+                  <button type="button" onClick={() => chooseLayer(layer.id)} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", border: 0, background: "transparent", color: "#fff", textAlign: "left", cursor: "pointer" }} title={layer.name}>
+                    {layer.name}
+                  </button>
+                  <button type="button" onClick={() => toggleLayerVisibility(layer.id)} aria-label={(layer.visible ? "Hide " : "Show ") + layer.name} title={layer.visible ? "Hide layer" : "Show layer"} style={{ padding: "2px 5px" }}>{layer.visible ? "◉" : "○"}</button>
+                  <button type="button" onClick={() => toggleLayerLock(layer.id)} aria-label={(layer.locked ? "Unlock " : "Lock ") + layer.name} title={layer.locked ? "Unlock layer" : "Lock layer"} style={{ padding: "2px 5px" }}>{layer.locked ? "🔒" : "🔓"}</button>
+                  <button type="button" onClick={() => moveLayer(layer.id, "up")} disabled={index === 0} aria-label={"Move " + layer.name + " up"} title="Move up" style={{ padding: "2px 5px" }}>↑</button>
+                  <button type="button" onClick={() => moveLayer(layer.id, "down")} disabled={index === document.layers.length - 1} aria-label={"Move " + layer.name + " down"} title="Move down" style={{ padding: "2px 5px" }}>↓</button>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div style={{ display: "grid", gap: 6 }}>
             {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).map(tile => (
