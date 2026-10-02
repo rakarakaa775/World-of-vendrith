@@ -13,6 +13,19 @@ export async function createReadOnlyPlan(
   deps: PlanRequestDependencies,
 ): Promise<AiPlan> {
   const matches = await deps.repository.search(request.prompt);
+  const dependencyEvidence: Evidence[] = [];
+  for (const [index, match] of matches.slice(0, 5).entries()) {
+    const dependencies = await deps.code.findDependencies(match.path);
+    const dependents = await deps.code.findDependents(match.path);
+    dependencyEvidence.push({
+      id: `graph-${index}`,
+      kind: "verified-fact",
+      source: `codegraph:${match.path}`,
+      fact: `Dependencies: ${dependencies.join(", ") || "none"}; Dependents: ${dependents.join(", ") || "none"}`,
+      confidence: "medium",
+    });
+  }
+
   const evidence: Evidence[] = [
     ...matches.map((match, index) => ({
       id: `repo-${index}`,
@@ -21,6 +34,7 @@ export async function createReadOnlyPlan(
       fact: match.excerpt,
       confidence: "high" as const,
     })),
+    ...dependencyEvidence,
     ...(await deps.documentation.search(request.prompt)),
   ];
 
