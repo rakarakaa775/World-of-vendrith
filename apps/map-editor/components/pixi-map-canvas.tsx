@@ -101,11 +101,11 @@ const textureForTerrainBinding = (texture: Texture, assetId: string, region: Non
 const expandBrush = (points: GridPoint[], size: number) => {
   if (size <= 1) return points;
   const unique = new Map<string, GridPoint>();
-  // Round terrain brushes use the brush diameter in cells. Cell centers are
-  // selected by a true circular distance test instead of a square footprint.
-  // This keeps 3/5/7-cell brushes visibly round while retaining the grid as the
-  // authoring data model.
-  const radius = Math.max(0.5, size / 2);
+  // Round terrain brushes use the brush diameter in cells. Use the radius
+  // between the outer cell centers so odd sizes produce a genuinely circular
+  // discrete footprint instead of turning the 3-cell brush into a full 3x3
+  // square. The map remains grid-based; only the affected-cell footprint is round.
+  const radius = Math.max(0, (size - 1) / 2);
   const minOffset = -Math.floor(radius);
   const maxOffset = Math.floor(radius);
   for (const point of points) {
