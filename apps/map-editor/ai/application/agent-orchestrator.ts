@@ -1,7 +1,7 @@
 import type { AiRequest, Evidence, ApprovalState } from "../domain/types";
 import type { ModelProviderPort } from "../ports/model-provider";
 import type { ToolRouter, ToolContext } from "../ports/tool-router";
-import { classifyApproval, canMutate } from "../policies/ai-policy";
+import { classifyApproval } from "../policies/ai-policy";
 import { runToolLoop } from "./tool-loop";
 
 export interface AgentOrchestratorDependencies {
@@ -64,9 +64,8 @@ export function createVendrithAgentOrchestrator(
       const approval = classifyApproval(request.mode, request.prompt);
       const context: ToolContext = { mode: request.mode, requestId: request.id };
 
-      if (request.mode === "execute" && !canMutate(approval)) {
-        throw new Error("Execution requires explicit approval");
-      }
+      // Execute mode may prepare a run, but approval remains pending until an
+      // explicit approval transition. The router separately blocks mutation tools.
 
       const result = await runToolLoop(
         dependencies.modelProvider,
