@@ -50,13 +50,13 @@ dan tidak merusak water derivation.
 ### Tujuan
 Memisahkan terrain semantic dari cara terrain divisualkan.
 
-- [ ] Terrain compatibility matrix
+- [x] Terrain compatibility matrix — validation distinguishes verified non-water transitions from unregistered pairs; derived water family remains compatible with authored land
 - [x] Edge/neighbor masks
 - [ ] Shoreline masks
 - [x] Transition rule registry — registry semantic sudah dibuat berdasarkan pasangan transition yang saat ini terverifikasi di Supabase
 - [ ] Autotiling
 - [ ] Dual-grid/corner-mask strategy bila dibutuhkan
-- [ ] Transition validation
+- [x] Transition validation — reports unregistered cardinal terrain transitions without mutating or blocking logical authoring
 - [x] Deterministic visual variation utility
 - [ ] World-space variation/noise tanpa menyimpan random state per cell
 - [ ] Fallback visual untuk transition yang belum tersedia
