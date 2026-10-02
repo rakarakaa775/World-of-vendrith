@@ -1,5 +1,3 @@
-[Reading 313 lines from start (total: 313 lines, 0 remaining)]
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";

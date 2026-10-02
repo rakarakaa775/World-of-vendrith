@@ -24,9 +24,12 @@ describe('saveWithConflictDetection', () => {
     local.layers[0].cells[0] = { tileId: 'grass' };
     remote.layers[0].cells[1] = { tileId: 'sand' };
 
+    const authoritative = structuredClone(remote);
+    authoritative.layers[0].cells[0] = { tileId: 'grass' };
     const rpc = client([
       { ok: true, found: true, version_number: 2, snapshot: serializeMapDocument(remote) },
       { status: 'committed', version_id: 'v3', version_number: 3, current_version: 3, projection_status: 'committed', projection_error: null },
+      { ok: true, found: true, version_number: 3, snapshot: serializeMapDocument(authoritative) },
     ]);
 
     const result = await saveWithConflictDetection(rpc as never, local, base, 1);

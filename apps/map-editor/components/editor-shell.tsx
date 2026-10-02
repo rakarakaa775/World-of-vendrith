@@ -229,7 +229,7 @@ export function EditorShell({
     if (group) commit(updateLayerGroup(documentRef.current, groupId, { locked: !group.locked }));
   };
   const handleDeleteGroup = (groupId: string) => commit(deleteLayerGroup(documentRef.current, groupId));
-  const handleAssignGroup = (layerId: string, groupId: string) => commit(assignLayerToGroup(documentRef.current, layerId, groupId));
+  const handleAssignGroup = (layerId: string, groupId: string | null) => commit(assignLayerToGroup(documentRef.current, layerId, groupId));
   const handleCreateTemplate = (layerId: string) => commit(createLayerTemplate(documentRef.current, layerId));
   const handleApplyTemplate = (templateId: string) => commit(applyLayerTemplate(documentRef.current, templateId));
   const handleDeleteTemplate = (templateId: string) => commit(deleteLayerTemplate(documentRef.current, templateId));
@@ -439,7 +439,6 @@ export function EditorShell({
     </main>
   );
 }
-
 
 
 

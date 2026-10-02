@@ -48,18 +48,18 @@ export function formatTerrainTrace(trace: TerrainTrace): string {
 export function assertTerrainPreserved(before: TerrainTrace, after: TerrainTrace, label: string): void {
   if (before.mapId !== after.mapId) throw new Error(`SAVE_TERRAIN_IDENTITY_MISMATCH: ${label}: before=${before.mapId}; after=${after.mapId}`);
   if (before.width !== after.width || before.height !== after.height) throw new Error(`SAVE_TERRAIN_GRID_MISMATCH: ${label}: before=${before.width}x${before.height}; after=${after.width}x${after.height}`);
+  const keys = new Set([...Object.keys(before.tileCounts), ...Object.keys(after.tileCounts)]);
+  for (const key of keys) {
+    if ((before.tileCounts[key] ?? 0) !== (after.tileCounts[key] ?? 0)) {
+      throw new Error(`SAVE_TERRAIN_PAYLOAD_MISMATCH: ${label}: tile=${key}; before=${before.tileCounts[key] ?? 0}; after=${after.tileCounts[key] ?? 0}`);
+    }
+  }
   const beforeCells = new Map(before.cells.map(cell => [cell.index, cell.tileId]));
   const afterCells = new Map(after.cells.map(cell => [cell.index, cell.tileId]));
   const indices = new Set([...beforeCells.keys(), ...afterCells.keys()]);
   for (const index of indices) {
     if ((beforeCells.get(index) ?? null) !== (afterCells.get(index) ?? null)) {
       throw new Error(`SAVE_TERRAIN_CELL_MISMATCH: ${label}: index=${index}; before=${beforeCells.get(index) ?? 'null'}; after=${afterCells.get(index) ?? 'null'}`);
-    }
-  }
-  const keys = new Set([...Object.keys(before.tileCounts), ...Object.keys(after.tileCounts)]);
-  for (const key of keys) {
-    if ((before.tileCounts[key] ?? 0) !== (after.tileCounts[key] ?? 0)) {
-      throw new Error(`SAVE_TERRAIN_PAYLOAD_MISMATCH: ${label}: tile=${key}; before=${before.tileCounts[key] ?? 0}; after=${after.tileCounts[key] ?? 0}`);
     }
   }
 }

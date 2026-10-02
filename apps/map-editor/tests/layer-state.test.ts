@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "../editor/map-document";
-import { assignLayerToGroup, createLayerGroup, deleteLayerGroup, duplicateLayer, isLayerEffectivelyLocked, isLayerEffectivelyVisible, mergeLayers, reorderLayer, setActiveLayer, updateLayer, updateLayerGroup } from "../editor/layer-state";
+import { applyLayerTemplate, assignLayerToGroup, createLayerGroup, createLayerTemplate, deleteLayerGroup, deleteLayerTemplate, duplicateLayer, isLayerEffectivelyLocked, isLayerEffectivelyVisible, mergeLayers, reorderLayer, setActiveLayer, updateLayer, updateLayerGroup } from "../editor/layer-state";
 
 describe("layer state", () => {
   it("changes active, visibility, lock, and opacity metadata without mutating the source", () => {

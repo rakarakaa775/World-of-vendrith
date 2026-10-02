@@ -98,7 +98,11 @@ export async function loadMapAssetCatalog(client: SupabaseClient): Promise<MapAs
   if (error) throw error;
 
   const runtime = (data ?? [])
-    .map(row => registryRowToMapAsset(row as RegistryRow))
+    .map(row => {
+      const rawLicense = row.asset_license_registry;
+      const license = Array.isArray(rawLicense) ? rawLicense[0] ?? null : rawLicense ?? null;
+      return registryRowToMapAsset({ ...row, asset_license_registry: license } as RegistryRow);
+    })
     .filter((asset): asset is MapAssetDefinition => Boolean(asset));
 
   return runtime;
