@@ -1,3 +1,4 @@
+import type { AiSurface } from "../domain/runtime";
 import type { RuntimeAction, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 
 export interface RuntimeValidationResult {
