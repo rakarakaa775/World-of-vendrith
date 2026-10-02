@@ -246,12 +246,12 @@ export function EditorShell({
             ))}
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Round brush</div>
+          <div style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>Brush presets</div>
           <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
-            {BRUSH_SIZES.map(size => (
-              <button key={size} type="button" onClick={() => setBrushSize(size)} aria-label={"Round brush " + size + " cells"} aria-pressed={brushSize === size}
-                style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid var(--map-editor-border)", background: brushSize === size ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
-                {size}
+            {BRUSH_PRESETS.map(preset => (
+              <button key={preset.name} type="button" onClick={() => { setBrushPreset(preset.name); setBrushSize(preset.size); }} aria-label={"Brush preset " + preset.name} aria-pressed={brushPreset === preset.name}
+                style={{ flex: 1, padding: "6px 2px", borderRadius: 5, border: "1px solid var(--map-editor-border)", background: brushPreset === preset.name ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
+                {preset.name}
               </button>
             ))}
           </div>
