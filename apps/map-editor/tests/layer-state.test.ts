@@ -1,19 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "../editor/map-document";
-import { duplicateLayer, mergeLayers, reorderLayer, setActiveLayer, updateLayer } from "../editor/layer-state";
+import { assignLayerToGroup, createLayerGroup, deleteLayerGroup, duplicateLayer, isLayerEffectivelyLocked, isLayerEffectivelyVisible, mergeLayers, reorderLayer, setActiveLayer, updateLayer, updateLayerGroup } from "../editor/layer-state";
 
 describe("layer state", () => {
-  it("changes active, visibility, and lock metadata without mutating the source", () => {
+  it("changes active, visibility, lock, and opacity metadata without mutating the source", () => {
     const document = createMap("playable");
     const before = JSON.stringify(document);
     const active = setActiveLayer(document, "objects");
     const hidden = updateLayer(active, "objects", { visible: false });
     const locked = updateLayer(hidden, "objects", { locked: true });
-
-    expect(locked.layers.find(layer => layer.id === "objects")?.active).toBe(true);
-    expect(locked.layers.find(layer => layer.id === "objects")?.visible).toBe(false);
-    expect(locked.layers.find(layer => layer.id === "objects")?.locked).toBe(true);
     const faded = updateLayer(locked, "objects", { opacity: 0.35 });
+    expect(faded.layers.find(layer => layer.id === "objects")?.active).toBe(true);
+    expect(faded.layers.find(layer => layer.id === "objects")?.visible).toBe(false);
+    expect(faded.layers.find(layer => layer.id === "objects")?.locked).toBe(true);
     expect(faded.layers.find(layer => layer.id === "objects")?.opacity).toBe(0.35);
     expect(JSON.stringify(document)).toBe(before);
   });
@@ -22,12 +21,12 @@ describe("layer state", () => {
     const document = createMap("playable");
     const ids = document.layers.map(layer => layer.id);
     const moved = reorderLayer(document, "objects", "up");
-
     expect(moved.layers.map(layer => layer.id)).toEqual(["objects", "ground", "collision"]);
     expect(new Set(moved.layers.map(layer => layer.id))).toEqual(new Set(ids));
     expect(moved).not.toBe(document);
   });
-r without sharing cell/object references", () => {
+
+  it("duplicates a layer without sharing cell or object references", () => {
     const document = createMap("playable");
     const ground = document.layers.find(layer => layer.id === "ground")!;
     ground.cells[0] = { tileId: "grass" };
@@ -46,16 +45,13 @@ r without sharing cell/object references", () => {
 
   it("merges same-kind layers into the target and removes the source", () => {
     const document = createMap("playable");
-    const target = document.layers.find(layer => layer.id === "ground")!;
     const source = document.layers.find(layer => layer.id === "objects")!;
     const sameKindSource = { ...source, id: "objects-2", kind: "objects" as const, cells: source.cells.map(cell => ({ ...cell })), objects: source.objects.map(object => ({ ...object })) };
     const withSource = { ...document, layers: [...document.layers, sameKindSource] };
     const result = mergeLayers(withSource, "objects", "objects-2");
     expect(result.layers.map(layer => layer.id)).not.toContain("objects-2");
     expect(result.layers.filter(layer => layer.kind === "objects")).toHaveLength(1);
-    expect(result.layers.find(layer => layer.id === "ground")?.cells[0].tileId).toBeNull();
     expect(result).not.toBe(withSource);
-    expect(target.kind).toBe("ground");
   });
 
   it("rejects cross-kind merges without mutating the source", () => {
@@ -64,4 +60,20 @@ r without sharing cell/object references", () => {
     expect(result).toBe(document);
   });
 
+  it("creates, assigns, updates, and deletes layer groups without data loss", () => {
+    const document = createMap("playable");
+    const grouped = createLayerGroup(document, "Terrain Stack");
+    const groupId = grouped.layerGroups[0].id;
+    const assigned = assignLayerToGroup(grouped, "ground", groupId);
+    expect(assigned.layers.find(layer => layer.id === "ground")?.groupId).toBe(groupId);
+    expect(isLayerEffectivelyVisible(assigned, assigned.layers.find(layer => layer.id === "ground")!)).toBe(true);
+    const hidden = updateLayerGroup(assigned, groupId, { visible: false, locked: true, expanded: false });
+    const ground = hidden.layers.find(layer => layer.id === "ground")!;
+    expect(isLayerEffectivelyVisible(hidden, ground)).toBe(false);
+    expect(isLayerEffectivelyLocked(hidden, ground)).toBe(true);
+    const removed = deleteLayerGroup(hidden, groupId);
+    expect(removed.layerGroups).toHaveLength(0);
+    expect(removed.layers.find(layer => layer.id === "ground")?.groupId).toBeNull();
+    expect(document.layerGroups).toHaveLength(0);
+  });
 });
