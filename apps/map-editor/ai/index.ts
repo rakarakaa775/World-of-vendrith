@@ -21,3 +21,4 @@ export * from "./application/runtime-orchestrator";
 
 export * from "./application/project-intelligence";
 export * from "./application/schema-intelligence";
+export * from "./application/schema-knowledge-graph";

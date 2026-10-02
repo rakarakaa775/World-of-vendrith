@@ -28,6 +28,7 @@ describe("project tool definitions", () => {
   it("exposes structural, documentation, asset, repository and verification tools", () => {
     const names = createProjectTools(dependencies()).map(tool => tool.name);
     expect(names).toEqual([
+      "schema.graph",
       "schema.inspect",
       "project.inspect",
       "repository.read_file",
