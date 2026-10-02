@@ -1,0 +1,2 @@
+# Common Rules
+Prefer small reversible changes. Read existing code. Do not invent APIs. Verify version-sensitive behavior. Never commit secrets. Keep domain logic independent from UI/rendering. Test meaningful changes. Review the final diff.

@@ -1,4 +1,4 @@
-import type { MapDocument, MapLayer } from './map-document';
+import type { MapDocument, MapLayer, MapLayerGroup, MapLayerTemplate } from './map-document';
 
 export const MAP_DOCUMENT_SCHEMA = 'vandrith.map-document';
 export const MAP_DOCUMENT_VERSION = 1 as const;
@@ -70,14 +70,52 @@ function validateObjectSemantics(object: unknown): void {
   }
   if (typeof candidate.assetId !== 'string' || candidate.assetId.trim() === '') throw new Error('Map object assetId is invalid');
   if (typeof candidate.collision !== 'boolean') throw new Error('Map object collision is invalid');
-  if (candidate.playableMapId !== undefined && candidate.playableMapId !== null && typeof candidate.playableMapId !== 'string') {
-    throw new Error('Map object playableMapId is invalid');
+  if (candidate.childMapId !== undefined && candidate.childMapId !== null && typeof candidate.childMapId !== 'string') {
+    throw new Error('Map object childMapId is invalid');
+  }
+  if (candidate.interiorMapId !== undefined && candidate.interiorMapId !== null && typeof candidate.interiorMapId !== 'string') {
+    throw new Error('Map object interiorMapId is invalid');
+  }
+}
+
+function validateHierarchySemantics(document: Partial<MapDocument>): void {
+  if (document.mapType === 'world') {
+    if (document.parentMapId !== null && document.parentMapId !== undefined) {
+      throw new Error('World map cannot have a parent map');
+    }
+    return;
+  }
+
+  if (document.mapType === 'region') {
+    if (typeof document.parentMapId !== 'string' || document.parentMapId.trim() === '') {
+      throw new Error('Region map must reference a parent world map');
+    }
+    return;
+  }
+
+  if (document.mapType === 'playable') {
+    const space = document.playableSpace ?? 'exterior';
+    if (space === 'interior') {
+      if (typeof document.parentPlayableMapId !== 'string' || document.parentPlayableMapId.trim() === '') {
+        throw new Error('Interior playable map must reference a parent playable map');
+      }
+    } else if (document.parentMapId !== null && document.parentMapId !== undefined && typeof document.parentMapId !== 'string') {
+      throw new Error('Exterior playable parentMapId is invalid');
+    }
   }
 }
 
 function validateRelationshipMetadata(document: Partial<MapDocument>): void {
   if (document.parentMapId !== null && typeof document.parentMapId !== 'string') {
     throw new Error('Map parentMapId is invalid');
+  }
+  if (document.parentBounds !== undefined && document.parentBounds !== null) {
+    const bounds = document.parentBounds;
+    if (!bounds || typeof bounds !== 'object') throw new Error('Map parentBounds is invalid');
+    for (const field of ['x', 'y', 'width', 'height'] as const) {
+      if (typeof bounds[field] !== 'number' || !Number.isFinite(bounds[field])) throw new Error(`Map parentBounds ${field} is invalid`);
+    }
+    if (bounds.width <= 0 || bounds.height <= 0) throw new Error('Map parentBounds dimensions must be positive');
   }
   if (document.playableSpace !== undefined && document.playableSpace !== 'exterior' && document.playableSpace !== 'interior') {
     throw new Error('Playable space type is invalid');
@@ -139,7 +177,7 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
   if (!Array.isArray(layers) || layers.length === 0) throw new Error('Map must contain at least one layer');
   const rawGroups = rawDocument.layerGroups;
   const rawTemplates = rawDocument.layerTemplates;
-  const layerTemplates = Array.isArray(rawTemplates) ? rawTemplates.map(template => ({
+  const layerTemplates: MapLayerTemplate[] = Array.isArray(rawTemplates) ? rawTemplates.map(template => ({
     ...(template as Record<string, unknown>),
     id: typeof (template as Record<string, unknown>).id === 'string' ? (template as Record<string, unknown>).id : '',
     name: typeof (template as Record<string, unknown>).name === 'string' ? (template as Record<string, unknown>).name : '',
@@ -148,17 +186,18 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
     locked: (template as Record<string, unknown>).locked === true,
     opacity: typeof (template as Record<string, unknown>).opacity === 'number' ? (template as Record<string, unknown>).opacity : 1,
     groupId: (template as Record<string, unknown>).groupId ?? null,
-  })) : [];
-  const layerGroups = Array.isArray(rawGroups) ? rawGroups.map(group => ({
+  }) as MapLayerTemplate) : [];
+  const layerGroups: MapLayerGroup[] = Array.isArray(rawGroups) ? rawGroups.map(group => ({
     ...(group as Record<string, unknown>),
     id: typeof (group as Record<string, unknown>).id === 'string' ? (group as Record<string, unknown>).id : '',
     name: typeof (group as Record<string, unknown>).name === 'string' ? (group as Record<string, unknown>).name : '',
     visible: (group as Record<string, unknown>).visible !== false,
     locked: (group as Record<string, unknown>).locked === true,
     expanded: (group as Record<string, unknown>).expanded !== false,
-  })) : [];
+  }) as MapLayerGroup) : [];
   const expectedCellCount = width * height;
   validateRelationshipMetadata(normalizedDocument);
+  validateHierarchySemantics(normalizedDocument);
   for (const layer of layers) validateLayerSemantics(layer, expectedCellCount);
   const templateIds = new Set<string>();
   for (const template of layerTemplates) {
@@ -172,11 +211,18 @@ export function parseMapDocument(value: string | MapDocument | SerializedMapDocu
     if (!group.id || groupIds.has(group.id) || !group.name) throw new Error('Map layer group metadata is invalid');
     groupIds.add(group.id);
   }
-  const normalizedLayers = layers.map(layer => ({
-    ...(layer as MapLayer),
-    opacity: typeof (layer as MapLayer).opacity === 'number' ? (layer as MapLayer).opacity : 1,
-    groupId: (layer as MapLayer).groupId ?? null,
-  }));
+  const normalizedLayers = layers.map(layer => {
+    const normalized = {
+      ...(layer as MapLayer),
+      opacity: typeof (layer as MapLayer).opacity === 'number' ? (layer as MapLayer).opacity : 1,
+    };
+    if (Object.prototype.hasOwnProperty.call(layer, 'groupId')) {
+      normalized.groupId = (layer as MapLayer).groupId ?? null;
+    } else {
+      delete normalized.groupId;
+    }
+    return normalized;
+  });
   for (const layer of normalizedLayers) if (layer.groupId && !groupIds.has(layer.groupId)) throw new Error('Map layer references an unknown group');
   for (const template of layerTemplates) if (template.groupId && !groupIds.has(template.groupId)) throw new Error('Map layer template references an unknown group');
 

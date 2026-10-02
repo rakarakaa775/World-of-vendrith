@@ -1,0 +1,2 @@
+# Next.js Rules
+Respect Server/Client boundaries. Browser APIs and PixiJS belong client-side. Server-only credentials never cross into client bundles. Verify production builds after architectural routing changes.

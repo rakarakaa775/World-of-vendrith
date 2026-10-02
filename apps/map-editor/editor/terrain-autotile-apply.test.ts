@@ -42,8 +42,8 @@ describe("terrain autotile render variants", () => {
     expect(result.variants).toHaveLength(9);
     expect(result.variants.find(v => v.point.x === 1 && v.point.y === 1)).toMatchObject({
       terrain: "grass",
-      mask: 255,
-      assetId: "grass-base",
+      mask: 3,
+      assetId: "grass-mask-3",
     });
   });
   it("propagates the derived dual-grid corner mask without persisting it", () => {

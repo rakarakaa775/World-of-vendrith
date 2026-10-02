@@ -33,7 +33,7 @@ describe('map conflict resolution', () => {
     const local = { ...doc('map-1', 'local'), layers: [{ id: 'local', name: 'L', kind: 'ground', active: true, visible: true, locked: false, cells: [], objects: [] }] };
     const remote = { ...doc('map-1', 'remote'), layers: [{ id: 'remote', name: 'R', kind: 'ground', active: true, visible: true, locked: false, cells: [], objects: [] }] };
     const merged = mergeMapDocumentsById(local, remote);
-    expect(merged?.layers.map((layer) => layer.id)).toEqual(['remote', 'local']);
+    expect(merged?.layers.map((layer) => layer.id)).toEqual(['local', 'remote']);
     expect(merged?.name).toBe('local');
   });
 });

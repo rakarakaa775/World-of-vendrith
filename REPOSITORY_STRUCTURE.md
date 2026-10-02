@@ -2,7 +2,23 @@
 
 ## Root
 
-Root contains only primary project entry/status files: README.md and PROJECT_STATUS.md.
+Root contains primary project entry/status files plus top-level project organization folders.
+
+## inspirasi/
+
+Reference and inspiration material used to evaluate architecture, engineering practices, repositories, tools, and other development ideas for Vendrith.
+
+- README.md — purpose and rules for the inspiration collection.
+- NODEJS_BEST_PRACTICES_VENDRITH.md — audit and decisions from Node.js Best Practices.
+- CODEBASE_MEMORY_MCP_AUDIT.md — comprehensive audit of codebase-memory-mcp.
+- CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md — comparison of codebase-memory-mcp and CodeGraph.
+- OPEN_HIGGSFIELD_AI_SUNNYCHASE_AUDIT.md — audit of sunnychase/open-higgsfield-ai.
+- DEVELOPER_ROADMAP_KAMRANAHMEDSE_AUDIT.md — audit of kamranahmedse/developer-roadmap.
+- OPEN_LLM_VTUBER_AUDIT.md — audit of Open-LLM-VTuber.
+- RYZA_AI_REVIVE_AUDIT.md — audit of zeroa234/ryza-ai-revive.
+- REFERENCE_TEMPLATE.md — template for future references.
+
+Material in inspirasi/ is not automatically production code or a dependency.
 
 ## docs/
 
@@ -11,7 +27,7 @@ Current project documentation.
 - architecture/ — architecture and implementation-state documents.
 - audits/ — current audit results.
 - checkpoints/ — checkpoint and repository synchronization records.
-- database/reconciliation/ — runtime/database reconciliation records.
+- database/reconciliation/ — runtime/database reconciliation artifacts.
 - handoff/ — current handoff notes that are not part of the historical snapshot.
 
 ## database/
@@ -41,4 +57,4 @@ Large packaged historical snapshots retained as archives.
 
 ## Organization rule
 
-Do not mix historical handoff material with current implementation documents. Do not delete historical source merely to make the tree look smaller. Prefer moving current documents into the appropriate docs/ category while preserving provenance.
+Do not mix historical handoff material with current implementation documents. Do not delete historical source merely to make the tree look smaller. Preserve provenance and record durable decisions separately from raw reference material.

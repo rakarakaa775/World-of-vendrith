@@ -133,6 +133,28 @@ function metadataNote(asset:Asset){
   return typeof value==="string" ? value : "Tidak ada keterangan tambahan pada registry.";
 }
 
+type AssetIntelligence={usageDomain:"world"|"region"|"review";licenseState:"clear"|"restricted"|"unknown";reason:string;environment:string|null};
+function assetIntelligence(asset:Asset):AssetIntelligence{
+  const meta=asset.asset_metadata??{};
+  const text=[asset.name,asset.slug,asset.category,asset.placement_category,asset.role,asset.asset_path,asset.source_name,meta.environment,meta.biome,meta.water_depth,meta.waterDepth,meta.environment_type,meta.environmentType].filter(Boolean).join(" ").toLowerCase();
+  const region=/bridge|dock|ship|town|village|building|structure|road|street|port|landmark/.test(text);
+  const world=/terrain|grass|dirt|sand|stone|mud|beach|water|river|lake|sea|ocean|mountain|hill|cliff|rock|forest|jungle|desert|swamp|snow|vegetation|tree|plant|ice|lava|bog/.test(text);
+  let usageDomain:"world"|"region"|"review"= "review";
+  if(region&&!world)usageDomain="region"; else if(world&&!region)usageDomain="world";
+  const verification=String(asset.license_verification_status??"").toLowerCase();
+  const usage=String(asset.license_usage_status??"").toLowerCase();
+  let licenseState:"clear"|"restricted"|"unknown"="unknown";
+  if(verification==="verified"&&(usage==="allowed"||usage==="permitted")&&asset.commercial_use_allowed!==false)licenseState="clear";
+  else if(verification==="verified"&&(usage==="restricted"||usage==="prohibited"||usage==="denied")||asset.commercial_use_allowed===false)licenseState="restricted";
+  const environment= /deep\s*(water|sea)|deepwater|ocean\s*deep/.test(text)?"deep water":/coastal|near[- ]shore|shallow|shore|brackish/.test(text)?"coastal / near-shore":null;
+  const reason=usageDomain==="world"?"Natural-environment asset; eligible for WORLD classification when registry approval is satisfied.":usageDomain==="region"?"Structural/man-made asset; keep it in REGION rather than WORLD.":"Role is ambiguous or mixes WORLD and structural signals; requires review.";
+  return {usageDomain,licenseState,reason,environment};
+}
+
+function IntelligenceBadges({info}:{info:AssetIntelligence}){
+  return <span className="asset-intelligence-badges"><b className={`asset-domain asset-domain-${info.usageDomain}`}>{info.usageDomain.toUpperCase()}</b><b className={`asset-license asset-license-${info.licenseState}`}>{info.licenseState.toUpperCase()}</b>{info.environment?<b className="asset-environment">{info.environment.toUpperCase()}</b>:null}</span>;
+}
+
 export default function AssetLibraryPage(){
   const router=useRouter();
   const {user,loading}=useAuthUser();
@@ -141,6 +163,8 @@ export default function AssetLibraryPage(){
   const [search,setSearch]=useState("");
   const [placementCategory,setPlacementCategory]=useState("all");
   const [source,setSource]=useState("all");
+  const [intelligenceFilter,setIntelligenceFilter]=useState("all");
+  const [licenseFilter,setLicenseFilter]=useState("all");
   const [busy,setBusy]=useState(true);
   const [error,setError]=useState("");
   const [syncing,setSyncing]=useState(false);
@@ -176,6 +200,8 @@ export default function AssetLibraryPage(){
 
   const placementCategories=useMemo(()=>["all","world","region","playable","interior"].filter(v=>v==="all"||assets.some(a=>a.placement_category===v)),[assets]);
   const sources=useMemo(()=>["all",...Array.from(new Set(assets.map(a=>a.source_name).filter(Boolean) as string[]))],[assets]);
+  const intelligenceOptions=["all","world","region","review"];
+  const licenseOptions=["all","clear","restricted","unknown"];
 
   const syncPendingTerrainBatch=async(file:File|null)=>{
     if(syncing)return;
@@ -220,9 +246,11 @@ export default function AssetLibraryPage(){
     return assets.filter(a=>
       (placementCategory==="all"||a.placement_category===placementCategory)&&
       (source==="all"||a.source_name===source)&&
+      (intelligenceFilter==="all"||assetIntelligence(a).usageDomain===intelligenceFilter)&&
+      (licenseFilter==="all"||assetIntelligence(a).licenseState===licenseFilter)&&
       (!q||[a.name,a.role,a.category,a.source_name,a.slug].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)))
     );
-  },[assets,search,placementCategory,source]);
+  },[assets,search,placementCategory,source,intelligenceFilter,licenseFilter]);
 
   if(loading)return <main className="asset-library-loading">Checking account…</main>;
   if(!user)return <main className="asset-library-loading"><button type="button" onClick={()=>router.push("/")}>Back to Control Center</button></main>;
@@ -242,6 +270,8 @@ export default function AssetLibraryPage(){
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search asset, role, category, source…" aria-label="Search assets"/>
       <select value={placementCategory} onChange={e=>setPlacementCategory(e.target.value)} aria-label="Filter placement category">{placementCategories.map(v=><option key={v} value={v}>{v==="all"?"All placement categories":v.toUpperCase()}</option>)}</select>
       <select value={source} onChange={e=>setSource(e.target.value)} aria-label="Filter source">{sources.map(v=><option key={v} value={v}>{v==="all"?"All sources":v}</option>)}</select>
+      <select value={intelligenceFilter} onChange={e=>setIntelligenceFilter(e.target.value)} aria-label="Filter usage domain">{intelligenceOptions.map(v=><option key={v} value={v}>{v==="all"?"All domains":v.toUpperCase()}</option>)}</select>
+      <select value={licenseFilter} onChange={e=>setLicenseFilter(e.target.value)} aria-label="Filter license state">{licenseOptions.map(v=><option key={v} value={v}>{v==="all"?"All license states":v.toUpperCase()}</option>)}</select>
       <span>{filtered.length} shown</span>
       <label>
         <span className="sr-only">Pilih archive terrain pending</span>
@@ -254,11 +284,13 @@ export default function AssetLibraryPage(){
       <div className="asset-library-grid">
         {busy?<div className="asset-library-empty" role="status" aria-live="polite">Loading approved assets…</div>:error?<div className="asset-library-empty" role="alert" aria-live="polite">{error}</div>:filtered.length===0?<div className="asset-library-empty" role="status" aria-live="polite">No approved asset matches.</div>:filtered.map(asset=>{
           const active=selected?.id===asset.id;
+          const info=assetIntelligence(asset);
           return <Link key={asset.id} className={active?"asset-card active":"asset-card"} href={`/asset-library/${asset.id}`}>
             <span className="asset-card-image"><AssetPreview asset={asset}/></span>
             <strong>{asset.name}</strong>
             <small>{asset.role||asset.category||"Asset"}</small>
-            <em>{(asset.placement_category||"unassigned").toUpperCase()} · {asset.source_name||"Unknown source"}</em>
+            <IntelligenceBadges info={info}/>
+            <em>{asset.source_name||"Unknown source"}</em>
           </Link>;
         })}
       </div>
@@ -268,9 +300,11 @@ export default function AssetLibraryPage(){
           <p className="asset-detail-kicker">ASSET DETAIL · {selected.asset_status}</p>
           <h2>{selected.name}</h2>
           <p className="asset-detail-role">{selected.role||selected.category||"Uncategorized"} · <strong>{(selected.placement_category||"unassigned").toUpperCase()}</strong></p>
+          <IntelligenceBadges info={assetIntelligence(selected)}/>
+          <p className="asset-intelligence-reason">{assetIntelligence(selected).reason}</p>
           <section><h3>WHAT IS THIS ASSET?</h3><dl><div><dt>Type</dt><dd>{selected.role||"—"}</dd></div><div><dt>Category</dt><dd>{selected.category||"—"}</dd></div><div><dt>Perspective</dt><dd>{selected.perspective||"—"}</dd></div><div><dt>Palette</dt><dd>{selected.palette_family||"—"}</dd></div></dl><p>{metadataNote(selected)}</p></section>
           <section><h3>SOURCE</h3><dl><div><dt>Name</dt><dd>{selected.source_name||"—"}</dd></div><div><dt>Version</dt><dd>{selected.source_version||"—"}</dd></div><div><dt>Path</dt><dd>{selected.asset_path||"—"}</dd></div></dl><div className="asset-detail-links">{selected.source_url?<a href={selected.source_url} target="_blank" rel="noreferrer">Open source</a>:null}{selected.repository_url?<a href={selected.repository_url} target="_blank" rel="noreferrer">Open repository</a>:null}</div></section>
-          <section><h3>LICENSE</h3><p>{selected.licenses?.length?selected.licenses.join(" · "):"Not recorded"}</p><dl><div><dt>Attribution</dt><dd>{selected.attribution_required?"Required":"Not required"}</dd></div><div><dt>Commercial use</dt><dd>{selected.commercial_use_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Modification</dt><dd>{selected.modification_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Redistribution</dt><dd>{selected.redistribution_allowed?"Allowed":"Not recorded / restricted"}</dd></div></dl>{selected.attribution_text?<blockquote>{selected.attribution_text}</blockquote>:null}</section>
+          <section><h3>LICENSE / PROVENANCE</h3><p>Registry state: <strong>{assetIntelligence(selected).licenseState.toUpperCase()}</strong></p><p>Verification: {selected.license_verification_status||"Unknown"} · Usage: {selected.license_usage_status||"Unknown"}</p><p>{selected.licenses?.length?selected.licenses.join(" · "):"Not recorded"}</p><dl><div><dt>Attribution</dt><dd>{selected.attribution_required?"Required":"Not required"}</dd></div><div><dt>Commercial use</dt><dd>{selected.commercial_use_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Modification</dt><dd>{selected.modification_allowed?"Allowed":"Not recorded / restricted"}</dd></div><div><dt>Redistribution</dt><dd>{selected.redistribution_allowed?"Allowed":"Not recorded / restricted"}</dd></div></dl>{selected.attribution_text?<blockquote>{selected.attribution_text}</blockquote>:null}</section>
           <section><h3>TECHNICAL</h3><dl><div><dt>Grid</dt><dd>{selected.grid_width??"—"} × {selected.grid_height??"—"}</dd></div><div><dt>Tile</dt><dd>{selected.tile_width??"—"} × {selected.tile_height??"—"}</dd></div><div><dt>Autotile</dt><dd>{selected.autotile_capable?"Yes":"No"}</dd></div><div><dt>Collision</dt><dd>{selected.collision_capable?"Yes":"No"}</dd></div><div><dt>Interactable</dt><dd>{selected.interactable?"Yes":"No"}</dd></div></dl></section>
         </>:<div className="asset-library-empty">Select an asset.</div>}
       </aside>

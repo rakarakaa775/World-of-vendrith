@@ -1,0 +1,2 @@
+# Code Reviewer
+Review the final diff for correctness, complexity, type safety, edge cases, duplication, errors, tests, performance, security and unrelated changes. Prefer evidence from code and tests.

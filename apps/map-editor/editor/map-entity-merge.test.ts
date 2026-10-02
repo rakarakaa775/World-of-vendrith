@@ -44,4 +44,22 @@ describe('mergeMapDocumentsThreeWay', () => {
     const result = mergeMapDocumentsThreeWay(base, local, remote);
     expect(result.conflicts.some(c => c.kind === 'object' && c.id === 'ground:object:a')).toBe(true);
   });
+
+  it('flags deletion versus edit on the same object', () => {
+    const base = make(); const local = make(); const remote = make();
+    const object = { id:'a',kind:'building' as const,category:'house',x:1,y:1,width:1,height:1,assetId:'house',rotation:0,zIndex:1,collision:true };
+    base.layers[0].objects.push(object);
+    local.layers[0].objects = [];
+    remote.layers[0].objects.push({ ...object, x:3 });
+    const result = mergeMapDocumentsThreeWay(base, local, remote);
+    expect(result.conflicts.some(c => c.kind === 'object' && c.id === 'ground:object:a')).toBe(true);
+  });
+
+  it('flags deletion versus edit on a layer', () => {
+    const base = make(); const local = make(); const remote = make();
+    local.layers = [];
+    remote.layers[0] = { ...remote.layers[0], visible: false };
+    const result = mergeMapDocumentsThreeWay(base, local, remote);
+    expect(result.conflicts.some(c => c.kind === 'layer-metadata' && c.id === 'ground')).toBe(true);
+  });
 });

@@ -12,6 +12,7 @@ const stars = Array.from({ length: 34 }, (_, i) => ({
 
 const menuItems = [
   { id: "preview", icon: "◉", title: "Preview", description: "Lihat dunia dan rasakan hasil kerja engine.", status: "ready" },
+  { id: "vendrith-ai", icon: "✦", title: "Vendrith AI", description: "Percakapan dengan AI untuk memahami kondisi dan perkembangan project.", status: "ready" },
   { id: "world", icon: "◈", title: "World Building", description: "World, Region, Playable, Interior, Save & Load.", status: "ready" },
   { id: "generate-life", icon: "✧", title: "Generate Life", description: "Bangun populasi dan kehidupan dunia.", status: "planned" },
   { id: "spawn-life", icon: "♙", title: "Spawn Life", description: "Tempatkan dan kelola kehidupan di dunia.", status: "planned" },
@@ -33,6 +34,8 @@ export default function HomePage() {
   const openItem = (id: string) => {
     if (id === "preview") {
       router.push("/preview");
+    } else if (id === "vendrith-ai") {
+      router.push("/vendrith-ai");
     } else if (id === "world") {
       router.push("/world-builder?workspace=world&load=1");
     } else if (id === "asset-library") {

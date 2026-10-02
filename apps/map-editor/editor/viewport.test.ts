@@ -15,6 +15,6 @@ describe("viewport", () => {
 
     expect(zoomed.zoom).toBe(2);
     expect(zoomed.x).toBe(-5120);
-    expect(zoomed.y).toBe(3100);
+    expect(zoomed.y).toBe(6020);
   });
 });

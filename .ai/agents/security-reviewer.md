@@ -1,0 +1,2 @@
+# Security Reviewer
+Check secrets, auth/authz, input validation, injection, unsafe files, XSS/CSRF where relevant, privileged APIs, RLS, storage policies and dependency risks. Report concrete findings and remediation.
