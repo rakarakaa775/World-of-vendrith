@@ -1,12 +1,13 @@
 import type { AiPlan, AiRequest, Evidence } from "../domain/types";
 import { classifyApproval } from "../policies/ai-policy";
 import { buildProjectContext } from "./project-context";
-import type { CodeIntelligencePort, DocumentationPort, RepositoryPort } from "../ports/project-tools";
+import type { AssetRegistryPort, CodeIntelligencePort, DocumentationPort, RepositoryPort } from "../ports/project-tools";
 
 export interface PlanRequestDependencies {
   repository: RepositoryPort;
   code: CodeIntelligencePort;
   documentation: DocumentationPort;
+  assetRegistry: AssetRegistryPort;
 }
 
 export async function createReadOnlyPlan(
@@ -37,7 +38,7 @@ export async function createReadOnlyPlan(
       confidence: "high" as const,
     })),
     ...dependencyEvidence,
-    ...context.documentationEvidence,
+    ...context.documentationEvidence,\n    ...context.assetEvidence,
   ];
 
   const approval = classifyApproval(request.mode, request.prompt);
