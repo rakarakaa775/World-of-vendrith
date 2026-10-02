@@ -1,0 +1,27 @@
+[Reading 23 lines from start (total: 23 lines, 0 remaining)]
+
+import { describe, expect, it } from "vitest";
+import { createMap } from "../editor/map-document";
+import { DEFAULT_DEBUG_VIEW_STATE, setDebugViewEnabled, toggleDebugView } from "../editor/debug-views";
+
+describe("debug view state", () => {
+  it("toggles the grid projection without mutating the source document", () => {
+    const document = createMap("world");
+    const before = JSON.stringify(document);
+    const state = toggleDebugView(DEFAULT_DEBUG_VIEW_STATE, "grid");
+
+    expect(state.grid).toBe(true);
+    expect(DEFAULT_DEBUG_VIEW_STATE.grid).toBe(false);
+    expect(JSON.stringify(document)).toBe(before);
+  });
+
+  it("returns the same state when the requested value is already active", () => {
+    const enabled = toggleDebugView(DEFAULT_DEBUG_VIEW_STATE, "grid");
+    const unchanged = setDebugViewEnabled(enabled, "grid", true);
+
+    expect(unchanged).toBe(enabled);
+    expect(unchanged.grid).toBe(true);
+  });
+});
+
+[executed on device: codespaces-e54cf0 (395fa14b-836a-48d6-b3c2-3cdaa0f364fc)]
