@@ -18,6 +18,11 @@ describe("debug view state", () => {
     const collision = toggleDebugView(terrainIds, "collision");
     expect(collision.collision).toBe(true);
     expect(terrainIds.collision).toBe(false);
+
+    const diagnostics = toggleDebugView(collision, "objectBounds");
+    const invalid = toggleDebugView(diagnostics, "invalidCells");
+    expect(invalid.objectBounds).toBe(true);
+    expect(invalid.invalidCells).toBe(true);
     expect(JSON.stringify(document)).toBe(before);
   });
 
@@ -29,6 +34,7 @@ describe("debug view state", () => {
     expect(unchanged.grid).toBe(true);
   });
 });
+
 
 
 
