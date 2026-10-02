@@ -12,6 +12,7 @@ Reference and inspiration material used to evaluate architecture, engineering pr
 - NODEJS_BEST_PRACTICES_VENDRITH.md — audit and decisions from Node.js Best Practices.
 - CODEBASE_MEMORY_MCP_AUDIT.md — comprehensive audit of codebase-memory-mcp.
 - CODEBASE_MEMORY_MCP_VS_CODEGRAPH.md — comparison of codebase-memory-mcp and CodeGraph.
+- OPEN_HIGGSFIELD_AI_SUNNYCHASE_AUDIT.md — audit of sunnychase/open-higgsfield-ai.
 - REFERENCE_TEMPLATE.md — template for future references.
 
 Material in inspirasi/ is not automatically production code or a dependency.
@@ -23,7 +24,7 @@ Current project documentation.
 - architecture/ — architecture and implementation-state documents.
 - audits/ — current audit results.
 - checkpoints/ — checkpoint and repository synchronization records.
-- database/reconciliation/ — runtime/database reconciliation records.
+- database/reconciliation/ — runtime/database reconciliation artifacts.
 - handoff/ — current handoff notes that are not part of the historical snapshot.
 
 ## database/
