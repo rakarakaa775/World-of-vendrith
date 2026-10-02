@@ -12,6 +12,7 @@ import { terrainFromTileId } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveTerrainRenderCell } from "../editor/terrain-resolver";
+import { terrainVariationIndex } from "../editor/terrain-variation";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import type { EnvironmentRuntimeState } from "../editor/environment-runtime";
@@ -66,7 +67,17 @@ const COLORS: Record<string, number> = {
   lava: 0xc4472d,
   lavarock: 0x5b4542,
 };
-const colorForTile = (id: string | null) => id ? (COLORS[terrainFromTileId(id) ?? ""] ?? 0x94a3b8) : 0xffffff;
+const colorForTile = (id: string | null, worldSeed = "", x = 0, y = 0) => {
+  const terrain = terrainFromTileId(id);
+  const base = terrain ? (COLORS[terrain] ?? 0x94a3b8) : 0xffffff;
+  if (!terrain || !worldSeed) return base;
+  const variation = terrainVariationIndex(worldSeed, x, y, terrain, 3);
+  const delta = [-10, 0, 10][variation] ?? 0;
+  const r = Math.max(0, Math.min(255, ((base >> 16) & 0xff) + delta));
+  const g = Math.max(0, Math.min(255, ((base >> 8) & 0xff) + delta));
+  const b = Math.max(0, Math.min(255, (base & 0xff) + delta));
+  return (r << 16) | (g << 8) | b;
+};
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
 const terrainRegionTextureCache = new Map<string, Texture>();
 const textureForTerrainBinding = (texture: Texture, assetId: string, region: NonNullable<ReturnType<typeof getTerrainAssetBinding>>["region"]) => {
@@ -217,7 +228,7 @@ export function PixiMapCanvas(props: Props) {
             Math.max(1, document.tileSize - 2),
             Math.max(1, document.tileSize - 2),
           ).fill({
-            color: colorForTile(id),
+            color: colorForTile(id, document.id, x, y),
             alpha: layer.kind === "collision" ? 0.35 : 1,
           });
         }
