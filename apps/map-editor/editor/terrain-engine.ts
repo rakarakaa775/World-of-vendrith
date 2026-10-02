@@ -25,7 +25,7 @@ export const WATER_SHORE_DISTANCE = 1;
 export const WATER_BRACKISH_DISTANCE = 2;
 export const WATER_MID_DISTANCE = 4;
 
-const WATER_GRADIENT_TERRAINS = new Set<TerrainKey>(['water', 'deepwater2', 'deepwater']);
+const WATER_GRADIENT_TERRAINS = new Set<TerrainKey>(['water', 'brackish', 'deepwater2', 'deepwater']);
 
 export function applyWaterDepthGradient(
   document: MapDocument,
