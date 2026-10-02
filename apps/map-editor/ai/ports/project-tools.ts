@@ -21,3 +21,17 @@ export interface AssetRegistryPort {
 export interface VerificationPort {
   verify(scope: string[]): Promise<VerificationResult>;
 }
+
+export interface GitHubRepositoryConfig {
+  owner: string;
+  repository: string;
+  ref: string;
+}
+
+export interface RepositoryFileReader {
+  readFile(path: string, ref: string): Promise<string | null>;
+}
+
+export interface RepositorySearchReader {
+  search(query: string, ref: string): Promise<Array<{ path: string; excerpt: string }>>;
+}
