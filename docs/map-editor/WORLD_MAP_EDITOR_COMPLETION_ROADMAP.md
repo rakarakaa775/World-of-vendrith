@@ -135,15 +135,15 @@ MapDocument.
 
 # Phase 2E — Layer System
 
-- [ ] Layer tree
-- [ ] Visibility toggle
-- [ ] Lock
-- [ ] Opacity
-- [ ] Ordering
+- [~] Layer tree — implemented; browser click-level verification pending
+- [~] Visibility toggle — implemented; browser click-level verification pending
+- [~] Lock — implemented; browser click-level verification pending
+- [~] Opacity — implemented; browser click-level verification pending
+- [~] Ordering — implemented; browser click-level verification pending
 - [ ] Layer groups
 - [ ] Duplicate layer
 - [ ] Merge layer
-- [ ] Layer isolation
+- [~] Layer isolation — implemented in Phase 2D; browser click-level verification pending
 - [ ] Layer template
 
 ### Exit gate
