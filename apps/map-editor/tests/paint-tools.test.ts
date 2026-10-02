@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pointsInLine, pointsForPaintShape } from "../editor/paint-tools";
+import { applyPaint, pointsInLine, pointsForPaintShape, tileIdAtPoint } from "../editor/paint-tools";
 import { createMap } from "../editor/map-document";
 
 describe("terrain line tool", () => {
@@ -83,7 +83,8 @@ describe("terrain line tool", () => {
     ]);
   });
 
-  it("flood-fills only the contiguous matching terrain", () => {
+
+  it("returns the terrain tile at a valid point and null outside the grid", () => {\n    const document = createMap("world");\n    const ground = document.layers.find(layer => layer.id === "ground")!;\n    const cells = ground.cells.map(() => ({ tileId: "grass" }));\n    cells[1 + document.width * 2] = { tileId: "dirt" };\n    const withTerrain = { ...document, layers: document.layers.map(layer => layer.id === "ground" ? { ...layer, cells } : layer) };\n\n    expect(tileIdAtPoint(withTerrain, "ground", { x: 1, y: 2 })).toBe("dirt");\n    expect(tileIdAtPoint(withTerrain, "ground", { x: -1, y: 2 })).toBeNull();\n    expect(tileIdAtPoint(withTerrain, "ground", { x: document.width, y: 2 })).toBeNull();\n  });\n\n  it("erases selected cells by applying a null tile id", () => {\n    const document = createMap("world");\n    const painted = applyPaint(document, "ground", [{ x: 2, y: 2 }, { x: 3, y: 2 }], "dirt");\n    const erased = applyPaint(painted, "ground", [{ x: 2, y: 2 }, { x: 3, y: 2 }], null);\n\n    expect(tileIdAtPoint(painted, "ground", { x: 2, y: 2 })).toBe("dirt");\n    expect(tileIdAtPoint(erased, "ground", { x: 2, y: 2 })).toBeNull();\n    expect(tileIdAtPoint(erased, "ground", { x: 3, y: 2 })).toBeNull();\n  });\n  it("flood-fills only the contiguous matching terrain", () => {
     const document = createMap("world");
     const ground = document.layers.find(layer => layer.id === "ground")!;
     const cells = ground.cells.map(() => ({ tileId: "grass" }));
