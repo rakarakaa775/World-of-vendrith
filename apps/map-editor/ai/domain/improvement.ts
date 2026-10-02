@@ -26,6 +26,38 @@ export interface EvaluationRecord {
   evidence: string[];
 }
 
+export interface EvaluationQualityIssue {
+  code: "missing-evidence" | "verification-invalid-contradiction" | "validity-without-verification";
+  message: string;
+}
+
+export function validateEvaluationQuality(record: EvaluationRecord): EvaluationQualityIssue[] {
+  const issues: EvaluationQualityIssue[] = [];
+
+  if (record.verificationPassed && record.evidence.length === 0) {
+    issues.push({
+      code: "missing-evidence",
+      message: "A verified candidate evaluation must include evidence.",
+    });
+  }
+
+  if (record.verificationPassed && record.validity === "invalid") {
+    issues.push({
+      code: "verification-invalid-contradiction",
+      message: "A candidate cannot be marked invalid while verificationPassed is true.",
+    });
+  }
+
+  if (record.validity === "valid" && !record.verificationPassed) {
+    issues.push({
+      code: "validity-without-verification",
+      message: "A valid candidate must have passed verification.",
+    });
+  }
+
+  return issues;
+}
+
 export interface ImprovementProposal {
   id: string;
   taskId: string;
