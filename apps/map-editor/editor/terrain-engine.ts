@@ -22,7 +22,8 @@ export function terrainVariantKey(mask:TerrainMask):string{return`mask_${mask.to
 
 
 export const WATER_SHORE_DISTANCE = 1;
-export const WATER_MID_DISTANCE = 3;
+export const WATER_BRACKISH_DISTANCE = 2;
+export const WATER_MID_DISTANCE = 4;
 
 const WATER_GRADIENT_TERRAINS = new Set<TerrainKey>(['water', 'deepwater2', 'deepwater']);
 
@@ -78,6 +79,7 @@ export function applyWaterDepthGradient(
     const d = distance[index];
     const nextTileId =
       d <= WATER_SHORE_DISTANCE ? 'water' :
+      d <= WATER_BRACKISH_DISTANCE ? 'brackish' :
       d <= WATER_MID_DISTANCE ? 'deepwater2' :
       'deepwater';
 
