@@ -8,6 +8,7 @@ import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
+import { copySelection, pasteSelection, moveSelection, type SelectionClipboard } from "../editor/selection-clipboard";
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 
@@ -46,6 +47,7 @@ export function EditorShell({
   const [brushSize, setBrushSize] = useState(1);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
+  const [selectionClipboard, setSelectionClipboard] = useState<SelectionClipboard | null>(null);
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
   const document = history.present;
@@ -73,7 +75,36 @@ export function EditorShell({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey)) return;
+      const modifier = event.ctrlKey || event.metaKey;
+      if (modifier && event.key.toLowerCase() === "c" && selection) {
+        event.preventDefault();
+        setSelectionClipboard(copySelection(documentRef.current, terrainLayer, selection));
+        setPaintDiagnostic("selection: copied");
+        return;
+      }
+      if (modifier && event.key.toLowerCase() === "v" && selectionClipboard && selection) {
+        event.preventDefault();
+        const next = pasteSelection(documentRef.current, terrainLayer, selectionClipboard, { x: selection.x, y: selection.y });
+        commit(next);
+        setPaintDiagnostic("selection: pasted");
+        return;
+      }
+      if (event.key === "Escape" && selection) {
+        event.preventDefault();
+        setSelection(null);
+        setPaintDiagnostic("selection: cleared");
+        return;
+      }
+      if (event.altKey && selection && ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+        const delta = event.key === "ArrowLeft" ? { x: -1, y: 0 } : event.key === "ArrowRight" ? { x: 1, y: 0 } : event.key === "ArrowUp" ? { x: 0, y: -1 } : { x: 0, y: 1 };
+        const moved = moveSelection(documentRef.current, terrainLayer, selection, delta);
+        commit(moved.document);
+        setSelection(moved.selection);
+        setPaintDiagnostic("selection: moved");
+        return;
+      }
+      if (!modifier) return;
       if (event.key.toLowerCase() === "z") {
         event.preventDefault();
         setHistory(current => event.shiftKey ? redoHistory(current) : undoHistory(current));
