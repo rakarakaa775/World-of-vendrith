@@ -49,6 +49,7 @@ export interface RuntimeAction {
 export interface RuntimeDecision {
   id: string;
   observationId: string;
+  stateVersion: string;
   actions: RuntimeAction[];
   expiresAtTick?: number;
   evidence: Evidence[];
