@@ -406,3 +406,14 @@
 - **Roadmap phase:** Phase 2E — Layer System.
 - **Verification:** PR #25 and #26 merged. Phase 2E preview build for the Layer Tree reached Vercel READY; click-level browser verification remains pending because `agent-browser` is unavailable in Codespace. The opacity branch did not receive a separate preview deployment through the API commit sequence.
 - **Notes:** No Supabase schema/data/RPC or asset binary changes.
+
+
+## 2026-10-02 — Duplicate and merge layer operations
+
+- **Type:** Added
+- **Reason:** Continue Phase 2E Layer System with safe layer composition operations.
+- **Details:** Duplicate Layer creates an independent layer/cell/object copy with collision-safe identities. Merge Layer only accepts same-kind layers, overlays populated source cells, preserves objects with collision-safe IDs, and removes the source layer. Both operations use the existing EditorShell history path.
+- **Affected:** `apps/map-editor/editor/layer-state.ts`, `apps/map-editor/components/editor-shell.tsx`, `apps/map-editor/tests/layer-state.test.ts`.
+- **Roadmap phase:** Phase 2E — Layer System.
+- **Verification:** PR #28 merged. Browser click-level verification remains pending.
+- **Notes:** No Supabase schema/data/RPC or asset binary changes.
