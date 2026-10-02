@@ -52,6 +52,30 @@ export function pasteSelection(
   };
 }
 
+export function replaceSelection(
+  document: MapDocument,
+  layerId: string,
+  selection: Selection,
+  tileId: string | null,
+): MapDocument {
+  const layer = document.layers.find(item => item.id === layerId);
+  if (!layer || layer.locked || !layer.visible) return document;
+  const cells = [...layer.cells];
+  while (cells.length < document.width * document.height) cells.push({ tileId: null });
+
+  for (let y = selection.y; y < selection.y + selection.height; y += 1) {
+    for (let x = selection.x; x < selection.x + selection.width; x += 1) {
+      if (x < 0 || y < 0 || x >= document.width || y >= document.height) continue;
+      cells[y * document.width + x] = { tileId };
+    }
+  }
+
+  return {
+    ...document,
+    layers: document.layers.map(item => item.id === layerId ? { ...item, cells } : item),
+  };
+}
+
 export function moveSelection(
   document: MapDocument,
   layerId: string,
