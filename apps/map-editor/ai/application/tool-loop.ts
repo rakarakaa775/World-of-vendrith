@@ -19,7 +19,7 @@ export async function runToolLoop(
   options: ToolLoopOptions = {},
 ): Promise<ToolLoopResult> {
   const maxIterations = options.maxIterations ?? 4;
-  let currentRequest = {
+  let currentRequest: ModelRequest = {
     ...request,
     tools: router.definitions().map(({ name, description, parameters }) => ({
       name,
@@ -50,7 +50,7 @@ export async function runToolLoop(
       ...currentRequest,
       messages: [
         ...currentRequest.messages,
-        { role: "assistant", content: response.content },
+        { role: "assistant", content: response.content, toolCalls: response.toolCalls },
         ...results.map((result) => ({
           role: "tool" as const,
           toolCallId: result.id,
