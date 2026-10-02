@@ -18,6 +18,8 @@ export * from "./domain/runtime";
 export * from "./domain/runtime-behavior";
 export * from "./domain/runtime-goal";
 export * from "./application/npc-goals";
+export * from "./domain/runtime-schedule";
+export * from "./application/npc-schedule";
 export * from "./ports/runtime";
 export * from "./policies/runtime-policy";
 export * from "./application/runtime-orchestrator";
