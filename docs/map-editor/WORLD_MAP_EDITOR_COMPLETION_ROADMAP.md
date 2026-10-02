@@ -75,9 +75,9 @@ baru hanya untuk membuat visual terlihat lengkap.
 - [x] Land → water valid
 - [x] Water depth derived dari jarak ke land
 - [x] water → brackish → deepwater2 → deepwater
-- [ ] Shoreline visual variants
+- [x] Shoreline visual variants — render-time exact approved shoreline mask is used when bound; otherwise verified base mask 255 fallback
 - [x] Water transition validation — all derived water-depth bands are treated as one compatible family at validation time
-- [ ] Large-water-body stress test
+- [x] Large-water-body stress test — 64×64 derived water body regression verifies complete coverage, all depth bands, and deterministic rebuild
 
 ### Exit gate
 Perubahan terrain tidak menghasilkan seam/transition yang tidak terdefinisi,
