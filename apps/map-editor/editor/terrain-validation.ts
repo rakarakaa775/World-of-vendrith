@@ -206,7 +206,7 @@ export function validateTerrainCell(
     mask,
     variantKey: terrainVariantKey(mask),
     assetId: binding?.assetId ?? null,
-    issues: [],
+    issues,
   };
 }
 
