@@ -1,4 +1,4 @@
-import type { MapDocument, MapLayer, MapLayerGroup } from './map-document';
+import type { MapDocument, MapLayer, MapLayerGroup, MapLayerTemplate } from './map-document';
 
 export function setActiveLayer(document: MapDocument, layerId: string): MapDocument {
   return { ...document, layers: document.layers.map(layer => ({ ...layer, active: layer.id === layerId })) as MapLayer[] };
@@ -125,4 +125,73 @@ export function isLayerEffectivelyVisible(document: MapDocument, layer: MapLayer
 export function isLayerEffectivelyLocked(document: MapDocument, layer: MapLayer): boolean {
   const group = layer.groupId ? document.layerGroups.find(candidate => candidate.id === layer.groupId) : undefined;
   return layer.locked || (group?.locked ?? false);
+}
+
+function nextTemplateIdentity(document: MapDocument, source: MapLayer): { id: string; name: string } {
+  const baseId = `template-${source.id}`;
+  const baseName = `${source.name} Template`;
+  let suffix = 1;
+  let id = baseId;
+  let name = baseName;
+  while (document.layerTemplates.some(template => template.id === id)) {
+    suffix += 1;
+    id = `${baseId}-${suffix}`;
+    name = `${baseName} ${suffix}`;
+  }
+  return { id, name };
+}
+
+export function createLayerTemplate(document: MapDocument, layerId: string, name?: string): MapDocument {
+  const source = document.layers.find(layer => layer.id === layerId);
+  if (!source) return document;
+  const identity = nextTemplateIdentity(document, source);
+  const template: MapLayerTemplate = {
+    id: identity.id,
+    name: name?.trim() || identity.name,
+    kind: source.kind,
+    visible: source.visible,
+    locked: source.locked,
+    opacity: source.opacity,
+    groupId: source.groupId ?? null,
+  };
+  return { ...document, layerTemplates: [...document.layerTemplates, template] };
+}
+
+function nextTemplateLayerIdentity(document: MapDocument, template: MapLayerTemplate): { id: string; name: string } {
+  const baseId = template.id;
+  const baseName = template.name.replace(/ Template(?: d+)?$/, '') || template.name;
+  let suffix = 1;
+  let id = `${baseId}-layer`;
+  let name = baseName;
+  while (document.layers.some(layer => layer.id === id)) {
+    suffix += 1;
+    id = `${baseId}-layer-${suffix}`;
+    name = `${baseName} ${suffix}`;
+  }
+  return { id, name };
+}
+
+export function applyLayerTemplate(document: MapDocument, templateId: string): MapDocument {
+  const template = document.layerTemplates.find(item => item.id === templateId);
+  if (!template) return document;
+  const identity = nextTemplateLayerIdentity(document, template);
+  const groupExists = template.groupId ? document.layerGroups.some(group => group.id === template.groupId) : true;
+  const layer: MapLayer = {
+    id: identity.id,
+    name: identity.name,
+    kind: template.kind,
+    visible: template.visible,
+    locked: template.locked,
+    active: false,
+    opacity: template.opacity,
+    groupId: groupExists ? (template.groupId ?? null) : null,
+    cells: document.layers[0]?.cells.map(() => ({ tileId: null })) ?? [],
+    objects: [],
+  };
+  return { ...document, layers: [...document.layers, layer] };
+}
+
+export function deleteLayerTemplate(document: MapDocument, templateId: string): MapDocument {
+  if (!document.layerTemplates.some(template => template.id === templateId)) return document;
+  return { ...document, layerTemplates: document.layerTemplates.filter(template => template.id !== templateId) };
 }
