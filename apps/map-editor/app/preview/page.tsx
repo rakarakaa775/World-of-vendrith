@@ -60,7 +60,7 @@ export default function PreviewPage() {
       const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
       const npcResult = await client
         .from("npc_seed_catalog")
-        .select("seed_key,name,race,occupation_name")
+        .select("seed_key,name,race,occupation_name,settlement_name,location_name")
         .eq("active", true)
         .order("seed_key")
         .limit(8);
@@ -72,6 +72,8 @@ export default function PreviewPage() {
         name: row.name,
         race: row.race,
         occupationName: row.occupation_name,
+        settlementName: row.settlement_name,
+        locationName: row.location_name,
       })));
       setLoadState("ready");
       setLoadStatus(

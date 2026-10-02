@@ -17,6 +17,8 @@ export interface PreviewNpcSeed {
   name: string;
   race?: string | null;
   occupationName?: string | null;
+  settlementName?: string | null;
+  locationName?: string | null;
 }
 
 class MemoryStore implements NpcBehaviorMemoryStore {
@@ -66,6 +68,8 @@ export class PreviewRuntimeSimulation {
         name: seed.name,
         race: seed.race ?? undefined,
         seedKey: seed.seedKey,
+        settlementName: seed.settlementName ?? undefined,
+        locationName: seed.locationName ?? undefined,
       },
     }));
     this.entities = [
