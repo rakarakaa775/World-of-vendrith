@@ -3,6 +3,7 @@ import type { GridPoint } from './grid';
 import {
   neighborMask,
   terrainAt,
+  waterNeighborMask,
   terrainFromTileId,
   terrainVariantKey,
   type TerrainKey,
@@ -22,6 +23,7 @@ export type TerrainVariant = {
   ruleKey: string | null;
   assetId: string | null;
   tileId: string | null;
+  shorelineMask: TerrainMask | null;
 };
 
 export type TerrainResolver = (terrain: TerrainKey, mask: TerrainMask) => string | null;
@@ -74,6 +76,7 @@ export function resolveTerrainVariant(
     ruleKey: terrainRuleKey(terrain),
     assetId,
     tileId: assetId ?? FALLBACK_TILE[terrain] ?? null,
+    shorelineMask: null,
   };
 }
 
@@ -105,9 +108,10 @@ export function resolveTerrainRenderCell(
   if (!terrain) return null;
 
   const semanticMask = neighborMask(document, layerId, point, terrain);
+  const shorelineMask = WATER_TERRAINS.has(terrain) ? null : waterNeighborMask(document, layerId, point);
   const renderMask = terrain === 'deepwater'
     ? 255
-    : (!WATER_TERRAINS.has(terrain) && hasWaterNeighbor(document, layerId, point) ? 255 : semanticMask);
+    : (shorelineMask ? 255 : semanticMask);
   const binding = getTerrainAssetBinding(bindings, terrain, renderMask);
 
   return {
@@ -117,6 +121,7 @@ export function resolveTerrainRenderCell(
     ruleKey: terrainRuleKey(terrain),
     assetId: binding?.assetId ?? null,
     tileId: binding?.assetId ?? FALLBACK_TILE[terrain] ?? null,
+    shorelineMask,
   };
 }
 
