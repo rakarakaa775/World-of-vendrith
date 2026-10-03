@@ -35,6 +35,7 @@ function store() {
       return { id: "execution-1" };
     },
     async applyWorldStatus(_worldId, status) { calls.push(`status:${status}`); },
+    async applyEnvironment(_worldId, consequence) { calls.push(`environment:${String(consequence.weather_key ?? consequence.season_key ?? "updated")}`); return { weatherKey: consequence.weather_key }; },
     async complete() { if (execution) execution.status = "completed"; calls.push("complete"); },
     async fail(_id, message) { if (execution) execution.status = "failed"; calls.push(`fail:${message}`); },
   };
@@ -57,6 +58,21 @@ describe("runtime event executor", () => {
     expect(first.status).toBe("executed");
     expect(second.status).toBe("skipped");
     expect(s.calls).toEqual(["claim", "status:paused", "complete"]);
+  });
+
+  it("executes an environment consequence", async () => {
+    const s = store();
+    const definition = {
+      eventType: "storm_start",
+      conditionType: "always" as const,
+      consequenceType: "environment" as const,
+      conditionConfig: {},
+      consequenceConfig: { season_key: "spring", weather_key: "rain", weather_intensity: 3 },
+      enabled: true,
+    };
+    const result = await executeRuntimeEvent(candidate(), definition, state(), "active", s.value);
+    expect(result.status).toBe("executed");
+    expect(s.calls).toEqual(["claim", "environment:rain", "complete"]);
   });
 
   it("fails closed for an unknown definition", async () => {

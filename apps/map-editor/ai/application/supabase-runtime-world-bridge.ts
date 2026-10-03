@@ -12,6 +12,7 @@ export interface SupabaseRuntimeWorldBridge {
   ports: RuntimeAiPorts;
   snapshot(): RuntimeWorldSnapshot;
   grid(mapId: string): NavigationGrid | undefined;
+  refreshEnvironment(environment: { season: string; weather?: string }): void;
   advanceClock(minutes?: number, events?: RuntimeScheduledEvent[]): void;
 }
 
@@ -69,6 +70,17 @@ export async function createSupabaseRuntimeWorldBridge(
     },
     snapshot: () => store.snapshot(),
     grid: (id) => store.grid(id),
+    refreshEnvironment(environment) {
+      const current = store.snapshot();
+      const nextState = {
+        ...current.state,
+        clock: { ...current.state.clock, season: environment.season },
+        ...(environment.weather ? { weather: environment.weather } : { weather: undefined }),
+        stateVersion: `${current.state.stateVersion.replace(/:runtime:[0-9]+$/, "")}:runtime:${current.state.clock.tick}`,
+      };
+      const entities = current.entities.map(entity => ({ ...entity, position: { ...entity.position }, state: entity.state ? { ...entity.state } : undefined }));
+      (store as MutableRuntimeWorldStore).__replaceState(nextState, entities);
+    },
     advanceClock(minutes = 1, events = []) {
       const advanced = advanceGameClock(store.snapshot().state, minutes, events);
       const current = store.snapshot();

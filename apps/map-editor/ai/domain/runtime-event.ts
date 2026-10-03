@@ -1,5 +1,5 @@
 export type RuntimeEventConditionType = "always" | "world_status";
-export type RuntimeEventConsequenceType = "world_status";
+export type RuntimeEventConsequenceType = "world_status" | "environment";
 
 export interface RuntimeEventDefinition {
   eventType: string;

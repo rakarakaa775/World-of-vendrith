@@ -50,6 +50,7 @@ describe("supabase runtime engine", () => {
         };
       },
       async loadWorldStatus() { return "active"; },
+      async loadEnvironment() { return { season: "spring", weather: "clear" }; },
       async findByTimeEventId() { return undefined; },
       async claim() { return { id: "execution-1" }; },
       async applyWorldStatus() {},

@@ -66,6 +66,8 @@ export async function createSupabaseRuntimeEngine(
             ));
           }
         }
+        const environment = await eventAdapter.loadEnvironment(initial.state.worldId);
+        if (environment) bridge.refreshEnvironment(environment);
       }
       const npcs = initial.entities.filter(entity => entity.kind === "npc" && entity.mapId === mapId);
       const results: NpcRuntimeTickResult[] = [];
