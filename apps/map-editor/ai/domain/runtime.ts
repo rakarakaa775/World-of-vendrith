@@ -38,9 +38,18 @@ export interface RuntimeEntity {
   state?: Record<string, unknown>;
 }
 
+export type RuntimeDetectionChannel = "visibility" | "hearing" | "smell";
+
+export interface RuntimeDetection {
+  entityId: string;
+  channels: RuntimeDetectionChannel[];
+  distance: number;
+}
+
 export interface RuntimePerception {
   self?: RuntimeEntity;
   nearbyEntities: RuntimeEntity[];
+  detections: RuntimeDetection[];
   visibleMapIds: string[];
   environment: {
     weather?: string;

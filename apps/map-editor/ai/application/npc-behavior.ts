@@ -23,7 +23,14 @@ export function createNpcBehaviorCandidates(observation: RuntimeObservation, mem
     reason: "No higher-priority behavior is currently required.",
     action: { id: observation.id + ":idle", intelligence: "npc", type: "npc.idle", payload: {}, risk: "safe", reason: "No higher-priority behavior is currently required." },
   }];
-  const player = observation.perception?.nearbyEntities.find(entity => entity.kind === "player");
+  const visibleEntityIds = new Set(
+    (observation.perception?.detections ?? [])
+      .filter(detection => detection.channels.includes("visibility"))
+      .map(detection => detection.entityId),
+  );
+  const player = observation.perception?.nearbyEntities.find(
+    entity => entity.kind === "player" && visibleEntityIds.has(entity.id),
+  );
   if (player) {
     const d = distance(self.position, player.position);
     candidates.push({

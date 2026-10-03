@@ -1,4 +1,4 @@
-import type { RuntimeAiRequest, RuntimeEntity, RuntimeObservation } from "../domain/runtime";
+import type { RuntimeAiRequest, RuntimeDetection, RuntimeDetectionChannel, RuntimeEntity, RuntimeObservation } from "../domain/runtime";
 import type { Evidence, VerificationResult } from "../domain/types";
 import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeMovementState } from "../domain/runtime-movement";
@@ -63,24 +63,32 @@ function isVisible(entity: RuntimeEntity): boolean {
   return entityStimuli(entity).visibility !== false;
 }
 
-function canDetectEntity(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity, entity: RuntimeEntity): boolean {
+function detectionChannels(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity, entity: RuntimeEntity): RuntimeDetectionChannel[] {
   const distance = Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y);
-  const sensing = sensingRule(snapshot);
   const modifier = detectionModifier(snapshot);
-  const visible = isVisible(entity) && distance <= visibilityRadius(snapshot);
-  const hearing = explicitStimulusRadius(entity, "hearing_radius") > 0
-    && distance <= sensingRadius(snapshot, "hearing_radius", 8) * modifier;
-  const smell = explicitStimulusRadius(entity, "smell_radius") > 0
-    && distance <= sensingRadius(snapshot, "smell_radius", 8) * modifier;
-  return visible || hearing || smell;
+  const channels: RuntimeDetectionChannel[] = [];
+  if (isVisible(entity) && distance <= visibilityRadius(snapshot)) channels.push("visibility");
+  if (explicitStimulusRadius(entity, "hearing_radius") > 0
+    && distance <= sensingRadius(snapshot, "hearing_radius", 8) * modifier) channels.push("hearing");
+  if (explicitStimulusRadius(entity, "smell_radius") > 0
+    && distance <= sensingRadius(snapshot, "smell_radius", 8) * modifier) channels.push("smell");
+  return channels;
 }
 
 function nearbyEntities(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): RuntimeEntity[] {
   return snapshot.entities.filter(entity =>
     entity.id !== self.id &&
     entity.mapId === self.mapId &&
-    canDetectEntity(snapshot, self, entity),
+    detectionChannels(snapshot, self, entity).length > 0,
   );
+}
+
+function detections(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): RuntimeDetection[] {
+  return nearbyEntities(snapshot, self).map(entity => ({
+    entityId: entity.id,
+    channels: detectionChannels(snapshot, self, entity),
+    distance: Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y),
+  }));
 }
 
 export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): RuntimeObservationSource {
@@ -93,6 +101,7 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
       const perception = self ? {
         self,
         nearbyEntities: nearbyEntities(snapshot, self),
+        detections: detections(snapshot, self),
         visibleMapIds: [self.mapId],
         environment: {
           weather: snapshot.state.weather,
@@ -109,6 +118,12 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
 
       const facts: Evidence[] = [
         verifiedEvidence("runtime-world-store", "Authoritative runtime snapshot at " + snapshot.state.stateVersion + "."),
+        ...(perception?.detections ?? []).map(detection =>
+          verifiedEvidence(
+            `runtime-detection:${detection.entityId}`,
+            `Entity ${detection.entityId} detected via ${detection.channels.join(", ")} at distance ${detection.distance}.`,
+          ),
+        ),
       ];
       return { state: snapshot.state, perception, facts };
     },

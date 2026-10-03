@@ -88,6 +88,7 @@ export async function createSupabaseRuntimeEngine(
             perception: {
               self,
               nearbyEntities: current.entities.filter(entity => entity.id !== self.id && entity.mapId === self.mapId),
+              detections: [],
               visibleMapIds: [self.mapId],
               environment: {
                 weather: current.state.weather,

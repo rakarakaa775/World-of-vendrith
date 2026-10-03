@@ -97,6 +97,7 @@ export function replanNpcNavigation(
     perception: {
       self: { id: state.entityId, kind: "npc" as const, mapId: state.mapId, position: state.position },
       nearbyEntities: [],
+      detections: [],
       visibleMapIds: [state.mapId],
       environment: {},
     },

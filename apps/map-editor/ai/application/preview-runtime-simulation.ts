@@ -117,7 +117,7 @@ export class PreviewRuntimeSimulation {
       surface: "game",
       intelligence: "npc",
       state: this.state,
-      perception: { self: this.entities[0], nearbyEntities: [this.entities[1]], visibleMapIds: [document.id], environment: { weather: "clear", season: "spring", activeRegionId: document.parentMapId ?? undefined } },
+      perception: { self: this.entities[0], nearbyEntities: [this.entities[1]], detections: [{ entityId: this.entities[1].id, channels: ["visibility"], distance: Math.abs(this.entities[1].position.x - this.entities[0].position.x) + Math.abs(this.entities[1].position.y - this.entities[0].position.y) }], visibleMapIds: [document.id], environment: { weather: "clear", season: "spring", activeRegionId: document.parentMapId ?? undefined } },
       facts: [],
     };
     this.request = { id: "preview-npc-loop", surface: "game", intelligence: "npc", observation: initialObservation, goal: "Follow the nearby player." };
