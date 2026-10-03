@@ -32,6 +32,7 @@ describe("project tool definitions", () => {
       "schema.inspect",
       "npc.environment_policy.schema",
       "npc.environment_policy.propose",
+      "npc.creator_package.propose",
       "npc.environment_policy.validate",
       "project.inspect",
       "repository.read_file",
@@ -58,6 +59,15 @@ describe("project tool definitions", () => {
     };
     const proposed = await propose!.execute({ policy }, { mode: "explain", requestId: "req-1" });
     expect(proposed).toEqual({ policy, validation: { ok: true, errors: [] } });
+
+    const packageTool = tools.find(tool => tool.name === "npc.creator_package.propose");
+    expect(packageTool).toBeDefined();
+    await expect(packageTool!.execute({
+      npc: { id: "npc-1", name: "Scout", environmentPolicy: policy },
+    }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({
+      npc: { id: "npc-1", name: "Scout", environmentPolicy: policy },
+      validation: { ok: true, errors: [] },
+    });
 
     const invalid = await validate!.execute({
       policy: { npc_investigation_recovery: { navigation: { action: "alternate_route" } } },

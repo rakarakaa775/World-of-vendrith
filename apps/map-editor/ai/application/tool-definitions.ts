@@ -6,6 +6,7 @@ import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
 import { buildProjectSchemaSummary } from "./schema-intelligence";
 import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
 import { NPC_ENVIRONMENT_POLICY_SCHEMA, validateNpcEnvironmentPolicy } from "./npc-environment-policy-schema";
+import { proposeCreatorNpcEnvironmentPackage } from "./npc-creator-package";
 import { inspectMap } from "./map-inspector";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
@@ -42,6 +43,16 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
       validate: (args): args is { policy: Record<string, unknown> } => typeof args === "object" && args !== null && typeof (args as { policy?: unknown }).policy === "object" && (args as { policy?: unknown }).policy !== null && !Array.isArray((args as { policy: unknown }).policy),
       async execute(args) { const policy = (args as { policy: Record<string, unknown> }).policy; return { policy, validation: validateNpcEnvironmentPolicy(policy) }; },
+    },
+    {
+      name: "npc.creator_package.propose", description: "Build a Creator AI NPC package containing identity plus a validated environment policy. This remains read-only and does not mutate the project.", access: "read-only",
+      parameters: { type: "object", properties: { npc: { type: "object" } }, required: ["npc"] },
+      validate: (args): args is { npc: { id: string; name?: string; environmentPolicy: Record<string, unknown> } } => {
+        if (typeof args !== "object" || args === null || typeof (args as { npc?: unknown }).npc !== "object" || (args as { npc?: unknown }).npc === null) return false;
+        const npc = (args as { npc: Record<string, unknown> }).npc;
+        return typeof npc.id === "string" && typeof npc.environmentPolicy === "object" && npc.environmentPolicy !== null && !Array.isArray(npc.environmentPolicy);
+      },
+      async execute(args) { return proposeCreatorNpcEnvironmentPackage((args as { npc: { id: string; name?: string; environmentPolicy: Record<string, unknown> } }).npc); },
     },
     {
       name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", access: "read-only",
