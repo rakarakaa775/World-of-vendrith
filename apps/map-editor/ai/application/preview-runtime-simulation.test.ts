@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "../../editor/map-document";
 import { PreviewRuntimeSimulation } from "./preview-runtime-simulation";
+import { buildNpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
 
 describe("PreviewRuntimeSimulation", () => {
   it("moves the preview NPC toward the nearby player without mutating the map document", async () => {
@@ -55,6 +56,41 @@ describe("PreviewRuntimeSimulation", () => {
     }]);
     expect(simulation.snapshot().entities.find(entity => entity.id === "npc:seed-cross-map")?.position)
       .toEqual({ x: 1, y: 4 });
+  });
+
+  it("propagates a validated runtime spawn contract into preview diagnostics", async () => {
+    const document = createMap("world", null, "exterior", null, 16, 16);
+    const contract = buildNpcRuntimeSpawnContract(
+      { archetype: "civilian", capabilities: { behaviors: ["idle", "follow-player"] } },
+      { npc_sensing: { hearing_radius: 3, smell_radius: 2, detection_modifier: 1.5 }, npc_movement: { cost_multiplier: 2.5 } },
+    );
+    const simulation = new PreviewRuntimeSimulation(document, [{
+      seedKey: "contract-npc", name: "Contract NPC", runtimeContract: contract,
+    }]);
+    const before = simulation.diagnostics("npc:contract-npc");
+    expect(before?.validation.ok).toBe(true);
+    expect(before?.decisionProfile?.archetype).toBe("civilian");
+    expect(before?.environmentPolicy?.npc_movement).toEqual({ cost_multiplier: 2.5 });
+
+    const result = await simulation.tick();
+    const after = simulation.diagnostics("npc:contract-npc");
+    expect(result.status).toBe("moved");
+    expect(after?.sensing).toEqual({ hearingRadius: 3, smellRadius: 2, detectionModifier: 1.5 });
+    expect(after?.effectiveEnvironmentConditions.npc_movement).toEqual({ cost_multiplier: 2.5 });
+    expect(after?.movementCost).toBe(15);
+    expect(after?.selectedBehavior).toBe("follow-player");
+  });
+
+  it("does not activate an invalid runtime contract", () => {
+    const document = createMap("world", null, "exterior", null, 16, 16);
+    const simulation = new PreviewRuntimeSimulation(document, [{
+      seedKey: "invalid-contract", name: "Invalid NPC",
+      runtimeContract: { version: 99, environmentPolicy: { npc_sensing: { hearing_radius: 64 } } } as never,
+    }]);
+    const npc = simulation.snapshot().entities.find(entity => entity.id === "npc:invalid-contract");
+    expect(npc?.state.decisionProfile).toBeUndefined();
+    expect(npc?.state.environmentPolicy).toBeUndefined();
+    expect(simulation.diagnostics("npc:invalid-contract")?.validation.ok).toBe(false);
   });
 
   it("routes around a collision cell", async () => {

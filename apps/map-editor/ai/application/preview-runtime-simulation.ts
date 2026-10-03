@@ -8,6 +8,8 @@ import { runNpcRuntimeTick, type NpcRuntimeTickResult } from "./npc-runtime-loop
 import type { RuntimeAiPorts } from "../ports/runtime";
 import type { NpcDecisionProfile } from "./npc-decision-profile-schema";
 import { validatedNpcDecisionProfile } from "./npc-runtime-profile";
+import { validatedNpcRuntimeSpawnContract, type NpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
+import { effectiveNpcEnvironmentConditionsForEntity } from "./npc-environment-policy-runtime";
 
 export interface PreviewRuntimeSnapshot {
   entities: RuntimeEntity[];
@@ -20,6 +22,17 @@ export interface PreviewNpcSpawnAnchor {
   position: { x: number; y: number };
 }
 
+export interface PreviewNpcDiagnostics {
+  npcId: string;
+  validation: { ok: boolean; errors: string[] };
+  decisionProfile?: NpcDecisionProfile;
+  environmentPolicy?: Record<string, unknown>;
+  effectiveEnvironmentConditions: Record<string, unknown>;
+  sensing?: RuntimeObservation["perception"] extends infer P ? P extends { sensing?: infer S } ? S : never : never;
+  selectedBehavior?: string;
+  movementCost?: number;
+}
+
 export interface PreviewNpcSeed {
   seedKey: string;
   name: string;
@@ -30,6 +43,7 @@ export interface PreviewNpcSeed {
   locationId?: string | null;
   spawnAnchor?: PreviewNpcSpawnAnchor | null;
   decisionProfile?: NpcDecisionProfile;
+  runtimeContract?: NpcRuntimeSpawnContract;
 }
 
 class MemoryStore implements NpcBehaviorMemoryStore {
@@ -64,6 +78,8 @@ export class PreviewRuntimeSimulation {
   private readonly store: RuntimeWorldStore;
   private readonly ports: RuntimeAiPorts;
   private readonly request: RuntimeAiRequest;
+  private readonly contractValidation = new Map<string, { ok: boolean; errors: string[] }>();
+  private readonly lastResults = new Map<string, NpcRuntimeTickResult>();
 
   constructor(document: MapDocument, npcSeeds: PreviewNpcSeed[] = []) {
     const centerX = Math.max(1, Math.floor(document.width / 2));
@@ -78,15 +94,26 @@ export class PreviewRuntimeSimulation {
         : { x: Math.max(0, centerX - 3 - (index % 3)), y: Math.max(0, centerY + Math.floor(index / 3)) },
       state: {
         role: seed.occupationName ?? "wanderer",
+        ...(validatedNpcRuntimeSpawnContract(seed.runtimeContract) ? {
+          decisionProfile: validatedNpcRuntimeSpawnContract(seed.runtimeContract)?.decisionProfile,
+          environmentPolicy: validatedNpcRuntimeSpawnContract(seed.runtimeContract)?.environmentPolicy,
+        } : {}),
         name: seed.name,
         race: seed.race ?? undefined,
         seedKey: seed.seedKey,
         settlementName: seed.settlementName ?? undefined,
         locationName: seed.locationName ?? undefined,
         locationId: seed.locationId ?? undefined,
-        ...(validatedNpcDecisionProfile(seed.decisionProfile) ? { decisionProfile: validatedNpcDecisionProfile(seed.decisionProfile) } : {}),
+        ...(validatedNpcRuntimeSpawnContract(seed.runtimeContract) ? {} : {}),
+        ...(!seed.runtimeContract && validatedNpcDecisionProfile(seed.decisionProfile) ? { decisionProfile: validatedNpcDecisionProfile(seed.decisionProfile) } : {}),
       },
     }));
+    for (const seed of seeds.slice(0, 8)) {
+      const contract = seed.runtimeContract;
+      this.contractValidation.set(`npc:${seed.seedKey}`, contract
+        ? { ok: Boolean(validatedNpcRuntimeSpawnContract(contract)), errors: validatedNpcRuntimeSpawnContract(contract) ? [] : ["Invalid NPC runtime spawn contract"] }
+        : { ok: true, errors: [] });
+    }
     this.entities = [
       ...npcs,
       { id: "preview-player", kind: "player", mapId: document.id, position: { x: centerX + 3, y: centerY }, state: { role: "player", blocksMovement: false } },
@@ -129,6 +156,31 @@ export class PreviewRuntimeSimulation {
 
   snapshot(): PreviewRuntimeSnapshot { return { entities: this.entities.map(entity => ({ ...entity, position: { ...entity.position } })), state: this.state }; }
 
+  diagnostics(npcId = this.entities.find(entity => entity.kind === "npc")?.id): PreviewNpcDiagnostics | undefined {
+    if (!npcId) return undefined;
+    const npc = this.entities.find(entity => entity.id === npcId && entity.kind === "npc");
+    if (!npc) return undefined;
+    const result = this.lastResults.get(npcId);
+    const perception = result?.observation.perception;
+    const conditions = result
+      ? effectiveNpcEnvironmentConditionsForEntity(result.observation.state.environmentConditions, npc)
+      : { ...(this.state.environmentConditions ?? {}) };
+    const decisionProfile = npc.state?.decisionProfile as NpcDecisionProfile | undefined;
+    const environmentPolicy = npc.state?.environmentPolicy as Record<string, unknown> | undefined;
+    return {
+      npcId,
+      validation: this.contractValidation.get(npcId) ?? { ok: true, errors: [] },
+      ...(decisionProfile ? { decisionProfile } : {}),
+      ...(environmentPolicy ? { environmentPolicy } : {}),
+      effectiveEnvironmentConditions: conditions,
+      ...(perception?.sensing ? { sensing: perception.sensing } : {}),
+      ...(result?.behavior ? { selectedBehavior: result.behavior.kind } : {}),
+      ...(result?.decision?.actions[0]?.payload && typeof result.decision.actions[0].payload.cost === "number"
+        ? { movementCost: result.decision.actions[0].payload.cost }
+        : {}),
+    };
+  }
+
   async tick(): Promise<NpcRuntimeTickResult> {
     this.state = {
       ...this.state,
@@ -138,6 +190,8 @@ export class PreviewRuntimeSimulation {
     this.request.observation = { ...this.request.observation, state: this.state };
     const result = await runNpcRuntimeTick(this.request, this.ports, this.store, this.memory);
     this.request.observation = result.observation;
+    const selfId = result.observation.perception?.self?.id;
+    if (selfId) this.lastResults.set(selfId, result);
     return result;
   }
 
