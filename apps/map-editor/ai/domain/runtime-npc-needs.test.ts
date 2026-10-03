@@ -34,7 +34,7 @@ describe("npc needs runtime state", () => {
     const store = createNpcNeedsStore();
     const first = resolveNpcNeedsState(observation({ npcNeeds: { hunger: 80, energy: 20, social: 30, safety: 90 } }), store);
     const second = resolveNpcNeedsState(observation({}), store);
-    expect(second).toBe(first);
+    expect(second).toStrictEqual(first);
     expect(second?.needs.hunger).toBe(80);
   });
 
@@ -43,4 +43,38 @@ describe("npc needs runtime state", () => {
     expect(resolveNpcNeedsState(observation({ npcNeeds: { hunger: 80, energy: "low", social: 30, safety: 90 } }), store)).toBeUndefined();
     expect(store.get("npc-1")).toBeUndefined();
   });
+});
+
+
+it("advances only from explicit need rates and elapsed ticks", () => {
+  const store = createNpcNeedsStore();
+  const first = resolveNpcNeedsState(observation({ npcNeeds: { hunger: 20, energy: 50, social: 30, safety: 90 } }), store)!;
+  const later = observation({ npcNeeds: { hunger: 20, energy: 50, social: 30, safety: 90 } });
+  later.state.clock.tick = 12;
+  later.state.environmentConditions = { npc_need_rates: { hunger: 2, energy: -3 } };
+  const advanced = resolveNpcNeedsState(later, store)!;
+  expect(advanced.needs).toEqual({ hunger: 30, energy: 35, social: 30, safety: 90 });
+  expect(advanced.updatedAtTick).toBe(12);
+  expect(advanced.stateVersion).toBe("state-7");
+});
+
+it("does not invent need changes when no rate is configured", () => {
+  const store = createNpcNeedsStore();
+  resolveNpcNeedsState(observation({ npcNeeds: { hunger: 20, energy: 50, social: 30, safety: 90 } }), store);
+  const later = observation({});
+  later.state.clock.tick = 100;
+  const advanced = resolveNpcNeedsState(later, store)!;
+  expect(advanced.needs).toEqual({ hunger: 20, energy: 50, social: 30, safety: 90 });
+  expect(advanced.updatedAtTick).toBe(100);
+});
+
+it("clamps tick-driven need changes", () => {
+  const store = createNpcNeedsStore();
+  resolveNpcNeedsState(observation({ npcNeeds: { hunger: 95, energy: 5, social: 30, safety: 90 } }), store);
+  const later = observation({});
+  later.state.clock.tick = 20;
+  later.state.environmentConditions = { npc_need_rates: { hunger: 10, energy: -10 } };
+  const advanced = resolveNpcNeedsState(later, store)!;
+  expect(advanced.needs.hunger).toBe(100);
+  expect(advanced.needs.energy).toBe(0);
 });
