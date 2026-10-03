@@ -20,13 +20,14 @@ export interface RuntimeGoal {
 }
 
 export interface NpcGoalPolicy {
-  choose(observation: RuntimeObservation, needs: NpcNeedState | undefined, goals: RuntimeGoal[]): RuntimeGoal | undefined;
+  choose(observation: RuntimeObservation, needs: NpcNeedState | undefined, goals: RuntimeGoal[], memory?: NpcGoalMemory): RuntimeGoal | undefined;
 }
 
 export interface NpcGoalMemory {
   npcId: string;
   stateVersion: string;
   lastGoal?: RuntimeGoalKind;
+  lastGoalPriority?: number;
   updatedAtTick: number;
 }
 

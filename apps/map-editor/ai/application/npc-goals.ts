@@ -1,6 +1,7 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation, RuntimeAction } from "../domain/runtime";
 import type { NpcNeedState, NpcGoalPolicy, RuntimeGoal, NpcGoalMemory, NpcGoalMemoryStore } from "../domain/runtime-goal";
 import { createRuntimeDecision } from "./runtime-decision";
+import { arbitrateNpcGoal } from "./npc-goal-intelligence";
 import {
   applyEnvironmentNpcGoalPriority,
   applyEnvironmentNpcNeeds,
@@ -14,8 +15,8 @@ import type { NpcDecisionProfile } from "./npc-decision-profile-schema";
 function clamp(value: number): number { return Math.max(0, Math.min(100, value)); }
 
 export const defaultNpcGoalPolicy: NpcGoalPolicy = {
-  choose(_observation, _needs, goals) {
-    return [...goals].sort((a, b) => b.priority - a.priority)[0];
+  choose(observation, _needs, goals, memory) {
+    return arbitrateNpcGoal(observation, goals, memory).selected;
   },
 };
 
@@ -64,9 +65,10 @@ export function decideNpcGoal(request: RuntimeAiRequest, observation: RuntimeObs
   if (!npc || npc.kind !== "npc") throw new Error("NPC goal selection requires an NPC self entity.");
   const effectiveNeeds = needs ? applyEnvironmentNpcNeeds(observation, needs) : undefined;
   const goals = enforceNpcDecisionProfileGoals(observation, applyNpcRelationshipGoalPriority(observation, applyNpcPersonalityGoalPriority(observation, applyEnvironmentNpcGoalPriority(observation, createNpcGoalCandidates(observation, effectiveNeeds)))));
-  const selected = policy.choose(observation, effectiveNeeds, goals);
+  const previousMemory = memoryStore?.get(npc.id);
+  const selected = policy.choose(observation, effectiveNeeds, goals, previousMemory);
   if (!selected) throw new Error("NPC goal selection requires at least one goal.");
-  const memory: NpcGoalMemory = { npcId: npc.id, stateVersion: observation.state.stateVersion, lastGoal: selected.kind, updatedAtTick: observation.state.clock.tick };
+  const memory: NpcGoalMemory = { npcId: npc.id, stateVersion: observation.state.stateVersion, lastGoal: selected.kind, lastGoalPriority: selected.priority, updatedAtTick: observation.state.clock.tick };
   memoryStore?.set(memory);
   return createRuntimeDecision(request, observation, { actions: [goalToAction(observation, selected)], evidence: observation.facts, expiresAtTick: selected.expiresAtTick });
 }
