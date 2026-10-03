@@ -2,6 +2,7 @@ import type { MapDocument } from "../../editor/map-document";
 import type { RuntimeAction, RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { DynamicNavigationObstacle, NavigationGrid, NavigationPath, NavigationPlan, NavigationPoint } from "../domain/runtime-navigation";
 import { createRuntimeDecision } from "./runtime-decision";
+import { effectiveNpcEnvironmentConditions } from "./npc-environment-policy-runtime";
 
 const DIRECTIONS: NavigationPoint[] = [
   { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 },
@@ -121,7 +122,7 @@ export function navigationGridFromMap(document: MapDocument, layerId = "collisio
 }
 
 function navigationEnvironmentRule(observation: RuntimeObservation): Record<string, unknown> | undefined {
-  const value = observation.state.environmentConditions?.npc_movement;
+  const value = effectiveNpcEnvironmentConditions(observation).npc_movement;
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;

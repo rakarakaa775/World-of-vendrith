@@ -3,6 +3,7 @@ import type { NpcNeedState, RuntimeGoal } from "../domain/runtime-goal";
 import type { RuntimeBehaviorCandidate } from "../domain/runtime-behavior";
 import type { NpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { validateNpcPersonalityPolicy } from "./npc-personality-policy-schema";
+import { effectiveNpcEnvironmentConditions } from "./npc-environment-policy-runtime";
 
 const NEED_KEYS: Array<keyof NpcNeedState> = ["hunger", "energy", "social", "safety"];
 
@@ -18,7 +19,7 @@ function environmentObject(
   observation: RuntimeObservation,
   key: string,
 ): Record<string, unknown> | undefined {
-  const value = observation.state.environmentConditions?.[key];
+  const value = effectiveNpcEnvironmentConditions(observation)[key];
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;

@@ -10,6 +10,8 @@ const NEED_KEYS = ["hunger", "energy", "social", "safety"] as const;
 const BEHAVIOR_KINDS = ["idle", "follow-player", "wander", "investigate", "flee"] as const;
 const GOAL_KINDS = ["work", "eat", "sleep", "go-to-location", "respond-to-event"] as const;
 
+export type NpcEnvironmentPolicy = Record<string, unknown>;
+
 export interface NpcEnvironmentPolicyValidation { ok: boolean; errors: string[]; }
 
 function object(value: unknown): value is Record<string, unknown> {

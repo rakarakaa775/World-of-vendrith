@@ -5,6 +5,7 @@ import type { RuntimeMovementState } from "../domain/runtime-movement";
 import type { RuntimeActionPort, RuntimeObservationSource, RuntimeVerificationPort } from "../ports/runtime";
 import { executeNpcMovementStep } from "./npc-movement";
 import { verifiedEvidence } from "./evidence";
+import { effectiveNpcEnvironmentConditionsForEntity } from "./npc-environment-policy-runtime";
 
 export interface RuntimeWorldSnapshot {
   state: RuntimeObservation["state"];
@@ -24,22 +25,22 @@ function visibilityRadius(snapshot: RuntimeWorldSnapshot): number {
     : 8;
 }
 
-function sensingRule(snapshot: RuntimeWorldSnapshot): Record<string, unknown> {
-  const configured = snapshot.state.environmentConditions?.npc_sensing;
+function sensingRule(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): Record<string, unknown> {
+  const configured = effectiveNpcEnvironmentConditionsForEntity(snapshot.state.environmentConditions, self).npc_sensing;
   return configured && typeof configured === "object" && !Array.isArray(configured)
     ? configured as Record<string, unknown>
     : {};
 }
 
-function sensingRadius(snapshot: RuntimeWorldSnapshot, key: "hearing_radius" | "smell_radius", fallback: number): number {
-  const configured = sensingRule(snapshot)[key];
+function sensingRadius(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity, key: "hearing_radius" | "smell_radius", fallback: number): number {
+  const configured = sensingRule(snapshot, self)[key];
   return typeof configured === "number" && Number.isFinite(configured)
     ? Math.max(0, Math.min(64, Math.floor(configured)))
     : fallback;
 }
 
-function detectionModifier(snapshot: RuntimeWorldSnapshot): number {
-  const configured = sensingRule(snapshot).detection_modifier;
+function detectionModifier(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): number {
+  const configured = sensingRule(snapshot, self).detection_modifier;
   return typeof configured === "number" && Number.isFinite(configured)
     ? Math.max(0, Math.min(4, configured))
     : 1;
@@ -65,13 +66,13 @@ function isVisible(entity: RuntimeEntity): boolean {
 
 function detectionChannels(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity, entity: RuntimeEntity): RuntimeDetectionChannel[] {
   const distance = Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y);
-  const modifier = detectionModifier(snapshot);
+  const modifier = detectionModifier(snapshot, self);
   const channels: RuntimeDetectionChannel[] = [];
   if (isVisible(entity) && distance <= visibilityRadius(snapshot)) channels.push("visibility");
   if (explicitStimulusRadius(entity, "hearing_radius") > 0
-    && distance <= sensingRadius(snapshot, "hearing_radius", 8) * modifier) channels.push("hearing");
+    && distance <= sensingRadius(snapshot, self, "hearing_radius", 8) * modifier) channels.push("hearing");
   if (explicitStimulusRadius(entity, "smell_radius") > 0
-    && distance <= sensingRadius(snapshot, "smell_radius", 8) * modifier) channels.push("smell");
+    && distance <= sensingRadius(snapshot, self, "smell_radius", 8) * modifier) channels.push("smell");
   return channels;
 }
 
@@ -107,12 +108,14 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
           weather: snapshot.state.weather,
           season: snapshot.state.clock.season,
           activeRegionId: snapshot.state.activeRegionId,
-          ...(snapshot.state.environmentConditions ? { conditions: snapshot.state.environmentConditions } : {}),
+          ...(snapshot.state.environmentConditions || self.state?.environmentPolicy
+            ? { conditions: effectiveNpcEnvironmentConditionsForEntity(snapshot.state.environmentConditions, self) }
+            : {}),
         },
         sensing: {
-          hearingRadius: sensingRadius(snapshot, "hearing_radius", 8),
-          smellRadius: sensingRadius(snapshot, "smell_radius", 8),
-          detectionModifier: detectionModifier(snapshot),
+          hearingRadius: sensingRadius(snapshot, self, "hearing_radius", 8),
+          smellRadius: sensingRadius(snapshot, self, "smell_radius", 8),
+          detectionModifier: detectionModifier(snapshot, self),
         },
       } : undefined;
 
