@@ -47,23 +47,21 @@ export function createSupabaseRuntimeEventAdapter(
         .eq("status", "scheduled");
       if (result.error) return undefined;
 
-      return ((result.data ?? []) as TimeEventRow[])
-        .map(event => {
-          const scheduledAt = new Date(event.scheduled_time);
-          if (!Number.isFinite(scheduledAt.getTime())) return undefined;
-          const deltaMinutes = Math.max(0, Math.ceil((scheduledAt.getTime() - currentDate.getTime()) / 60000));
-          const startTick = currentTick + Math.ceil(deltaMinutes / Math.max(0.000001, speed));
-          return {
-            id: event.id,
-            worldId: event.world_id,
-            eventType: event.event_type,
-            scheduledAt: event.scheduled_time,
-            payload: event.payload ?? undefined,
-            startTick,
-            endTick: startTick + 1,
-          };
-        })
-        .filter((event): event is RuntimeEventCandidate => Boolean(event));
+      return ((result.data ?? []) as TimeEventRow[]).flatMap(event => {
+        const scheduledAt = new Date(event.scheduled_time);
+        if (!Number.isFinite(scheduledAt.getTime())) return [];
+        const deltaMinutes = Math.max(0, Math.ceil((scheduledAt.getTime() - currentDate.getTime()) / 60000));
+        const startTick = currentTick + Math.ceil(deltaMinutes / Math.max(0.000001, speed));
+        return [{
+          id: event.id,
+          worldId: event.world_id,
+          eventType: event.event_type,
+          scheduledAt: event.scheduled_time,
+          payload: event.payload ?? undefined,
+          startTick,
+          endTick: startTick + 1,
+        }];
+      });
     },
 
     async loadScheduledEvents(worldId) {

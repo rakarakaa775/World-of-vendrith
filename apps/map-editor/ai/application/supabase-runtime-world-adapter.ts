@@ -211,15 +211,13 @@ export function createSupabaseRuntimeWorldAdapter(
         .eq("world_id", map.world_id)
         .eq("status", "scheduled");
       if (timeEventsResult.error) return undefined;
-      const scheduledEvents = ((timeEventsResult.data ?? []) as TimeEventRow[])
-        .map(event => {
-          const scheduledAt = new Date(event.scheduled_time);
-          if (!Number.isFinite(scheduledAt.getTime())) return undefined;
-          const deltaMinutes = Math.max(0, Math.ceil((scheduledAt.getTime() - currentDate.getTime()) / 60000));
-          const startTick = Number(clock.current_tick) + Math.ceil(deltaMinutes / Math.max(0.000001, Number(clock.speed)));
-          return { id: event.id, startTick, endTick: startTick + 1 };
-        })
-        .filter((event): event is RuntimeScheduledEvent => Boolean(event));
+      const scheduledEvents = ((timeEventsResult.data ?? []) as TimeEventRow[]).flatMap(event => {
+        const scheduledAt = new Date(event.scheduled_time);
+        if (!Number.isFinite(scheduledAt.getTime())) return [];
+        const deltaMinutes = Math.max(0, Math.ceil((scheduledAt.getTime() - currentDate.getTime()) / 60000));
+        const startTick = Number(clock.current_tick) + Math.ceil(deltaMinutes / Math.max(0.000001, Number(clock.speed)));
+        return [{ id: event.id, startTick, endTick: startTick + 1 }];
+      });
       const navResult = await client
         .from("vandrith_map_navigation_grid")
         .select("x,y,walkable,collision")

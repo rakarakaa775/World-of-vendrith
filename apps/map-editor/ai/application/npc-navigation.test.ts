@@ -73,6 +73,33 @@ describe("NPC navigation", () => {
     expect(result.blocked[1]).toBe(false);
   });
 
+  it("applies an explicit environment movement cost multiplier", () => {
+    const envObservation = {
+      ...observation,
+      state: {
+        ...observation.state,
+        environmentConditions: { npc_movement: { cost_multiplier: 2.5 } },
+      },
+    };
+    const plan = createNavigationPlan(envObservation, grid, { x: 4, y: 4 });
+    expect(plan.found).toBe(true);
+    expect(plan.cost).toBe(20);
+    expect(plan.reason).toContain("explicit environment");
+  });
+
+  it("ignores weather when no movement rule is configured", () => {
+    const envObservation = {
+      ...observation,
+      state: {
+        ...observation.state,
+        environmentConditions: { weather: "rain" },
+      },
+    };
+    const plan = createNavigationPlan(envObservation, grid, { x: 4, y: 4 });
+    expect(plan.found).toBe(true);
+    expect(plan.cost).toBe(8);
+  });
+
   it("creates a navigation plan from the NPC perception", () => {
     const plan = createNavigationPlan(observation, grid, { x: 4, y: 4 });
     expect(plan.found).toBe(true);

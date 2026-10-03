@@ -120,6 +120,19 @@ export function navigationGridFromMap(document: MapDocument, layerId = "collisio
   return { width: document.width, height: document.height, blocked };
 }
 
+function navigationEnvironmentRule(observation: RuntimeObservation): Record<string, unknown> | undefined {
+  const value = observation.state.environmentConditions?.npc_movement;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function movementCostMultiplier(observation: RuntimeObservation): number {
+  const rule = navigationEnvironmentRule(observation);
+  const value = rule?.cost_multiplier;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 1;
+}
+
 export function createNavigationPlan(
   observation: RuntimeObservation,
   grid: NavigationGrid,
@@ -134,7 +147,13 @@ export function createNavigationPlan(
   const navigationGrid = applyDynamicNavigationObstacles(grid, dynamicObstacles, self.id, self.mapId);
   const result = findNavigationPath(navigationGrid, start, goal);
   if (!result) return { found: false, start, goal, path: [], reason: "No walkable path exists between the NPC and the target." };
-  return { found: true, start, goal, path: result.points, cost: result.cost, reason: "A walkable path was found using deterministic grid navigation." };
+  const multiplier = movementCostMultiplier(observation);
+  const cost = result.cost * multiplier;
+  const rule = navigationEnvironmentRule(observation);
+  const reason = rule?.cost_multiplier !== undefined
+    ? "A walkable path was found with an explicit environment movement-cost rule."
+    : "A walkable path was found using deterministic grid navigation.";
+  return { found: true, start, goal, path: result.points, cost, reason };
 }
 
 export function createNpcNavigationAction(observation: RuntimeObservation, plan: NavigationPlan): RuntimeAction | undefined {
