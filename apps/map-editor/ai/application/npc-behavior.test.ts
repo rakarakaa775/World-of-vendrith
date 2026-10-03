@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeAiRequest, RuntimeObservation } from "../domain/runtime";
-import { createNpcBehaviorCandidates, decideNpcBehavior } from "./npc-behavior";
+import { createNpcBehaviorCandidates, decideNpcBehavior, deterministicWanderTarget } from "./npc-behavior";
 
 const observation: RuntimeObservation = {
   id: "obs-npc", surface: "game", intelligence: "npc",
@@ -59,9 +59,12 @@ describe("NPC behavior", () => {
     expect(decision.actions[0].payload.targetEntityId).toBe("player-1");
   });
 
-  it("falls back to idle when no player is visible", () => {
+  it("creates a deterministic wander target when no player is visible", () => {
     const quiet = { ...observation, id: "obs-quiet", perception: { ...observation.perception!, nearbyEntities: [], detections: [] } };
-    const decision = decideNpcBehavior({ ...request, observation: quiet }, quiet);
-    expect(decision.actions[0].type).toBe("npc.idle");
+    const candidates = createNpcBehaviorCandidates(quiet);
+    const wander = candidates.find(candidate => candidate.kind === "wander");
+    expect(wander?.action.type).toBe("npc.wander");
+    expect(wander?.action.payload.position).toEqual({ x: 2, y: 3 });
+    expect(deterministicWanderTarget({ x: 2, y: 2 }, 14)).toEqual({ x: 2, y: 3 });
   });
 });

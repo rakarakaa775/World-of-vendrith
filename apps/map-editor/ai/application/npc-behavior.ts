@@ -8,6 +8,20 @@ function distance(a: { x: number; y: number }, b: { x: number; y: number }): num
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
+export function deterministicWanderTarget(
+  position: { x: number; y: number },
+  tick: number,
+): { x: number; y: number } {
+  const directions = [
+    { x: 0, y: -1 },
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: -1, y: 0 },
+  ];
+  const direction = directions[Math.abs(tick) % directions.length];
+  return { x: position.x + direction.x, y: position.y + direction.y };
+}
+
 export const defaultNpcBehaviorPolicy: RuntimeBehaviorPolicy = {
   choose(_observation, candidates): RuntimeBehaviorDecision {
     if (candidates.length === 0) throw new Error("NPC behavior requires at least one candidate.");
@@ -43,11 +57,37 @@ export function createNpcBehaviorCandidates(
       },
     });
   } else {
+    const self = observation.perception?.self;
+    const wanderTarget = self && self.kind === "npc"
+      ? deterministicWanderTarget(self.position, observation.state.clock.tick)
+      : undefined;
+    if (wanderTarget) {
+      candidates.push({
+        kind: "wander",
+        priority: 5,
+        reason: "No active goal requires action; deterministic wandering provides low-priority free movement.",
+        action: {
+          id: observation.id + ":wander:" + wanderTarget.x + ":" + wanderTarget.y,
+          intelligence: "npc",
+          type: "npc.wander",
+          payload: { position: wanderTarget },
+          risk: "safe",
+          reason: "Wander one deterministic step from the current position.",
+        },
+      });
+    }
     candidates.push({
       kind: "idle",
       priority: 0,
-      reason: "No higher-priority behavior is currently required.",
-      action: { id: observation.id + ":idle", intelligence: "npc", type: "npc.idle", payload: {}, risk: "safe", reason: "No higher-priority behavior is currently required." },
+      reason: "No movement target is available; remain idle.",
+      action: {
+        id: observation.id + ":idle",
+        intelligence: "npc",
+        type: "npc.idle",
+        payload: {},
+        risk: "safe",
+        reason: "Remain idle when no movement target is available.",
+      },
     });
   }
   const visibleEntityIds = new Set(

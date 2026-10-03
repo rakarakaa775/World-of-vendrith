@@ -165,7 +165,13 @@ export async function runNpcRuntimeTick(
   };
   const goal = targetFromBehavior(behavior, observation);
   const isActivityBehavior = behavior.kind === "work" || behavior.kind === "eat" || behavior.kind === "sleep";
-  if (!goal && !isActivityBehavior) {
+  const isMovementBehavior = behavior.kind === "follow-player"
+    || behavior.kind === "wander"
+    || behavior.kind === "investigate"
+    || behavior.kind === "flee"
+    || behavior.kind === "go-to-location"
+    || behavior.kind === "respond-to-event";
+  if (!goal && !isActivityBehavior && !isMovementBehavior) {
     const decision = createRuntimeDecision(request, observation, {
       actions: [behavior.action],
       evidence: observation.facts,

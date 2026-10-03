@@ -115,7 +115,7 @@ describe("NPC behavior memory", () => {
       },
     };
     const decision = decideNpcBehavior(request(hearingObservation), hearingObservation, undefined, store);
-    expect(decision.actions[0].type).toBe("npc.idle");
+    expect(decision.actions[0].type).toBe("npc.wander");
     expect(store.get("npc-1")?.targetEntityId).toBeUndefined();
   });
 
