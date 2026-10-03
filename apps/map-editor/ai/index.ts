@@ -17,6 +17,7 @@ export * from "./application/improvement-agent-runner";
 export * from "./domain/runtime";
 export * from "./domain/runtime-behavior";
 export * from "./domain/runtime-goal";
+export * from "./domain/runtime-npc-needs";
 export * from "./application/npc-goals";
 export * from "./domain/runtime-schedule";
 export * from "./application/npc-schedule";

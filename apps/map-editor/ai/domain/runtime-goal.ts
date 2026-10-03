@@ -20,7 +20,7 @@ export interface RuntimeGoal {
 }
 
 export interface NpcGoalPolicy {
-  choose(observation: RuntimeObservation, needs: NpcNeedState, goals: RuntimeGoal[]): RuntimeGoal | undefined;
+  choose(observation: RuntimeObservation, needs: NpcNeedState | undefined, goals: RuntimeGoal[]): RuntimeGoal | undefined;
 }
 
 export interface NpcGoalMemory {

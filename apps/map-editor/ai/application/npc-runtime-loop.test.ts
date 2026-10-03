@@ -309,3 +309,27 @@ describe("npc runtime loop", () => {
     expect(memory.get("npc-1")).toBeUndefined();
   });
 });
+
+  it("uses explicit persistent NPC needs instead of temporary neutral values", async () => {
+    const store = makeStore();
+    const base = store.snapshot();
+    store.snapshot = () => ({ ...base, entities: base.entities.map(entity => entity.id === "npc-1" ? {
+      ...entity,
+      state: {
+        npcNeeds: { hunger: 95, energy: 20, social: 20, safety: 90 },
+        decisionProfile: { archetype: "civilian", capabilities: { goals: ["eat"], behaviors: ["eat"] } },
+      },
+    } : entity) });
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(store),
+      verification: createRuntimeWorldVerificationPort(store),
+    };
+    const result = await runNpcRuntimeTick({
+      id: "npc-needs-1", surface: "game", intelligence: "npc", goal: "Respond to hunger", observation: {} as RuntimeObservation,
+    }, ports, store);
+    expect(result.behavior?.kind).toBe("eat");
+    expect(result.needs).toEqual({ hunger: 95, energy: 20, social: 20, safety: 90 });
+  });

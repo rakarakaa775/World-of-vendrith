@@ -1,6 +1,7 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import type { RuntimeGoalKind } from "../domain/runtime-goal";
+import { createNpcNeedsStore, resolveNpcNeedsState, type NpcNeedsStore } from "../domain/runtime-npc-needs";
 import { createNpcDailyLifeStateStore, resolveNpcDailyLifeState, type NpcDailyLifeStateStore } from "../domain/runtime-daily-life";
 import type { NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
@@ -26,12 +27,14 @@ export interface NpcRuntimeSocialDiagnostics {
 }
 
 const defaultNpcDailyLifeStateStore = createNpcDailyLifeStateStore();
+const defaultNpcNeedsStore = createNpcNeedsStore();
 
 export interface NpcRuntimeTickResult {
   observation: RuntimeObservation;
   behavior: ReturnType<typeof createNpcBehaviorDecisionCandidates>[number] | undefined;
   socialDiagnostics: NpcRuntimeSocialDiagnostics;
   dailyLife?: import("../domain/runtime-daily-life").NpcDailyLifeState;
+  needs?: import("../domain/runtime-goal").NpcNeedState;
   decision?: RuntimeDecision;
   execution?: Awaited<ReturnType<RuntimeAiPorts["action"]["execute"]>>;
   verification?: Awaited<ReturnType<RuntimeAiPorts["verification"]["verify"]>>;
@@ -88,6 +91,7 @@ export async function runNpcRuntimeTick(
   memoryStore?: NpcBehaviorMemoryStore,
   relationshipStore: NpcRelationshipRuntimeStore = createNpcRelationshipRuntimeStore(),
   dailyLifeStore: NpcDailyLifeStateStore = defaultNpcDailyLifeStateStore,
+  needsStore: NpcNeedsStore = defaultNpcNeedsStore,
 ): Promise<NpcRuntimeTickResult> {
   const observed = await ports.observation.observe(request);
   const observedSelf = observed.perception?.self;
@@ -109,10 +113,12 @@ export async function runNpcRuntimeTick(
     : [];
   const relationshipPolicyValidation = validateNpcRelationshipPolicy(profileRecord?.relationshipPolicy);
   const emptySocialDiagnostics: NpcRuntimeSocialDiagnostics = { relationships, relationshipPolicyValidation };
-  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
+  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, needs, status: "invalid" };
+  const needsState = resolveNpcNeedsState(observation, needsStore);
+  const needs = needsState?.needs;
   let activeGoal: { kind: RuntimeGoalKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string } | undefined;
   try {
-    const goalDecision = decideNpcGoal(request, observation, { hunger: 0, energy: 0, social: 0, safety: 100 });
+    const goalDecision = decideNpcGoal(request, observation, needs);
     const goalAction = goalDecision.actions[0];
     const goalKind = typeof goalAction?.payload.goal === "string" ? goalAction.payload.goal : undefined;
     activeGoal = goalKind ? { kind: goalKind as RuntimeGoalKind, priority: Number(goalAction.payload.priority) || 0, reason: goalAction.reason, targetLocation: goalAction.payload.targetLocation as { mapId: string; x: number; y: number } | undefined, targetEventId: typeof goalAction.payload.targetEventId === "string" ? goalAction.payload.targetEventId : undefined } : undefined;
@@ -126,7 +132,7 @@ export async function runNpcRuntimeTick(
   );
   if (dailyLife) dailyLifeStore.set(dailyLife);
   const candidates = createNpcBehaviorDecisionCandidates(observation, memoryStore?.get(observation.perception.self.id), activeGoal);
-  if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, dailyLife, status: "invalid" };
+  if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, dailyLife, needs, status: "invalid" };
 
   const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore, activeGoal);
   const behavior = candidates.find(candidate => candidate.action.id === behaviorDecision.actions[0]?.id)
@@ -138,7 +144,7 @@ export async function runNpcRuntimeTick(
           action: behaviorDecision.actions[0],
         }
       : undefined);
-  if (!behavior) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
+  if (!behavior) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, needs, status: "invalid" };
   const socialDiagnostics: NpcRuntimeSocialDiagnostics = {
     relationships,
     relationshipPolicyValidation,
@@ -156,23 +162,23 @@ export async function runNpcRuntimeTick(
       expiresAtTick: observation.state.clock.tick + 1,
     });
     const validation = validateRuntimeDecision(decision, observation);
-    return { observation, behavior, socialDiagnostics, dailyLife, decision, status: validation.ok ? "idle" : "invalid" };
+    return { observation, behavior, socialDiagnostics, dailyLife, needs, decision, status: validation.ok ? "idle" : "invalid" };
   }
 
   const self = observation.perception?.self;
-  if (!self) return { observation, behavior, socialDiagnostics, status: "invalid" };
+  if (!self) return { observation, behavior, socialDiagnostics, needs, status: "invalid" };
   const grid = world.grid(self.mapId);
-  if (!grid) return { observation, behavior, socialDiagnostics, status: "rejected" };
+  if (!grid) return { observation, behavior, socialDiagnostics, needs, status: "rejected" };
 
   const navigationDecision = decideNpcNavigation(request, observation, grid, goal);
   if (!navigationDecision) {
     if (behavior.kind === "investigate" && memoryStore) {
       recoverInvestigationFailure(observation, self.id, memoryStore, "navigation");
     }
-    return { observation, behavior, socialDiagnostics, status: "replan-required" };
+    return { observation, behavior, socialDiagnostics, needs, status: "replan-required" };
   }
   const validation = validateRuntimeDecision(navigationDecision, observation);
-  if (!validation.ok) return { observation, behavior, socialDiagnostics, decision: navigationDecision, status: "invalid" };
+  if (!validation.ok) return { observation, behavior, socialDiagnostics, needs, decision: navigationDecision, status: "invalid" };
 
   const action = navigationDecision.actions[0];
   const execution = await ports.action.execute(action, observation);
@@ -201,6 +207,7 @@ export async function runNpcRuntimeTick(
     observation,
     behavior,
     socialDiagnostics,
+    needs,
     dailyLife: finalDailyLife,
     decision: navigationDecision,
     execution,
