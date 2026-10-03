@@ -10,6 +10,7 @@ import { validateNpcPersonality } from "./npc-personality-schema";
 import { validateNpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { validateNpcRelationships, type NpcRelationship } from "./npc-relationship-schema";
 import { validateNpcRelationshipPolicy, type NpcRelationshipPolicy } from "./npc-relationship-policy-schema";
+import { validateNpcSchedule, type NpcSchedule } from "../domain/runtime-schedule";
 
 export interface NpcDecisionProfile {
   archetype?: NpcArchetype;
@@ -19,12 +20,13 @@ export interface NpcDecisionProfile {
   personalityPolicy?: NpcPersonalityPolicy;
   relationships?: readonly NpcRelationship[];
   relationshipPolicy?: NpcRelationshipPolicy;
+  schedule?: NpcSchedule;
 }
 export interface NpcDecisionProfileValidation { ok: boolean; errors: string[]; }
 
 export const NPC_DECISION_PROFILE_SCHEMA = {
-  fields: ["archetype", "role", "capabilities", "personality", "personalityPolicy", "relationships", "relationshipPolicy"],
-  semantics: "A validated composition contract. Descriptive fields do not activate runtime effects; explicit personality policy may affect only capabilities already allowed by the archetype.",
+  fields: ["archetype", "role", "capabilities", "personality", "personalityPolicy", "relationships", "relationshipPolicy", "schedule"],
+  semantics: "A validated composition contract. Schedule entries are explicit time/location goals; they do not invent activities or override higher-priority runtime needs/events.",
 } as const;
 
 export function validateNpcDecisionProfile(value: unknown): NpcDecisionProfileValidation {
@@ -41,7 +43,8 @@ export function validateNpcDecisionProfile(value: unknown): NpcDecisionProfileVa
   const policy = validateNpcPersonalityPolicy(profile.personalityPolicy);
   const relationships = validateNpcRelationships(profile.relationships);
   const relationshipPolicy = validateNpcRelationshipPolicy(profile.relationshipPolicy);
-  errors.push(...archetype.errors, ...role.errors, ...capabilities.errors, ...personality.errors, ...policy.errors, ...relationships.errors, ...relationshipPolicy.errors);
+  const schedule = validateNpcSchedule(profile.schedule);
+  errors.push(...archetype.errors, ...role.errors, ...capabilities.errors, ...personality.errors, ...policy.errors, ...relationships.errors, ...relationshipPolicy.errors, ...schedule.errors);
   if (profile.archetype && policy.ok && profile.personalityPolicy?.rules) {
     const allowed = npcArchetypeCapabilities(profile.archetype);
     for (const rule of profile.personalityPolicy.rules) {

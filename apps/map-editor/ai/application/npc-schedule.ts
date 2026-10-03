@@ -1,6 +1,7 @@
 import type { RuntimeAction, RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { NpcSchedule, NpcScheduleEntry } from "../domain/runtime-schedule";
 import type { RuntimeGoalKind } from "../domain/runtime-goal";
+import { isHourInSchedule } from "../domain/runtime-schedule";
 import { createRuntimeDecision } from "./runtime-decision";
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
@@ -13,16 +14,9 @@ export function chooseScheduledLocation(
   goal: RuntimeGoalKind,
 ): NpcScheduleEntry | undefined {
   return schedule.entries
-    .filter(entry => entry.goal === goal)
-    .filter(entry => {
-      const hour = observation.state.clock.hour;
-      return entry.startHour === entry.endHour
-        ? true
-        : entry.startHour < entry.endHour
-          ? hour >= entry.startHour && hour < entry.endHour
-          : hour >= entry.startHour || hour < entry.endHour;
-    })
-    .sort((a, b) => distance(observation.perception?.self?.position ?? { x: 0, y: 0 }, a.location) -
+    .filter(entry => entry.goal === goal && isHourInSchedule(observation.state.clock.hour, entry))
+    .sort((a, b) => b.priority - a.priority ||
+      distance(observation.perception?.self?.position ?? { x: 0, y: 0 }, a.location) -
       distance(observation.perception?.self?.position ?? { x: 0, y: 0 }, b.location))[0];
 }
 

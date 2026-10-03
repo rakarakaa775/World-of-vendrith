@@ -8,6 +8,8 @@ import {
   applyNpcRelationshipGoalPriority,
 } from "./environment-npc-effects";
 import { enforceNpcDecisionProfileGoals } from "./npc-decision-enforcement";
+import { isHourInSchedule, type NpcScheduleEntry } from "../domain/runtime-schedule";
+import type { NpcDecisionProfile } from "./npc-decision-profile-schema";
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, value));
@@ -19,11 +21,36 @@ export const defaultNpcGoalPolicy: NpcGoalPolicy = {
   },
 };
 
+function decisionProfile(observation: RuntimeObservation): NpcDecisionProfile | undefined {
+  const state = observation.perception?.self?.state;
+  if (!state || typeof state.decisionProfile !== "object" || state.decisionProfile === null || Array.isArray(state.decisionProfile)) return undefined;
+  return state.decisionProfile as NpcDecisionProfile;
+}
+
+function scheduledEntries(observation: RuntimeObservation): NpcScheduleEntry[] {
+  const self = observation.perception?.self;
+  const schedule = decisionProfile(observation)?.schedule;
+  if (!self || self.kind !== "npc" || !schedule || schedule.npcId !== self.id) return [];
+  return schedule.entries
+    .filter(entry => isHourInSchedule(observation.state.clock.hour, entry))
+    .sort((a, b) => b.priority - a.priority);
+}
+
 export function createNpcGoalCandidates(
   observation: RuntimeObservation,
   needs: NpcNeedState,
 ): RuntimeGoal[] {
   const goals: RuntimeGoal[] = [];
+
+  for (const entry of scheduledEntries(observation)) {
+    goals.push({
+      kind: entry.goal,
+      priority: entry.priority,
+      reason: `Scheduled ${entry.goal} activity is active for the current game hour.`,
+      targetLocation: entry.location,
+      expiresAtTick: observation.state.clock.tick + 1,
+    });
+  }
 
   if (clamp(needs.safety) < 30) {
     goals.push({

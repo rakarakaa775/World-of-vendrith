@@ -23,9 +23,9 @@ const request: RuntimeAiRequest = {
 const schedule: NpcSchedule = {
   npcId: "npc-1",
   entries: [
-    { goal: "work", startHour: 8, endHour: 12, location: { mapId: "town", x: 10, y: 4 } },
-    { goal: "eat", startHour: 12, endHour: 13, location: { mapId: "town", x: 4, y: 8 } },
-    { goal: "sleep", startHour: 22, endHour: 6, location: { mapId: "home", x: 2, y: 2 } },
+    { goal: "work", startHour: 8, endHour: 12, priority: 40, location: { mapId: "town", x: 10, y: 4 } },
+    { goal: "eat", startHour: 12, endHour: 13, priority: 50, location: { mapId: "town", x: 4, y: 8 } },
+    { goal: "sleep", startHour: 22, endHour: 6, priority: 60, location: { mapId: "home", x: 2, y: 2 } },
   ],
 };
 

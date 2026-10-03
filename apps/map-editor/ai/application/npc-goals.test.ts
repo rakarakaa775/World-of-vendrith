@@ -14,7 +14,18 @@ const observation: RuntimeObservation = {
     stateVersion: "state-20",
   },
   perception: {
-    self: { id: "npc-1", kind: "npc", mapId: "region-1", position: { x: 2, y: 2 } },
+    self: {
+      id: "npc-1", kind: "npc", mapId: "region-1", position: { x: 2, y: 2 },
+      state: {
+        decisionProfile: {
+          archetype: "civilian",
+          schedule: {
+            npcId: "npc-1",
+            entries: [{ goal: "work", startHour: 8, endHour: 12, priority: 40, location: { mapId: "town", x: 10, y: 4 } }],
+          },
+        },
+      },
+    },
     nearbyEntities: [],
     visibleMapIds: ["region-1"],
     environment: { activeRegionId: "region-1" },
@@ -34,6 +45,19 @@ describe("NPC goals", () => {
     const goals = createNpcGoalCandidates(observation, { hunger: 20, energy: 20, social: 20, safety: 5 });
     expect(goals[0].kind).toBe("respond-to-event");
     expect(goals[0].priority).toBeGreaterThan(100);
+  });
+
+  it("adds the active scheduled goal with its explicit location and priority", () => {
+    const scheduled = {
+      ...observation,
+      state: { ...observation.state, activeEventIds: [], clock: { ...observation.state.clock, hour: 9 } },
+    };
+    const goals = createNpcGoalCandidates(scheduled, { hunger: 10, energy: 10, social: 20, safety: 90 });
+    expect(goals[0]).toMatchObject({
+      kind: "work",
+      priority: 40,
+      targetLocation: { mapId: "town", x: 10, y: 4 },
+    });
   });
 
   it("selects eating when hunger is highest", () => {
