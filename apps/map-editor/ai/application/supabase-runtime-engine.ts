@@ -7,11 +7,15 @@ import type { SupabaseRuntimeWorldAdapter } from "./supabase-runtime-world-adapt
 import type { RuntimeEventExecutionResult } from "../domain/runtime-event";
 import { executeRuntimeEvent } from "./runtime-event-executor";
 import type { SupabaseRuntimeEventAdapter } from "./supabase-runtime-event-adapter";
+import { createNpcRelationshipRuntimeStore, type NpcRelationshipRuntimeStore } from "./npc-relationship-runtime-store";
+import type { NpcSocialInteraction } from "./npc-social-interaction-schema";
 
 export interface SupabaseRuntimeEngine {
   readonly mapId: string;
   readonly bridge: SupabaseRuntimeWorldBridge;
   readonly memory: NpcBehaviorMemoryStore;
+  readonly relationships: NpcRelationshipRuntimeStore;
+  applySocialInteraction(interaction: NpcSocialInteraction): ReturnType<NpcRelationshipRuntimeStore["applyInteraction"]>;
   tick(events?: RuntimeScheduledEvent[], minutesPerTick?: number): Promise<SupabaseRuntimeEngineTickResult>;
 }
 
@@ -32,10 +36,23 @@ export async function createSupabaseRuntimeEngine(
   const bridge = await createSupabaseRuntimeWorldBridge({ async load() { return loaded; } }, mapId);
   if (!bridge) return undefined;
   const memory = createNpcBehaviorMemoryStore();
+  const relationships = createNpcRelationshipRuntimeStore();
+  for (const entity of loaded.snapshot.entities) {
+    if (entity.kind !== "npc") continue;
+    const profile = entity.state?.decisionProfile;
+    const seeded = profile && typeof profile === "object" && !Array.isArray(profile)
+      ? (profile as Record<string, unknown>).relationships
+      : undefined;
+    if (Array.isArray(seeded)) relationships.set(entity.id, seeded as never);
+  }
   return {
     mapId,
     bridge,
     memory,
+    relationships,
+    applySocialInteraction(interaction) {
+      return relationships.applyInteraction(interaction);
+    },
     async tick(events = [], minutesPerTick = 1) {
       const authoritativeEvents = eventAdapter
         ? await eventAdapter.loadScheduledEvents(loaded.snapshot.state.worldId)
@@ -100,7 +117,7 @@ export async function createSupabaseRuntimeEngine(
           },
           goal: "Continue the NPC's runtime behavior according to its current world state.",
         };
-        results.push(await runNpcRuntimeTick(request, bridge.ports, bridge.store, memory));
+        results.push(await runNpcRuntimeTick(request, bridge.ports, bridge.store, memory, relationships));
       }
 
       const after = bridge.snapshot();
