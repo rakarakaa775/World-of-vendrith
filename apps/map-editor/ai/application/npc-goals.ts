@@ -1,6 +1,7 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation, RuntimeAction } from "../domain/runtime";
 import type { NpcNeedState, NpcGoalPolicy, RuntimeGoal, NpcGoalMemory, NpcGoalMemoryStore } from "../domain/runtime-goal";
 import { createRuntimeDecision } from "./runtime-decision";
+import { calculateNpcSchedulePressure } from "./npc-schedule";
 import { arbitrateNpcGoal } from "./npc-goal-intelligence";
 import {
   applyEnvironmentNpcGoalPriority,
@@ -36,7 +37,8 @@ function scheduledEntries(observation: RuntimeObservation): NpcScheduleEntry[] {
 export function createNpcGoalCandidates(observation: RuntimeObservation, needs?: NpcNeedState): RuntimeGoal[] {
   const goals: RuntimeGoal[] = [];
   for (const entry of scheduledEntries(observation)) {
-    goals.push({ kind: entry.goal, priority: entry.priority, reason: `Scheduled ${entry.goal} activity is active for the current game hour.`, targetLocation: entry.location, expiresAtTick: observation.state.clock.tick + 1 });
+    const pressure = calculateNpcSchedulePressure(observation, entry);
+    goals.push({ kind: entry.goal, priority: entry.priority + pressure, reason: `Scheduled ${entry.goal} activity is active for the current game hour${pressure > 0 ? ` and has ${pressure} points of schedule pressure.` : "."}`, targetLocation: entry.location, expiresAtTick: observation.state.clock.tick + 1 });
   }
 
   if (needs && clamp(needs.safety) < 30) {

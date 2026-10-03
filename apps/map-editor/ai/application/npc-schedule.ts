@@ -4,6 +4,28 @@ import type { RuntimeGoalKind } from "../domain/runtime-goal";
 import { isHourInSchedule } from "../domain/runtime-schedule";
 import { createRuntimeDecision } from "./runtime-decision";
 
+
+export function calculateNpcSchedulePressure(
+  observation: RuntimeObservation,
+  entry: NpcScheduleEntry,
+): number {
+  if (!isHourInSchedule(observation.state.clock.hour, entry)) return 0;
+  if (entry.startHour === entry.endHour) return 0;
+
+  const duration = (entry.endHour - entry.startHour + 24) % 24;
+  if (duration <= 0) return 0;
+  const elapsed = (observation.state.clock.hour - entry.startHour + 24) % 24;
+  const timePressure = Math.min(15, Math.ceil(((elapsed + 1) / duration) * 15));
+  const self = observation.perception?.self;
+  const distanceToTarget = self && self.mapId === entry.location.mapId
+    ? Math.abs(self.position.x - entry.location.x) + Math.abs(self.position.y - entry.location.y)
+    : 0;
+  const travelPressure = self && self.mapId !== entry.location.mapId
+    ? 10
+    : Math.min(10, Math.ceil(distanceToTarget / 5));
+  return Math.min(25, timePressure + travelPressure);
+}
+
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }

@@ -5,6 +5,7 @@ import { createNpcNeedsStore, resolveNpcNeedsState, type NpcNeedsStore } from ".
 import { createNpcActivityEffectStore, type NpcActivityEffectStore, type NpcActivityEffectResult } from "../domain/runtime-npc-activity-effects";
 import { applyVerifiedNpcActivityEffect } from "./npc-activity-effects";
 import { createNpcDailyLifeStateStore, resolveNpcDailyLifeState, type NpcDailyLifeStateStore } from "../domain/runtime-daily-life";
+import { createNpcGoalMemoryStore, type NpcGoalMemoryStore } from "../domain/runtime-goal";
 import type { NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
 import { validateRuntimeDecision } from "../policies/runtime-policy";
@@ -30,6 +31,7 @@ export interface NpcRuntimeSocialDiagnostics {
 }
 
 const defaultNpcDailyLifeStateStore = createNpcDailyLifeStateStore();
+const defaultNpcGoalMemoryStore = createNpcGoalMemoryStore();
 const defaultNpcNeedsStore = createNpcNeedsStore();
 const defaultNpcActivityEffectStore = createNpcActivityEffectStore();
 
@@ -98,6 +100,7 @@ export async function runNpcRuntimeTick(
   dailyLifeStore: NpcDailyLifeStateStore = defaultNpcDailyLifeStateStore,
   needsStore: NpcNeedsStore = defaultNpcNeedsStore,
   activityEffectStore: NpcActivityEffectStore = defaultNpcActivityEffectStore,
+  goalMemoryStore: NpcGoalMemoryStore = defaultNpcGoalMemoryStore,
 ): Promise<NpcRuntimeTickResult> {
   const observed = await ports.observation.observe(request);
   const observedSelf = observed.perception?.self;
@@ -124,7 +127,7 @@ export async function runNpcRuntimeTick(
   const needs = needsState?.needs;
   let activeGoal: { kind: RuntimeGoalKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string } | undefined;
   try {
-    const goalDecision = decideNpcGoal(request, observation, needs);
+    const goalDecision = decideNpcGoal(request, observation, needs, undefined, goalMemoryStore);
     const goalAction = goalDecision.actions[0];
     const goalKind = typeof goalAction?.payload.goal === "string" ? goalAction.payload.goal : undefined;
     activeGoal = goalKind ? { kind: goalKind as RuntimeGoalKind, priority: Number(goalAction.payload.priority) || 0, reason: goalAction.reason, targetLocation: goalAction.payload.targetLocation as { mapId: string; x: number; y: number } | undefined, targetEventId: typeof goalAction.payload.targetEventId === "string" ? goalAction.payload.targetEventId : undefined } : undefined;

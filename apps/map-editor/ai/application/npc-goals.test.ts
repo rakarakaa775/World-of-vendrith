@@ -55,7 +55,7 @@ describe("NPC goals", () => {
     const goals = createNpcGoalCandidates(scheduled, { hunger: 10, energy: 10, social: 20, safety: 90 });
     expect(goals[0]).toMatchObject({
       kind: "work",
-      priority: 40,
+      priority: 58,
       targetLocation: { mapId: "town", x: 10, y: 4 },
     });
   });

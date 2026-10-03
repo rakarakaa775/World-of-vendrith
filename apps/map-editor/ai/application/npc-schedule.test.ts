@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeAiRequest, RuntimeObservation } from "../domain/runtime";
 import type { NpcSchedule } from "../domain/runtime-schedule";
-import { chooseScheduledLocation, decideNpcSchedule } from "./npc-schedule";
+import { chooseScheduledLocation, decideNpcSchedule, calculateNpcSchedulePressure } from "./npc-schedule";
 
 const observation: RuntimeObservation = {
   id: "obs-schedule", surface: "game", intelligence: "npc",
@@ -50,4 +50,9 @@ describe("NPC schedule", () => {
     expect(decision?.stateVersion).toBe("state-30");
     expect(decision?.expiresAtTick).toBe(31);
   });
+});
+
+it("adds bounded pressure as a schedule window progresses and the NPC is far from its target", () => {
+  const late = { ...observation, state: { ...observation.state, clock: { ...observation.state.clock, hour: 11 } }, perception: { ...observation.perception, self: { ...observation.perception.self, position: { x: 0, y: 0 } } } };
+  expect(calculateNpcSchedulePressure(late, schedule.entries[0])).toBe(25);
 });
