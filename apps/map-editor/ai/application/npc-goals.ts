@@ -1,6 +1,10 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation, RuntimeAction } from "../domain/runtime";
 import type { NpcNeedState, NpcGoalPolicy, RuntimeGoal, NpcGoalMemory, NpcGoalMemoryStore } from "../domain/runtime-goal";
 import { createRuntimeDecision } from "./runtime-decision";
+import {
+  applyEnvironmentNpcGoalPriority,
+  applyEnvironmentNpcNeeds,
+} from "./environment-npc-effects";
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, value));
@@ -100,7 +104,12 @@ export function decideNpcGoal(
     throw new Error("NPC goal selection requires an NPC self entity.");
   }
 
-  const selected = policy.choose(observation, needs, createNpcGoalCandidates(observation, needs));
+  const effectiveNeeds = applyEnvironmentNpcNeeds(observation, needs);
+  const goals = applyEnvironmentNpcGoalPriority(
+    observation,
+    createNpcGoalCandidates(observation, effectiveNeeds),
+  );
+  const selected = policy.choose(observation, effectiveNeeds, goals);
   if (!selected) {
     throw new Error("NPC goal selection requires at least one goal.");
   }

@@ -1,6 +1,7 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { RuntimeBehaviorCandidate, RuntimeBehaviorDecision, RuntimeBehaviorPolicy, NpcBehaviorMemory, NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import { createRuntimeDecision } from "./runtime-decision";
+import { applyEnvironmentNpcBehavior } from "./environment-npc-effects";
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
@@ -48,7 +49,11 @@ export function decideNpcBehavior(
 ): RuntimeDecision {
   const npcId = observation.perception?.self?.kind === "npc" ? observation.perception.self.id : undefined;
   const memory = npcId ? memoryStore?.get(npcId) : undefined;
-  const selected = policy.choose(observation, createNpcBehaviorCandidates(observation, memory));
+  const candidates = applyEnvironmentNpcBehavior(
+    observation,
+    createNpcBehaviorCandidates(observation, memory),
+  );
+  const selected = policy.choose(observation, candidates);
 
   if (npcId && memoryStore) {
     const target = observation.perception?.nearbyEntities.find(entity => entity.id === selected.action.payload.targetEntityId);
