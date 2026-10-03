@@ -27,6 +27,7 @@ interface ExecutionRow {
 
 export interface SupabaseRuntimeEventAdapter extends RuntimeEventExecutionStore {
   loadCandidates(worldId: string, currentDate: Date, currentTick: number, speed: number): Promise<RuntimeEventCandidate[] | undefined>;
+  loadScheduledEvents(worldId: string): Promise<{ id: string; startTick: number; endTick: number }[] | undefined>;
   loadCandidateById(worldId: string, eventId: string, currentTick: number): Promise<RuntimeEventCandidate | undefined>;
   loadDefinition(eventType: string): Promise<RuntimeEventDefinition | undefined>;
   loadWorldStatus(worldId: string): Promise<string | undefined>;
@@ -62,6 +63,34 @@ export function createSupabaseRuntimeEventAdapter(
           };
         })
         .filter((event): event is RuntimeEventCandidate => Boolean(event));
+    },
+
+    async loadScheduledEvents(worldId) {
+      const clockResult = await client
+        .from("simulation_clock")
+        .select("current_tick,current_date,speed")
+        .eq("world_id", worldId)
+        .maybeSingle();
+      if (clockResult.error || !clockResult.data) return undefined;
+      const currentDate = new Date(String(clockResult.data.current_date));
+      const currentTick = Number(clockResult.data.current_tick);
+      const speed = Number(clockResult.data.speed);
+      if (!Number.isFinite(currentDate.getTime()) || !Number.isFinite(currentTick) || !Number.isFinite(speed) || speed <= 0) return undefined;
+
+      const result = await client
+        .from("time_events")
+        .select("id,scheduled_time")
+        .eq("world_id", worldId)
+        .eq("status", "scheduled");
+      if (result.error) return undefined;
+
+      return (result.data ?? []).flatMap((row) => {
+        const scheduledAt = new Date(String(row.scheduled_time));
+        if (!Number.isFinite(scheduledAt.getTime())) return [];
+        const deltaMinutes = Math.max(0, Math.ceil((scheduledAt.getTime() - currentDate.getTime()) / 60000));
+        const startTick = currentTick + Math.ceil(deltaMinutes / speed);
+        return [{ id: String(row.id), startTick, endTick: startTick + 1 }];
+      });
     },
 
     async loadCandidateById(worldId, eventId, currentTick) {

@@ -37,7 +37,12 @@ export async function createSupabaseRuntimeEngine(
     bridge,
     memory,
     async tick(events = [], minutesPerTick = 1) {
-      const effectiveEvents = events.length > 0 ? events : loaded.scheduledEvents;
+      const authoritativeEvents = eventAdapter
+        ? await eventAdapter.loadScheduledEvents(loaded.snapshot.state.worldId)
+        : undefined;
+      const effectiveEvents = events.length > 0
+        ? events
+        : authoritativeEvents ?? loaded.scheduledEvents;
       bridge.advanceClock(minutesPerTick, effectiveEvents);
       const initial = bridge.snapshot();
       const eventResults: RuntimeEventExecutionResult[] = [];

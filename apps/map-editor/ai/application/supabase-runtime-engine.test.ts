@@ -34,6 +34,7 @@ describe("supabase runtime engine", () => {
     const calls: string[] = [];
     const eventAdapter = {
       async loadCandidates() { calls.push("loadCandidates"); return []; },
+      async loadScheduledEvents() { calls.push("loadScheduledEvents"); return [{ id: "festival", startTick: 1, endTick: 3 }]; },
       async loadCandidateById(worldId: string, eventId: string, currentTick: number) {
         calls.push(`candidate:${eventId}`);
         return { id: eventId, worldId, eventType: "world_pause", scheduledAt: "2026-10-03T08:00:00Z", startTick: currentTick, endTick: currentTick + 1 };
