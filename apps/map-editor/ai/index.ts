@@ -38,6 +38,7 @@ export * from "./application/npc-environment-policy-schema";
 export * from "./application/npc-archetype-schema";
 export * from "./application/npc-archetype-capabilities";
 export * from "./application/npc-role-schema";
+export * from "./application/npc-personality-schema";
 export * from "./application/npc-creator-package";
 
 export * from "./ports/map-tools";

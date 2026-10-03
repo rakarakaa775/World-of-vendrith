@@ -20,6 +20,7 @@ describe("schema knowledge graph", () => {
       ["npc", "supports", "npc-environment-policy"],
       ["npc", "classified-by", "npc-archetype"],
       ["npc", "described-by", "npc-role"],
+      ["npc", "described-by", "npc-personality"],
     ]);
     expect(graph.edges.every((edge) => edge.evidence.every((item) => item.confidence === "high"))).toBe(true);
     expect(graph.edges.some((edge) => edge.from === "npc" && edge.to === "npc-environment-policy")).toBe(true);

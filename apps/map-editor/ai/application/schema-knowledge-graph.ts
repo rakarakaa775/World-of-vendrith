@@ -12,7 +12,8 @@ export type SchemaNodeKind =
   | "asset"
   | "npc-environment-policy"
   | "npc-archetype"
-  | "npc-role";
+  | "npc-role"
+  | "npc-personality";
 
 export interface SchemaNode {
   id: string;
@@ -86,6 +87,13 @@ const NPC_ARCHETYPE_EVIDENCE = [
   {
     source: "repository:apps/map-editor/ai/application/npc-archetype-schema.ts",
     fact: "An NPC archetype does not inject behavior, goals, needs, combat, or permissions; runtime behavior remains explicitly configured.",
+  },
+];
+
+const NPC_PERSONALITY_EVIDENCE = [
+  {
+    source: "repository:apps/map-editor/ai/application/npc-personality-schema.ts",
+    fact: "NPC personality traits are descriptive configuration and are never auto-activated into runtime behavior, goals, needs, combat, permissions, or capabilities.",
   },
 ];
 
@@ -208,6 +216,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       label: "NPC Role / Job",
       evidence: evidence("schema-graph-npc-role", NPC_ROLE_EVIDENCE),
     },
+    {
+      id: "npc-personality",
+      kind: "npc-personality",
+      label: "NPC Personality / Traits",
+      evidence: evidence("schema-graph-npc-personality", NPC_PERSONALITY_EVIDENCE),
+    },
   );
 
   const edges: SchemaEdge[] = [
@@ -270,6 +284,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       relation: "described-by",
       to: "npc-role",
       evidence: evidence("schema-graph-npc-role-edge", NPC_ROLE_EVIDENCE),
+    },
+    {
+      from: "npc",
+      relation: "described-by",
+      to: "npc-personality",
+      evidence: evidence("schema-graph-npc-personality-edge", NPC_PERSONALITY_EVIDENCE),
     },
   ];
 
