@@ -45,6 +45,8 @@ export * from "./application/npc-creator-package";
 export * from "./application/preview-runtime-simulation";
 export * from "./application/npc-relationship-schema";
 export * from "./application/npc-relationship-policy-schema";
+export * from "./application/npc-social-interaction-schema";
+export * from "./application/npc-social-interaction-schema";
 
 export * from "./ports/map-tools";
 export * from "./application/map-inspector";

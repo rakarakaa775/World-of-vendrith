@@ -14,6 +14,7 @@ import { NPC_PERSONALITY_SCHEMA, validateNpcPersonality, type NpcPersonalityRequ
 import { NPC_PERSONALITY_POLICY_SCHEMA, validateNpcPersonalityPolicy, type NpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { NPC_DECISION_PROFILE_SCHEMA, validateNpcDecisionProfile } from "./npc-decision-profile-schema";
 import { NPC_RELATIONSHIP_POLICY_SCHEMA, validateNpcRelationshipPolicy, type NpcRelationshipPolicy } from "./npc-relationship-policy-schema";
+import { NPC_SOCIAL_INTERACTION_SCHEMA, validateNpcSocialInteraction } from "./npc-social-interaction-schema";
 import { inspectMap } from "./map-inspector";
 import { previewCreatorNpcPackage } from "./npc-creator-package";
 import type { MapDocument } from "../../editor/map-document";
@@ -153,6 +154,17 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
       validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null,
       async execute(args) { return validateNpcPersonalityPolicy((args as { policy?: unknown }).policy); },
+    },
+    {
+      name: "npc.social_interaction.schema", description: "Return the explicit NPC social interaction contract. Interaction types alone never change relationships.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_SOCIAL_INTERACTION_SCHEMA; },
+    },
+    {
+      name: "npc.social_interaction.validate", description: "Validate an explicit NPC social interaction record.", access: "read-only",
+      parameters: { type: "object", properties: { interaction: { type: "object" } }, required: ["interaction"] },
+      validate: (args): args is { interaction: unknown } => typeof args === "object" && args !== null,
+      async execute(args) { return validateNpcSocialInteraction((args as { interaction?: unknown }).interaction); },
     },
     {
       name: "npc.relationship_policy.schema", description: "Return the verified explicit NPC relationship runtime policy contract.", access: "read-only",
