@@ -92,7 +92,7 @@ export function createNpcGoalCandidates(
 
   goals.push({
     kind: "work",
-    priority: 10,
+    priority: 0,
     reason: "No higher-priority need currently requires attention.",
   });
 
@@ -114,6 +114,7 @@ function goalToAction(observation: RuntimeObservation, goal: RuntimeGoal): Runti
     type: actionType[goal.kind],
     payload: {
       goal: goal.kind,
+      priority: goal.priority,
       ...(goal.targetLocation ? { targetLocation: goal.targetLocation } : {}),
       ...(goal.targetEventId ? { targetEventId: goal.targetEventId } : {}),
     },

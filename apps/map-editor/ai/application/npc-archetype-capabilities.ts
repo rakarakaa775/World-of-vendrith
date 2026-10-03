@@ -17,18 +17,18 @@ export interface NpcCapabilityValidation {
   errors: string[];
 }
 
-const ALL_BEHAVIORS: readonly RuntimeBehaviorKind[] = ["idle", "follow-player", "wander", "investigate", "flee"];
+const ALL_BEHAVIORS: readonly RuntimeBehaviorKind[] = ["idle", "follow-player", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"];
 const ALL_GOALS: readonly RuntimeGoalKind[] = ["work", "eat", "sleep", "go-to-location", "respond-to-event"];
 
 const ARCHETYPE_CAPABILITIES: Record<NpcArchetype, NpcArchetypeCapabilities> = {
-  production: { behaviors: ["idle", "wander", "investigate", "flee"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
-  military: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee"], goals: ["work", "sleep", "go-to-location", "respond-to-event"] },
-  civilian: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
-  merchant: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
-  worker: { behaviors: ["idle", "wander", "investigate", "flee"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
-  companion: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee"], goals: ["eat", "sleep", "go-to-location", "respond-to-event"] },
-  enemy: { behaviors: ["idle", "wander", "investigate", "flee"], goals: ["go-to-location", "respond-to-event"] },
-  animal: { behaviors: ["idle", "wander", "investigate", "flee"], goals: ["eat", "sleep", "go-to-location", "respond-to-event"] },
+  production: { behaviors: ["idle", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
+  military: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["work", "sleep", "go-to-location", "respond-to-event"] },
+  civilian: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
+  merchant: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
+  worker: { behaviors: ["idle", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["work", "eat", "sleep", "go-to-location", "respond-to-event"] },
+  companion: { behaviors: ["idle", "follow-player", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["eat", "sleep", "go-to-location", "respond-to-event"] },
+  enemy: { behaviors: ["idle", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["go-to-location", "respond-to-event"] },
+  animal: { behaviors: ["idle", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"], goals: ["eat", "sleep", "go-to-location", "respond-to-event"] },
   special: { behaviors: ALL_BEHAVIORS, goals: ALL_GOALS },
   custom: { behaviors: [], goals: [] },
 };

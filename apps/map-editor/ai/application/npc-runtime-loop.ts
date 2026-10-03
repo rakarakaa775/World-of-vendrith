@@ -4,6 +4,7 @@ import type { NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
 import { validateRuntimeDecision } from "../policies/runtime-policy";
 import { createNpcBehaviorDecisionCandidates, decideNpcBehavior } from "./npc-behavior";
+import { decideNpcGoal } from "./npc-goals";
 import { createRuntimeDecision } from "./runtime-decision";
 import { decideNpcNavigation } from "./npc-navigation";
 import { investigationRecoveryAction, type InvestigationFailure } from "./environment-npc-effects";
@@ -33,6 +34,13 @@ export interface NpcRuntimeTickResult {
 }
 
 function targetFromBehavior(behavior: ReturnType<typeof createNpcBehaviorDecisionCandidates>[number], observation: RuntimeObservation): NavigationPoint | undefined {
+  const targetLocation = behavior.action.payload.targetLocation;
+  if (targetLocation && typeof targetLocation === "object" && "mapId" in targetLocation && "x" in targetLocation && "y" in targetLocation) {
+    const mapId = String((targetLocation as { mapId: unknown }).mapId);
+    const x = Number((targetLocation as { x: unknown }).x);
+    const y = Number((targetLocation as { y: unknown }).y);
+    if (mapId === observation.perception?.self?.mapId && Number.isInteger(x) && Number.isInteger(y)) return { x, y };
+  }
   const targetId = behavior.action.payload.targetEntityId;
   if (typeof targetId === "string") {
     const target = observation.perception?.nearbyEntities.find(entity => entity.id === targetId);
@@ -94,11 +102,21 @@ export async function runNpcRuntimeTick(
     ? profileRecord.relationships.filter((value): value is NpcRelationship => Boolean(value && typeof value === "object" && !Array.isArray(value)))
     : [];
   const relationshipPolicyValidation = validateNpcRelationshipPolicy(profileRecord?.relationshipPolicy);
-  const candidates = createNpcBehaviorDecisionCandidates(observation, observation.perception?.self ? memoryStore?.get(observation.perception.self.id) : undefined);
   const emptySocialDiagnostics: NpcRuntimeSocialDiagnostics = { relationships, relationshipPolicyValidation };
+  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
+  let activeGoal: { kind: import("../domain/runtime-behavior").RuntimeBehaviorKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string } | undefined;
+  try {
+    const goalDecision = decideNpcGoal(request, observation, { hunger: 0, energy: 0, social: 0, safety: 100 });
+    const goalAction = goalDecision.actions[0];
+    const goalKind = typeof goalAction?.payload.goal === "string" ? goalAction.payload.goal : undefined;
+    activeGoal = goalKind ? { kind: goalKind as import("../domain/runtime-behavior").RuntimeBehaviorKind, priority: Number(goalAction.payload.priority) || 0, reason: goalAction.reason, targetLocation: goalAction.payload.targetLocation as { mapId: string; x: number; y: number } | undefined, targetEventId: typeof goalAction.payload.targetEventId === "string" ? goalAction.payload.targetEventId : undefined } : undefined;
+  } catch {
+    activeGoal = undefined;
+  }
+  const candidates = createNpcBehaviorDecisionCandidates(observation, memoryStore?.get(observation.perception.self.id), activeGoal);
   if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
 
-  const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore);
+  const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore, activeGoal);
   const behavior = candidates.find(candidate => candidate.action.id === behaviorDecision.actions[0]?.id)
     ?? (behaviorDecision.actions[0]?.type === "npc.investigate"
       ? {

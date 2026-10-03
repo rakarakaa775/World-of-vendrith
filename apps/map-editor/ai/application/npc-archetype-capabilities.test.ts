@@ -4,7 +4,7 @@ import { npcArchetypeCapabilities, validateNpcCapabilities } from "./npc-archety
 describe("NPC archetype capabilities", () => {
   it("exposes only implemented runtime kinds", () => {
     expect(npcArchetypeCapabilities("military")).toEqual({
-      behaviors: ["idle", "follow-player", "wander", "investigate", "flee"],
+      behaviors: ["idle", "follow-player", "wander", "investigate", "flee", "work", "eat", "sleep", "go-to-location", "respond-to-event"],
       goals: ["work", "sleep", "go-to-location", "respond-to-event"],
     });
   });

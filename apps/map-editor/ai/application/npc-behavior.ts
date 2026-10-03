@@ -16,14 +16,40 @@ export const defaultNpcBehaviorPolicy: RuntimeBehaviorPolicy = {
   },
 };
 
-export function createNpcBehaviorCandidates(observation: RuntimeObservation, memory?: NpcBehaviorMemory): RuntimeBehaviorCandidate[] {
+export function createNpcBehaviorCandidates(
+  observation: RuntimeObservation,
+  memory?: NpcBehaviorMemory,
+  activeGoal?: { kind: RuntimeBehaviorKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string },
+): RuntimeBehaviorCandidate[] {
   const self = observation.perception?.self;
   if (!self || self.kind !== "npc") return [];
-  const candidates: RuntimeBehaviorCandidate[] = [{
-    kind: "idle", priority: 0,
-    reason: "No higher-priority behavior is currently required.",
-    action: { id: observation.id + ":idle", intelligence: "npc", type: "npc.idle", payload: {}, risk: "safe", reason: "No higher-priority behavior is currently required." },
-  }];
+  const candidates: RuntimeBehaviorCandidate[] = [];
+  if (activeGoal) {
+    candidates.push({
+      kind: activeGoal.kind,
+      priority: activeGoal.priority,
+      reason: activeGoal.reason,
+      action: {
+        id: observation.id + ":goal:" + activeGoal.kind,
+        intelligence: "npc",
+        type: "npc." + activeGoal.kind,
+        payload: {
+          goal: activeGoal.kind,
+          ...(activeGoal.targetLocation ? { targetLocation: activeGoal.targetLocation } : {}),
+          ...(activeGoal.targetEventId ? { targetEventId: activeGoal.targetEventId } : {}),
+        },
+        risk: "safe",
+        reason: activeGoal.reason,
+      },
+    });
+  } else {
+    candidates.push({
+      kind: "idle",
+      priority: 0,
+      reason: "No higher-priority behavior is currently required.",
+      action: { id: observation.id + ":idle", intelligence: "npc", type: "npc.idle", payload: {}, risk: "safe", reason: "No higher-priority behavior is currently required." },
+    });
+  }
   const visibleEntityIds = new Set(
     (observation.perception?.detections ?? [])
       .filter(detection => detection.channels.includes("visibility"))
@@ -52,6 +78,7 @@ export function createNpcBehaviorCandidates(observation: RuntimeObservation, mem
 export function createNpcBehaviorDecisionCandidates(
   observation: RuntimeObservation,
   memory?: NpcBehaviorMemory,
+  activeGoal?: { kind: RuntimeBehaviorKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string },
 ): RuntimeBehaviorCandidate[] {
   return enforceNpcDecisionProfileBehaviors(
     observation,
@@ -63,7 +90,7 @@ export function createNpcBehaviorDecisionCandidates(
           observation,
           applyEnvironmentNpcDetectionBehavior(
             observation,
-            createNpcBehaviorCandidates(observation, memory),
+            createNpcBehaviorCandidates(observation, memory, activeGoal),
           ),
         ),
       ),
@@ -76,10 +103,11 @@ export function decideNpcBehavior(
   observation: RuntimeObservation,
   policy: RuntimeBehaviorPolicy = defaultNpcBehaviorPolicy,
   memoryStore?: NpcBehaviorMemoryStore,
+  activeGoal?: { kind: RuntimeBehaviorKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string },
 ): RuntimeDecision {
   const npcId = observation.perception?.self?.kind === "npc" ? observation.perception.self.id : undefined;
   const memory = npcId ? memoryStore?.get(npcId) : undefined;
-  const candidates = createNpcBehaviorDecisionCandidates(observation, memory);
+  const candidates = createNpcBehaviorDecisionCandidates(observation, memory, activeGoal);
   const selected = policy.choose(observation, candidates);
 
   if (npcId && memoryStore) {

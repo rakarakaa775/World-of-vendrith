@@ -60,6 +60,41 @@ describe("npc runtime loop", () => {
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
   });
 
+  it("turns an active daily schedule into a runtime movement goal", async () => {
+    const store = makeStore();
+    const base = store.snapshot();
+    store.snapshot = () => ({
+      ...base,
+      entities: base.entities.map(entity => entity.id === "npc-1" ? {
+        ...entity,
+        state: {
+          decisionProfile: {
+            archetype: "civilian",
+            capabilities: { goals: ["work"], behaviors: ["work"] },
+            schedule: {
+              npcId: "npc-1",
+              entries: [{ goal: "work", startHour: 8, endHour: 12, priority: 40, location: { mapId: "region-1", x: 3, y: 0 } }],
+            },
+          },
+        },
+      } : entity),
+    });
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(store),
+      verification: createRuntimeWorldVerificationPort(store),
+    };
+    const result = await runNpcRuntimeTick({
+      id: "npc-schedule-1", surface: "game", intelligence: "npc",
+      goal: "Follow the daily schedule", observation: {} as RuntimeObservation,
+    }, ports, store);
+    expect(result.status).toBe("moved");
+    expect(result.behavior?.kind).toBe("work");
+    expect(result.decision?.actions[0]?.payload).toMatchObject({ targetLocation: { mapId: "region-1", x: 3, y: 0 } });
+  });
+
   it("navigates from explicit investigation memory after the detected target disappears", async () => {
     const store = makeStore();
     const snapshot = store.snapshot();

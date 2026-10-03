@@ -1,6 +1,16 @@
 import type { RuntimeAction, RuntimeObservation } from "./runtime";
 
-export type RuntimeBehaviorKind = "idle" | "follow-player" | "wander" | "investigate" | "flee";
+export type RuntimeBehaviorKind =
+  | "idle"
+  | "follow-player"
+  | "wander"
+  | "investigate"
+  | "flee"
+  | "work"
+  | "eat"
+  | "sleep"
+  | "go-to-location"
+  | "respond-to-event";
 
 export interface RuntimeBehaviorCandidate {
   kind: RuntimeBehaviorKind;
