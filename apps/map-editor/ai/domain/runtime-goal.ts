@@ -1,6 +1,7 @@
 import type { RuntimeObservation } from "./runtime";
+import type { NpcDailyLifeActivity, NpcDailyLifeLocationRole } from "./runtime-schedule";
 
-export type RuntimeGoalKind = "work" | "eat" | "sleep" | "go-to-location" | "respond-to-event";
+export type RuntimeGoalKind = "work" | "eat" | "sleep" | "socialize" | "go-to-location" | "respond-to-event";
 
 export interface NpcNeedState {
   hunger: number;
@@ -16,6 +17,9 @@ export interface RuntimeGoal {
   targetLocation?: { mapId: string; x: number; y: number };
   targetEventId?: string;
   targetNpcId?: string;
+  socialInteractionType?: "conversation" | "help" | "trade" | "conflict" | "custom";
+  locationRole?: NpcDailyLifeLocationRole;
+  dailyLifeActivity?: NpcDailyLifeActivity;
   expiresAtTick?: number;
 }
 

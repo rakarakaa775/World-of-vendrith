@@ -9,8 +9,14 @@ export type RuntimeBehaviorKind =
   | "work"
   | "eat"
   | "sleep"
+  | "socialize"
   | "go-to-location"
-  | "respond-to-event";
+  | "respond-to-event"
+  | "routine"
+  | "free-time"
+  | "rest"
+  | "recreation"
+  | "social";
 
 export interface RuntimeBehaviorCandidate {
   kind: RuntimeBehaviorKind;
@@ -45,6 +51,35 @@ export interface NpcBehaviorMemoryStore {
   get(npcId: string): NpcBehaviorMemory | undefined;
   set(memory: NpcBehaviorMemory): void;
   clear(npcId: string): void;
+}
+
+export type NpcBehaviorRuntimeStatus = "queued" | "running" | "interrupted" | "recovered" | "completed" | "failed";
+
+export interface NpcBehaviorRuntimeState {
+  npcId: string;
+  activeBehavior?: RuntimeBehaviorKind;
+  status: NpcBehaviorRuntimeStatus;
+  queue: RuntimeBehaviorKind[];
+  chain?: RuntimeBehaviorKind[];
+  interruptionCount: number;
+  lastFailure?: "execution" | "verification" | "navigation";
+  lastVerifiedTick?: number;
+  updatedAtTick: number;
+}
+
+export interface NpcBehaviorRuntimeStateStore {
+  get(npcId: string): NpcBehaviorRuntimeState | undefined;
+  set(state: NpcBehaviorRuntimeState): void;
+  clear(npcId: string): void;
+}
+
+export function createNpcBehaviorRuntimeStateStore(): NpcBehaviorRuntimeStateStore {
+  const states = new Map<string, NpcBehaviorRuntimeState>();
+  return {
+    get: npcId => states.get(npcId),
+    set: state => states.set(state.npcId, state),
+    clear: npcId => states.delete(npcId),
+  };
 }
 
 export function createNpcBehaviorMemoryStore(): NpcBehaviorMemoryStore {

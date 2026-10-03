@@ -47,6 +47,9 @@ export * from "./application/preview-runtime-simulation";
 export * from "./application/npc-relationship-schema";
 export * from "./application/npc-relationship-policy-schema";
 export * from "./application/npc-social-interaction-schema";
+export * from "./application/npc-social-interaction-selection";
+export * from "./application/npc-social-intelligence";
+export * from "./application/npc-world-awareness";
 export * from "./application/npc-relationship-memory-runtime";
 export * from "./application/npc-relationship-runtime-store";
 
@@ -68,3 +71,5 @@ export * from "./domain/runtime-clock";
 export * from "./domain/runtime-event";
 export * from "./application/runtime-event-executor";
 export * from "./application/supabase-runtime-event-adapter";
+export * from "./domain/runtime-behavior";
+export * from "./application/npc-behavior-runtime";

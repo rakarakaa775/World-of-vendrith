@@ -1,12 +1,29 @@
 import type { RuntimeGoalKind } from "./runtime-goal";
 import type { RuntimeObservation } from "./runtime";
 
+export type NpcDailyLifeLocationRole =
+  | "workplace"
+  | "home"
+  | "free-time"
+  | "recreation"
+  | "social";
+
+export type NpcDailyLifeActivity =
+  | "work"
+  | "routine"
+  | "free-time"
+  | "rest"
+  | "recreation"
+  | "social";
+
 export interface NpcScheduleEntry {
   goal: RuntimeGoalKind;
   startHour: number;
   endHour: number;
   priority: number;
   location: { mapId: string; x: number; y: number };
+  locationRole?: NpcDailyLifeLocationRole;
+  dailyLifeActivity?: NpcDailyLifeActivity;
 }
 
 export interface NpcSchedule {
@@ -55,6 +72,14 @@ export function validateNpcSchedule(value: unknown): NpcScheduleValidation {
     }
     if (!Number.isFinite(candidate.priority)) {
       errors.push("NPC schedule entry " + index + " requires a finite priority.");
+    }
+    if (candidate.locationRole !== undefined &&
+        !["workplace", "home", "free-time", "recreation", "social"].includes(candidate.locationRole)) {
+      errors.push("NPC schedule entry " + index + " has an unsupported locationRole.");
+    }
+    if (candidate.dailyLifeActivity !== undefined &&
+        !["work", "routine", "free-time", "rest", "recreation", "social"].includes(candidate.dailyLifeActivity)) {
+      errors.push("NPC schedule entry " + index + " has an unsupported dailyLifeActivity.");
     }
     if (!candidate.location || typeof candidate.location.mapId !== "string" || candidate.location.mapId.length === 0 ||
         !Number.isInteger(candidate.location.x) || !Number.isInteger(candidate.location.y)) {
