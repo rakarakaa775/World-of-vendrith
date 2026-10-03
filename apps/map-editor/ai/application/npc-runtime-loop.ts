@@ -2,6 +2,8 @@ import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../d
 import type { NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import type { RuntimeGoalKind } from "../domain/runtime-goal";
 import { createNpcNeedsStore, resolveNpcNeedsState, type NpcNeedsStore } from "../domain/runtime-npc-needs";
+import { createNpcActivityEffectStore, type NpcActivityEffectStore, type NpcActivityEffectResult } from "../domain/runtime-npc-activity-effects";
+import { applyVerifiedNpcActivityEffect } from "./npc-activity-effects";
 import { createNpcDailyLifeStateStore, resolveNpcDailyLifeState, type NpcDailyLifeStateStore } from "../domain/runtime-daily-life";
 import type { NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
@@ -28,6 +30,7 @@ export interface NpcRuntimeSocialDiagnostics {
 
 const defaultNpcDailyLifeStateStore = createNpcDailyLifeStateStore();
 const defaultNpcNeedsStore = createNpcNeedsStore();
+const defaultNpcActivityEffectStore = createNpcActivityEffectStore();
 
 export interface NpcRuntimeTickResult {
   observation: RuntimeObservation;
@@ -38,6 +41,7 @@ export interface NpcRuntimeTickResult {
   decision?: RuntimeDecision;
   execution?: Awaited<ReturnType<RuntimeAiPorts["action"]["execute"]>>;
   verification?: Awaited<ReturnType<RuntimeAiPorts["verification"]["verify"]>>;
+  activityEffect?: NpcActivityEffectResult;
   status: "idle" | "moved" | "rejected" | "replan-required" | "invalid";
 }
 
@@ -92,6 +96,7 @@ export async function runNpcRuntimeTick(
   relationshipStore: NpcRelationshipRuntimeStore = createNpcRelationshipRuntimeStore(),
   dailyLifeStore: NpcDailyLifeStateStore = defaultNpcDailyLifeStateStore,
   needsStore: NpcNeedsStore = defaultNpcNeedsStore,
+  activityEffectStore: NpcActivityEffectStore = defaultNpcActivityEffectStore,
 ): Promise<NpcRuntimeTickResult> {
   const observed = await ports.observation.observe(request);
   const observedSelf = observed.perception?.self;
@@ -113,7 +118,7 @@ export async function runNpcRuntimeTick(
     : [];
   const relationshipPolicyValidation = validateNpcRelationshipPolicy(profileRecord?.relationshipPolicy);
   const emptySocialDiagnostics: NpcRuntimeSocialDiagnostics = { relationships, relationshipPolicyValidation };
-  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, needs, status: "invalid" };
+  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
   const needsState = resolveNpcNeedsState(observation, needsStore);
   const needs = needsState?.needs;
   let activeGoal: { kind: RuntimeGoalKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string } | undefined;
@@ -192,6 +197,15 @@ export async function runNpcRuntimeTick(
       memoryStore.clear(self.id);
     }
   }
+  const activityEffect = applyVerifiedNpcActivityEffect(
+    action,
+    observation,
+    execution.ok,
+    verification.ok,
+    needsStore,
+    activityEffectStore,
+  );
+  const finalNeeds = activityEffect.needs ?? needs;
   const finalPosition = world.snapshot().entities.find(entity => entity.id === self.id)?.position;
   const arrivedAtDailyLifeTarget = Boolean(
     dailyLife?.targetLocation &&
@@ -207,11 +221,12 @@ export async function runNpcRuntimeTick(
     observation,
     behavior,
     socialDiagnostics,
-    needs,
     dailyLife: finalDailyLife,
     decision: navigationDecision,
     execution,
     verification,
+    activityEffect,
+    needs: finalNeeds,
     status: !execution.ok || !verification.ok ? "rejected" : "moved",
   };
 }

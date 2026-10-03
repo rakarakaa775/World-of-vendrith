@@ -1,5 +1,5 @@
 export const NPC_ENVIRONMENT_POLICY_KEYS = [
-  "npc_movement", "npc_sensing", "npc_needs", "npc_behavior",
+  "npc_movement", "npc_sensing", "npc_needs", "npc_activity_effects", "npc_behavior",
   "npc_goal_priority", "npc_detection_behavior", "npc_investigation_recovery",
 ] as const;
 export type NpcEnvironmentPolicyKey = typeof NPC_ENVIRONMENT_POLICY_KEYS[number];
@@ -38,6 +38,14 @@ export function validateNpcEnvironmentPolicy(value: unknown): NpcEnvironmentPoli
   }
   if ("npc_sensing" in value) checkNumericRecord(value.npc_sensing, ["hearing_radius", "smell_radius", "detection_modifier"], "npc_sensing", errors);
   if ("npc_needs" in value) checkNumericRecord(value.npc_needs, NEED_KEYS, "npc_needs", errors);
+  if ("npc_activity_effects" in value) {
+    const rules = value.npc_activity_effects;
+    if (!object(rules)) errors.push("npc_activity_effects must be an object.");
+    else for (const key of Object.keys(rules)) {
+      if (!(GOAL_KINDS as readonly string[]).includes(key)) { errors.push("Unsupported npc_activity_effects goal: " + key + "."); continue; }
+      checkNumericRecord(rules[key], NEED_KEYS, "npc_activity_effects." + key, errors);
+    }
+  }
   if ("npc_goal_priority" in value) checkNumericRecord(value.npc_goal_priority, GOAL_KINDS, "npc_goal_priority", errors);
 
   if ("npc_behavior" in value) {
