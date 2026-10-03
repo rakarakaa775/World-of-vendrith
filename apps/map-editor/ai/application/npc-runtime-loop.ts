@@ -21,7 +21,7 @@ function targetFromBehavior(behavior: ReturnType<typeof createNpcBehaviorCandida
   const targetId = behavior.action.payload.targetEntityId;
   if (typeof targetId === "string") {
     const target = observation.perception?.nearbyEntities.find(entity => entity.id === targetId);
-    return target?.position;
+    if (target?.position) return target.position;
   }
   const position = behavior.action.payload.position;
   if (position && typeof position === "object" && "x" in position && "y" in position) {
@@ -42,7 +42,15 @@ export async function runNpcRuntimeTick(
   if (!candidates.length) return { observation, behavior: undefined, status: "invalid" };
 
   const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore);
-  const behavior = candidates.find(candidate => candidate.action.id === behaviorDecision.actions[0]?.id);
+  const behavior = candidates.find(candidate => candidate.action.id === behaviorDecision.actions[0]?.id)
+    ?? (behaviorDecision.actions[0]?.type === "npc.investigate"
+      ? {
+          kind: "investigate" as const,
+          priority: 0,
+          reason: behaviorDecision.reason,
+          action: behaviorDecision.actions[0],
+        }
+      : undefined);
   if (!behavior) return { observation, behavior: undefined, status: "invalid" };
   const goal = targetFromBehavior(behavior, observation);
   if (!goal) {

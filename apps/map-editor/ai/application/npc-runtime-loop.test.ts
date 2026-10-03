@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeEntity, RuntimeObservation } from "../domain/runtime";
 import type { NavigationGrid } from "../domain/runtime-navigation";
+import { createNpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import { createRuntimeObservationPort } from "./runtime-observation";
 import { runNpcRuntimeTick } from "./npc-runtime-loop";
 import {
@@ -57,6 +58,63 @@ describe("npc runtime loop", () => {
     expect(result.execution?.ok).toBe(true);
     expect(result.verification?.ok).toBe(true);
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
+  });
+
+  it("navigates from explicit investigation memory after the detected target disappears", async () => {
+    const store = makeStore();
+    const snapshot = store.snapshot();
+    const originalUpdate = store.updateEntity.bind(store);
+    store.snapshot = () => ({
+      ...snapshot,
+      state: {
+        ...snapshot.state,
+        environmentConditions: {
+          npc_sensing: { hearing_radius: 8 },
+          npc_detection_behavior: {
+            hearing: { investigate: { reason: "Investigate explicit sound evidence." } },
+          },
+        },
+        stateVersion: "state-1",
+      },
+      entities: snapshot.entities.map(entity => entity.id === "player-1"
+        ? { ...entity, state: { blocksMovement: false, sensory_stimuli: { visibility: false, hearing_radius: 8 } } }
+        : entity),
+    });
+    store.updateEntity = (entity: RuntimeEntity) => {
+      originalUpdate(entity);
+      if (entity.id === "npc-1") {
+        snapshot.entities = snapshot.entities
+          .filter(candidate => candidate.id !== "player-1")
+          .map(candidate => candidate.id === entity.id ? entity : candidate);
+        snapshot.state = { ...snapshot.state, stateVersion: "state-2" };
+      }
+    };
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(store),
+      verification: createRuntimeWorldVerificationPort(store),
+    };
+    const memory = createNpcBehaviorMemoryStore();
+    const request = {
+      id: "npc-investigate-1",
+      surface: "game" as const,
+      intelligence: "npc" as const,
+      goal: "Investigate explicit sound evidence",
+      observation: {} as RuntimeObservation,
+    };
+
+    const first = await runNpcRuntimeTick(request, ports, store, memory);
+    expect(first.status).toBe("moved");
+    expect(first.behavior?.kind).toBe("investigate");
+    expect(memory.get("npc-1")?.targetEntityId).toBe("player-1");
+
+    const second = await runNpcRuntimeTick({ ...request, id: "npc-investigate-2" }, ports, store, memory);
+    expect(second.status).toBe("moved");
+    expect(second.behavior?.kind).toBe("investigate");
+    expect(second.execution?.ok).toBe(true);
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 2, y: 0 });
   });
 
   it("re-observes the new state version on the next tick", async () => {
