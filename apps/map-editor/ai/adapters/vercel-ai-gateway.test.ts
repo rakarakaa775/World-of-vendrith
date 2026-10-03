@@ -49,6 +49,31 @@ describe("Vercel AI Gateway model provider", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("https://example.test/v1/chat/completions");
   });
 
+  it("uses the Vercel OIDC token when no API key is provided", async () => {
+    vi.stubEnv("AI_GATEWAY_API_KEY", "");
+    vi.stubEnv("VERCEL_OIDC_TOKEN", "oidc-test-token");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ model: "oidc-model", choices: [{ message: { content: "OIDC works." } }] }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new VercelAiGatewayModelProvider({ baseUrl: "https://example.test/v1" });
+    const result = await provider.generate({ messages: [{ role: "user", content: "Hello" }] });
+
+    expect(result.content).toBe("OIDC works.");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ headers: expect.objectContaining({ Authorization: "Bearer oidc-test-token" }) });
+  });
+
+  it("fails with actionable setup guidance when no gateway credential exists", async () => {
+    vi.stubEnv("AI_GATEWAY_API_KEY", "");
+    vi.stubEnv("VERCEL_OIDC_TOKEN", "");
+    const provider = new VercelAiGatewayModelProvider({ baseUrl: "https://example.test/v1" });
+
+    await expect(
+      provider.generate({ messages: [{ role: "user", content: "Hello" }] }),
+    ).rejects.toThrow("Set AI_GATEWAY_API_KEY");
+  });
+
   it("surfaces provider errors", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ error: { message: "rate limited" } }), { status: 429 }),

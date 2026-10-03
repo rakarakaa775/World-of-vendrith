@@ -5,7 +5,7 @@ import type { NpcActivityEffectResult, NpcActivityEffectStore } from "../domain/
 import { effectiveNpcEnvironmentConditions } from "./npc-environment-policy-runtime";
 
 const NEED_KEYS: Array<keyof NpcNeedState> = ["hunger", "energy", "social", "safety"];
-const GOALS: RuntimeGoalKind[] = ["work", "eat", "sleep", "go-to-location", "respond-to-event"];
+const GOALS: RuntimeGoalKind[] = ["work", "eat", "sleep", "socialize", "go-to-location", "respond-to-event"];
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);

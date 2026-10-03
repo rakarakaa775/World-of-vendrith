@@ -12,10 +12,22 @@ export interface VercelAiGatewayOptions {
   baseUrl?: string;
 }
 
-function getApiKey(options: VercelAiGatewayOptions): string {
-  const key = options.apiKey ?? process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN;
-  if (!key) throw new Error("AI Gateway authentication is not configured.");
-  return key;
+interface GatewayCredential {
+  token: string;
+}
+
+function getGatewayCredential(options: VercelAiGatewayOptions): GatewayCredential {
+  if (options.apiKey?.trim()) return { token: options.apiKey.trim() };
+
+  const apiKey = process.env.AI_GATEWAY_API_KEY?.trim();
+  if (apiKey) return { token: apiKey };
+
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim();
+  if (oidcToken) return { token: oidcToken };
+
+  throw new Error(
+    "AI Gateway authentication is not configured. Set AI_GATEWAY_API_KEY for local/production use, or provide VERCEL_OIDC_TOKEN through Vercel OIDC (for example, run `vercel env pull .env.local` locally). Never put the credential in browser code or Git.",
+  );
 }
 
 function toGatewayMessages(messages: ModelMessage[]) {
@@ -40,9 +52,11 @@ export class VercelAiGatewayModelProvider implements ModelProviderPort {
   constructor(private readonly options: VercelAiGatewayOptions = {}) {}
 
   async generate(request: ModelRequest): Promise<ModelResponse> {
-    const response = await fetch(`${this.options.baseUrl ?? "https://ai-gateway.vercel.sh/v1"}/chat/completions`, {
+    const credential = getGatewayCredential(this.options);
+    const baseUrl = this.options.baseUrl ?? process.env.VENDRITH_AI_GATEWAY_BASE_URL ?? "https://ai-gateway.vercel.sh/v1";
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${getApiKey(this.options)}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${credential.token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: this.options.model ?? process.env.VENDRITH_AI_MODEL ?? "openai/gpt-5",
         messages: toGatewayMessages(request.messages),
