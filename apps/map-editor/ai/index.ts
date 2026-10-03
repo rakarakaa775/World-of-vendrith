@@ -42,6 +42,7 @@ export * from "./application/npc-personality-schema";
 export * from "./application/npc-personality-policy-schema";
 export * from "./application/npc-decision-profile-schema";
 export * from "./application/npc-creator-package";
+export * from "./application/preview-runtime-simulation";
 
 export * from "./ports/map-tools";
 export * from "./application/map-inspector";

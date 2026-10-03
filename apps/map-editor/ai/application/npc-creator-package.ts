@@ -6,6 +6,8 @@ import { validateNpcPersonality, type NpcPersonalityRequest, type NpcPersonality
 import { validateNpcPersonalityPolicy, type NpcPersonalityPolicy, type NpcPersonalityPolicyValidation } from "./npc-personality-policy-schema";
 import { validateNpcDecisionProfile, type NpcDecisionProfile } from "./npc-decision-profile-schema";
 import { buildNpcRuntimeSpawnContract, type NpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
+import type { MapDocument } from "../../editor/map-document";
+import { PreviewRuntimeSimulation, type PreviewNpcDiagnostics } from "./preview-runtime-simulation";
 
 export interface CreatorNpcEnvironmentPackage {
   npc: {
@@ -45,6 +47,35 @@ export function creatorNpcDecisionProfile(npc: CreatorNpcPackage["npc"]): NpcDec
 
 export function creatorNpcRuntimeSpawnContract(npc: CreatorNpcPackage["npc"]): NpcRuntimeSpawnContract {
   return buildNpcRuntimeSpawnContract(creatorNpcDecisionProfile(npc), npc.environmentPolicy);
+}
+
+export interface CreatorNpcPreviewResult {
+  validation: CreatorNpcPackage["validation"];
+  diagnostics?: PreviewNpcDiagnostics;
+  ticks: number;
+}
+
+export async function previewCreatorNpcPackage(
+  document: MapDocument,
+  npc: CreatorNpcPackage["npc"],
+  ticks = 1,
+): Promise<CreatorNpcPreviewResult> {
+  const packageResult = proposeCreatorNpcPackage(npc);
+  const safeTicks = Number.isInteger(ticks) ? Math.max(0, Math.min(20, ticks)) : 0;
+  if (!packageResult.validation.ok) {
+    return { validation: packageResult.validation, ticks: 0 };
+  }
+  const simulation = new PreviewRuntimeSimulation(document, [{
+    seedKey: npc.id,
+    name: npc.name ?? npc.id,
+    runtimeContract: creatorNpcRuntimeSpawnContract(npc),
+  }]);
+  for (let index = 0; index < safeTicks; index++) await simulation.tick();
+  return {
+    validation: packageResult.validation,
+    diagnostics: simulation.diagnostics(`npc:${npc.id}`),
+    ticks: safeTicks,
+  };
 }
 
 export function proposeCreatorNpcPackage(

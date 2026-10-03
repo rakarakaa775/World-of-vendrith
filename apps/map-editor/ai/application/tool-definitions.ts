@@ -14,6 +14,8 @@ import { NPC_PERSONALITY_SCHEMA, validateNpcPersonality, type NpcPersonalityRequ
 import { NPC_PERSONALITY_POLICY_SCHEMA, validateNpcPersonalityPolicy, type NpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { NPC_DECISION_PROFILE_SCHEMA, validateNpcDecisionProfile } from "./npc-decision-profile-schema";
 import { inspectMap } from "./map-inspector";
+import { previewCreatorNpcPackage } from "./npc-creator-package";
+import type { MapDocument } from "../../editor/map-document";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
 export interface ProjectTools {
@@ -26,6 +28,40 @@ export interface ProjectTools {
 }
 
 function pathArgument(name: string) { return { type: "object", properties: { [name]: { type: "string" } }, required: [name] }; }
+
+function previewDocumentFromInspection(resolved: NonNullable<Awaited<ReturnType<NonNullable<ProjectTools["mapInspector"]>["resolveMap"]>>>): MapDocument {
+  const source = resolved.document;
+  return {
+    version: 1,
+    id: source.id,
+    name: source.name,
+    mapType: source.mapType,
+    parentMapId: source.parentMapId,
+    width: source.width,
+    height: source.height,
+    tileSize: source.tileSize,
+    ...(source.playableSpace ? { playableSpace: source.playableSpace } : {}),
+    ...(source.parentPlayableMapId !== undefined ? { parentPlayableMapId: source.parentPlayableMapId } : {}),
+    layerGroups: [],
+    layerTemplates: [],
+    layers: source.layers.map(layer => ({
+      id: layer.id,
+      name: layer.name,
+      kind: layer.kind,
+      visible: layer.visible,
+      locked: false,
+      active: layer.kind === "ground",
+      opacity: 1,
+      cells: layer.cells.map(cell => ({ tileId: cell.tileId })),
+      objects: layer.objects.map(object => ({
+        ...object,
+        rotation: 0,
+        zIndex: 0,
+        collision: layer.kind === "collision",
+      })),
+    })),
+  };
+}
 
 export function createProjectTools(dependencies: ProjectTools): ToolDefinition[] {
   const tools: ToolDefinition[] = [
@@ -158,6 +194,25 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
 
   if (dependencies.mapInspector) {
     const contentDeps = { map: dependencies.mapInspector, assetRegistry: dependencies.assetRegistry };
+    tools.push({
+      name: "npc.creator_package.preview",
+      description: "Preview a validated Creator NPC package on an authoritative map without persisting changes. Returns runtime diagnostics after a bounded number of simulation ticks.",
+      access: "read-only",
+      parameters: { type: "object", properties: { mapId: { type: "string" }, npc: { type: "object" }, ticks: { type: "number", minimum: 0, maximum: 20 } }, required: ["mapId", "npc"] },
+      validate: (args): args is { mapId: string; npc: Record<string, unknown>; ticks?: number } => {
+        if (typeof args !== "object" || args === null) return false;
+        const input = args as { mapId?: unknown; npc?: unknown; ticks?: unknown };
+        return typeof input.mapId === "string" && typeof input.npc === "object" && input.npc !== null && !Array.isArray(input.npc) &&
+          (input.ticks === undefined || (typeof input.ticks === "number" && Number.isInteger(input.ticks) && input.ticks >= 0 && input.ticks <= 20));
+      },
+      async execute(args) {
+        const input = args as { mapId: string; npc: Record<string, unknown>; ticks?: number };
+        const resolved = await dependencies.mapInspector.resolveMap(input.mapId);
+        if (!resolved) return { found: false, mapId: input.mapId, error: "Map was not found." };
+        const result = await previewCreatorNpcPackage(previewDocumentFromInspection(resolved), input.npc as never, input.ticks ?? 1);
+        return { found: true, mapId: input.mapId, ...result };
+      },
+    });
     tools.push(
       {
         name: "world.inspect", description: "Inspect an authoritative World map, hierarchy, content, terrain, linked Regions, and asset provenance. Read-only.", access: "read-only", parameters: pathArgument("worldId"), validate: hasStringArgument("worldId"),
