@@ -3,6 +3,8 @@ import { createSupabaseRuntimeWorldAdapter } from "./supabase-runtime-world-adap
 
 function makeClient() {
   const rows: Record<string, unknown[]> = {
+    simulation_clock: [{ world_id: "world-1", current_tick: 371, current_date: "2026-10-03T14:30:00.000Z", speed: 1, paused: false, updated_at: "2026-10-03T14:29:00.000Z" }],
+    time_events: [{ id: "event-1", world_id: "world-1", scheduled_time: "2026-10-03T14:30:00.000Z", status: "scheduled" }],
     maps: [{
       id: "map-1", world_id: "world-1", name: "World Map", map_type: "world",
       width: 3, height: 2, metadata: { activeRegionId: "region-1" },
@@ -58,6 +60,9 @@ describe("supabase runtime world adapter", () => {
 
     expect(result?.snapshot.state.worldId).toBe("world-1");
     expect(result?.snapshot.state.activeRegionId).toBe("region-1");
+    expect(result?.snapshot.state.clock).toEqual({ tick: 371, day: 3, hour: 14, minute: 30, season: "unknown" });
+    expect(result?.snapshot.state.activeEventIds).toEqual(["event-1"]);
+    expect(result?.scheduledEvents).toEqual([{ id: "event-1", startTick: 371, endTick: 372 }]);
     expect(result?.snapshot.entities).toHaveLength(1);
     expect(result?.snapshot.entities[0]).toMatchObject({
       id: "entity-1",

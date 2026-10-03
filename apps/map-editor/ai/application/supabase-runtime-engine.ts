@@ -22,7 +22,9 @@ export async function createSupabaseRuntimeEngine(
   adapter: SupabaseRuntimeWorldAdapter,
   mapId: string,
 ): Promise<SupabaseRuntimeEngine | undefined> {
-  const bridge = await createSupabaseRuntimeWorldBridge(adapter, mapId);
+  const loaded = await adapter.load(mapId);
+  if (!loaded) return undefined;
+  const bridge = await createSupabaseRuntimeWorldBridge({ async load() { return loaded; } }, mapId);
   if (!bridge) return undefined;
   const memory = createNpcBehaviorMemoryStore();
 
@@ -31,7 +33,8 @@ export async function createSupabaseRuntimeEngine(
     bridge,
     memory,
     async tick(events = [], minutesPerTick = 1) {
-      bridge.advanceClock(minutesPerTick, events);
+      const effectiveEvents = events.length > 0 ? events : loaded.scheduledEvents;
+      bridge.advanceClock(minutesPerTick, effectiveEvents);
       const initial = bridge.snapshot();
       const npcs = initial.entities.filter(entity => entity.kind === "npc" && entity.mapId === mapId);
       const results: NpcRuntimeTickResult[] = [];

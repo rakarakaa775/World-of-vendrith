@@ -31,7 +31,7 @@ export function advanceGameClock(
 
   return {
     clock: { ...state.clock, tick, day, hour, minute },
-    stateVersion: `${state.stateVersion.replace(/:runtime:\\d+$/, "")}:runtime:${tick}`,
+    stateVersion: `${state.stateVersion.replace(/:runtime:\d+$/, "")}:runtime:${tick}`,
     activeEventIds,
   };
 }

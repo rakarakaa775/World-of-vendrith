@@ -13,7 +13,7 @@ function adapter() {
     ],
   };
   const grid: NavigationGrid = { width: 3, height: 3, blocked: Array(9).fill(false) };
-  return { async load(mapId: string) { return mapId === "map-1" ? { snapshot, grid } : undefined; } };
+  return { async load(mapId: string) { return mapId === "map-1" ? { snapshot, grid, scheduledEvents: [] } : undefined; } };
 }
 
 describe("supabase runtime engine", () => {

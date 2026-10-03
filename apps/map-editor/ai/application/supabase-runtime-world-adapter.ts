@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RuntimeEntity } from "../domain/runtime";
+import type { RuntimeScheduledEvent } from "../domain/runtime-clock";
 import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
 
@@ -14,6 +15,22 @@ interface MapRow {
   height: number;
   metadata: Record<string, unknown> | null;
   updated_at: string;
+}
+
+interface SimulationClockRow {
+  world_id: string;
+  current_tick: number | string;
+  current_date: string;
+  speed: number | string;
+  paused: boolean;
+  updated_at: string;
+}
+
+interface TimeEventRow {
+  id: string;
+  world_id: string;
+  scheduled_time: string;
+  status: string;
 }
 
 interface NavigationCellRow {
@@ -84,6 +101,7 @@ export interface SupabaseRuntimeWorldAdapter {
   load(mapId: string): Promise<{
     snapshot: RuntimeWorldSnapshot;
     grid: NavigationGrid;
+    scheduledEvents: RuntimeScheduledEvent[];
   } | undefined>;
 }
 
@@ -100,6 +118,33 @@ export function createSupabaseRuntimeWorldAdapter(
       if (mapResult.error || !mapResult.data) return undefined;
 
       const map = mapResult.data as MapRow;
+      if (!map.world_id) return undefined;
+
+      const clockResult = await client
+        .from("simulation_clock")
+        .select("world_id,current_tick,current_date,speed,paused,updated_at")
+        .eq("world_id", map.world_id)
+        .maybeSingle();
+      if (clockResult.error || !clockResult.data) return undefined;
+      const clock = clockResult.data as SimulationClockRow;
+      const currentDate = new Date(clock.current_date);
+      if (!Number.isFinite(currentDate.getTime())) return undefined;
+
+      const timeEventsResult = await client
+        .from("time_events")
+        .select("id,world_id,scheduled_time,status")
+        .eq("world_id", map.world_id)
+        .eq("status", "scheduled");
+      if (timeEventsResult.error) return undefined;
+      const scheduledEvents = ((timeEventsResult.data ?? []) as TimeEventRow[])
+        .map(event => {
+          const scheduledAt = new Date(event.scheduled_time);
+          if (!Number.isFinite(scheduledAt.getTime())) return undefined;
+          const deltaMinutes = Math.max(0, Math.ceil((scheduledAt.getTime() - currentDate.getTime()) / 60000));
+          const startTick = Number(clock.current_tick) + Math.ceil(deltaMinutes / Math.max(0.000001, Number(clock.speed)));
+          return { id: event.id, startTick, endTick: startTick + 1 };
+        })
+        .filter((event): event is RuntimeScheduledEvent => Boolean(event));
       const navResult = await client
         .from("vandrith_map_navigation_grid")
         .select("x,y,walkable,collision")
@@ -139,23 +184,35 @@ export function createSupabaseRuntimeWorldAdapter(
         .filter((entity): entity is RuntimeEntity => Boolean(entity))
         .filter(entity => locationBySeed.has(String(entity.state?.seedKey)));
 
-      const updatedAt = new Date(map.updated_at).getTime();
+      const updatedAt = new Date(clock.updated_at).getTime();
       const stateVersion = Number.isFinite(updatedAt)
-        ? `supabase:${map.id}:${updatedAt}`
-        : `supabase:${map.id}:unknown`;
+        ? `supabase:${map.id}:clock:${updatedAt}`
+        : `supabase:${map.id}:clock:unknown`;
+      const currentTick = Number(clock.current_tick);
+      if (!Number.isInteger(currentTick) || currentTick < 0) return undefined;
+      const activeEventIds = scheduledEvents
+        .filter(event => event.startTick <= currentTick)
+        .map(event => event.id);
 
       return {
         snapshot: {
           state: {
-            worldId: map.world_id ?? "unknown-world",
-            clock: { tick: 0, day: 1, hour: 0, minute: 0, season: "spring" },
-            activeEventIds: [],
+            worldId: map.world_id,
+            clock: {
+              tick: currentTick,
+              day: currentDate.getUTCDate(),
+              hour: currentDate.getUTCHours(),
+              minute: currentDate.getUTCMinutes(),
+              season: "unknown",
+            },
+            activeEventIds,
             stateVersion,
             activeRegionId: map.metadata?.activeRegionId as string | undefined,
           },
           entities,
         },
         grid: { width: map.width, height: map.height, blocked },
+        scheduledEvents,
       };
     },
   };
