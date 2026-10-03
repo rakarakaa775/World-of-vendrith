@@ -4,6 +4,7 @@ import { createRuntimeDecision } from "./runtime-decision";
 import {
   applyEnvironmentNpcGoalPriority,
   applyEnvironmentNpcNeeds,
+  applyNpcPersonalityGoalPriority,
 } from "./environment-npc-effects";
 
 function clamp(value: number): number {
@@ -105,9 +106,12 @@ export function decideNpcGoal(
   }
 
   const effectiveNeeds = applyEnvironmentNpcNeeds(observation, needs);
-  const goals = applyEnvironmentNpcGoalPriority(
+  const goals = applyNpcPersonalityGoalPriority(
     observation,
-    createNpcGoalCandidates(observation, effectiveNeeds),
+    applyEnvironmentNpcGoalPriority(
+      observation,
+      createNpcGoalCandidates(observation, effectiveNeeds),
+    ),
   );
   const selected = policy.choose(observation, effectiveNeeds, goals);
   if (!selected) {

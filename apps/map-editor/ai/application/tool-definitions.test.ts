@@ -40,6 +40,8 @@ describe("project tool definitions", () => {
       "npc.role.archetypes",
       "npc.personality.schema",
       "npc.personality.validate",
+      "npc.personality_policy.schema",
+      "npc.personality_policy.validate",
       "npc.environment_policy.schema",
       "npc.environment_policy.propose",
       "npc.creator_package.propose",

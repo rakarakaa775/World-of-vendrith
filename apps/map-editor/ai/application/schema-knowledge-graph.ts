@@ -13,7 +13,8 @@ export type SchemaNodeKind =
   | "npc-environment-policy"
   | "npc-archetype"
   | "npc-role"
-  | "npc-personality";
+  | "npc-personality"
+  | "npc-personality-policy";
 
 export interface SchemaNode {
   id: string;
@@ -95,6 +96,10 @@ const NPC_PERSONALITY_EVIDENCE = [
     source: "repository:apps/map-editor/ai/application/npc-personality-schema.ts",
     fact: "NPC personality traits are descriptive configuration and are never auto-activated into runtime behavior, goals, needs, combat, permissions, or capabilities.",
   },
+];
+
+const NPC_PERSONALITY_POLICY_EVIDENCE = [
+  { source: "repository:apps/map-editor/ai/application/npc-personality-policy-schema.ts", fact: "Personality policy is an explicit allow-listed runtime contract for existing behavior and goal priority deltas; traits alone have no runtime effect." },
 ];
 
 const NPC_ROLE_EVIDENCE = [
@@ -222,6 +227,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       label: "NPC Personality / Traits",
       evidence: evidence("schema-graph-npc-personality", NPC_PERSONALITY_EVIDENCE),
     },
+    {
+      id: "npc-personality-policy",
+      kind: "npc-personality-policy",
+      label: "NPC Personality Policy",
+      evidence: evidence("schema-graph-npc-personality-policy", NPC_PERSONALITY_POLICY_EVIDENCE),
+    },
   );
 
   const edges: SchemaEdge[] = [
@@ -290,6 +301,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       relation: "described-by",
       to: "npc-personality",
       evidence: evidence("schema-graph-npc-personality-edge", NPC_PERSONALITY_EVIDENCE),
+    },
+    {
+      from: "npc",
+      relation: "supports",
+      to: "npc-personality-policy",
+      evidence: evidence("schema-graph-npc-personality-policy-edge", NPC_PERSONALITY_POLICY_EVIDENCE),
     },
   ];
 

@@ -1,6 +1,8 @@
 import type { RuntimeObservation } from "../domain/runtime";
 import type { NpcNeedState, RuntimeGoal } from "../domain/runtime-goal";
 import type { RuntimeBehaviorCandidate } from "../domain/runtime-behavior";
+import type { NpcPersonalityPolicy } from "./npc-personality-policy-schema";
+import { validateNpcPersonalityPolicy } from "./npc-personality-policy-schema";
 
 const NEED_KEYS: Array<keyof NpcNeedState> = ["hunger", "energy", "social", "safety"];
 
@@ -104,6 +106,44 @@ export function investigationRecoveryAction(
   if (!rule || typeof rule !== "object" || Array.isArray(rule)) return undefined;
   const action = (rule as Record<string, unknown>).action;
   return action === "retry" || action === "clear" ? action : undefined;
+}
+
+export function applyNpcPersonalityBehavior(observation: RuntimeObservation, candidates: RuntimeBehaviorCandidate[]): RuntimeBehaviorCandidate[] {
+  const selfState = observation.perception?.self?.state;
+  const personality = selfState?.personality;
+  const policy = selfState?.personalityPolicy;
+  if (!personality || typeof personality !== "object" || Array.isArray(personality) || !policy) return candidates.map(candidate => ({ ...candidate }));
+  const traits = (personality as Record<string, unknown>).traits;
+  if (!Array.isArray(traits) || !validateNpcPersonalityPolicy(policy).ok) return candidates.map(candidate => ({ ...candidate }));
+  const rules = (policy as NpcPersonalityPolicy).rules ?? [];
+  return candidates.map(candidate => {
+    let priority = candidate.priority;
+    for (const trait of traits) {
+      if (typeof trait !== "string") continue;
+      const delta = rules.find(rule => rule.trait === trait)?.behaviors?.[candidate.kind];
+      if (finiteNumber(delta)) priority += delta;
+    }
+    return { ...candidate, priority };
+  });
+}
+
+export function applyNpcPersonalityGoalPriority(observation: RuntimeObservation, goals: RuntimeGoal[]): RuntimeGoal[] {
+  const selfState = observation.perception?.self?.state;
+  const personality = selfState?.personality;
+  const policy = selfState?.personalityPolicy;
+  if (!personality || typeof personality !== "object" || Array.isArray(personality) || !policy) return goals.map(goal => ({ ...goal }));
+  const traits = (personality as Record<string, unknown>).traits;
+  if (!Array.isArray(traits) || !validateNpcPersonalityPolicy(policy).ok) return goals.map(goal => ({ ...goal }));
+  const rules = (policy as NpcPersonalityPolicy).rules ?? [];
+  return goals.map(goal => {
+    let priority = goal.priority;
+    for (const trait of traits) {
+      if (typeof trait !== "string") continue;
+      const delta = rules.find(rule => rule.trait === trait)?.goals?.[goal.kind];
+      if (finiteNumber(delta)) priority += delta;
+    }
+    return { ...goal, priority };
+  });
 }
 
 export function applyEnvironmentNpcGoalPriority(

@@ -11,6 +11,7 @@ import { NPC_ARCHETYPE_CAPABILITY_SCHEMA, npcArchetypeCapabilities, validateNpcC
 import { proposeCreatorNpcPackage } from "./npc-creator-package";
 import { NPC_ROLE_SCHEMA, npcRoleArchetypes, validateNpcRole, type NpcRole } from "./npc-role-schema";
 import { NPC_PERSONALITY_SCHEMA, validateNpcPersonality, type NpcPersonalityRequest } from "./npc-personality-schema";
+import { NPC_PERSONALITY_POLICY_SCHEMA, validateNpcPersonalityPolicy, type NpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { inspectMap } from "./map-inspector";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
@@ -94,6 +95,17 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       async execute(args) { return validateNpcPersonality((args as { personality: unknown }).personality); },
     },
     {
+      name: "npc.personality_policy.schema", description: "Return the verified explicit NPC personality runtime policy contract.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_PERSONALITY_POLICY_SCHEMA; },
+    },
+    {
+      name: "npc.personality_policy.validate", description: "Validate an explicit NPC personality runtime policy.", access: "read-only",
+      parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
+      validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null,
+      async execute(args) { return validateNpcPersonalityPolicy((args as { policy?: unknown }).policy); },
+    },
+    {
       name: "npc.environment_policy.schema", description: "Return the verified NPC environment policy contract for Creator AI generation.", access: "read-only",
       parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
       async execute() { return NPC_ENVIRONMENT_POLICY_SCHEMA; },
@@ -114,10 +126,11 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
           (npc.archetype === undefined || typeof npc.archetype === "string") &&
           (npc.role === undefined || typeof npc.role === "string") &&
           (npc.personality === undefined || (typeof npc.personality === "object" && npc.personality !== null && !Array.isArray(npc.personality))) &&
+          (npc.personalityPolicy === undefined || (typeof npc.personalityPolicy === "object" && npc.personalityPolicy !== null && !Array.isArray(npc.personalityPolicy))) &&
           (npc.capabilities === undefined || (typeof npc.capabilities === "object" && npc.capabilities !== null && !Array.isArray(npc.capabilities))) &&
           typeof npc.environmentPolicy === "object" && npc.environmentPolicy !== null && !Array.isArray(npc.environmentPolicy);
       },
-      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; personality?: NpcPersonalityRequest; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } }).npc); },
+      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } }).npc); },
     },
     {
       name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", access: "read-only",

@@ -3,6 +3,7 @@ import { validateNpcArchetype, type NpcArchetype, type NpcArchetypeValidation } 
 import { validateNpcCapabilities, type NpcCapabilityRequest, type NpcCapabilityValidation } from "./npc-archetype-capabilities";
 import { validateNpcRole, type NpcRole, type NpcRoleValidation } from "./npc-role-schema";
 import { validateNpcPersonality, type NpcPersonalityRequest, type NpcPersonalityValidation } from "./npc-personality-schema";
+import { validateNpcPersonalityPolicy, type NpcPersonalityPolicy, type NpcPersonalityPolicyValidation } from "./npc-personality-policy-schema";
 
 export interface CreatorNpcEnvironmentPackage {
   npc: {
@@ -15,8 +16,8 @@ export interface CreatorNpcEnvironmentPackage {
 }
 
 export interface CreatorNpcPackage {
-  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest; personality?: NpcPersonalityRequest };
-  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation & NpcRoleValidation & NpcPersonalityValidation;
+  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy };
+  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation & NpcRoleValidation & NpcPersonalityValidation & NpcPersonalityPolicyValidation;
 }
 
 export function proposeCreatorNpcEnvironmentPackage(
@@ -33,14 +34,15 @@ export function proposeCreatorNpcPackage(
   const environmentValidation = validateNpcEnvironmentPolicy(npc.environmentPolicy);
   const roleValidation = validateNpcRole(npc.role, npc.archetype);
   const personalityValidation = validateNpcPersonality(npc.personality);
+  const personalityPolicyValidation = validateNpcPersonalityPolicy(npc.personalityPolicy);
   const capabilityValidation = archetypeValidation.ok
     ? validateNpcCapabilities(npc.archetype, npc.capabilities ?? {})
     : { ok: true, errors: [] };
   return {
     npc: { ...npc },
     validation: {
-      ok: archetypeValidation.ok && environmentValidation.ok && roleValidation.ok && personalityValidation.ok && capabilityValidation.ok,
-      errors: [...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...personalityValidation.errors, ...capabilityValidation.errors],
+      ok: archetypeValidation.ok && environmentValidation.ok && roleValidation.ok && personalityValidation.ok && personalityPolicyValidation.ok && capabilityValidation.ok,
+      errors: [...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...personalityValidation.errors, ...personalityPolicyValidation.errors, ...capabilityValidation.errors],
     },
   };
 }
