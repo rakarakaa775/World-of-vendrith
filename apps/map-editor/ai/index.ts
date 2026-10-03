@@ -48,3 +48,5 @@ export * from "./application/npc-runtime-loop";
 export * from "./application/supabase-runtime-world-bridge";
 
 export * from "./application/supabase-runtime-engine";
+
+export * from "./domain/runtime-clock";

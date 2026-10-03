@@ -1,4 +1,6 @@
 import type { RuntimeEntity } from "../domain/runtime";
+import type { RuntimeScheduledEvent } from "../domain/runtime-clock";
+import { advanceGameClock } from "../domain/runtime-clock";
 import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
 import { createRuntimeObservationPort } from "./runtime-observation";
@@ -10,9 +12,12 @@ export interface SupabaseRuntimeWorldBridge {
   ports: RuntimeAiPorts;
   snapshot(): RuntimeWorldSnapshot;
   grid(mapId: string): NavigationGrid | undefined;
+  advanceClock(minutes?: number, events?: RuntimeScheduledEvent[]): void;
 }
 
-function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: NavigationGrid }, mapId: string): RuntimeWorldStore {
+type MutableRuntimeWorldStore = RuntimeWorldStore & { __replaceState(state: RuntimeWorldSnapshot["state"], entities: RuntimeEntity[]): void };
+
+function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: NavigationGrid }, mapId: string): MutableRuntimeWorldStore {
   const engineStateVersion = initial.snapshot.state.stateVersion.replace(/:runtime:\d+$/, "");
   let snapshot: RuntimeWorldSnapshot = {
     state: { ...initial.snapshot.state, clock: { ...initial.snapshot.state.clock } },
@@ -20,19 +25,20 @@ function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: Navi
   };
   const grids = new Map([[mapId, initial.grid]]);
 
+  const replaceState = (state: RuntimeWorldSnapshot["state"], entities: RuntimeEntity[]) => { snapshot = { state, entities }; };
   return {
     snapshot: () => snapshot,
     grid: (mapId) => grids.get(mapId),
+    __replaceState: replaceState,
     updateEntity(entity: RuntimeEntity) {
       const index = snapshot.entities.findIndex(candidate => candidate.id === entity.id);
       if (index < 0) return;
       const entities = [...snapshot.entities];
       entities[index] = { ...entity, position: { ...entity.position }, state: entity.state ? { ...entity.state } : undefined };
-      const nextTick = snapshot.state.clock.tick + 1;
+      const nextTick = snapshot.state.clock.tick;
       snapshot = {
         state: {
           ...snapshot.state,
-          clock: { ...snapshot.state.clock, tick: nextTick },
           stateVersion: `${engineStateVersion}:runtime:${nextTick}`,
         },
         entities,
@@ -63,5 +69,12 @@ export async function createSupabaseRuntimeWorldBridge(
     },
     snapshot: () => store.snapshot(),
     grid: (id) => store.grid(id),
+    advanceClock(minutes = 1, events = []) {
+      const advanced = advanceGameClock(store.snapshot().state, minutes, events);
+      const current = store.snapshot();
+      const nextState = { ...current.state, clock: advanced.clock, activeEventIds: advanced.activeEventIds, stateVersion: advanced.stateVersion };
+      const entities = current.entities.map(entity => ({ ...entity, position: { ...entity.position }, state: entity.state ? { ...entity.state } : undefined }));
+      (store as MutableRuntimeWorldStore).__replaceState(nextState, entities);
+    },
   };
 }

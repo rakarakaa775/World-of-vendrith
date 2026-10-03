@@ -1,4 +1,5 @@
 import type { RuntimeAiRequest } from "../domain/runtime";
+import type { RuntimeScheduledEvent } from "../domain/runtime-clock";
 import { createNpcBehaviorMemoryStore, type NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import { runNpcRuntimeTick, type NpcRuntimeTickResult } from "./npc-runtime-loop";
 import { createSupabaseRuntimeWorldBridge, type SupabaseRuntimeWorldBridge } from "./supabase-runtime-world-bridge";
@@ -8,7 +9,7 @@ export interface SupabaseRuntimeEngine {
   readonly mapId: string;
   readonly bridge: SupabaseRuntimeWorldBridge;
   readonly memory: NpcBehaviorMemoryStore;
-  tick(): Promise<SupabaseRuntimeEngineTickResult>;
+  tick(events?: RuntimeScheduledEvent[], minutesPerTick?: number): Promise<SupabaseRuntimeEngineTickResult>;
 }
 
 export interface SupabaseRuntimeEngineTickResult {
@@ -29,7 +30,8 @@ export async function createSupabaseRuntimeEngine(
     mapId,
     bridge,
     memory,
-    async tick() {
+    async tick(events = [], minutesPerTick = 1) {
+      bridge.advanceClock(minutesPerTick, events);
       const initial = bridge.snapshot();
       const npcs = initial.entities.filter(entity => entity.kind === "npc" && entity.mapId === mapId);
       const results: NpcRuntimeTickResult[] = [];

@@ -52,6 +52,7 @@ describe("supabase runtime world bridge", () => {
       goal: "follow the visible player",
     };
 
+    bridge!.advanceClock();
     const result = await runNpcRuntimeTick(request, bridge!.ports, bridge!.store);
     const after = bridge!.snapshot();
 

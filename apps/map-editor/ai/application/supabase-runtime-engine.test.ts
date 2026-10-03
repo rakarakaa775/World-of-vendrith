@@ -20,12 +20,14 @@ describe("supabase runtime engine", () => {
   it("runs all NPCs through the engine bridge and preserves runtime state versions", async () => {
     const engine = await createSupabaseRuntimeEngine(adapter() as never, "map-1");
     expect(engine).toBeDefined();
-    const result = await engine!.tick();
+    const result = await engine!.tick([{ id: "festival", startTick: 1, endTick: 3 }], 1);
     expect(result.results).toHaveLength(2);
     expect(result.results.every(item => item.status === "moved")).toBe(true);
     expect(engine!.bridge.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
-    expect(engine!.bridge.snapshot().state.stateVersion).toBe("engine:1:runtime:2");
-    expect(result.tick).toBe(2);
+    expect(engine!.bridge.snapshot().state.stateVersion).toBe("engine:1:runtime:1");
+    expect(result.tick).toBe(1);
+    expect(result.stateVersion).toBe("engine:1:runtime:1");
+    expect(engine!.bridge.snapshot().state.activeEventIds).toEqual(["festival"]);
   });
 
   it("fails closed when the engine cannot load the map", async () => {
