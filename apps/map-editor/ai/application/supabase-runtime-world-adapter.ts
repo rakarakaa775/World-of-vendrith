@@ -26,6 +26,31 @@ interface SimulationClockRow {
   updated_at: string;
 }
 
+interface EnvironmentClockRow {
+  world_id: string;
+  simulation_at: string;
+  speed_multiplier: number | string;
+  current_season_id: string | null;
+  season_started_at: string | null;
+  season_ends_at: string | null;
+  updated_at: string;
+  metadata: Record<string, unknown>;
+}
+
+interface EnvironmentStateRow {
+  world_id: string;
+  season_id: string | null;
+  weather_state_id: string | null;
+  state_started_at: string | null;
+  state_ends_at: string | null;
+  conditions: Record<string, unknown>;
+  updated_at: string;
+}
+
+interface SeasonDefinitionRow { id: string; season_key: string; display_name: string; }
+interface WeatherStateRow { id: string; weather_id: string; season_id: string | null; }
+interface WeatherDefinitionRow { id: string; weather_key: string; display_name: string; }
+
 interface TimeEventRow {
   id: string;
   world_id: string;
@@ -130,6 +155,56 @@ export function createSupabaseRuntimeWorldAdapter(
       const currentDate = new Date(clock.current_date);
       if (!Number.isFinite(currentDate.getTime())) return undefined;
 
+      const environmentClockResult = await client
+        .from("world_environment_clocks")
+        .select("world_id,simulation_at,speed_multiplier,current_season_id,season_started_at,season_ends_at,updated_at,metadata")
+        .eq("world_id", map.world_id)
+        .maybeSingle();
+      if (environmentClockResult.error) return undefined;
+      const environmentStateResult = await client
+        .from("world_environment_states")
+        .select("world_id,season_id,weather_state_id,state_started_at,state_ends_at,conditions,updated_at")
+        .eq("world_id", map.world_id)
+        .maybeSingle();
+      if (environmentStateResult.error) return undefined;
+
+      const environmentClock = environmentClockResult.data as EnvironmentClockRow | null;
+      const environmentState = environmentStateResult.data as EnvironmentStateRow | null;
+      const seasonId = environmentState?.season_id ?? environmentClock?.current_season_id ?? null;
+
+      let season = "unknown";
+      if (seasonId) {
+        const seasonResult = await client
+          .from("season_definitions")
+          .select("id,season_key,display_name")
+          .eq("id", seasonId)
+          .maybeSingle();
+        if (seasonResult.error) return undefined;
+        const definition = seasonResult.data as SeasonDefinitionRow | null;
+        if (definition) season = definition.season_key;
+      }
+
+      let weather: string | undefined;
+      if (environmentState?.weather_state_id) {
+        const weatherStateResult = await client
+          .from("world_weather_states")
+          .select("id,weather_id,season_id")
+          .eq("id", environmentState.weather_state_id)
+          .maybeSingle();
+        if (weatherStateResult.error) return undefined;
+        const weatherState = weatherStateResult.data as WeatherStateRow | null;
+        if (weatherState?.weather_id) {
+          const weatherDefinitionResult = await client
+            .from("weather_definitions")
+            .select("id,weather_key,display_name")
+            .eq("id", weatherState.weather_id)
+            .maybeSingle();
+          if (weatherDefinitionResult.error) return undefined;
+          const weatherDefinition = weatherDefinitionResult.data as WeatherDefinitionRow | null;
+          weather = weatherDefinition?.weather_key;
+        }
+      }
+
       const timeEventsResult = await client
         .from("time_events")
         .select("id,world_id,scheduled_time,status")
@@ -203,7 +278,8 @@ export function createSupabaseRuntimeWorldAdapter(
               day: currentDate.getUTCDate(),
               hour: currentDate.getUTCHours(),
               minute: currentDate.getUTCMinutes(),
-              season: "unknown",
+              season,
+              ...(weather ? { weather } : {}),
             },
             activeEventIds,
             stateVersion,

@@ -3,6 +3,11 @@ import { createSupabaseRuntimeWorldAdapter } from "./supabase-runtime-world-adap
 
 function makeClient() {
   const rows: Record<string, unknown[]> = {
+    world_environment_clocks: [],
+    world_environment_states: [],
+    season_definitions: [],
+    world_weather_states: [],
+    weather_definitions: [],
     simulation_clock: [{ world_id: "world-1", current_tick: 371, current_date: "2026-10-03T14:30:00.000Z", speed: 1, paused: false, updated_at: "2026-10-03T14:29:00.000Z" }],
     time_events: [{ id: "event-1", world_id: "world-1", scheduled_time: "2026-10-03T14:30:00.000Z", status: "scheduled" }],
     maps: [{
