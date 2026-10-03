@@ -5,6 +5,7 @@ import { classifyAssetEvidence } from "../policies/asset-policy";
 import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
 import { buildProjectSchemaSummary } from "./schema-intelligence";
 import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
+import { NPC_ENVIRONMENT_POLICY_SCHEMA, validateNpcEnvironmentPolicy } from "./npc-environment-policy-schema";
 import { inspectMap } from "./map-inspector";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
@@ -30,6 +31,17 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       name: "schema.inspect", description: "Inspect evidence-backed Map, World, Region, NPC, Dialogue, and Event schema areas found in the repository.", access: "read-only", parameters: { type: "object", properties: {} },
       validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
       async execute() { return buildProjectSchemaSummary(dependencies.repository); },
+    },
+    {
+      name: "npc.environment_policy.schema", description: "Return the verified NPC environment policy contract for Creator AI generation.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_ENVIRONMENT_POLICY_SCHEMA; },
+    },
+    {
+      name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", access: "read-only",
+      parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
+      validate: (args): args is { policy: Record<string, unknown> } => typeof args === "object" && args !== null && typeof (args as { policy?: unknown }).policy === "object" && (args as { policy?: unknown }).policy !== null && !Array.isArray((args as { policy: unknown }).policy),
+      async execute(args) { return validateNpcEnvironmentPolicy((args as { policy: Record<string, unknown> }).policy); },
     },
     {
       name: "project.inspect", description: "Inspect the evidence-backed Vendrith project intelligence snapshot.", access: "read-only", parameters: pathArgument("query"), validate: hasStringArgument("query"),

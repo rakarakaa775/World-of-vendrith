@@ -34,6 +34,7 @@ export * from "./application/runtime-decision";
 export * from "./application/project-intelligence";
 export * from "./application/schema-intelligence";
 export * from "./application/schema-knowledge-graph";
+export * from "./application/npc-environment-policy-schema";
 
 export * from "./ports/map-tools";
 export * from "./application/map-inspector";

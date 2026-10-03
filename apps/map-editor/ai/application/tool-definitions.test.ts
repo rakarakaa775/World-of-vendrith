@@ -30,6 +30,8 @@ describe("project tool definitions", () => {
     expect(names).toEqual([
       "schema.graph",
       "schema.inspect",
+      "npc.environment_policy.schema",
+      "npc.environment_policy.validate",
       "project.inspect",
       "repository.read_file",
       "repository.search",
