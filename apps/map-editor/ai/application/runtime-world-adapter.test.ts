@@ -49,6 +49,39 @@ describe("runtime world adapter", () => {
     expect(observation.perception?.nearbyEntities).toHaveLength(0);
   });
 
+  it("applies explicit npc sensing environment rules", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        state: { ...base.snapshot().state, environmentConditions: { npc_sensing: { hearing_radius: 20, smell_radius: 12, detection_modifier: 1.5 } } },
+      }),
+    };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-sensing", surface: "game", intelligence: "npc", goal: "Sense", observation: {} as RuntimeObservation });
+    expect(observation.perception?.sensing).toEqual({ hearingRadius: 20, smellRadius: 12, detectionModifier: 1.5 });
+  });
+
+  it("ignores weather alone when no sensing rule is configured", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = { ...base, snapshot: () => ({ ...base.snapshot(), state: { ...base.snapshot().state, weather: "rain" } }) };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-weather-sensing", surface: "game", intelligence: "npc", goal: "Sense", observation: {} as RuntimeObservation });
+    expect(observation.perception?.sensing).toEqual({ hearingRadius: 8, smellRadius: 8, detectionModifier: 1 });
+  });
+
+  it("clamps malformed or extreme sensing values", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({ ...base.snapshot(), state: { ...base.snapshot().state, environmentConditions: { npc_sensing: { hearing_radius: -4, smell_radius: 100, detection_modifier: 9 } } } }),
+    };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-sensing-clamp", surface: "game", intelligence: "npc", goal: "Sense", observation: {} as RuntimeObservation });
+    expect(observation.perception?.sensing).toEqual({ hearingRadius: 0, smellRadius: 64, detectionModifier: 4 });
+  });
+
   it("turns the authoritative world store into a perception snapshot", async () => {
     const store = makeStore();
     const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));

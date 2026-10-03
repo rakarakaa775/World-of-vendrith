@@ -48,6 +48,11 @@ export interface RuntimePerception {
     activeRegionId?: string;
     conditions?: Record<string, unknown>;
   };
+  sensing?: {
+    hearingRadius: number;
+    smellRadius: number;
+    detectionModifier: number;
+  };
 }
 
 export interface RuntimeObservation {

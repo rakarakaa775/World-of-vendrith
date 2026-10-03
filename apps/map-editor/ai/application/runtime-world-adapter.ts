@@ -24,6 +24,27 @@ function visibilityRadius(snapshot: RuntimeWorldSnapshot): number {
     : 8;
 }
 
+function sensingRule(snapshot: RuntimeWorldSnapshot): Record<string, unknown> {
+  const configured = snapshot.state.environmentConditions?.npc_sensing;
+  return configured && typeof configured === "object" && !Array.isArray(configured)
+    ? configured as Record<string, unknown>
+    : {};
+}
+
+function sensingRadius(snapshot: RuntimeWorldSnapshot, key: "hearing_radius" | "smell_radius", fallback: number): number {
+  const configured = sensingRule(snapshot)[key];
+  return typeof configured === "number" && Number.isFinite(configured)
+    ? Math.max(0, Math.min(64, Math.floor(configured)))
+    : fallback;
+}
+
+function detectionModifier(snapshot: RuntimeWorldSnapshot): number {
+  const configured = sensingRule(snapshot).detection_modifier;
+  return typeof configured === "number" && Number.isFinite(configured)
+    ? Math.max(0, Math.min(4, configured))
+    : 1;
+}
+
 function nearbyEntities(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): RuntimeEntity[] {
   const radius = visibilityRadius(snapshot);
   return snapshot.entities.filter(entity =>
@@ -49,6 +70,11 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
           season: snapshot.state.clock.season,
           activeRegionId: snapshot.state.activeRegionId,
           ...(snapshot.state.environmentConditions ? { conditions: snapshot.state.environmentConditions } : {}),
+        },
+        sensing: {
+          hearingRadius: sensingRadius(snapshot, "hearing_radius", 8),
+          smellRadius: sensingRadius(snapshot, "smell_radius", 8),
+          detectionModifier: detectionModifier(snapshot),
         },
       } : undefined;
 
