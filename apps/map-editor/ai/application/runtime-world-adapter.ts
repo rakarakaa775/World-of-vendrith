@@ -155,14 +155,45 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
           }
         }
 
+        const configuredDurations = snapshot.state.environmentConditions?.npc_activity_duration;
+        const configuredDuration = configuredDurations && typeof configuredDurations === "object" && !Array.isArray(configuredDurations)
+          ? Number((configuredDurations as Record<string, unknown>)[goal])
+          : NaN;
+        const durationTicks = Number.isFinite(configuredDuration) ? Math.max(1, Math.floor(configuredDuration)) : 1;
+        const previous = entity.state?.npcActivity;
+        const previousActivity = previous && typeof previous === "object" && !Array.isArray(previous)
+          ? previous as Record<string, unknown>
+          : undefined;
+        const sameActivity = previousActivity?.goal === goal
+          && (previousActivity?.status === "started" || previousActivity?.status === "running");
+        const startedAtTick = sameActivity ? Number(previousActivity?.startedAtTick) : snapshot.state.clock.tick;
+        const activityId = sameActivity && typeof previousActivity?.actionId === "string"
+          ? previousActivity.actionId
+          : action.id;
+        const elapsedTicks = Math.max(1, snapshot.state.clock.tick - startedAtTick + 1);
+        const completed = elapsedTicks >= durationTicks;
+        const status = completed ? "completed" : (sameActivity ? "running" : "started");
+
         store.updateEntity({
           ...entity,
           state: {
             ...(entity.state ?? {}),
-            npcActivity: { actionId: action.id, goal, completedAtTick: snapshot.state.clock.tick },
+            npcActivity: {
+              actionId: activityId,
+              goal,
+              status,
+              startedAtTick,
+              updatedAtTick: snapshot.state.clock.tick,
+              ...(completed ? { completedAtTick: snapshot.state.clock.tick } : {}),
+            },
           },
         });
-        return { ok: true, actionId: action.id, stateVersion: store.snapshot().state.stateVersion, detail: "NPC activity completed." };
+        return {
+          ok: true,
+          actionId: action.id,
+          stateVersion: store.snapshot().state.stateVersion,
+          detail: completed ? "NPC activity completed." : "NPC activity is running.",
+        };
       }
 
       if (action.type !== "npc.navigate" || action.intelligence !== "npc" || action.risk !== "safe") {

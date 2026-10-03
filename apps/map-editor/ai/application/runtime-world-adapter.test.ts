@@ -230,6 +230,58 @@ describe("runtime world adapter", () => {
       .toMatchObject({ actionId: "activity-eat-1", goal: "eat", completedAtTick: 1 });
   });
 
+  it("keeps a multi-tick NPC activity stable until its configured duration completes", async () => {
+    const base = makeStore();
+    let tick = 1;
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        state: {
+          ...base.snapshot().state,
+          clock: { ...base.snapshot().state.clock, tick },
+          environmentConditions: { npc_activity_duration: { eat: 3 } },
+        },
+      }),
+    };
+    const port = createRuntimeWorldActionPort(store);
+    const verificationPort = createRuntimeWorldVerificationPort(store);
+    const action = {
+      id: "activity-eat-duration",
+      intelligence: "npc" as const,
+      type: "npc.activity",
+      payload: { entityId: "npc-1", goal: "eat" },
+      risk: "game-rule" as const,
+      reason: "Eat.",
+    };
+
+    const first = await port.execute(action, {} as RuntimeObservation);
+    const firstVerification = await verificationPort.verify(action, first);
+    expect(first.ok).toBe(true);
+    expect(first.detail).toContain("running");
+    expect(firstVerification.ok).toBe(true);
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ actionId: action.id, goal: "eat", status: "started", startedAtTick: 1, updatedAtTick: 1 });
+
+    tick = 2;
+    const second = await port.execute(action, {} as RuntimeObservation);
+    const secondVerification = await verificationPort.verify(action, second);
+    expect(second.ok).toBe(true);
+    expect(second.detail).toContain("running");
+    expect(secondVerification.ok).toBe(true);
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ actionId: action.id, goal: "eat", status: "running", startedAtTick: 1, updatedAtTick: 2 });
+
+    tick = 3;
+    const third = await port.execute(action, {} as RuntimeObservation);
+    const thirdVerification = await verificationPort.verify(action, third);
+    expect(third.ok).toBe(true);
+    expect(third.detail).toContain("completed");
+    expect(thirdVerification.ok).toBe(true);
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ actionId: action.id, goal: "eat", status: "completed", startedAtTick: 1, updatedAtTick: 3, completedAtTick: 3 });
+  });
+
   it("rejects an activity when its configured target has not been reached", async () => {
     const store = makeStore();
     const action = {

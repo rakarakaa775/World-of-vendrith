@@ -53,7 +53,7 @@ describe("npc activity effects", () => {
     const store = needsStore();
     const result = applyVerifiedNpcActivityEffect(
       { id: "action-eat-1", intelligence: "npc", type: "npc.activity", payload: { goal: "eat" }, risk: "game-rule", reason: "Eat." },
-      observation(), true, true, store, createNpcActivityEffectStore(),
+      observation(), true, true, true, store, createNpcActivityEffectStore(),
     );
     expect(result.applied).toBe(true);
     expect(result.needs).toEqual({ hunger: 50, energy: 52, social: 40, safety: 90 });
@@ -65,19 +65,29 @@ describe("npc activity effects", () => {
       const store = needsStore();
       const result = applyVerifiedNpcActivityEffect(
         { id: "action-failed-" + executionOk + verificationOk, intelligence: "npc", type: "npc.activity", payload: { goal: "eat" }, risk: "game-rule", reason: "Eat." },
-        observation(), executionOk, verificationOk, store, createNpcActivityEffectStore(),
+        observation(), executionOk, verificationOk, true, store, createNpcActivityEffectStore(),
       );
       expect(result.applied).toBe(false);
       expect(store.get("npc-1")?.needs).toEqual({ hunger: 80, energy: 50, social: 40, safety: 90 });
     }
   });
 
+  it("does not apply an effect while a multi-tick activity is still running", () => {
+    const store = needsStore();
+    const effects = createNpcActivityEffectStore();
+    const action = { id: "action-eat-running", intelligence: "npc" as const, type: "npc.activity", payload: { goal: "eat" }, risk: "game-rule" as const, reason: "Eat." };
+    const result = applyVerifiedNpcActivityEffect(action, observation(), true, true, false, store, effects);
+    expect(result.applied).toBe(false);
+    expect(result.reason).toContain("still running");
+    expect(store.get("npc-1")?.needs.hunger).toBe(80);
+  });
+
   it("applies the same action effect at most once", () => {
     const store = needsStore();
     const effects = createNpcActivityEffectStore();
     const action = { id: "action-eat-once", intelligence: "npc" as const, type: "npc.activity", payload: { goal: "eat" }, risk: "game-rule" as const, reason: "Eat." };
-    const first = applyVerifiedNpcActivityEffect(action, observation(), true, true, store, effects);
-    const second = applyVerifiedNpcActivityEffect(action, observation(), true, true, store, effects);
+    const first = applyVerifiedNpcActivityEffect(action, observation(), true, true, true, store, effects);
+    const second = applyVerifiedNpcActivityEffect(action, observation(), true, true, true, store, effects);
     expect(first.applied).toBe(true);
     expect(second.applied).toBe(false);
     expect(second.reason).toContain("already");
@@ -89,12 +99,12 @@ describe("npc activity effects", () => {
     const effects = createNpcActivityEffectStore();
     const unsupported = applyVerifiedNpcActivityEffect(
       { id: "action-unsupported", intelligence: "npc", type: "npc.activity", payload: { goal: "wander" }, risk: "safe", reason: "Wander." },
-      observation(), true, true, store, effects,
+      observation(), true, true, true, store, effects,
     );
     expect(unsupported.applied).toBe(false);
     const noConfig = applyVerifiedNpcActivityEffect(
       { id: "action-sleep", intelligence: "npc", type: "npc.activity", payload: { goal: "sleep" }, risk: "game-rule", reason: "Sleep." },
-      observation(), true, true, store, effects,
+      observation(), true, true, true, store, effects,
     );
     expect(noConfig.applied).toBe(false);
     expect(store.get("npc-1")?.needs.hunger).toBe(80);

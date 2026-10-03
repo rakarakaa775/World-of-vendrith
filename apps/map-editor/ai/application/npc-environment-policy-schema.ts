@@ -1,5 +1,5 @@
 export const NPC_ENVIRONMENT_POLICY_KEYS = [
-  "npc_movement", "npc_sensing", "npc_needs", "npc_activity_effects", "npc_behavior",
+  "npc_movement", "npc_sensing", "npc_needs", "npc_activity_effects", "npc_activity_duration", "npc_behavior",
   "npc_goal_priority", "npc_detection_behavior", "npc_investigation_recovery",
 ] as const;
 export type NpcEnvironmentPolicyKey = typeof NPC_ENVIRONMENT_POLICY_KEYS[number];
@@ -38,6 +38,14 @@ export function validateNpcEnvironmentPolicy(value: unknown): NpcEnvironmentPoli
   }
   if ("npc_sensing" in value) checkNumericRecord(value.npc_sensing, ["hearing_radius", "smell_radius", "detection_modifier"], "npc_sensing", errors);
   if ("npc_needs" in value) checkNumericRecord(value.npc_needs, NEED_KEYS, "npc_needs", errors);
+  if ("npc_activity_duration" in value) {
+    const rules = value.npc_activity_duration;
+    if (!object(rules)) errors.push("npc_activity_duration must be an object.");
+    else for (const key of Object.keys(rules)) {
+      if (!(GOAL_KINDS as readonly string[]).includes(key)) { errors.push("Unsupported npc_activity_duration goal: " + key + "."); continue; }
+      if (!finite(rules[key]) || Number(rules[key]) < 1) errors.push("npc_activity_duration." + key + " must be a finite number >= 1.");
+    }
+  }
   if ("npc_activity_effects" in value) {
     const rules = value.npc_activity_effects;
     if (!object(rules)) errors.push("npc_activity_effects must be an object.");

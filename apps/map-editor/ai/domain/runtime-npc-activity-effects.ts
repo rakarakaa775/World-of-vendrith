@@ -1,5 +1,15 @@
 import type { NpcNeedState, RuntimeGoalKind } from "./runtime-goal";
 
+export type NpcActivityStatus = "started" | "running" | "completed" | "interrupted";
+
+export interface NpcActivityRuntimeState {
+  actionId: string;
+  goal: RuntimeGoalKind;
+  status: NpcActivityStatus;
+  startedAtTick: number;
+  updatedAtTick: number;
+}
+
 export interface NpcActivityEffect {
   goal: RuntimeGoalKind;
   needs: Partial<NpcNeedState>;

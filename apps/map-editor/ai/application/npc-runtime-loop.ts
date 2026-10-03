@@ -180,9 +180,19 @@ export async function runNpcRuntimeTick(
     : true;
 
   if (isActivity && atActivityTarget) {
+    const previousActivity = self.state?.npcActivity;
+    const previousActivityRecord = previousActivity && typeof previousActivity === "object" && !Array.isArray(previousActivity)
+      ? previousActivity as Record<string, unknown>
+      : undefined;
+    const continuingActivity = previousActivityRecord?.goal === behavior.kind
+      && (previousActivityRecord?.status === "started" || previousActivityRecord?.status === "running")
+      && typeof previousActivityRecord?.actionId === "string";
+    const activityId = continuingActivity
+      ? String(previousActivityRecord?.actionId)
+      : behavior.action.id + ":activity";
     const activityAction = {
       ...behavior.action,
-      id: behavior.action.id + ":activity",
+      id: activityId,
       type: "npc.activity",
       payload: {
         ...behavior.action.payload,
@@ -208,6 +218,7 @@ export async function runNpcRuntimeTick(
       observation,
       execution.ok,
       verification.ok,
+      execution.detail === "NPC activity completed.",
       needsStore,
       activityEffectStore,
     );
@@ -263,6 +274,7 @@ export async function runNpcRuntimeTick(
     observation,
     execution.ok,
     verification.ok,
+    false,
     needsStore,
     activityEffectStore,
   );
