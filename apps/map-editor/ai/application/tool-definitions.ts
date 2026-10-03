@@ -12,6 +12,7 @@ import { proposeCreatorNpcPackage } from "./npc-creator-package";
 import { NPC_ROLE_SCHEMA, npcRoleArchetypes, validateNpcRole, type NpcRole } from "./npc-role-schema";
 import { NPC_PERSONALITY_SCHEMA, validateNpcPersonality, type NpcPersonalityRequest } from "./npc-personality-schema";
 import { NPC_PERSONALITY_POLICY_SCHEMA, validateNpcPersonalityPolicy, type NpcPersonalityPolicy } from "./npc-personality-policy-schema";
+import { NPC_DECISION_PROFILE_SCHEMA, validateNpcDecisionProfile } from "./npc-decision-profile-schema";
 import { inspectMap } from "./map-inspector";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
@@ -93,6 +94,17 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       parameters: { type: "object", properties: { personality: { type: "object" } }, required: ["personality"] },
       validate: (args): args is { personality: NpcPersonalityRequest } => typeof args === "object" && args !== null,
       async execute(args) { return validateNpcPersonality((args as { personality: unknown }).personality); },
+    },
+    {
+      name: "npc.decision_profile.schema", description: "Return the validated NPC decision profile composition contract.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_DECISION_PROFILE_SCHEMA; },
+    },
+    {
+      name: "npc.decision_profile.validate", description: "Validate an NPC decision profile and its cross-field capability constraints.", access: "read-only",
+      parameters: { type: "object", properties: { profile: { type: "object" } }, required: ["profile"] },
+      validate: (args): args is { profile: unknown } => typeof args === "object" && args !== null,
+      async execute(args) { return validateNpcDecisionProfile((args as { profile?: unknown }).profile); },
     },
     {
       name: "npc.personality_policy.schema", description: "Return the verified explicit NPC personality runtime policy contract.", access: "read-only",

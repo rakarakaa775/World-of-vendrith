@@ -4,6 +4,7 @@ import { validateNpcCapabilities, type NpcCapabilityRequest, type NpcCapabilityV
 import { validateNpcRole, type NpcRole, type NpcRoleValidation } from "./npc-role-schema";
 import { validateNpcPersonality, type NpcPersonalityRequest, type NpcPersonalityValidation } from "./npc-personality-schema";
 import { validateNpcPersonalityPolicy, type NpcPersonalityPolicy, type NpcPersonalityPolicyValidation } from "./npc-personality-policy-schema";
+import { validateNpcDecisionProfile, type NpcDecisionProfile } from "./npc-decision-profile-schema";
 
 export interface CreatorNpcEnvironmentPackage {
   npc: {
@@ -27,9 +28,15 @@ export function proposeCreatorNpcEnvironmentPackage(
   return { npc: { ...npc }, validation };
 }
 
+export function proposeCreatorNpcDecisionProfile(profile: NpcDecisionProfile) {
+  return { profile: { ...profile }, validation: validateNpcDecisionProfile(profile) };
+}
+
 export function proposeCreatorNpcPackage(
   npc: CreatorNpcPackage["npc"],
 ): CreatorNpcPackage {
+  const profileValidation = validateNpcDecisionProfile(npc);
+  const profileCrossFieldErrors = profileValidation.errors.filter(error => error.startsWith("Personality policy "));
   const archetypeValidation = validateNpcArchetype(npc.archetype);
   const environmentValidation = validateNpcEnvironmentPolicy(npc.environmentPolicy);
   const roleValidation = validateNpcRole(npc.role, npc.archetype);
@@ -41,8 +48,8 @@ export function proposeCreatorNpcPackage(
   return {
     npc: { ...npc },
     validation: {
-      ok: archetypeValidation.ok && environmentValidation.ok && roleValidation.ok && personalityValidation.ok && personalityPolicyValidation.ok && capabilityValidation.ok,
-      errors: [...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...personalityValidation.errors, ...personalityPolicyValidation.errors, ...capabilityValidation.errors],
+      ok: profileCrossFieldErrors.length === 0 && environmentValidation.ok && archetypeValidation.ok && roleValidation.ok && personalityValidation.ok && personalityPolicyValidation.ok && capabilityValidation.ok,
+      errors: [...profileCrossFieldErrors, ...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...personalityValidation.errors, ...personalityPolicyValidation.errors, ...capabilityValidation.errors],
     },
   };
 }

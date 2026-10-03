@@ -40,6 +40,7 @@ export * from "./application/npc-archetype-capabilities";
 export * from "./application/npc-role-schema";
 export * from "./application/npc-personality-schema";
 export * from "./application/npc-personality-policy-schema";
+export * from "./application/npc-decision-profile-schema";
 export * from "./application/npc-creator-package";
 
 export * from "./ports/map-tools";
