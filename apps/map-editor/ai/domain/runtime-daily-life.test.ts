@@ -19,23 +19,23 @@ describe("npc daily life state", () => {
     const store = createNpcDailyLifeStateStore();
     const goal = { kind: "work" as const, targetLocation: { mapId: "region-1", x: 3, y: 0 } };
     const first = resolveNpcDailyLifeState(observation(0, 0, 1), goal);
-    expect(first).toMatchObject({ goal: "work", phase: "traveling", startedAtTick: 1 });
+    expect(first).toMatchObject({ goal: "work", phase: "traveling", transition: "started", startedAtTick: 1 });
     store.set(first!);
     const second = resolveNpcDailyLifeState(observation(1, 0, 2), goal, store.get("npc-1"));
-    expect(second).toMatchObject({ goal: "work", phase: "traveling", startedAtTick: 1, updatedAtTick: 2 });
+    expect(second).toMatchObject({ goal: "work", phase: "traveling", transition: "continuing", startedAtTick: 1, updatedAtTick: 2 });
     store.set(second!);
     const third = resolveNpcDailyLifeState(observation(3, 0, 3), goal, store.get("npc-1"));
-    expect(third).toMatchObject({ goal: "work", phase: "active", startedAtTick: 3, updatedAtTick: 3 });
+    expect(third).toMatchObject({ goal: "work", phase: "active", transition: "arrived", startedAtTick: 1, updatedAtTick: 3 });
   });
 
   it("preserves the activity start tick while actively performing the same goal", () => {
     const previous = resolveNpcDailyLifeState(observation(3, 0, 3), { kind: "work", targetLocation: { mapId: "region-1", x: 3, y: 0 } });
     const next = resolveNpcDailyLifeState(observation(3, 0, 4), { kind: "work", targetLocation: { mapId: "region-1", x: 3, y: 0 } }, previous);
-    expect(next).toMatchObject({ goal: "work", phase: "active", startedAtTick: 3, updatedAtTick: 4 });
+    expect(next).toMatchObject({ goal: "work", phase: "active", transition: "continuing", startedAtTick: 3, updatedAtTick: 4 });
   });
   it("resets to a new activity start when the goal changes", () => {
     const previous = resolveNpcDailyLifeState(observation(3, 0, 3), { kind: "work", targetLocation: { mapId: "region-1", x: 3, y: 0 } });
     const next = resolveNpcDailyLifeState(observation(3, 0, 4), { kind: "sleep" }, previous);
-    expect(next).toMatchObject({ goal: "sleep", phase: "active", startedAtTick: 4, updatedAtTick: 4 });
+    expect(next).toMatchObject({ goal: "sleep", phase: "active", transition: "goal-changed", startedAtTick: 4, updatedAtTick: 4 });
   });
 });

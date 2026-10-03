@@ -2,12 +2,14 @@ import type { RuntimeObservation } from "./runtime";
 import type { RuntimeGoalKind } from "./runtime-goal";
 
 export type NpcDailyLifePhase = "idle" | "traveling" | "active";
+export type NpcDailyLifeTransition = "started" | "continuing" | "arrived" | "goal-changed" | "idle";
 
 export interface NpcDailyLifeState {
   npcId: string;
   goal?: RuntimeGoalKind;
   phase: NpcDailyLifePhase;
   targetLocation?: { mapId: string; x: number; y: number };
+  transition: NpcDailyLifeTransition;
   startedAtTick: number;
   updatedAtTick: number;
 }
@@ -51,6 +53,7 @@ export function resolveNpcDailyLifeState(
     return {
       npcId: self.id,
       phase: "idle",
+      transition: previous?.phase === "idle" ? "continuing" : "idle",
       startedAtTick: previous?.phase === "idle" ? previous.startedAtTick : tick,
       updatedAtTick: tick,
     };
@@ -59,14 +62,21 @@ export function resolveNpcDailyLifeState(
   const phase: NpcDailyLifePhase = goal.targetLocation
     ? (atTarget(observation, goal.targetLocation) ? "active" : "traveling")
     : "active";
-  const sameActivity = previous?.goal === goal.kind && previous.phase === phase;
+  const sameGoal = previous?.goal === goal.kind;
+  const sameActivity = sameGoal && previous?.phase === phase;
+  const transition = !previous || !sameGoal
+    ? (previous ? "goal-changed" : "started")
+    : previous.phase !== phase && phase === "active"
+      ? "arrived"
+      : "continuing";
 
   return {
     npcId: self.id,
     goal: goal.kind,
     phase,
     ...(goal.targetLocation ? { targetLocation: goal.targetLocation } : {}),
-    startedAtTick: sameActivity ? previous.startedAtTick : tick,
+    transition,
+    startedAtTick: sameActivity || sameGoal ? previous.startedAtTick : tick,
     updatedAtTick: tick,
   };
 }
