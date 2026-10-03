@@ -75,6 +75,10 @@ const TERRAIN_EVIDENCE = [
 
 const NPC_ARCHETYPE_EVIDENCE = [
   {
+    source: "repository:apps/map-editor/ai/application/npc-archetype-capabilities.ts",
+    fact: "Archetype capability contracts expose only runtime behavior and goal kinds already implemented by the engine; capability requests are validated and never auto-activated.",
+  },
+  {
     source: "repository:apps/map-editor/ai/application/npc-archetype-schema.ts",
     fact: "NPC archetypes are descriptive classifications: production, military, civilian, merchant, worker, companion, enemy, animal, special, and custom.",
   },

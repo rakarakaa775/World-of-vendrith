@@ -32,6 +32,9 @@ describe("project tool definitions", () => {
       "schema.inspect",
       "npc.archetype.schema",
       "npc.archetype.validate",
+      "npc.archetype.capabilities.schema",
+      "npc.archetype.capabilities.get",
+      "npc.archetype.capabilities.validate",
       "npc.environment_policy.schema",
       "npc.environment_policy.propose",
       "npc.creator_package.propose",
@@ -53,6 +56,15 @@ describe("project tool definitions", () => {
     const validate = tools.find(tool => tool.name === "npc.environment_policy.validate");
     expect(propose).toBeDefined();
     expect(validate).toBeDefined();
+
+    const capabilitySchema = tools.find(tool => tool.name === "npc.archetype.capabilities.schema");
+    const capabilityGet = tools.find(tool => tool.name === "npc.archetype.capabilities.get");
+    const capabilityValidate = tools.find(tool => tool.name === "npc.archetype.capabilities.validate");
+    expect(capabilitySchema).toBeDefined();
+    expect(capabilityGet).toBeDefined();
+    expect(capabilityValidate).toBeDefined();
+    await expect(capabilityGet!.execute({ archetype: "military" }, { mode: "explain", requestId: "req-1" })).resolves.toMatchObject({ behaviors: expect.arrayContaining(["investigate", "flee"]) });
+    await expect(capabilityValidate!.execute({ archetype: "enemy", capabilities: { goals: ["eat"] } }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({ ok: false, errors: ["NPC archetype enemy does not allow goal: eat."] });
 
     const archetypeSchema = tools.find(tool => tool.name === "npc.archetype.schema");
     const archetypeValidate = tools.find(tool => tool.name === "npc.archetype.validate");
@@ -76,9 +88,9 @@ describe("project tool definitions", () => {
     const packageTool = tools.find(tool => tool.name === "npc.creator_package.propose");
     expect(packageTool).toBeDefined();
     await expect(packageTool!.execute({
-      npc: { id: "npc-1", name: "Scout", archetype: "military", environmentPolicy: policy },
+      npc: { id: "npc-1", name: "Scout", archetype: "military", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
     }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({
-      npc: { id: "npc-1", name: "Scout", archetype: "military", environmentPolicy: policy },
+      npc: { id: "npc-1", name: "Scout", archetype: "military", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
       validation: { ok: true, errors: [] },
     });
 
@@ -86,6 +98,11 @@ describe("project tool definitions", () => {
       npc: { id: "npc-2", archetype: "commander", environmentPolicy: policy },
     }, { mode: "explain", requestId: "req-1" })).resolves.toMatchObject({
       validation: { ok: false, errors: ["Unsupported NPC archetype: commander."] },
+    });
+    await expect(packageTool!.execute({
+      npc: { id: "npc-3", archetype: "enemy", capabilities: { goals: ["eat"] }, environmentPolicy: policy },
+    }, { mode: "explain", requestId: "req-1" })).resolves.toMatchObject({
+      validation: { ok: false, errors: ["NPC archetype enemy does not allow goal: eat."] },
     });
 
     const invalid = await validate!.execute({

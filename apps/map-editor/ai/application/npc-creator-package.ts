@@ -1,5 +1,6 @@
 import { validateNpcEnvironmentPolicy, type NpcEnvironmentPolicyValidation } from "./npc-environment-policy-schema";
 import { validateNpcArchetype, type NpcArchetype, type NpcArchetypeValidation } from "./npc-archetype-schema";
+import { validateNpcCapabilities, type NpcCapabilityRequest, type NpcCapabilityValidation } from "./npc-archetype-capabilities";
 
 export interface CreatorNpcEnvironmentPackage {
   npc: {
@@ -12,8 +13,8 @@ export interface CreatorNpcEnvironmentPackage {
 }
 
 export interface CreatorNpcPackage {
-  npc: CreatorNpcEnvironmentPackage["npc"];
-  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation;
+  npc: CreatorNpcEnvironmentPackage["npc"] & { capabilities?: NpcCapabilityRequest };
+  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation;
 }
 
 export function proposeCreatorNpcEnvironmentPackage(
@@ -28,11 +29,14 @@ export function proposeCreatorNpcPackage(
 ): CreatorNpcPackage {
   const archetypeValidation = validateNpcArchetype(npc.archetype);
   const environmentValidation = validateNpcEnvironmentPolicy(npc.environmentPolicy);
+  const capabilityValidation = archetypeValidation.ok
+    ? validateNpcCapabilities(npc.archetype, npc.capabilities ?? {})
+    : { ok: true, errors: [] };
   return {
     npc: { ...npc },
     validation: {
-      ok: archetypeValidation.ok && environmentValidation.ok,
-      errors: [...archetypeValidation.errors, ...environmentValidation.errors],
+      ok: archetypeValidation.ok && environmentValidation.ok && capabilityValidation.ok,
+      errors: [...archetypeValidation.errors, ...environmentValidation.errors, ...capabilityValidation.errors],
     },
   };
 }

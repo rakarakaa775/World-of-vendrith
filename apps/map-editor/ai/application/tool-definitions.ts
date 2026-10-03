@@ -7,6 +7,7 @@ import { buildProjectSchemaSummary } from "./schema-intelligence";
 import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
 import { NPC_ENVIRONMENT_POLICY_SCHEMA, validateNpcEnvironmentPolicy } from "./npc-environment-policy-schema";
 import { NPC_ARCHETYPE_SCHEMA, validateNpcArchetype, type NpcArchetype } from "./npc-archetype-schema";
+import { NPC_ARCHETYPE_CAPABILITY_SCHEMA, npcArchetypeCapabilities, validateNpcCapabilities } from "./npc-archetype-capabilities";
 import { proposeCreatorNpcPackage } from "./npc-creator-package";
 import { inspectMap } from "./map-inspector";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
@@ -46,6 +47,23 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       async execute(args) { return validateNpcArchetype((args as { archetype?: unknown }).archetype); },
     },
     {
+      name: "npc.archetype.capabilities.schema", description: "Return the verified allow-list of runtime behavior and goal kinds by NPC archetype. Capabilities never auto-activate runtime behavior.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_ARCHETYPE_CAPABILITY_SCHEMA; },
+    },
+    {
+      name: "npc.archetype.capabilities.get", description: "Return the explicit runtime capabilities available to a supported NPC archetype.", access: "read-only",
+      parameters: { type: "object", properties: { archetype: { type: "string" } }, required: ["archetype"] },
+      validate: (args): args is { archetype: NpcArchetype } => typeof args === "object" && args !== null && validateNpcArchetype((args as { archetype?: unknown }).archetype).ok,
+      async execute(args) { return npcArchetypeCapabilities((args as { archetype: NpcArchetype }).archetype); },
+    },
+    {
+      name: "npc.archetype.capabilities.validate", description: "Validate explicitly requested runtime behaviors and goals against an NPC archetype.", access: "read-only",
+      parameters: { type: "object", properties: { archetype: { type: "string" }, capabilities: { type: "object" } }, required: ["archetype", "capabilities"] },
+      validate: (args): args is { archetype: unknown; capabilities: Record<string, unknown> } => typeof args === "object" && args !== null && typeof (args as { capabilities?: unknown }).capabilities === "object" && (args as { capabilities?: unknown }).capabilities !== null,
+      async execute(args) { const value = args as { archetype: unknown; capabilities: Record<string, unknown> }; return validateNpcCapabilities(value.archetype, value.capabilities); },
+    },
+    {
       name: "npc.environment_policy.schema", description: "Return the verified NPC environment policy contract for Creator AI generation.", access: "read-only",
       parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
       async execute() { return NPC_ENVIRONMENT_POLICY_SCHEMA; },
@@ -59,11 +77,12 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     {
       name: "npc.creator_package.propose", description: "Build a Creator AI NPC package containing identity, optional descriptive archetype, and validated environment policy. This remains read-only and does not mutate the project.", access: "read-only",
       parameters: { type: "object", properties: { npc: { type: "object" } }, required: ["npc"] },
-      validate: (args): args is { npc: { id: string; name?: string; archetype?: string; environmentPolicy: Record<string, unknown> } } => {
+      validate: (args): args is { npc: { id: string; name?: string; archetype?: string; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } } => {
         if (typeof args !== "object" || args === null || typeof (args as { npc?: unknown }).npc !== "object" || (args as { npc?: unknown }).npc === null) return false;
         const npc = (args as { npc: Record<string, unknown> }).npc;
         return typeof npc.id === "string" && (npc.name === undefined || typeof npc.name === "string") &&
           (npc.archetype === undefined || typeof npc.archetype === "string") &&
+          (npc.capabilities === undefined || (typeof npc.capabilities === "object" && npc.capabilities !== null && !Array.isArray(npc.capabilities))) &&
           typeof npc.environmentPolicy === "object" && npc.environmentPolicy !== null && !Array.isArray(npc.environmentPolicy);
       },
       async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; environmentPolicy: Record<string, unknown> } }).npc); },
