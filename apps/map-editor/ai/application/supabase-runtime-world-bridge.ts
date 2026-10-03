@@ -13,6 +13,7 @@ export interface SupabaseRuntimeWorldBridge {
 }
 
 function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: NavigationGrid }, mapId: string): RuntimeWorldStore {
+  const engineStateVersion = initial.snapshot.state.stateVersion.replace(/:runtime:\d+$/, "");
   let snapshot: RuntimeWorldSnapshot = {
     state: { ...initial.snapshot.state, clock: { ...initial.snapshot.state.clock } },
     entities: initial.snapshot.entities.map(entity => ({ ...entity, position: { ...entity.position }, state: entity.state ? { ...entity.state } : undefined })),
@@ -32,7 +33,7 @@ function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: Navi
         state: {
           ...snapshot.state,
           clock: { ...snapshot.state.clock, tick: nextTick },
-          stateVersion: `${snapshot.state.stateVersion}:runtime:${nextTick}`,
+          stateVersion: `${engineStateVersion}:runtime:${nextTick}`,
         },
         entities,
       };

@@ -1,0 +1,35 @@
+import { describe, expect, it } from "vitest";
+import type { NavigationGrid } from "../domain/runtime-navigation";
+import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
+import { createSupabaseRuntimeEngine } from "./supabase-runtime-engine";
+
+function adapter() {
+  const snapshot: RuntimeWorldSnapshot = {
+    state: { worldId: "world-1", clock: { tick: 0, day: 1, hour: 8, minute: 0, season: "spring" }, activeEventIds: [], stateVersion: "engine:1" },
+    entities: [
+      { id: "npc-1", kind: "npc", mapId: "map-1", position: { x: 0, y: 0 }, state: { name: "Aldren", blocksMovement: true } },
+      { id: "npc-2", kind: "npc", mapId: "map-1", position: { x: 0, y: 2 }, state: { name: "Elira", blocksMovement: true } },
+      { id: "player-1", kind: "player", mapId: "map-1", position: { x: 2, y: 0 }, state: { blocksMovement: false } },
+    ],
+  };
+  const grid: NavigationGrid = { width: 3, height: 3, blocked: Array(9).fill(false) };
+  return { async load(mapId: string) { return mapId === "map-1" ? { snapshot, grid } : undefined; } };
+}
+
+describe("supabase runtime engine", () => {
+  it("runs all NPCs through the engine bridge and preserves runtime state versions", async () => {
+    const engine = await createSupabaseRuntimeEngine(adapter() as never, "map-1");
+    expect(engine).toBeDefined();
+    const result = await engine!.tick();
+    expect(result.results).toHaveLength(2);
+    expect(result.results.every(item => item.status === "moved")).toBe(true);
+    expect(engine!.bridge.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
+    expect(engine!.bridge.snapshot().state.stateVersion).toBe("engine:1:runtime:2");
+    expect(result.tick).toBe(2);
+  });
+
+  it("fails closed when the engine cannot load the map", async () => {
+    const engine = await createSupabaseRuntimeEngine(adapter() as never, "missing");
+    expect(engine).toBeUndefined();
+  });
+});
