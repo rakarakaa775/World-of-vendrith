@@ -17,8 +17,23 @@ describe("schema knowledge graph", () => {
       ["map-layer", "stores", "terrain-cell"],
       ["map-layer", "stores", "map-object"],
       ["map-object", "references", "asset"],
+      ["npc", "supports", "npc-environment-policy"],
     ]);
     expect(graph.edges.every((edge) => edge.evidence.every((item) => item.confidence === "high"))).toBe(true);
+    expect(graph.edges.some((edge) => edge.from === "npc" && edge.to === "npc-environment-policy")).toBe(true);
+  });
+
+  it("exposes verified NPC environment policy capabilities", async () => {
+    const repository = {
+      readFile: vi.fn(async () => null),
+      search: vi.fn(async () => []),
+    };
+
+    const graph = await buildProjectSchemaKnowledgeGraph(repository);
+    const policy = graph.nodes.find((node) => node.id === "npc-environment-policy");
+    expect(policy?.kind).toBe("npc-environment-policy");
+    expect(policy?.evidence.some((item) => item.fact.includes("retry or clear"))).toBe(true);
+    expect(policy?.evidence.some((item) => item.fact.includes("deterministic path replanning"))).toBe(true);
   });
 
   it("keeps unsupported NPC, dialogue, and event relations out of the graph", async () => {
@@ -29,7 +44,7 @@ describe("schema knowledge graph", () => {
 
     const graph = await buildProjectSchemaKnowledgeGraph(repository);
     expect(graph.nodes.filter((node) => ["npc", "dialogue", "event"].includes(node.id))).toHaveLength(3);
-    expect(graph.edges.some((edge) => ["npc", "dialogue", "event"].includes(edge.from) || ["npc", "dialogue", "event"].includes(edge.to))).toBe(false);
+    expect(graph.edges.some((edge) => ["dialogue", "event"].includes(edge.from) || ["dialogue", "event"].includes(edge.to))).toBe(false);
   });
 
   it("records the asset provenance contract as graph evidence", async () => {

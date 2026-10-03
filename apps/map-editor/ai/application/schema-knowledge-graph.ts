@@ -9,7 +9,8 @@ export type SchemaNodeKind =
   | "map-layer"
   | "terrain-cell"
   | "map-object"
-  | "asset";
+  | "asset"
+  | "npc-environment-policy";
 
 export interface SchemaNode {
   id: string;
@@ -68,6 +69,25 @@ const TERRAIN_EVIDENCE = [
   {
     source: "repository:apps/map-editor/editor/terrain-engine.ts",
     fact: "Water depth is represented by water, brackish, deepwater2, and deepwater bands.",
+  },
+];
+
+const NPC_ENVIRONMENT_POLICY_EVIDENCE = [
+  {
+    source: "repository:apps/map-editor/ai/application/npc-navigation.ts",
+    fact: "NPC movement supports explicit environment movement cost rules and deterministic path replanning.",
+  },
+  {
+    source: "repository:apps/map-editor/ai/application/runtime-world-adapter.ts",
+    fact: "NPC sensing supports explicit hearing radius, smell radius, and detection modifier rules.",
+  },
+  {
+    source: "repository:apps/map-editor/ai/application/environment-npc-effects.ts",
+    fact: "NPC behavior, needs, goals, detection reactions, and investigation recovery can be changed only by explicit environment condition rules.",
+  },
+  {
+    source: "repository:apps/map-editor/ai/application/environment-npc-effects.ts",
+    fact: "Investigation recovery explicitly supports retry or clear for navigation, execution, and verification failures.",
   },
 ];
 
@@ -146,6 +166,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       label: "Asset",
       evidence: evidence("schema-graph-asset", ASSET_EVIDENCE),
     },
+    {
+      id: "npc-environment-policy",
+      kind: "npc-environment-policy",
+      label: "NPC Environment Policy",
+      evidence: evidence("schema-graph-npc-environment-policy", NPC_ENVIRONMENT_POLICY_EVIDENCE),
+    },
   );
 
   const edges: SchemaEdge[] = [
@@ -190,6 +216,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       relation: "references",
       to: "asset",
       evidence: evidence("schema-graph-object-asset", MAP_CONTENT_EVIDENCE),
+    },
+    {
+      from: "npc",
+      relation: "supports",
+      to: "npc-environment-policy",
+      evidence: evidence("schema-graph-npc-environment-policy-edge", NPC_ENVIRONMENT_POLICY_EVIDENCE),
     },
   ];
 
