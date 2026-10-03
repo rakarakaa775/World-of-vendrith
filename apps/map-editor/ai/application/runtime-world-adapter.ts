@@ -5,7 +5,7 @@ import type { RuntimeMovementState } from "../domain/runtime-movement";
 import type { RuntimeActionPort, RuntimeObservationSource, RuntimeVerificationPort } from "../ports/runtime";
 import { executeNpcMovementStep } from "./npc-movement";
 import { verifiedEvidence } from "./evidence";
-import { effectiveNpcEnvironmentConditionsForEntity } from "./npc-environment-policy-runtime";
+import { effectiveNpcEnvironmentConditionsForEntity, npcActivityRecoveryStrategyFromConditions } from "./npc-environment-policy-runtime";
 
 export interface RuntimeWorldSnapshot {
   state: RuntimeObservation["state"];
@@ -164,18 +164,30 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
         const previousActivity = previous && typeof previous === "object" && !Array.isArray(previous)
           ? previous as Record<string, unknown>
           : undefined;
+        const recoveryStrategy = npcActivityRecoveryStrategyFromConditions(
+          effectiveNpcEnvironmentConditionsForEntity(snapshot.state.environmentConditions, entity),
+          goal,
+        );
+        const interruptedActivity = previousActivity?.goal === goal && previousActivity?.status === "interrupted";
+        const restartActivity = interruptedActivity && recoveryStrategy === "restart";
         const resumableActivity = previousActivity?.goal === goal
-          && (previousActivity?.status === "started" || previousActivity?.status === "running" || previousActivity?.status === "interrupted");
-        const previousElapsedTicks = typeof previousActivity?.elapsedTicks === "number" && Number.isFinite(previousActivity.elapsedTicks)
+          && (previousActivity?.status === "started" || previousActivity?.status === "running" || previousActivity?.status === "interrupted")
+          && recoveryStrategy !== "abandon"
+          && recoveryStrategy !== "switch";
+        const previousElapsedTicks = resumableActivity && !restartActivity
+          && typeof previousActivity?.elapsedTicks === "number"
+          && Number.isFinite(previousActivity.elapsedTicks)
           ? Math.max(0, Math.floor(previousActivity.elapsedTicks))
           : 0;
-        const startedAtTick = resumableActivity ? Number(previousActivity?.startedAtTick) : snapshot.state.clock.tick;
+        const startedAtTick = resumableActivity && !restartActivity ? Number(previousActivity?.startedAtTick) : snapshot.state.clock.tick;
         const activityId = resumableActivity && typeof previousActivity?.actionId === "string"
           ? previousActivity.actionId
           : action.id;
         const elapsedTicks = previousElapsedTicks + 1;
         const completed = elapsedTicks >= durationTicks;
-        const status = completed ? "completed" : (previousActivity?.status === "interrupted" ? "running" : (resumableActivity ? "running" : "started"));
+        const status = completed
+          ? "completed"
+          : (resumableActivity && !restartActivity ? "running" : "started");
 
         store.updateEntity({
           ...entity,
@@ -189,6 +201,7 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
               updatedAtTick: snapshot.state.clock.tick,
               elapsedTicks,
               ...(completed ? { completedAtTick: snapshot.state.clock.tick } : {}),
+              ...(restartActivity ? { recoveryStrategy: "restart" } : {}),
             },
           },
         });

@@ -8,6 +8,7 @@ describe("NPC environment policy schema", () => {
       npc_sensing: { hearing_radius: 8, smell_radius: 4, detection_modifier: 1.5 },
       npc_needs: { hunger: 2, energy: -1 },
       npc_activity_duration: { work: 8, eat: 3, sleep: 6 },
+      npc_activity_recovery: { work: "resume", eat: "restart", sleep: "abandon" },
       npc_behavior: { flee: { priority_delta: 20, reason: "Explicit danger response." } },
       npc_goal_priority: { sleep: 5 },
       npc_detection_behavior: {
@@ -37,6 +38,18 @@ describe("NPC environment policy schema", () => {
       "npc_investigation_recovery.navigation.action must be retry or clear.",
     ]));
   });
+  it("rejects malformed activity recovery values", () => {
+    const result = validateNpcEnvironmentPolicy({
+      npc_activity_recovery: { eat: "pause", dance: "resume", sleep: 7 },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining([
+      "npc_activity_recovery.eat must be resume, restart, abandon, or switch.",
+      "Unsupported npc_activity_recovery goal: dance.",
+      "npc_activity_recovery.sleep must be resume, restart, abandon, or switch.",
+    ]));
+  });
+
   it("rejects malformed duration values", () => {
     const result = validateNpcEnvironmentPolicy({
       npc_activity_duration: { eat: 0, sleep: "long", dance: 4 },
@@ -62,6 +75,7 @@ describe("NPC environment policy schema", () => {
 
   it("exposes the same recovery actions supported by the runtime", () => {
     expect(NPC_ENVIRONMENT_POLICY_SCHEMA.recoveryActions).toEqual(["retry", "clear"]);
+    expect(NPC_ENVIRONMENT_POLICY_SCHEMA.activityRecoveryStrategies).toEqual(["resume", "restart", "abandon", "switch"]);
     expect(NPC_ENVIRONMENT_POLICY_SCHEMA.investigationFailures).toEqual([
       "navigation", "execution", "verification",
     ]);

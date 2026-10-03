@@ -1,6 +1,8 @@
 import type { NpcNeedState, RuntimeGoalKind } from "./runtime-goal";
 
-export type NpcActivityStatus = "started" | "running" | "completed" | "interrupted";
+export type NpcActivityStatus = "started" | "running" | "completed" | "interrupted" | "abandoned";
+
+export type NpcActivityRecoveryStrategy = "resume" | "restart" | "abandon" | "switch";
 
 export interface NpcActivityRuntimeState {
   actionId: string;

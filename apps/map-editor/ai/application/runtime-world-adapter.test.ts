@@ -338,6 +338,92 @@ describe("runtime world adapter", () => {
       .toMatchObject({ status: "completed", elapsedTicks: 3, completedAtTick: 4 });
   });
 
+  it("restarts an interrupted activity when recovery policy says restart", async () => {
+    const base = makeStore();
+    let tick = 1;
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        state: {
+          ...base.snapshot().state,
+          clock: { ...base.snapshot().state.clock, tick },
+          environmentConditions: {
+            npc_activity_duration: { work: 3 },
+            npc_activity_recovery: { work: "restart" },
+          },
+        },
+      }),
+    };
+    const port = createRuntimeWorldActionPort(store);
+    const action = {
+      id: "activity-work-restart",
+      intelligence: "npc" as const,
+      type: "npc.activity",
+      payload: { entityId: "npc-1", goal: "work" },
+      risk: "game-rule" as const,
+      reason: "Work.",
+    };
+    await port.execute(action, {} as RuntimeObservation);
+    tick = 2;
+    const entity = store.snapshot().entities.find(candidate => candidate.id === "npc-1")!;
+    store.updateEntity({
+      ...entity,
+      state: {
+        ...(entity.state ?? {}),
+        npcActivity: { ...(entity.state?.npcActivity as Record<string, unknown>), status: "interrupted", updatedAtTick: 2 },
+      },
+    });
+    tick = 3;
+    const restarted = await port.execute(action, {} as RuntimeObservation);
+    expect(restarted.detail).toContain("running");
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ status: "started", elapsedTicks: 1, startedAtTick: 3, recoveryStrategy: "restart" });
+  });
+
+  it("does not resume an interrupted activity when recovery policy says abandon", async () => {
+    const base = makeStore();
+    let tick = 1;
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        state: {
+          ...base.snapshot().state,
+          clock: { ...base.snapshot().state.clock, tick },
+          environmentConditions: {
+            npc_activity_duration: { work: 3 },
+            npc_activity_recovery: { work: "abandon" },
+          },
+        },
+      }),
+    };
+    const port = createRuntimeWorldActionPort(store);
+    const action = {
+      id: "activity-work-abandon",
+      intelligence: "npc" as const,
+      type: "npc.activity",
+      payload: { entityId: "npc-1", goal: "work" },
+      risk: "game-rule" as const,
+      reason: "Work.",
+    };
+    await port.execute(action, {} as RuntimeObservation);
+    tick = 2;
+    const entity = store.snapshot().entities.find(candidate => candidate.id === "npc-1")!;
+    store.updateEntity({
+      ...entity,
+      state: {
+        ...(entity.state ?? {}),
+        npcActivity: { ...(entity.state?.npcActivity as Record<string, unknown>), status: "interrupted", updatedAtTick: 2 },
+      },
+    });
+    tick = 3;
+    const abandoned = await port.execute(action, {} as RuntimeObservation);
+    expect(abandoned.detail).toContain("running");
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ status: "started", elapsedTicks: 1, startedAtTick: 3 });
+  });
+
   it("rejects an activity when its configured target has not been reached", async () => {
     const store = makeStore();
     const action = {

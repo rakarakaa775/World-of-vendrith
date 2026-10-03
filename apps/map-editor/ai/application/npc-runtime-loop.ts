@@ -17,6 +17,7 @@ import type { RuntimeWorldStore } from "./runtime-world-adapter";
 import { createNpcRelationshipRuntimeStore, withNpcRuntimeRelationships, type NpcRelationshipRuntimeStore } from "./npc-relationship-runtime-store";
 import type { NpcRelationship } from "./npc-relationship-schema";
 import { validateNpcRelationshipPolicy, type NpcRelationshipPolicyValidation } from "./npc-relationship-policy-schema";
+import { npcActivityRecoveryStrategyFromConditions } from "./npc-environment-policy-runtime";
 
 export interface NpcRuntimeSocialDiagnostics {
   relationships: readonly NpcRelationship[];
@@ -187,14 +188,21 @@ export async function runNpcRuntimeTick(
     (previousActivityStatus === "started" || previousActivityStatus === "running"),
   );
   if (shouldInterruptActivity) {
+    const previousGoal = previousActivityGoal as RuntimeGoalKind;
+    const recoveryStrategy = npcActivityRecoveryStrategyFromConditions(
+      observation.state.environmentConditions,
+      previousGoal,
+    );
+    const nextStatus = recoveryStrategy === "abandon" || recoveryStrategy === "switch" ? "abandoned" : "interrupted";
     world.updateEntity({
       ...self,
       state: {
         ...(self.state ?? {}),
         npcActivity: {
           ...previousActivityRecord,
-          status: "interrupted",
+          status: nextStatus,
           updatedAtTick: observation.state.clock.tick,
+          ...(recoveryStrategy === "restart" ? { recoveryStrategy: "restart" } : {}),
         },
       },
     });
@@ -208,8 +216,28 @@ export async function runNpcRuntimeTick(
     const previousActivityRecord = previousActivity && typeof previousActivity === "object" && !Array.isArray(previousActivity)
       ? previousActivity as Record<string, unknown>
       : undefined;
+    const recoveryStrategy = npcActivityRecoveryStrategyFromConditions(
+      observation.state.environmentConditions,
+      behavior.kind as RuntimeGoalKind,
+    );
+    if (previousActivityRecord?.goal === behavior.kind
+      && previousActivityRecord?.status === "interrupted"
+      && (recoveryStrategy === "abandon" || recoveryStrategy === "switch")) {
+      world.updateEntity({
+        ...self,
+        state: {
+          ...(self.state ?? {}),
+          npcActivity: {
+            ...previousActivityRecord,
+            status: "abandoned",
+            updatedAtTick: observation.state.clock.tick,
+          },
+        },
+      });
+      return { observation, behavior, socialDiagnostics, dailyLife, needs, status: "idle" };
+    }
     const continuingActivity = previousActivityRecord?.goal === behavior.kind
-      && (previousActivityRecord?.status === "started" || previousActivityRecord?.status === "running")
+      && (previousActivityRecord?.status === "started" || previousActivityRecord?.status === "running" || previousActivityRecord?.status === "interrupted")
       && typeof previousActivityRecord?.actionId === "string";
     const activityId = continuingActivity
       ? String(previousActivityRecord?.actionId)

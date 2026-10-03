@@ -1,5 +1,5 @@
 export const NPC_ENVIRONMENT_POLICY_KEYS = [
-  "npc_movement", "npc_sensing", "npc_needs", "npc_activity_effects", "npc_activity_duration", "npc_behavior",
+  "npc_movement", "npc_sensing", "npc_needs", "npc_activity_effects", "npc_activity_duration", "npc_activity_recovery", "npc_behavior",
   "npc_goal_priority", "npc_detection_behavior", "npc_investigation_recovery",
 ] as const;
 export type NpcEnvironmentPolicyKey = typeof NPC_ENVIRONMENT_POLICY_KEYS[number];
@@ -9,6 +9,7 @@ const DETECTION_CHANNELS = ["visibility", "hearing", "smell"] as const;
 const NEED_KEYS = ["hunger", "energy", "social", "safety"] as const;
 const BEHAVIOR_KINDS = ["idle", "follow-player", "wander", "investigate", "flee"] as const;
 const GOAL_KINDS = ["work", "eat", "sleep", "go-to-location", "respond-to-event"] as const;
+const ACTIVITY_RECOVERY_STRATEGIES = ["resume", "restart", "abandon", "switch"] as const;
 
 export type NpcEnvironmentPolicy = Record<string, unknown>;
 
@@ -44,6 +45,16 @@ export function validateNpcEnvironmentPolicy(value: unknown): NpcEnvironmentPoli
     else for (const key of Object.keys(rules)) {
       if (!(GOAL_KINDS as readonly string[]).includes(key)) { errors.push("Unsupported npc_activity_duration goal: " + key + "."); continue; }
       if (!finite(rules[key]) || Number(rules[key]) < 1) errors.push("npc_activity_duration." + key + " must be a finite number >= 1.");
+    }
+  }
+  if ("npc_activity_recovery" in value) {
+    const rules = value.npc_activity_recovery;
+    if (!object(rules)) errors.push("npc_activity_recovery must be an object.");
+    else for (const key of Object.keys(rules)) {
+      if (!(GOAL_KINDS as readonly string[]).includes(key)) { errors.push("Unsupported npc_activity_recovery goal: " + key + "."); continue; }
+      if (!(ACTIVITY_RECOVERY_STRATEGIES as readonly string[]).includes(String(rules[key]))) {
+        errors.push("npc_activity_recovery." + key + " must be resume, restart, abandon, or switch.");
+      }
     }
   }
   if ("npc_activity_effects" in value) {
@@ -101,5 +112,5 @@ export function validateNpcEnvironmentPolicy(value: unknown): NpcEnvironmentPoli
 export const NPC_ENVIRONMENT_POLICY_SCHEMA = {
   keys: NPC_ENVIRONMENT_POLICY_KEYS, behaviorKinds: BEHAVIOR_KINDS, goalKinds: GOAL_KINDS,
   detectionChannels: DETECTION_CHANNELS, investigationFailures: FAILURE_KEYS,
-  recoveryActions: ["retry", "clear"] as const,
+  recoveryActions: ["retry", "clear"] as const, activityRecoveryStrategies: ACTIVITY_RECOVERY_STRATEGIES,
 };
