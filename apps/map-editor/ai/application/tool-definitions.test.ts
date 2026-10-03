@@ -31,6 +31,7 @@ describe("project tool definitions", () => {
       "schema.graph",
       "schema.inspect",
       "npc.environment_policy.schema",
+      "npc.environment_policy.propose",
       "npc.environment_policy.validate",
       "project.inspect",
       "repository.read_file",
@@ -41,6 +42,27 @@ describe("project tool definitions", () => {
       "asset_registry.search",
       "verification.run",
     ]);
+  });
+
+  it("proposes and validates structured NPC environment configuration", async () => {
+    const tools = createProjectTools(dependencies());
+    const propose = tools.find(tool => tool.name === "npc.environment_policy.propose");
+    const validate = tools.find(tool => tool.name === "npc.environment_policy.validate");
+    expect(propose).toBeDefined();
+    expect(validate).toBeDefined();
+
+    const policy = {
+      npc_sensing: { hearing_radius: 8 },
+      npc_detection_behavior: { hearing: { investigate: { priority_delta: 20, reason: "Investigate sound." } } },
+      npc_investigation_recovery: { navigation: { action: "retry" } },
+    };
+    const proposed = await propose!.execute({ policy }, { mode: "explain", requestId: "req-1" });
+    expect(proposed).toEqual({ policy, validation: { ok: true, errors: [] } });
+
+    const invalid = await validate!.execute({
+      policy: { npc_investigation_recovery: { navigation: { action: "alternate_route" } } },
+    }, { mode: "explain", requestId: "req-1" });
+    expect(invalid.ok).toBe(false);
   });
 
   it("executes CodeGraph and asset registry tools through their ports", async () => {

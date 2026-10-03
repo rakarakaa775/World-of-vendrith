@@ -38,6 +38,12 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       async execute() { return NPC_ENVIRONMENT_POLICY_SCHEMA; },
     },
     {
+      name: "npc.environment_policy.propose", description: "Normalize a Creator AI NPC environment policy proposal into the explicit runtime configuration shape. Validation is required before the proposal can be treated as valid.", access: "read-only",
+      parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
+      validate: (args): args is { policy: Record<string, unknown> } => typeof args === "object" && args !== null && typeof (args as { policy?: unknown }).policy === "object" && (args as { policy?: unknown }).policy !== null && !Array.isArray((args as { policy: unknown }).policy),
+      async execute(args) { const policy = (args as { policy: Record<string, unknown> }).policy; return { policy, validation: validateNpcEnvironmentPolicy(policy) }; },
+    },
+    {
       name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", access: "read-only",
       parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
       validate: (args): args is { policy: Record<string, unknown> } => typeof args === "object" && args !== null && typeof (args as { policy?: unknown }).policy === "object" && (args as { policy?: unknown }).policy !== null && !Array.isArray((args as { policy: unknown }).policy),
