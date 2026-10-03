@@ -8,6 +8,8 @@ import { createRuntimeDecision } from "./runtime-decision";
 import { decideNpcNavigation } from "./npc-navigation";
 import { investigationRecoveryAction, type InvestigationFailure } from "./environment-npc-effects";
 import type { RuntimeWorldStore } from "./runtime-world-adapter";
+import { createNpcRelationshipRuntimeStore, withNpcRuntimeRelationships, type NpcRelationshipRuntimeStore } from "./npc-relationship-runtime-store";
+import type { NpcRelationship } from "./npc-relationship-schema";
 
 export interface NpcRuntimeTickResult {
   observation: RuntimeObservation;
@@ -59,8 +61,20 @@ export async function runNpcRuntimeTick(
   ports: RuntimeAiPorts,
   world: RuntimeWorldStore,
   memoryStore?: NpcBehaviorMemoryStore,
+  relationshipStore: NpcRelationshipRuntimeStore = createNpcRelationshipRuntimeStore(),
 ): Promise<NpcRuntimeTickResult> {
-  const observation = await ports.observation.observe(request);
+  const observed = await ports.observation.observe(request);
+  const observedSelf = observed.perception?.self;
+  if (observedSelf?.kind === "npc") {
+    const profile = observedSelf.state?.decisionProfile;
+    const relationships = profile && typeof profile === "object" && !Array.isArray(profile)
+      ? (profile as Record<string, unknown>).relationships
+      : undefined;
+    if (Array.isArray(relationships) && !relationshipStore.get(observedSelf.id)) {
+      relationshipStore.set(observedSelf.id, relationships as readonly NpcRelationship[]);
+    }
+  }
+  const observation = withNpcRuntimeRelationships(observed, relationshipStore);
   const candidates = createNpcBehaviorCandidates(observation, observation.perception?.self ? memoryStore?.get(observation.perception.self.id) : undefined);
   if (!candidates.length) return { observation, behavior: undefined, status: "invalid" };
 

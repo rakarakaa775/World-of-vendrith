@@ -47,6 +47,7 @@ export * from "./application/npc-relationship-schema";
 export * from "./application/npc-relationship-policy-schema";
 export * from "./application/npc-social-interaction-schema";
 export * from "./application/npc-relationship-memory-runtime";
+export * from "./application/npc-relationship-runtime-store";
 
 export * from "./ports/map-tools";
 export * from "./application/map-inspector";
