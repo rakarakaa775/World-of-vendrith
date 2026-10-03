@@ -164,15 +164,18 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
         const previousActivity = previous && typeof previous === "object" && !Array.isArray(previous)
           ? previous as Record<string, unknown>
           : undefined;
-        const sameActivity = previousActivity?.goal === goal
-          && (previousActivity?.status === "started" || previousActivity?.status === "running");
-        const startedAtTick = sameActivity ? Number(previousActivity?.startedAtTick) : snapshot.state.clock.tick;
-        const activityId = sameActivity && typeof previousActivity?.actionId === "string"
+        const resumableActivity = previousActivity?.goal === goal
+          && (previousActivity?.status === "started" || previousActivity?.status === "running" || previousActivity?.status === "interrupted");
+        const previousElapsedTicks = typeof previousActivity?.elapsedTicks === "number" && Number.isFinite(previousActivity.elapsedTicks)
+          ? Math.max(0, Math.floor(previousActivity.elapsedTicks))
+          : 0;
+        const startedAtTick = resumableActivity ? Number(previousActivity?.startedAtTick) : snapshot.state.clock.tick;
+        const activityId = resumableActivity && typeof previousActivity?.actionId === "string"
           ? previousActivity.actionId
           : action.id;
-        const elapsedTicks = Math.max(1, snapshot.state.clock.tick - startedAtTick + 1);
+        const elapsedTicks = previousElapsedTicks + 1;
         const completed = elapsedTicks >= durationTicks;
-        const status = completed ? "completed" : (sameActivity ? "running" : "started");
+        const status = completed ? "completed" : (previousActivity?.status === "interrupted" ? "running" : (resumableActivity ? "running" : "started"));
 
         store.updateEntity({
           ...entity,
@@ -184,6 +187,7 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
               status,
               startedAtTick,
               updatedAtTick: snapshot.state.clock.tick,
+              elapsedTicks,
               ...(completed ? { completedAtTick: snapshot.state.clock.tick } : {}),
             },
           },

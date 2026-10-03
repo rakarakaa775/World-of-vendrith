@@ -8,6 +8,7 @@ export interface NpcActivityRuntimeState {
   status: NpcActivityStatus;
   startedAtTick: number;
   updatedAtTick: number;
+  elapsedTicks?: number;
 }
 
 export interface NpcActivityEffect {

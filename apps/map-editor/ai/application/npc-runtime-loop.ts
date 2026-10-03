@@ -175,6 +175,30 @@ export async function runNpcRuntimeTick(
   if (!self) return { observation, behavior, socialDiagnostics, needs, status: "invalid" };
 
   const isActivity = behavior.kind === "work" || behavior.kind === "eat" || behavior.kind === "sleep";
+  const previousActivity = self.state?.npcActivity;
+  const previousActivityRecord = previousActivity && typeof previousActivity === "object" && !Array.isArray(previousActivity)
+    ? previousActivity as Record<string, unknown>
+    : undefined;
+  const previousActivityGoal = typeof previousActivityRecord?.goal === "string" ? previousActivityRecord.goal : undefined;
+  const previousActivityStatus = previousActivityRecord?.status;
+  const shouldInterruptActivity = Boolean(
+    previousActivityGoal &&
+    previousActivityGoal !== behavior.kind &&
+    (previousActivityStatus === "started" || previousActivityStatus === "running"),
+  );
+  if (shouldInterruptActivity) {
+    world.updateEntity({
+      ...self,
+      state: {
+        ...(self.state ?? {}),
+        npcActivity: {
+          ...previousActivityRecord,
+          status: "interrupted",
+          updatedAtTick: observation.state.clock.tick,
+        },
+      },
+    });
+  }
   const atActivityTarget = goal
     ? self.position.x === goal.x && self.position.y === goal.y
     : true;

@@ -282,6 +282,62 @@ describe("runtime world adapter", () => {
       .toMatchObject({ actionId: action.id, goal: "eat", status: "completed", startedAtTick: 1, updatedAtTick: 3, completedAtTick: 3 });
   });
 
+  it("pauses an interrupted activity and resumes its remaining duration", async () => {
+    const base = makeStore();
+    let tick = 1;
+    let interrupted = false;
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        state: {
+          ...base.snapshot().state,
+          clock: { ...base.snapshot().state.clock, tick },
+          environmentConditions: { npc_activity_duration: { work: 3 } },
+        },
+      }),
+    };
+    const port = createRuntimeWorldActionPort(store);
+    const action = {
+      id: "activity-work-resume",
+      intelligence: "npc" as const,
+      type: "npc.activity",
+      payload: { entityId: "npc-1", goal: "work" },
+      risk: "game-rule" as const,
+      reason: "Work.",
+    };
+
+    await port.execute(action, {} as RuntimeObservation);
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ status: "started", elapsedTicks: 1 });
+
+    tick = 2;
+    const entity = store.snapshot().entities.find(candidate => candidate.id === "npc-1")!;
+    store.updateEntity({
+      ...entity,
+      state: {
+        ...(entity.state ?? {}),
+        npcActivity: { ...(entity.state?.npcActivity as Record<string, unknown>), status: "interrupted", updatedAtTick: 2 },
+      },
+    });
+    interrupted = true;
+    expect(interrupted).toBe(true);
+
+    tick = 3;
+    const resumed = await port.execute(action, {} as RuntimeObservation);
+    expect(resumed.ok).toBe(true);
+    expect(resumed.detail).toContain("running");
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ status: "running", elapsedTicks: 2, startedAtTick: 1 });
+
+    tick = 4;
+    const completed = await port.execute(action, {} as RuntimeObservation);
+    expect(completed.ok).toBe(true);
+    expect(completed.detail).toContain("completed");
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ status: "completed", elapsedTicks: 3, completedAtTick: 4 });
+  });
+
   it("rejects an activity when its configured target has not been reached", async () => {
     const store = makeStore();
     const action = {
