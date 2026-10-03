@@ -3,13 +3,13 @@ import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
 import { createSupabaseRuntimeEngine } from "./supabase-runtime-engine";
 
-function adapter() {
+function adapter(includePlayer = true) {
   const snapshot: RuntimeWorldSnapshot = {
     state: { worldId: "world-1", clock: { tick: 0, day: 1, hour: 8, minute: 0, season: "spring" }, activeEventIds: [], stateVersion: "engine:1" },
     entities: [
-      { id: "npc-1", kind: "npc", mapId: "map-1", position: { x: 0, y: 0 }, state: { name: "Aldren", blocksMovement: true, decisionProfile: { relationships: [{ targetNpcId: "npc-2", type: "friend", affinity: 20, trust: 30 }] } } },
+      { id: "npc-1", kind: "npc", mapId: "map-1", position: { x: 0, y: 0 }, state: { name: "Aldren", blocksMovement: true, decisionProfile: { archetype: "civilian", capabilities: { behaviors: ["idle", "follow-player", "investigate"] }, relationships: [{ targetNpcId: "npc-2", type: "friend", affinity: 20, trust: 30 }], relationshipPolicy: { rules: [{ type: "friend", minAffinity: 40, behaviors: { investigate: 20 } }] } } } },
       { id: "npc-2", kind: "npc", mapId: "map-1", position: { x: 0, y: 2 }, state: { name: "Elira", blocksMovement: true } },
-      { id: "player-1", kind: "player", mapId: "map-1", position: { x: 2, y: 0 }, state: { blocksMovement: false } },
+      ...(includePlayer ? [{ id: "player-1", kind: "player" as const, mapId: "map-1", position: { x: 2, y: 0 }, state: { blocksMovement: false } }] : []),
     ],
   };
   const grid: NavigationGrid = { width: 3, height: 3, blocked: Array(9).fill(false) };
@@ -67,7 +67,7 @@ describe("supabase runtime engine", () => {
   });
 
   it("reuses relationship state across ticks after an explicit social interaction", async () => {
-    const engine = await createSupabaseRuntimeEngine(adapter() as never, "map-1");
+    const engine = await createSupabaseRuntimeEngine(adapter(false) as never, "map-1");
     expect(engine).toBeDefined();
 
     const applied = engine!.applySocialInteraction({
@@ -81,12 +81,27 @@ describe("supabase runtime engine", () => {
     });
     expect(applied?.relationships[0]).toMatchObject({ affinity: 45, trust: 45 });
 
+    engine!.memory.set({
+      npcId: "npc-1",
+      stateVersion: "engine:1",
+      lastBehavior: "investigate",
+      targetEntityId: "npc-2",
+      lastKnownTargetPosition: { x: 0, y: 2 },
+      lastSeenTick: 0,
+      updatedAtTick: 0,
+    });
+
     const result = await engine!.tick([], 1);
     const npcResult = result.results.find(item => item.observation.perception?.self?.id === "npc-1");
     expect(npcResult?.observation.perception?.self?.state.decisionProfile.relationships?.[0]).toMatchObject({
       targetNpcId: "npc-2",
       affinity: 45,
       trust: 45,
+    });
+    expect(npcResult?.behavior).toMatchObject({
+      kind: "investigate",
+      priority: 30,
+      action: { type: "npc.investigate" },
     });
   });
 

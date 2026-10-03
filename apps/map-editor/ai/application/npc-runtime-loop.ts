@@ -3,7 +3,7 @@ import type { NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import type { NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
 import { validateRuntimeDecision } from "../policies/runtime-policy";
-import { createNpcBehaviorCandidates, decideNpcBehavior } from "./npc-behavior";
+import { createNpcBehaviorDecisionCandidates, decideNpcBehavior } from "./npc-behavior";
 import { createRuntimeDecision } from "./runtime-decision";
 import { decideNpcNavigation } from "./npc-navigation";
 import { investigationRecoveryAction, type InvestigationFailure } from "./environment-npc-effects";
@@ -13,14 +13,14 @@ import type { NpcRelationship } from "./npc-relationship-schema";
 
 export interface NpcRuntimeTickResult {
   observation: RuntimeObservation;
-  behavior: ReturnType<typeof createNpcBehaviorCandidates>[number] | undefined;
+  behavior: ReturnType<typeof createNpcBehaviorDecisionCandidates>[number] | undefined;
   decision?: RuntimeDecision;
   execution?: Awaited<ReturnType<RuntimeAiPorts["action"]["execute"]>>;
   verification?: Awaited<ReturnType<RuntimeAiPorts["verification"]["verify"]>>;
   status: "idle" | "moved" | "rejected" | "replan-required" | "invalid";
 }
 
-function targetFromBehavior(behavior: ReturnType<typeof createNpcBehaviorCandidates>[number], observation: RuntimeObservation): NavigationPoint | undefined {
+function targetFromBehavior(behavior: ReturnType<typeof createNpcBehaviorDecisionCandidates>[number], observation: RuntimeObservation): NavigationPoint | undefined {
   const targetId = behavior.action.payload.targetEntityId;
   if (typeof targetId === "string") {
     const target = observation.perception?.nearbyEntities.find(entity => entity.id === targetId);
@@ -75,7 +75,7 @@ export async function runNpcRuntimeTick(
     }
   }
   const observation = withNpcRuntimeRelationships(observed, relationshipStore);
-  const candidates = createNpcBehaviorCandidates(observation, observation.perception?.self ? memoryStore?.get(observation.perception.self.id) : undefined);
+  const candidates = createNpcBehaviorDecisionCandidates(observation, observation.perception?.self ? memoryStore?.get(observation.perception.self.id) : undefined);
   if (!candidates.length) return { observation, behavior: undefined, status: "invalid" };
 
   const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore);

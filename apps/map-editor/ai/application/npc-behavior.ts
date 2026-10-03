@@ -49,15 +49,11 @@ export function createNpcBehaviorCandidates(observation: RuntimeObservation, mem
   return candidates;
 }
 
-export function decideNpcBehavior(
-  request: RuntimeAiRequest,
+export function createNpcBehaviorDecisionCandidates(
   observation: RuntimeObservation,
-  policy: RuntimeBehaviorPolicy = defaultNpcBehaviorPolicy,
-  memoryStore?: NpcBehaviorMemoryStore,
-): RuntimeDecision {
-  const npcId = observation.perception?.self?.kind === "npc" ? observation.perception.self.id : undefined;
-  const memory = npcId ? memoryStore?.get(npcId) : undefined;
-  const candidates = enforceNpcDecisionProfileBehaviors(
+  memory?: NpcBehaviorMemory,
+): RuntimeBehaviorCandidate[] {
+  return enforceNpcDecisionProfileBehaviors(
     observation,
     applyNpcRelationshipBehavior(
       observation,
@@ -73,6 +69,17 @@ export function decideNpcBehavior(
       ),
     ),
   );
+}
+
+export function decideNpcBehavior(
+  request: RuntimeAiRequest,
+  observation: RuntimeObservation,
+  policy: RuntimeBehaviorPolicy = defaultNpcBehaviorPolicy,
+  memoryStore?: NpcBehaviorMemoryStore,
+): RuntimeDecision {
+  const npcId = observation.perception?.self?.kind === "npc" ? observation.perception.self.id : undefined;
+  const memory = npcId ? memoryStore?.get(npcId) : undefined;
+  const candidates = createNpcBehaviorDecisionCandidates(observation, memory);
   const selected = policy.choose(observation, candidates);
 
   if (npcId && memoryStore) {
