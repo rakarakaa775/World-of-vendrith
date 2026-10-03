@@ -12,6 +12,12 @@ export interface PreviewRuntimeSnapshot {
   state: RuntimeObservation["state"];
 }
 
+export interface PreviewNpcSpawnAnchor {
+  locationId: string;
+  mapId: string;
+  position: { x: number; y: number };
+}
+
 export interface PreviewNpcSeed {
   seedKey: string;
   name: string;
@@ -20,6 +26,7 @@ export interface PreviewNpcSeed {
   settlementName?: string | null;
   locationName?: string | null;
   locationId?: string | null;
+  spawnAnchor?: PreviewNpcSpawnAnchor | null;
 }
 
 class MemoryStore implements NpcBehaviorMemoryStore {
@@ -63,7 +70,9 @@ export class PreviewRuntimeSimulation {
       id: `npc:${seed.seedKey}`,
       kind: "npc" as const,
       mapId: document.id,
-      position: { x: Math.max(0, centerX - 3 - (index % 3)), y: Math.max(0, centerY + Math.floor(index / 3)) },
+      position: seed.spawnAnchor?.mapId === document.id && seed.spawnAnchor.locationId === seed.locationId
+        ? { ...seed.spawnAnchor.position }
+        : { x: Math.max(0, centerX - 3 - (index % 3)), y: Math.max(0, centerY + Math.floor(index / 3)) },
       state: {
         role: seed.occupationName ?? "wanderer",
         name: seed.name,

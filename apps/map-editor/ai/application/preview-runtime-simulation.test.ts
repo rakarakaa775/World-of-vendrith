@@ -25,6 +25,15 @@ describe("PreviewRuntimeSimulation", () => {
     });
     expect(player?.position).toEqual({ x: 19, y: 16 });
 
+    const anchoredSimulation = new PreviewRuntimeSimulation(document, [{
+      seedKey: "seed-anchored",
+      name: "Anchored NPC",
+      locationId: "location-001",
+      spawnAnchor: { locationId: "location-001", mapId: document.id, position: { x: 4, y: 5 } },
+    }]);
+    expect(anchoredSimulation.snapshot().entities.find(entity => entity.id === "npc:seed-anchored")?.position)
+      .toEqual({ x: 4, y: 5 });
+
     const result = await simulation.tick();
     const after = simulation.snapshot();
     const npcAfter = after.entities.find(entity => entity.id === "npc:seed-001");
@@ -34,6 +43,18 @@ describe("PreviewRuntimeSimulation", () => {
     expect(after.state.clock.tick).toBe(1);
     expect(after.state.stateVersion).not.toBe(before.state.stateVersion);
     expect(document.layers[0].cells).toBe(originalCells);
+  });
+
+  it("ignores a spawn anchor from another map", () => {
+    const document = createMap("world", null, "exterior", null, 8, 8);
+    const simulation = new PreviewRuntimeSimulation(document, [{
+      seedKey: "seed-cross-map",
+      name: "Cross Map NPC",
+      locationId: "location-001",
+      spawnAnchor: { locationId: "location-001", mapId: "other-map", position: { x: 1, y: 1 } },
+    }]);
+    expect(simulation.snapshot().entities.find(entity => entity.id === "npc:seed-cross-map")?.position)
+      .toEqual({ x: 1, y: 4 });
   });
 
   it("routes around a collision cell", async () => {
