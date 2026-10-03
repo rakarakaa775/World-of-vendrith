@@ -12,7 +12,7 @@ export interface SupabaseRuntimeWorldBridge {
   ports: RuntimeAiPorts;
   snapshot(): RuntimeWorldSnapshot;
   grid(mapId: string): NavigationGrid | undefined;
-  refreshEnvironment(environment: { season: string; weather?: string }): void;
+  refreshEnvironment(environment: { season: string; weather?: string; conditions?: Record<string, unknown> }): void;
   advanceClock(minutes?: number, events?: RuntimeScheduledEvent[]): void;
 }
 
@@ -76,6 +76,7 @@ export async function createSupabaseRuntimeWorldBridge(
         ...current.state,
         clock: { ...current.state.clock, season: environment.season },
         ...(environment.weather ? { weather: environment.weather } : { weather: undefined }),
+        ...(environment.conditions ? { environmentConditions: { ...environment.conditions } } : { environmentConditions: undefined }),
         stateVersion: `${current.state.stateVersion.replace(/:runtime:[0-9]+$/, "")}:runtime:${current.state.clock.tick}`,
       };
       const entities = current.entities.map(entity => ({ ...entity, position: { ...entity.position }, state: entity.state ? { ...entity.state } : undefined }));

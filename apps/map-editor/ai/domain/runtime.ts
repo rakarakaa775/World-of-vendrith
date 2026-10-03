@@ -24,6 +24,7 @@ export interface GameWorldState {
   worldId: string;
   clock: GameClock;
   weather?: string;
+  environmentConditions?: Record<string, unknown>;
   activeRegionId?: string;
   activeEventIds: string[];
   stateVersion: string;
@@ -45,6 +46,7 @@ export interface RuntimePerception {
     weather?: string;
     season?: string;
     activeRegionId?: string;
+    conditions?: Record<string, unknown>;
   };
 }
 

@@ -38,6 +38,17 @@ function makeStore(): RuntimeWorldStore {
 }
 
 describe("runtime world adapter", () => {
+  it("uses environment visibility_radius for nearby perception", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({ ...base.snapshot(), state: { ...base.snapshot().state, environmentConditions: { visibility_radius: 1 } } }),
+    };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-visibility", surface: "game", intelligence: "npc", goal: "Observe", observation: {} as RuntimeObservation });
+    expect(observation.perception?.nearbyEntities).toHaveLength(0);
+  });
+
   it("turns the authoritative world store into a perception snapshot", async () => {
     const store = makeStore();
     const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));

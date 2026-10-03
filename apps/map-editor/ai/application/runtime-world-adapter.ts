@@ -17,11 +17,19 @@ export interface RuntimeWorldStore {
   updateEntity(entity: RuntimeEntity): void;
 }
 
+function visibilityRadius(snapshot: RuntimeWorldSnapshot): number {
+  const configured = snapshot.state.environmentConditions?.visibility_radius;
+  return typeof configured === "number" && Number.isFinite(configured)
+    ? Math.max(0, Math.min(64, Math.floor(configured)))
+    : 8;
+}
+
 function nearbyEntities(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): RuntimeEntity[] {
+  const radius = visibilityRadius(snapshot);
   return snapshot.entities.filter(entity =>
     entity.id !== self.id &&
     entity.mapId === self.mapId &&
-    Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y) <= 8,
+    Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y) <= radius,
   );
 }
 
@@ -40,6 +48,7 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
           weather: snapshot.state.weather,
           season: snapshot.state.clock.season,
           activeRegionId: snapshot.state.activeRegionId,
+          ...(snapshot.state.environmentConditions ? { conditions: snapshot.state.environmentConditions } : {}),
         },
       } : undefined;
 

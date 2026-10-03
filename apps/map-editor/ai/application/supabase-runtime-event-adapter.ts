@@ -31,7 +31,7 @@ export interface SupabaseRuntimeEventAdapter extends RuntimeEventExecutionStore 
   loadCandidateById(worldId: string, eventId: string, currentTick: number): Promise<RuntimeEventCandidate | undefined>;
   loadDefinition(eventType: string): Promise<RuntimeEventDefinition | undefined>;
   loadWorldStatus(worldId: string): Promise<string | undefined>;
-  loadEnvironment(worldId: string): Promise<{ season: string; weather?: string } | undefined>;
+  loadEnvironment(worldId: string): Promise<{ season: string; weather?: string; conditions?: Record<string, unknown> } | undefined>;
 }
 
 export function createSupabaseRuntimeEventAdapter(
@@ -141,7 +141,7 @@ export function createSupabaseRuntimeEventAdapter(
     async loadEnvironment(worldId) {
       const stateResult = await client
         .from("world_environment_states")
-        .select("season_id,weather_state_id")
+        .select("season_id,weather_state_id,conditions")
         .eq("world_id", worldId)
         .maybeSingle();
       if (stateResult.error) return undefined;
@@ -168,7 +168,10 @@ export function createSupabaseRuntimeEventAdapter(
           weather = weatherResult.data?.weather_key ? String(weatherResult.data.weather_key) : undefined;
         }
       }
-      return weather ? { season, weather } : { season };
+      const conditions = stateResult.data?.conditions && typeof stateResult.data.conditions === "object"
+        ? stateResult.data.conditions as Record<string, unknown>
+        : undefined;
+      return weather ? { season, weather, ...(conditions ? { conditions } : {}) } : { season, ...(conditions ? { conditions } : {}) };
     },
 
     async findByTimeEventId(timeEventId) {
