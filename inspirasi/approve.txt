@@ -1,0 +1,304 @@
+VENDRITH INSPIRATION — APPROVED
+=================================
+
+Status
+------
+APPROVED FOR FUTURE VENDRITH DESIGN
+This document records ideas approved from Inspiration Pool Audit A — Terrain.
+These are architectural inspirations only. No source project's code is being copied
+or adopted as a dependency.
+
+AUDIT A — TERRAIN
+=================
+
+1. Core Decision
+----------------
+Vendrith Terrain should be modeled as persistent, layered geographic data rather
+than only as a heightmap.
+
+Target conceptual structure:
+
+TerrainWorld
+├── Base
+│   ├── elevation
+│   ├── seaLevel
+│   ├── landMask
+│   └── oceanDepth
+├── Shape
+│   ├── slope
+│   ├── curvature
+│   ├── cliff
+│   └── plateau
+├── Hydrology
+│   ├── flowDirection
+│   ├── flowAccumulation
+│   ├── water
+│   ├── river
+│   ├── lake
+│   ├── watershed
+│   └── sediment
+├── Climate inputs
+│   ├── temperature
+│   └── moisture
+├── Geological data
+│   ├── tectonic
+│   ├── erosion
+│   ├── deposition
+│   └── soil
+└── Overrides
+    ├── raise/lower
+    ├── flatten
+    ├── smooth
+    └── manual terrain/water edits
+
+2. Approved Inspirations
+------------------------
+Ymir:
+- Field/layer model.
+- Terrain represented by reusable scalar layers.
+- Processing nodes can preserve derived layers such as flow, water,
+  wear and deposition.
+- Useful inspiration for Vendrith's terrain data model.
+
+WorldGen:
+- Deterministic procedural world generation.
+- Pipeline-oriented geography generation.
+- Useful inspiration for reproducible terrain/world generation.
+
+Cartographer:
+- Dependency chain between terrain, erosion, climate, drainage,
+  rivers/lakes and biomes.
+- Terrain edits can invalidate dependent derived data.
+- Useful inspiration for Vendrith's dependency/recomputation model.
+
+3. Approved Terrain Pipeline
+----------------------------
+World Seed
+    |
+    v
+Terrain Generator
+    |
+    +--> Geology
+    |
+    v
+Elevation
+    |
+    +--> Slope
+    +--> Curvature
+    |
+    v
+Hydrology
+    |
+    +--> Flow
+    +--> Rivers
+    +--> Lakes
+    +--> Water
+    |
+    v
+Climate
+    |
+    v
+Biome
+    |
+    v
+Vegetation / Region / Other World Systems
+
+This is a target architecture, not an instruction to implement every stage
+immediately.
+
+4. Deterministic Generation
+---------------------------
+Approved concept:
+
+World Seed
++ Generation Version
++ Terrain Configuration
++ Biome Configuration
++ World Size
+= reproducible generated world
+
+The same inputs should produce the same procedural terrain, subject to the
+same implementation/version.
+
+5. Terrain Revision
+-------------------
+Approved concept: TerrainRevision.
+
+Derived systems should record which terrain revision they were generated from.
+
+Example:
+
+Terrain revision: 18
+Hydrology source revision: 18
+Biome source revision: 17  -> stale / requires recomputation
+
+This allows Vendrith to detect dependent data that must be regenerated after
+terrain editing.
+
+6. Manual Editing
+-----------------
+Approved concept: procedural base + manual override.
+
+Do NOT destructively replace the procedural source when the user edits terrain.
+
+Concept:
+
+Procedural Base
+    |
+    v
+Terrain Layers
+    |
+    v
+Manual Overrides
+    |
+    v
+Final Terrain
+
+Examples:
+- raise
+- lower
+- flatten
+- smooth
+- erode
+- deposit
+- dig
+- fill
+- river
+- lake
+- cliff
+- plateau
+- stamp/noise
+
+The complete toolset does not need to be implemented at once.
+
+7. Hydrology as Real Data
+-------------------------
+Approved concept: water/flow should be usable data, not merely a visual effect.
+
+Potential layers:
+- flow direction
+- flow accumulation
+- water
+- river
+- lake
+- watershed
+- sediment
+
+This allows downstream systems to use geography for:
+- rivers
+- fertile land
+- wetlands
+- erosion
+- settlement suitability
+- resource generation
+- vegetation suitability
+
+8. Water Classification
+-----------------------
+Approved concept: distinguish water geographically.
+
+Ocean:
+- shore
+- coastal water
+- continental shelf
+- deep ocean
+
+Fresh/inland:
+- river
+- lake
+- wetland
+- floodplain
+
+This supports Vendrith's requirement for visually and logically distinct
+near-shore/coastal water and deep sea water.
+
+9. Asset Relationship
+---------------------
+Procedural terrain does NOT replace Vendrith's asset library or LPC assets.
+
+Approved separation:
+
+WORLD DATA
+  -> determines geography and conditions
+
+WORLD RULES
+  -> determine what visual/interactive content is appropriate
+
+ASSET REGISTRY
+  -> selects verified assets
+
+ASSET / RENDERER
+  -> displays the world
+
+Original LPC source assets should remain unchanged whenever possible.
+Preprocessed derivatives may be created later if required by the renderer,
+while preserving the original source asset.
+
+10. Asset Registry Principle
+----------------------------
+Terrain generation should not hard-code LPC filenames.
+
+Instead:
+
+Terrain/biome result
+    |
+    v
+Asset Registry query
+    |
+    +-- category
+    +-- biome
+    +-- tags
+    +-- license
+    +-- creator
+    +-- attribution
+    +-- usage requirements
+    |
+    v
+Compatible verified asset
+
+This preserves flexibility to use LPC or other verified assets later.
+
+11. Approved Architectural Principles
+-------------------------------------
+[APPROVED]
+- Layered terrain data
+- Deterministic generation
+- Seed + generation version
+- Terrain revisions
+- Dependency tracking
+- Derived hydrology
+- Derived climate inputs
+- Manual overrides
+- Non-destructive procedural base
+- Water classification
+- Terrain-to-biome dependency
+- Asset Registry abstraction
+- Preserve original source assets
+- Recompute/invalidate dependent systems after terrain edits
+
+[NOT YET APPROVED / DEFERRED]
+- Full node-graph terrain editor
+- GPU-first terrain architecture
+- Infinite-world implementation
+- Full erosion simulation
+- Full tectonic simulation
+- Specific rendering technology decisions
+- Copying or directly depending on any inspiration project's implementation
+
+12. Guiding Principle
+---------------------
+Terrain should answer:
+
+"What is the physical/geographic state of this part of the world?"
+
+Assets should answer:
+
+"How should that state be visually represented?"
+
+The two systems should remain decoupled.
+
+13. Next Audit
+--------------
+After Audit A, continue sequentially to:
+
+B — Biome & Climate
