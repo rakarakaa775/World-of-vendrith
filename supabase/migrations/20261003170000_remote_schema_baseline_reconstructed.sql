@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
-CREATE SEQUENCE IF NOT EXISTS "public"."map_editor_commands_sequence_no_seq";
+-- Identity column on public.map_editor_commands creates the production backing sequence map_editor_commands_sequence_no_seq.
 
 CREATE TABLE IF NOT EXISTS "public"."activities" (id uuid DEFAULT gen_random_uuid() NOT NULL, actor_life_id uuid NOT NULL, activity_definition_id uuid NOT NULL, location_id uuid, start_time timestamp with time zone NOT NULL, end_time timestamp with time zone, state text DEFAULT 'scheduled'::text NOT NULL, metadata jsonb, created_at timestamp with time zone DEFAULT now() NOT NULL, updated_at timestamp with time zone DEFAULT now() NOT NULL, cancellation_reason text, cancelled_at timestamp with time zone);
 CREATE TABLE IF NOT EXISTS "public"."activity_attribute_affinities" (activity_definition_id uuid NOT NULL, attribute_type text NOT NULL, weight numeric DEFAULT 1 NOT NULL, metadata jsonb DEFAULT '{}'::jsonb NOT NULL, created_at timestamp with time zone DEFAULT now() NOT NULL, updated_at timestamp with time zone DEFAULT now() NOT NULL);
@@ -268,862 +268,863 @@ COMMENT ON TABLE "public"."world_water_bindings" IS 'WORLD water state + geograp
 CREATE TABLE IF NOT EXISTS "public"."world_weather_states" (id uuid DEFAULT gen_random_uuid() NOT NULL, world_id uuid NOT NULL, weather_id uuid NOT NULL, season_id uuid, started_at timestamp with time zone DEFAULT now() NOT NULL, ends_at timestamp with time zone, intensity smallint DEFAULT 0 NOT NULL, seed bigint, conditions jsonb DEFAULT '{}'::jsonb NOT NULL, updated_at timestamp with time zone DEFAULT now() NOT NULL);
 CREATE TABLE IF NOT EXISTS "public"."worlds" (id uuid DEFAULT gen_random_uuid() NOT NULL, name text NOT NULL, description text, status text DEFAULT 'active'::text NOT NULL, created_at timestamp with time zone DEFAULT now() NOT NULL, updated_at timestamp with time zone DEFAULT now() NOT NULL);
 
-ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
 ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."activity_attribute_affinities" ADD CONSTRAINT "activity_attribute_affinities_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
 ALTER TABLE "public"."activity_attribute_affinities" ADD CONSTRAINT "activity_attribute_affinities_pkey" PRIMARY KEY (activity_definition_id, attribute_type);
-ALTER TABLE "public"."activity_attribute_affinities" ADD CONSTRAINT "activity_attribute_affinities_weight_check" CHECK ((weight <> (0)::numeric));
-ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
-ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_activity_id_key" UNIQUE (activity_id);
-ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_next_activity_id_fkey" FOREIGN KEY (next_activity_id) REFERENCES activities(id) ON DELETE SET NULL;
 ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_schedule_id_fkey" FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE;
-ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_status_check" CHECK ((status = ANY (ARRAY['created'::text, 'skipped'::text, 'failed'::text])));
-ALTER TABLE "public"."activity_definitions" ADD CONSTRAINT "activity_definitions_name_key" UNIQUE (name);
 ALTER TABLE "public"."activity_definitions" ADD CONSTRAINT "activity_definitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
-ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_activity_id_key" UNIQUE (activity_id);
-ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_energy_recovery_check" CHECK ((energy_recovery >= (0)::numeric));
-ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_quantity_check" CHECK ((quantity > (0)::numeric));
-ALTER TABLE "public"."activity_interruptions" ADD CONSTRAINT "activity_interruptions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
 ALTER TABLE "public"."activity_interruptions" ADD CONSTRAINT "activity_interruptions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."activity_inventory_requirements" ADD CONSTRAINT "activity_inventory_requirements_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
 ALTER TABLE "public"."activity_inventory_requirements" ADD CONSTRAINT "activity_inventory_requirements_pkey" PRIMARY KEY (activity_definition_id);
-ALTER TABLE "public"."activity_inventory_requirements" ADD CONSTRAINT "activity_inventory_requirements_quantity_check" CHECK ((quantity > (0)::numeric));
-ALTER TABLE "public"."activity_skill_affinities" ADD CONSTRAINT "activity_skill_affinities_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
 ALTER TABLE "public"."activity_skill_affinities" ADD CONSTRAINT "activity_skill_affinities_pkey" PRIMARY KEY (activity_definition_id, skill_type);
-ALTER TABLE "public"."activity_skill_affinities" ADD CONSTRAINT "activity_skill_affinities_weight_check" CHECK ((weight > (0)::numeric));
-ALTER TABLE "public"."activity_skill_xp_awards" ADD CONSTRAINT "activity_skill_xp_awards_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
-ALTER TABLE "public"."activity_skill_xp_awards" ADD CONSTRAINT "activity_skill_xp_awards_experience_check" CHECK ((experience >= (0)::numeric));
 ALTER TABLE "public"."activity_skill_xp_awards" ADD CONSTRAINT "activity_skill_xp_awards_pkey" PRIMARY KEY (activity_id, skill_type);
-ALTER TABLE "public"."activity_xp_policies" ADD CONSTRAINT "activity_xp_policies_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_xp_policies" ADD CONSTRAINT "activity_xp_policies_pkey" PRIMARY KEY (activity_definition_id);
+ALTER TABLE "public"."ai_activity_need_rules" ADD CONSTRAINT "ai_activity_need_rules_pkey" PRIMARY KEY (activity_definition_id, need_type);
+ALTER TABLE "public"."ai_archetype_activity_policies" ADD CONSTRAINT "ai_archetype_activity_policies_pkey" PRIMARY KEY (archetype, activity_definition_id);
+ALTER TABLE "public"."ai_goal_activity_rules" ADD CONSTRAINT "ai_goal_activity_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."ai_improvement_evaluations" ADD CONSTRAINT "ai_improvement_evaluations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."ai_improvement_proposals" ADD CONSTRAINT "ai_improvement_proposals_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_contributors" ADD CONSTRAINT "asset_contributors_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_library_lock" ADD CONSTRAINT "asset_library_lock_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_registry_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_package_assets" ADD CONSTRAINT "asset_package_assets_pkey" PRIMARY KEY (package_id, asset_id);
+ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verifications_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."audit_logs" ADD CONSTRAINT "audit_logs_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."building_kit_roles" ADD CONSTRAINT "building_kit_roles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."buildings" ADD CONSTRAINT "buildings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."calendar_definitions" ADD CONSTRAINT "calendar_definitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."civilization_influences" ADD CONSTRAINT "civilization_influences_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."civilizations" ADD CONSTRAINT "civilizations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."communities" ADD CONSTRAINT "communities_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."community_memberships" ADD CONSTRAINT "community_memberships_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."containers" ADD CONSTRAINT "containers_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."continents" ADD CONSTRAINT "continents_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."cultures" ADD CONSTRAINT "cultures_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."day_records" ADD CONSTRAINT "day_records_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."devices" ADD CONSTRAINT "devices_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_conditions" ADD CONSTRAINT "dialogue_conditions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_conversations" ADD CONSTRAINT "dialogue_conversations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_lines" ADD CONSTRAINT "dialogue_lines_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_memories" ADD CONSTRAINT "dialogue_memories_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_relationships" ADD CONSTRAINT "dialogue_relationships_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_reputations" ADD CONSTRAINT "dialogue_reputations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dialogue_states" ADD CONSTRAINT "dialogue_states_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_pathfinding_runs" ADD CONSTRAINT "dungeon_pathfinding_runs_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_rooms" ADD CONSTRAINT "dungeon_rooms_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_structural_asset_roles" ADD CONSTRAINT "dungeon_structural_asset_roles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_pkey" PRIMARY KEY (editor_map_id);
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_pkey" PRIMARY KEY (editor_map_id);
+ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."emotion_definitions" ADD CONSTRAINT "emotion_definitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."energy_history" ADD CONSTRAINT "energy_history_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."energy_recovery_rules" ADD CONSTRAINT "energy_recovery_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."event_definitions" ADD CONSTRAINT "event_definitions_pkey" PRIMARY KEY (event_type);
+ALTER TABLE "public"."event_executions" ADD CONSTRAINT "event_executions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."family_groups" ADD CONSTRAINT "family_groups_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."family_memberships" ADD CONSTRAINT "family_memberships_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."history_causes" ADD CONSTRAINT "history_causes_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."history_consequences" ADD CONSTRAINT "history_consequences_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."history_events" ADD CONSTRAINT "history_events_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."history_participants" ADD CONSTRAINT "history_participants_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."households" ADD CONSTRAINT "households_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."inventory_aggregates" ADD CONSTRAINT "inventory_aggregates_pkey" PRIMARY KEY (life_id);
+ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."item_durability_history" ADD CONSTRAINT "item_durability_history_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."item_instances" ADD CONSTRAINT "item_instances_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."items" ADD CONSTRAINT "items_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."languages" ADD CONSTRAINT "languages_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."legacies" ADD CONSTRAINT "legacies_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."legacy_links" ADD CONSTRAINT "legacy_links_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."legacy_modifications" ADD CONSTRAINT "legacy_modifications_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."legacy_versions" ADD CONSTRAINT "legacy_versions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."life_ai_profiles" ADD CONSTRAINT "life_ai_profiles_pkey" PRIMARY KEY (life_id);
+ALTER TABLE "public"."life_attributes" ADD CONSTRAINT "life_attributes_pkey" PRIMARY KEY (life_id, attribute_type);
+ALTER TABLE "public"."life_currency" ADD CONSTRAINT "life_currency_pkey" PRIMARY KEY (life_id, currency_type);
+ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_pkey" PRIMARY KEY (life_id, emotion_definition_id);
+ALTER TABLE "public"."life_energy" ADD CONSTRAINT "life_energy_pkey" PRIMARY KEY (life_id);
+ALTER TABLE "public"."life_identity" ADD CONSTRAINT "life_identity_pkey" PRIMARY KEY (life_id);
+ALTER TABLE "public"."life_needs" ADD CONSTRAINT "life_needs_pkey" PRIMARY KEY (life_id, need_type);
+ALTER TABLE "public"."life_skills" ADD CONSTRAINT "life_skills_pkey" PRIMARY KEY (life_id, skill_type);
+ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_annotations" ADD CONSTRAINT "map_annotations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_clipboards" ADD CONSTRAINT "map_editor_clipboards_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_command_groups" ADD CONSTRAINT "map_editor_command_groups_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_commands" ADD CONSTRAINT "map_editor_commands_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_gizmo_sessions" ADD CONSTRAINT "map_editor_gizmo_sessions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_layer_rules" ADD CONSTRAINT "map_editor_layer_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_selections" ADD CONSTRAINT "map_editor_selections_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_editor_snap_settings" ADD CONSTRAINT "map_editor_snap_settings_pkey" PRIMARY KEY (map_id);
+ALTER TABLE "public"."map_environment_policies" ADD CONSTRAINT "map_environment_policies_pkey" PRIMARY KEY (map_id);
+ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_pkey" PRIMARY KEY (map_id, x, y);
+ALTER TABLE "public"."map_navigation_obstacles" ADD CONSTRAINT "map_navigation_obstacles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_pkey" PRIMARY KEY (object_id);
+ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_terrain_rules" ADD CONSTRAINT "map_terrain_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."notifications" ADD CONSTRAINT "notifications_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."npc_seed_catalog" ADD CONSTRAINT "npc_seed_catalog_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."npc_seed_runs" ADD CONSTRAINT "npc_seed_runs_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."occupation_skill_affinities" ADD CONSTRAINT "occupation_skill_affinities_pkey" PRIMARY KEY (occupation_id, skill_type);
+ALTER TABLE "public"."occupations" ADD CONSTRAINT "occupations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."organization_roles" ADD CONSTRAINT "organization_roles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."organizations" ADD CONSTRAINT "organizations_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."permissions" ADD CONSTRAINT "permissions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."polities" ADD CONSTRAINT "polities_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."polity_memberships" ADD CONSTRAINT "polity_memberships_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."profiles" ADD CONSTRAINT "pk_profiles_id" PRIMARY KEY (id);
+ALTER TABLE "public"."quest_definitions" ADD CONSTRAINT "quest_definitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_pkey" PRIMARY KEY (quest_id, prerequisite_quest_id);
+ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."quest_rewards" ADD CONSTRAINT "quest_rewards_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."region_weather_profiles" ADD CONSTRAINT "region_weather_profiles_pkey" PRIMARY KEY (region_id);
+ALTER TABLE "public"."regions" ADD CONSTRAINT "regions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."religions" ADD CONSTRAINT "religions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."resources" ADD CONSTRAINT "resources_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."role_permissions" ADD CONSTRAINT "role_permissions_pkey" PRIMARY KEY (role_id, permission_id);
+ALTER TABLE "public"."roles" ADD CONSTRAINT "roles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."schedules" ADD CONSTRAINT "schedules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."season_rules" ADD CONSTRAINT "season_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."security_table_boundaries" ADD CONSTRAINT "security_table_boundaries_pkey" PRIMARY KEY (table_name);
+ALTER TABLE "public"."services" ADD CONSTRAINT "services_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."settings" ADD CONSTRAINT "pk_settings_id" PRIMARY KEY (id);
+ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."terrain_type_profiles" ADD CONSTRAINT "terrain_type_profiles_pkey" PRIMARY KEY (terrain_type_id, profile_id);
+ALTER TABLE "public"."terrain_types" ADD CONSTRAINT "terrain_types_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."user_lives" ADD CONSTRAINT "user_lives_pkey" PRIMARY KEY (user_id, life_id);
+ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_pkey" PRIMARY KEY (user_id, role_id);
+ALTER TABLE "public"."users" ADD CONSTRAINT "pk_users_id" PRIMARY KEY (id);
+ALTER TABLE "public"."weather_definitions" ADD CONSTRAINT "weather_definitions_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_pkey" PRIMARY KEY (asset_id);
+ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."world_environment_clocks" ADD CONSTRAINT "world_environment_clocks_pkey" PRIMARY KEY (world_id);
+ALTER TABLE "public"."world_environment_states" ADD CONSTRAINT "world_environment_states_pkey" PRIMARY KEY (world_id);
+ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."worlds" ADD CONSTRAINT "worlds_pkey" PRIMARY KEY (id);
+ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_activity_id_key" UNIQUE (activity_id);
+ALTER TABLE "public"."activity_definitions" ADD CONSTRAINT "activity_definitions_name_key" UNIQUE (name);
+ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_activity_id_key" UNIQUE (activity_id);
+ALTER TABLE "public"."ai_goal_activity_rules" ADD CONSTRAINT "ai_goal_activity_rules_goal_type_activity_definition_id_key" UNIQUE (goal_type, activity_definition_id);
+ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_asset_id_key" UNIQUE (asset_id);
+ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_asset_id_terrain_type_id_transitio_key" UNIQUE (asset_id, terrain_type_id, transition_type, neighbor_mask, season);
+ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_asset_id_file_path_key" UNIQUE (asset_id, file_path);
+ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_registry_source_repository_asset_external_key_key" UNIQUE (source_repository, asset_external_key);
+ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_asset_id_key" UNIQUE (asset_id);
+ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_package_id_file_path_key" UNIQUE (package_id, file_path);
+ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_package_key_key" UNIQUE (package_key);
+ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verification_license_registry_id_source_ur_key" UNIQUE (license_registry_id, source_url);
+ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_slug_key" UNIQUE (slug);
+ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_source_id_external_key_key" UNIQUE (source_id, external_key);
+ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_asset_license_id_season_id_key" UNIQUE (asset_license_id, season_id);
+ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_asset_license_id_variant_external_k_key" UNIQUE (asset_license_id, variant_external_key);
+ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_slug_key" UNIQUE (slug);
+ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_code_key" UNIQUE (code);
+ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_life_id_key" UNIQUE (life_id);
+ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_spec_id_constraint_key_key" UNIQUE (spec_id, constraint_key);
+ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_spec_id_role_id_layer_order_key" UNIQUE (spec_id, role_id, layer_order);
+ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_spec_key_key" UNIQUE (spec_key);
+ALTER TABLE "public"."building_kit_roles" ADD CONSTRAINT "building_kit_roles_role_key_key" UNIQUE (role_key);
+ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_container_id_life_id_key" UNIQUE (container_id, life_id);
+ALTER TABLE "public"."continents" ADD CONSTRAINT "continents_world_id_name_key" UNIQUE (world_id, name);
+ALTER TABLE "public"."day_records" ADD CONSTRAINT "day_records_world_id_simulation_date_key" UNIQUE (world_id, simulation_date);
+ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_life_id_key" UNIQUE (life_id);
+ALTER TABLE "public"."devices" ADD CONSTRAINT "devices_user_id_device_identifier_key" UNIQUE (user_id, device_identifier);
+ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_node_id_choice_key_key" UNIQUE (node_id, choice_key);
+ALTER TABLE "public"."dialogue_conversations" ADD CONSTRAINT "dialogue_conversations_conversation_key_key" UNIQUE (conversation_key);
+ALTER TABLE "public"."dialogue_memories" ADD CONSTRAINT "dialogue_memories_entity_id_memory_key_key" UNIQUE (entity_id, memory_key);
+ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_conversation_id_node_key_key" UNIQUE (conversation_id, node_key);
+ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_id_conversation_unique" UNIQUE (id, conversation_id);
+ALTER TABLE "public"."dialogue_relationships" ADD CONSTRAINT "dialogue_relationships_source_entity_id_target_entity_id_re_key" UNIQUE (source_entity_id, target_entity_id, relationship_type);
+ALTER TABLE "public"."dialogue_reputations" ADD CONSTRAINT "dialogue_reputations_entity_id_reputation_key_key" UNIQUE (entity_id, reputation_key);
+ALTER TABLE "public"."dialogue_states" ADD CONSTRAINT "dialogue_states_entity_id_scope_state_key_key" UNIQUE (entity_id, scope, state_key);
+ALTER TABLE "public"."dungeon_structural_asset_roles" ADD CONSTRAINT "dungeon_structural_asset_roles_role_key_key" UNIQUE (role_key);
+ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_profile_key_key" UNIQUE (profile_key);
+ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_legacy_unique" UNIQUE (legacy_map_id);
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_owner_map_unique" UNIQUE (playable_editor_map_id, editor_map_id);
+ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_editor_map_id_version_number_key" UNIQUE (editor_map_id, version_number);
+ALTER TABLE "public"."emotion_definitions" ADD CONSTRAINT "emotion_definitions_code_key" UNIQUE (code);
+ALTER TABLE "public"."energy_recovery_rules" ADD CONSTRAINT "energy_recovery_rules_activity_type_key" UNIQUE (activity_type);
+ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_life_id_item_instance_id_key" UNIQUE (life_id, item_instance_id);
+ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_life_id_slot_type_key" UNIQUE (life_id, slot_type);
+ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_item_id_key" UNIQUE (item_id);
+ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_event_id_location_id_key" UNIQUE (event_id, location_id);
+ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "uq_inventory_entries_container_item_instance" UNIQUE (container_id, item_id, item_instance_id);
+ALTER TABLE "public"."items" ADD CONSTRAINT "items_name_key" UNIQUE (name);
+ALTER TABLE "public"."legacy_versions" ADD CONSTRAINT "legacy_versions_legacy_id_version_number_key" UNIQUE (legacy_id, version_number);
+ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_origin_location_id_destination_location_id_key" UNIQUE (origin_location_id, destination_location_id);
+ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_region_id_name_key" UNIQUE (region_id, name);
+ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_layer_id_building_id_key" UNIQUE (layer_id, building_id);
+ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_map_id_building_id_key" UNIQUE (map_id, building_id);
+ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_map_id_grid_x_grid_y_key" UNIQUE (map_id, grid_x, grid_y);
+ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_map_type_key" UNIQUE (map_type);
+ALTER TABLE "public"."map_editor_clipboards" ADD CONSTRAINT "map_editor_clipboards_map_id_user_id_clipboard_key_key" UNIQUE (map_id, user_id, clipboard_key);
+ALTER TABLE "public"."map_editor_layer_rules" ADD CONSTRAINT "map_editor_layer_rules_map_id_layer_id_key" UNIQUE (map_id, layer_id);
+ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_map_id_slot_number_key" UNIQUE (map_id, slot_number);
+ALTER TABLE "public"."map_editor_selections" ADD CONSTRAINT "map_editor_selections_map_id_user_id_selection_key_entity_t_key" UNIQUE (map_id, user_id, selection_key, entity_type, entity_id);
+ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_map_id_name_key" UNIQUE (map_id, name);
+ALTER TABLE "public"."map_navigation_obstacles" ADD CONSTRAINT "map_navigation_obstacles_map_id_x_y_layer_key" UNIQUE (map_id, x, y, layer);
+ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_map_id_grid_x_grid_y_occupancy_type_key" UNIQUE (map_id, grid_x, grid_y, occupancy_type);
+ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_rule_id_mask_variant_key_key" UNIQUE (rule_id, mask, variant_key);
+ALTER TABLE "public"."map_terrain_rules" ADD CONSTRAINT "map_terrain_rules_rule_key_key" UNIQUE (rule_key);
+ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_transition_key_key" UNIQUE (transition_key);
+ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_map_id_version_number_key" UNIQUE (map_id, version_number);
+ALTER TABLE "public"."npc_seed_catalog" ADD CONSTRAINT "npc_seed_catalog_seed_key_key" UNIQUE (seed_key);
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_run_id_seed_index_key" UNIQUE (seed_run_id, seed_index);
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_run_id_seed_key_key" UNIQUE (seed_run_id, seed_key);
+ALTER TABLE "public"."npc_seed_runs" ADD CONSTRAINT "npc_seed_runs_seed_key_key" UNIQUE (seed_key);
+ALTER TABLE "public"."occupations" ADD CONSTRAINT "occupations_name_key" UNIQUE (name);
+ALTER TABLE "public"."organization_roles" ADD CONSTRAINT "organization_roles_name_key" UNIQUE (name);
+ALTER TABLE "public"."permissions" ADD CONSTRAINT "permissions_name_key" UNIQUE (name);
+ALTER TABLE "public"."profiles" ADD CONSTRAINT "uq_profiles_user_id" UNIQUE (user_id);
+ALTER TABLE "public"."quest_definitions" ADD CONSTRAINT "quest_definitions_code_key" UNIQUE (code);
+ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_quest_id_life_id_key" UNIQUE (quest_id, life_id);
+ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_quest_instance_id_objective_id_key" UNIQUE (quest_instance_id, objective_id);
+ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_quest_id_code_key" UNIQUE (quest_id, code);
+ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_quest_instance_id_reward_id_key" UNIQUE (quest_instance_id, reward_id);
+ALTER TABLE "public"."regions" ADD CONSTRAINT "regions_continent_id_name_key" UNIQUE (continent_id, name);
+ALTER TABLE "public"."roles" ADD CONSTRAINT "roles_name_key" UNIQUE (name);
+ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_season_id_key" UNIQUE (season_id);
+ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_ordinal_key" UNIQUE (ordinal);
+ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_season_key_key" UNIQUE (season_key);
+ALTER TABLE "public"."season_rules" ADD CONSTRAINT "season_rules_season_id_rule_key_key" UNIQUE (season_id, rule_key);
+ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_season_id_weather_id_key" UNIQUE (season_id, weather_id);
+ALTER TABLE "public"."settings" ADD CONSTRAINT "uq_settings_user_id" UNIQUE (user_id);
+ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_event_id_key" UNIQUE (event_id);
+ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_location_id_key" UNIQUE (location_id);
+ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_world_id_key" UNIQUE (world_id);
+ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_profile_key_key" UNIQUE (profile_key);
+ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_terrain_type_id_season_id_key" UNIQUE (terrain_type_id, season_id);
+ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_terrain_type_id_neighbor_mask_seas_key" UNIQUE (terrain_type_id, neighbor_mask, season);
+ALTER TABLE "public"."terrain_types" ADD CONSTRAINT "terrain_types_terrain_key_key" UNIQUE (terrain_key);
+ALTER TABLE "public"."users" ADD CONSTRAINT "uq_users_email" UNIQUE (email);
+ALTER TABLE "public"."weather_definitions" ADD CONSTRAINT "weather_definitions_weather_key_key" UNIQUE (weather_key);
+ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_weather_id_key" UNIQUE (weather_id);
+ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_asset_id_biome_key_key" UNIQUE (asset_id, biome_key);
+ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_asset_id_landform_key_variant_key_key" UNIQUE (asset_id, landform_key, variant_key);
+ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_asset_id_vegetation_family_season_key" UNIQUE (asset_id, vegetation_family, season);
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_asset_id_water_state_water_feature_key" UNIQUE (asset_id, water_state, water_feature);
+ALTER TABLE "public"."worlds" ADD CONSTRAINT "worlds_name_key" UNIQUE (name);
+ALTER TABLE "public"."activity_attribute_affinities" ADD CONSTRAINT "activity_attribute_affinities_weight_check" CHECK ((weight <> (0)::numeric));
+ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_status_check" CHECK ((status = ANY (ARRAY['created'::text, 'skipped'::text, 'failed'::text])));
+ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_energy_recovery_check" CHECK ((energy_recovery >= (0)::numeric));
+ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_quantity_check" CHECK ((quantity > (0)::numeric));
+ALTER TABLE "public"."activity_inventory_requirements" ADD CONSTRAINT "activity_inventory_requirements_quantity_check" CHECK ((quantity > (0)::numeric));
+ALTER TABLE "public"."activity_skill_affinities" ADD CONSTRAINT "activity_skill_affinities_weight_check" CHECK ((weight > (0)::numeric));
+ALTER TABLE "public"."activity_skill_xp_awards" ADD CONSTRAINT "activity_skill_xp_awards_experience_check" CHECK ((experience >= (0)::numeric));
 ALTER TABLE "public"."activity_xp_policies" ADD CONSTRAINT "activity_xp_policies_base_xp_check" CHECK ((base_xp >= (0)::numeric));
 ALTER TABLE "public"."activity_xp_policies" ADD CONSTRAINT "activity_xp_policies_duration_factor_check" CHECK ((duration_factor >= (0)::numeric));
-ALTER TABLE "public"."activity_xp_policies" ADD CONSTRAINT "activity_xp_policies_pkey" PRIMARY KEY (activity_definition_id);
-ALTER TABLE "public"."ai_activity_need_rules" ADD CONSTRAINT "ai_activity_need_rules_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."ai_activity_need_rules" ADD CONSTRAINT "ai_activity_need_rules_pkey" PRIMARY KEY (activity_definition_id, need_type);
-ALTER TABLE "public"."ai_archetype_activity_policies" ADD CONSTRAINT "ai_archetype_activity_policies_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."ai_archetype_activity_policies" ADD CONSTRAINT "ai_archetype_activity_policies_pkey" PRIMARY KEY (archetype, activity_definition_id);
-ALTER TABLE "public"."ai_goal_activity_rules" ADD CONSTRAINT "ai_goal_activity_rules_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."ai_goal_activity_rules" ADD CONSTRAINT "ai_goal_activity_rules_goal_type_activity_definition_id_key" UNIQUE (goal_type, activity_definition_id);
-ALTER TABLE "public"."ai_goal_activity_rules" ADD CONSTRAINT "ai_goal_activity_rules_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."ai_improvement_evaluations" ADD CONSTRAINT "ai_improvement_evaluations_difficulty_signal_check" CHECK ((difficulty_signal = ANY (ARRAY['below-frontier'::text, 'frontier'::text, 'beyond-frontier'::text, 'unknown'::text])));
 ALTER TABLE "public"."ai_improvement_evaluations" ADD CONSTRAINT "ai_improvement_evaluations_novelty_check" CHECK ((novelty = ANY (ARRAY['new'::text, 'known'::text, 'unknown'::text])));
-ALTER TABLE "public"."ai_improvement_evaluations" ADD CONSTRAINT "ai_improvement_evaluations_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."ai_improvement_evaluations" ADD CONSTRAINT "ai_improvement_evaluations_validity_check" CHECK ((validity = ANY (ARRAY['valid'::text, 'invalid'::text, 'unknown'::text])));
-ALTER TABLE "public"."ai_improvement_proposals" ADD CONSTRAINT "ai_improvement_proposals_evaluation_id_fkey" FOREIGN KEY (evaluation_id) REFERENCES ai_improvement_evaluations(id);
-ALTER TABLE "public"."ai_improvement_proposals" ADD CONSTRAINT "ai_improvement_proposals_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."ai_improvement_proposals" ADD CONSTRAINT "ai_improvement_proposals_requires_approval_check" CHECK ((requires_approval = true));
-ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_asset_id_key" UNIQUE (asset_id);
-ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_verification_status_check" CHECK ((verification_status = ANY (ARRAY['pending'::text, 'verified'::text, 'mismatch'::text, 'unavailable'::text, 'rejected'::text])));
-ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_asset_id_terrain_type_id_transitio_key" UNIQUE (asset_id, terrain_type_id, transition_type, neighbor_mask, season);
 ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_candidate_status_check" CHECK ((candidate_status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'needs_review'::text])));
 ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_neighbor_mask_check" CHECK (((neighbor_mask IS NULL) OR ((neighbor_mask >= 0) AND (neighbor_mask <= 255))));
-ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_season_check" CHECK (((season IS NULL) OR (season = ANY (ARRAY['spring'::text, 'summer'::text, 'autumn'::text, 'winter'::text]))));
-ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
 ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_transition_type_check" CHECK (((transition_type IS NULL) OR (transition_type = ANY (ARRAY['full'::text, 'edge'::text, 'corner'::text, 'inner_corner'::text, 'isolated'::text, 'blend'::text]))));
-ALTER TABLE "public"."asset_contributors" ADD CONSTRAINT "asset_contributors_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_contributors" ADD CONSTRAINT "asset_contributors_source_id_fkey" FOREIGN KEY (source_id) REFERENCES asset_sources(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
 ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_check" CHECK (((dependency_asset_id IS NOT NULL) OR (dependency_source_id IS NOT NULL)));
-ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_dependency_asset_id_fkey" FOREIGN KEY (dependency_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_dependency_source_id_fkey" FOREIGN KEY (dependency_source_id) REFERENCES asset_sources(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_asset_id_file_path_key" UNIQUE (asset_id, file_path);
-ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_storage_binding_pair_check" CHECK ((((storage_bucket IS NULL) AND (storage_path IS NULL)) OR ((storage_bucket IS NOT NULL) AND (storage_path IS NOT NULL))));
 ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_verification_status_check" CHECK ((verification_status = ANY (ARRAY['pending'::text, 'verified'::text, 'mismatch'::text, 'unavailable'::text, 'rejected'::text])));
 ALTER TABLE "public"."asset_library_lock" ADD CONSTRAINT "asset_library_lock_id_check" CHECK (id);
 ALTER TABLE "public"."asset_library_lock" ADD CONSTRAINT "asset_library_lock_lock_status_check" CHECK ((lock_status = ANY (ARRAY['locked'::text, 'open'::text])));
-ALTER TABLE "public"."asset_library_lock" ADD CONSTRAINT "asset_library_lock_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_credit_chk" CHECK (((usage_status <> 'credit_required'::text) OR (attribution_required = true)));
 ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_logic_chk" CHECK (((usage_status = 'blocked'::text) OR (verification_status = 'verified'::text)));
-ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_registry_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_registry_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_registry_source_repository_asset_external_key_key" UNIQUE (source_repository, asset_external_key);
 ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_usage_chk" CHECK ((usage_status = ANY (ARRAY['allowed'::text, 'credit_required'::text, 'conditional'::text, 'blocked'::text])));
 ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_verification_chk" CHECK ((verification_status = ANY (ARRAY['verified'::text, 'pending'::text, 'unknown'::text, 'restricted'::text])));
-ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_asset_id_key" UNIQUE (asset_id);
 ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_default_scale_check" CHECK ((default_scale > (0)::numeric));
 ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_manifest_version_check" CHECK ((manifest_version > 0));
-ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_package_assets" ADD CONSTRAINT "asset_package_assets_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_package_assets" ADD CONSTRAINT "asset_package_assets_package_id_fkey" FOREIGN KEY (package_id) REFERENCES asset_packages(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_package_assets" ADD CONSTRAINT "asset_package_assets_pkey" PRIMARY KEY (package_id, asset_id);
-ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_package_id_file_path_key" UNIQUE (package_id, file_path);
-ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_package_id_fkey" FOREIGN KEY (package_id) REFERENCES asset_packages(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_verification_status_check" CHECK ((verification_status = ANY (ARRAY['pending'::text, 'verified'::text, 'mismatch'::text, 'unavailable'::text, 'rejected'::text])));
 ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_evidence_status_check" CHECK ((evidence_status = ANY (ARRAY['pending'::text, 'partial'::text, 'verified'::text, 'rejected'::text])));
-ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_package_key_key" UNIQUE (package_key);
-ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_source_id_fkey" FOREIGN KEY (source_id) REFERENCES asset_sources(id) ON DELETE SET NULL;
-ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verification_license_registry_id_source_ur_key" UNIQUE (license_registry_id, source_url);
-ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verifications_license_registry_id_fkey" FOREIGN KEY (license_registry_id) REFERENCES asset_license_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verifications_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verifications_verification_status_check" CHECK ((verification_status = ANY (ARRAY['pending'::text, 'verified'::text, 'rejected'::text])));
-ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id);
-ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_license_registry_id_fkey" FOREIGN KEY (license_registry_id) REFERENCES asset_license_registry(id);
-ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_placement_category_check" CHECK ((placement_category = ANY (ARRAY['world'::text, 'region'::text, 'playable'::text, 'interior'::text])));
-ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_slug_key" UNIQUE (slug);
-ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_source_id_external_key_key" UNIQUE (source_id, external_key);
-ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_source_id_fkey" FOREIGN KEY (source_id) REFERENCES asset_sources(id);
 ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_status_check" CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'provisional'::text, 'approved'::text, 'rejected'::text, 'archived'::text])));
-ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_asset_license_id_fkey" FOREIGN KEY (asset_license_id) REFERENCES asset_license_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_asset_license_id_season_id_key" UNIQUE (asset_license_id, season_id);
-ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_asset_license_id_variant_external_k_key" UNIQUE (asset_license_id, variant_external_key);
-ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
 ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_audit_status_check" CHECK ((audit_status = ANY (ARRAY['pending'::text, 'provisional'::text, 'approved'::text, 'rejected'::text, 'archived'::text])));
-ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id);
-ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_slug_key" UNIQUE (slug);
 ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_category_check" CHECK ((category = ANY (ARRAY['personality'::text, 'personality_tendency'::text, 'relationship'::text, 'unresolved'::text, 'other'::text])));
 ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_code_format_check" CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
-ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_code_key" UNIQUE (code);
-ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."attribute_definitions" ADD CONSTRAINT "attribute_definitions_value_range_check" CHECK ((value_min <= value_max));
-ALTER TABLE "public"."audit_logs" ADD CONSTRAINT "audit_logs_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."audit_logs" ADD CONSTRAINT "audit_logs_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
-ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_birth_location_id_fkey" FOREIGN KEY (birth_location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_life_id_key" UNIQUE (life_id);
-ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_parent_a_id_fkey" FOREIGN KEY (parent_a_id) REFERENCES lives(id) ON DELETE SET NULL;
-ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_parent_b_id_fkey" FOREIGN KEY (parent_b_id) REFERENCES lives(id) ON DELETE SET NULL;
-ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_severity_check" CHECK ((severity = ANY (ARRAY['warning'::text, 'error'::text])));
-ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_spec_id_constraint_key_key" UNIQUE (spec_id, constraint_key);
-ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_spec_id_fkey" FOREIGN KEY (spec_id) REFERENCES building_assembly_specs(id) ON DELETE CASCADE;
-ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_placement_mode_check" CHECK ((placement_mode = ANY (ARRAY['perimeter'::text, 'interior'::text, 'edge'::text, 'point'::text, 'fill'::text, 'overlay'::text])));
-ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_role_id_fkey" FOREIGN KEY (role_id) REFERENCES building_kit_roles(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_spec_id_fkey" FOREIGN KEY (spec_id) REFERENCES building_assembly_specs(id) ON DELETE CASCADE;
-ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_spec_id_role_id_layer_order_key" UNIQUE (spec_id, role_id, layer_order);
 ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_check" CHECK (((max_width IS NULL) OR (max_width >= min_width)));
 ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_check1" CHECK (((max_height IS NULL) OR (max_height >= min_height)));
 ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_grid_unit_check" CHECK ((grid_unit > 0));
 ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_min_height_check" CHECK ((min_height >= 1));
 ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_min_width_check" CHECK ((min_width >= 1));
-ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."building_assembly_specs" ADD CONSTRAINT "building_assembly_specs_spec_key_key" UNIQUE (spec_key);
-ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_building_id_fkey" FOREIGN KEY (building_id) REFERENCES building_instances(id) ON DELETE CASCADE;
 ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_height_check" CHECK ((height > 0));
-ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_role_id_fkey" FOREIGN KEY (role_id) REFERENCES building_kit_roles(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_rotation_check" CHECK ((rotation = ANY (ARRAY[0, 90, 180, 270])));
 ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_width_check" CHECK ((width > 0));
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_entrance_side_check" CHECK (((entrance_side IS NULL) OR (entrance_side = ANY (ARRAY['north'::text, 'east'::text, 'south'::text, 'west'::text]))));
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_height_check" CHECK ((height >= 1));
-ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_rotation_check" CHECK ((rotation = ANY (ARRAY[0, 90, 180, 270])));
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_season_check" CHECK ((season = ANY (ARRAY['spring'::text, 'summer'::text, 'autumn'::text, 'winter'::text])));
-ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_spec_id_fkey" FOREIGN KEY (spec_id) REFERENCES building_assembly_specs(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_status_check" CHECK ((status = ANY (ARRAY['draft'::text, 'valid'::text, 'invalid'::text, 'published'::text, 'archived'::text])));
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_validation_status_check" CHECK ((validation_status = ANY (ARRAY['unknown'::text, 'valid'::text, 'invalid'::text, 'warning'::text])));
 ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_width_check" CHECK ((width >= 1));
-ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE SET NULL;
 ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['pending'::text, 'provisional'::text, 'approved'::text, 'blocked'::text])));
-ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_role_id_fkey" FOREIGN KEY (role_id) REFERENCES building_kit_roles(id) ON DELETE CASCADE;
 ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_rotation_check" CHECK ((rotation = ANY (ARRAY[0, 90, 180, 270])));
-ALTER TABLE "public"."building_kit_roles" ADD CONSTRAINT "building_kit_roles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."building_kit_roles" ADD CONSTRAINT "building_kit_roles_role_key_key" UNIQUE (role_key);
-ALTER TABLE "public"."buildings" ADD CONSTRAINT "buildings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."buildings" ADD CONSTRAINT "buildings_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE;
-ALTER TABLE "public"."calendar_definitions" ADD CONSTRAINT "calendar_definitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."calendar_definitions" ADD CONSTRAINT "calendar_definitions_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."civilization_influences" ADD CONSTRAINT "civilization_influences_civilization_id_fkey" FOREIGN KEY (civilization_id) REFERENCES civilizations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."civilization_influences" ADD CONSTRAINT "civilization_influences_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."civilizations" ADD CONSTRAINT "civilizations_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."communities" ADD CONSTRAINT "communities_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."communities" ADD CONSTRAINT "communities_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
-ALTER TABLE "public"."community_memberships" ADD CONSTRAINT "community_memberships_community_id_fkey" FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE;
-ALTER TABLE "public"."community_memberships" ADD CONSTRAINT "community_memberships_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."community_memberships" ADD CONSTRAINT "community_memberships_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_access_level_check" CHECK ((access_level = ANY (ARRAY['view'::text, 'use'::text, 'manage'::text])));
-ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_container_id_fkey" FOREIGN KEY (container_id) REFERENCES containers(id) ON DELETE CASCADE;
-ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_container_id_life_id_key" UNIQUE (container_id, life_id);
-ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."containers" ADD CONSTRAINT "chk_containers_capacity_nonnegative" CHECK (((capacity IS NULL) OR (capacity >= (0)::numeric)));
-ALTER TABLE "public"."containers" ADD CONSTRAINT "containers_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."containers" ADD CONSTRAINT "containers_owner_life_id_fkey" FOREIGN KEY (owner_life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."containers" ADD CONSTRAINT "containers_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."continents" ADD CONSTRAINT "continents_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."continents" ADD CONSTRAINT "continents_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."continents" ADD CONSTRAINT "continents_world_id_name_key" UNIQUE (world_id, name);
-ALTER TABLE "public"."cultures" ADD CONSTRAINT "cultures_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."day_records" ADD CONSTRAINT "day_records_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."day_records" ADD CONSTRAINT "day_records_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."day_records" ADD CONSTRAINT "day_records_world_id_simulation_date_key" UNIQUE (world_id, simulation_date);
-ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_life_id_key" UNIQUE (life_id);
-ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."devices" ADD CONSTRAINT "devices_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."devices" ADD CONSTRAINT "devices_user_id_device_identifier_key" UNIQUE (user_id, device_identifier);
-ALTER TABLE "public"."devices" ADD CONSTRAINT "devices_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_choice_key_check" CHECK ((choice_key <> ''::text));
-ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_node_id_choice_key_key" UNIQUE (node_id, choice_key);
-ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_node_id_fkey" FOREIGN KEY (node_id) REFERENCES dialogue_nodes(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_sequence_order_check" CHECK ((sequence_order >= 0));
-ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_target_node_id_fkey" FOREIGN KEY (target_node_id) REFERENCES dialogue_nodes(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_text_check" CHECK ((text <> ''::text));
 ALTER TABLE "public"."dialogue_conditions" ADD CONSTRAINT "dialogue_conditions_attribute_value_check" CHECK (((condition_type <> 'attribute'::text) OR ((jsonb_typeof(value) = 'object'::text) AND (jsonb_typeof((value -> 'attribute_code'::text)) = 'string'::text) AND (btrim((value ->> 'attribute_code'::text)) <> ''::text) AND (COALESCE((value ->> 'subject'::text), 'speaker'::text) = ANY (ARRAY['speaker'::text, 'listener'::text, 'player'::text])) AND (jsonb_typeof(COALESCE((value -> 'expected_value'::text), (value -> 'value'::text))) = 'number'::text))));
 ALTER TABLE "public"."dialogue_conditions" ADD CONSTRAINT "dialogue_conditions_operator_check" CHECK ((operator = ANY (ARRAY['='::text, '!='::text, '>'::text, '>='::text, '<'::text, '<='::text])));
-ALTER TABLE "public"."dialogue_conditions" ADD CONSTRAINT "dialogue_conditions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_conditions" ADD CONSTRAINT "dialogue_conditions_target_type_check" CHECK ((target_type = ANY (ARRAY['choice'::text, 'node'::text])));
-ALTER TABLE "public"."dialogue_conversations" ADD CONSTRAINT "dialogue_conversations_conversation_key_key" UNIQUE (conversation_key);
 ALTER TABLE "public"."dialogue_conversations" ADD CONSTRAINT "dialogue_conversations_conversation_type_check" CHECK ((conversation_type <> ''::text));
-ALTER TABLE "public"."dialogue_conversations" ADD CONSTRAINT "dialogue_conversations_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_conversations" ADD CONSTRAINT "dialogue_conversations_status_check" CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'archived'::text])));
-ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_choice_id_fkey" FOREIGN KEY (choice_id) REFERENCES dialogue_choices(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES dialogue_conversations(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_node_id_fkey" FOREIGN KEY (node_id) REFERENCES dialogue_nodes(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_session_id_fkey" FOREIGN KEY (session_id) REFERENCES dialogue_sessions(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_lines" ADD CONSTRAINT "dialogue_lines_node_id_fkey" FOREIGN KEY (node_id) REFERENCES dialogue_nodes(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dialogue_lines" ADD CONSTRAINT "dialogue_lines_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_lines" ADD CONSTRAINT "dialogue_lines_sequence_order_check" CHECK ((sequence_order >= 0));
 ALTER TABLE "public"."dialogue_lines" ADD CONSTRAINT "dialogue_lines_text_check" CHECK ((text <> ''::text));
-ALTER TABLE "public"."dialogue_memories" ADD CONSTRAINT "dialogue_memories_entity_id_memory_key_key" UNIQUE (entity_id, memory_key);
 ALTER TABLE "public"."dialogue_memories" ADD CONSTRAINT "dialogue_memories_importance_check" CHECK ((importance >= (0)::numeric));
 ALTER TABLE "public"."dialogue_memories" ADD CONSTRAINT "dialogue_memories_memory_key_check" CHECK ((memory_key <> ''::text));
-ALTER TABLE "public"."dialogue_memories" ADD CONSTRAINT "dialogue_memories_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES dialogue_conversations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_conversation_id_node_key_key" UNIQUE (conversation_id, node_key);
-ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_id_conversation_unique" UNIQUE (id, conversation_id);
 ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_node_key_check" CHECK ((node_key <> ''::text));
 ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_node_type_check" CHECK ((node_type = ANY (ARRAY['line'::text, 'choice'::text, 'branch'::text, 'condition'::text, 'greeting'::text, 'farewell'::text, 'event'::text])));
-ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_relationships" ADD CONSTRAINT "dialogue_relationships_check" CHECK ((source_entity_id <> target_entity_id));
-ALTER TABLE "public"."dialogue_relationships" ADD CONSTRAINT "dialogue_relationships_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_relationships" ADD CONSTRAINT "dialogue_relationships_relationship_type_check" CHECK ((relationship_type <> ''::text));
-ALTER TABLE "public"."dialogue_relationships" ADD CONSTRAINT "dialogue_relationships_source_entity_id_target_entity_id_re_key" UNIQUE (source_entity_id, target_entity_id, relationship_type);
-ALTER TABLE "public"."dialogue_reputations" ADD CONSTRAINT "dialogue_reputations_entity_id_reputation_key_key" UNIQUE (entity_id, reputation_key);
-ALTER TABLE "public"."dialogue_reputations" ADD CONSTRAINT "dialogue_reputations_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_reputations" ADD CONSTRAINT "dialogue_reputations_reputation_key_check" CHECK ((reputation_key <> ''::text));
 ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_check" CHECK (((ended_at IS NULL) OR (ended_at >= started_at)));
-ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES dialogue_conversations(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_current_node_id_fkey" FOREIGN KEY (current_node_id) REFERENCES dialogue_nodes(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_node_conversation_fkey" FOREIGN KEY (current_node_id, conversation_id) REFERENCES dialogue_nodes(id, conversation_id) ON DELETE RESTRICT;
-ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'completed'::text, 'cancelled'::text, 'interrupted'::text])));
-ALTER TABLE "public"."dialogue_states" ADD CONSTRAINT "dialogue_states_entity_id_scope_state_key_key" UNIQUE (entity_id, scope, state_key);
-ALTER TABLE "public"."dialogue_states" ADD CONSTRAINT "dialogue_states_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dialogue_states" ADD CONSTRAINT "dialogue_states_state_key_check" CHECK ((state_key <> ''::text));
 ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_check" CHECK ((from_room_id <> to_room_id));
-ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_corridor_id_fkey" FOREIGN KEY (corridor_id) REFERENCES dungeon_corridors(id) ON DELETE SET NULL;
-ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_from_room_id_fkey" FOREIGN KEY (from_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_from_side_check" CHECK ((from_side = ANY (ARRAY['north'::text, 'south'::text, 'east'::text, 'west'::text])));
 ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_opening_width_check" CHECK (((opening_width >= 1) AND (opening_width <= 8)));
-ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_status_check" CHECK ((status = ANY (ARRAY['planned'::text, 'applied'::text, 'blocked'::text, 'invalid'::text])));
-ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_to_room_id_fkey" FOREIGN KEY (to_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_to_side_check" CHECK ((to_side = ANY (ARRAY['north'::text, 'south'::text, 'east'::text, 'west'::text])));
 ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_check" CHECK ((from_room_id <> to_room_id));
-ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_from_room_id_fkey" FOREIGN KEY (from_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_status_check" CHECK ((status = ANY (ARRAY['planned'::text, 'generated'::text, 'blocked'::text, 'invalid'::text])));
-ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_to_room_id_fkey" FOREIGN KEY (to_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_width_check" CHECK (((width >= 1) AND (width <= 16)));
-ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_check" CHECK (((room_id IS NOT NULL) OR (corridor_id IS NOT NULL)));
-ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_corridor_id_fkey" FOREIGN KEY (corridor_id) REFERENCES dungeon_corridors(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_direction_check" CHECK ((direction = ANY (ARRAY['north'::text, 'south'::text, 'east'::text, 'west'::text])));
 ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_opening_type_check" CHECK ((opening_type = ANY (ARRAY['door'::text, 'archway'::text, 'corridor'::text, 'secret'::text, 'portal'::text, 'passage'::text])));
-ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_room_id_fkey" FOREIGN KEY (room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_state_check" CHECK ((state = ANY (ARRAY['open'::text, 'closed'::text, 'locked'::text, 'hidden'::text])));
 ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_width_check" CHECK (((width >= 1) AND (width <= 16)));
 ALTER TABLE "public"."dungeon_pathfinding_runs" ADD CONSTRAINT "dungeon_pathfinding_runs_algorithm_check" CHECK ((algorithm = 'astar_v1'::text));
-ALTER TABLE "public"."dungeon_pathfinding_runs" ADD CONSTRAINT "dungeon_pathfinding_runs_connection_id_fkey" FOREIGN KEY (connection_id) REFERENCES dungeon_connections(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dungeon_pathfinding_runs" ADD CONSTRAINT "dungeon_pathfinding_runs_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."dungeon_pathfinding_runs" ADD CONSTRAINT "dungeon_pathfinding_runs_status_check" CHECK ((status = ANY (ARRAY['planned'::text, 'found'::text, 'blocked'::text, 'invalid'::text])));
 ALTER TABLE "public"."dungeon_rooms" ADD CONSTRAINT "dungeon_rooms_check" CHECK (((width >= 3) AND (height >= 3)));
-ALTER TABLE "public"."dungeon_rooms" ADD CONSTRAINT "dungeon_rooms_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."dungeon_rooms" ADD CONSTRAINT "dungeon_rooms_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE SET NULL;
 ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['pending'::text, 'provisional'::text, 'approved'::text, 'blocked'::text])));
-ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_role_id_fkey" FOREIGN KEY (role_id) REFERENCES dungeon_structural_asset_roles(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_sprite_height_check" CHECK (((sprite_height IS NULL) OR (sprite_height > 0)));
 ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_sprite_width_check" CHECK (((sprite_width IS NULL) OR (sprite_width > 0)));
-ALTER TABLE "public"."dungeon_structural_asset_roles" ADD CONSTRAINT "dungeon_structural_asset_roles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dungeon_structural_asset_roles" ADD CONSTRAINT "dungeon_structural_asset_roles_role_key_key" UNIQUE (role_key);
 ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_neighborhood_check" CHECK ((neighborhood = ANY (ARRAY['4_way'::text, '8_way'::text])));
-ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_profile_key_key" UNIQUE (profile_key);
 ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_tile_size_check" CHECK ((tile_size > 0));
 ALTER TABLE "public"."dungeon_structural_profiles" ADD CONSTRAINT "dungeon_structural_profiles_topology_check" CHECK ((topology = ANY (ARRAY['structural_4'::text, 'structural_8'::text, 'manual'::text])));
-ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_confidence_check" CHECK ((confidence = ANY (ARRAY['verified'::text, 'inferred'::text, 'unverified'::text])));
 ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_neighbor_mask_check" CHECK (((neighbor_mask >= 0) AND (neighbor_mask <= 255)));
-ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_profile_id_fkey" FOREIGN KEY (profile_id) REFERENCES dungeon_structural_profiles(id) ON DELETE CASCADE;
 ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_structural_role_check" CHECK ((structural_role = ANY (ARRAY['floor'::text, 'wall'::text, 'wall_edge'::text, 'corner'::text, 'inner_corner'::text, 'two_side_corner'::text, 'dead_end'::text, 'junction'::text])));
-ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_legacy_map_id_fkey" FOREIGN KEY (legacy_map_id) REFERENCES maps(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_legacy_unique" UNIQUE (legacy_map_id);
 ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_map_type_check" CHECK ((map_type = ANY (ARRAY['world'::text, 'region'::text, 'playable'::text])));
 ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_no_self_parent" CHECK (((parent_editor_map_id IS NULL) OR (parent_editor_map_id <> editor_map_id)));
-ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_parent_fk" FOREIGN KEY (parent_editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_pkey" PRIMARY KEY (editor_map_id);
-ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_building_id_fkey" FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_editor_map_id_fkey" FOREIGN KEY (editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE CASCADE;
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_legacy_map_id_fkey" FOREIGN KEY (legacy_map_id) REFERENCES maps(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_owner_map_unique" UNIQUE (playable_editor_map_id, editor_map_id);
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_pkey" PRIMARY KEY (editor_map_id);
-ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_playable_editor_map_id_fkey" FOREIGN KEY (playable_editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_editor_map_id_fkey" FOREIGN KEY (editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE CASCADE;
-ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_editor_map_id_version_number_key" UNIQUE (editor_map_id, version_number);
-ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_version_number_check" CHECK ((version_number > 0));
-ALTER TABLE "public"."emotion_definitions" ADD CONSTRAINT "emotion_definitions_code_key" UNIQUE (code);
-ALTER TABLE "public"."emotion_definitions" ADD CONSTRAINT "emotion_definitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_occupation_id_fkey" FOREIGN KEY (occupation_id) REFERENCES occupations(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_organization_id_fkey" FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."energy_history" ADD CONSTRAINT "energy_history_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."energy_history" ADD CONSTRAINT "energy_history_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."energy_recovery_rules" ADD CONSTRAINT "energy_recovery_rules_activity_type_key" UNIQUE (activity_type);
-ALTER TABLE "public"."energy_recovery_rules" ADD CONSTRAINT "energy_recovery_rules_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."energy_recovery_rules" ADD CONSTRAINT "energy_recovery_rules_recovery_amount_check" CHECK ((recovery_amount >= (0)::numeric));
-ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_life_id_item_instance_id_key" UNIQUE (life_id, item_instance_id);
-ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_life_id_slot_type_key" UNIQUE (life_id, slot_type);
-ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."event_definitions" ADD CONSTRAINT "event_definitions_condition_type_chk" CHECK ((condition_type = ANY (ARRAY['always'::text, 'world_status'::text])));
 ALTER TABLE "public"."event_definitions" ADD CONSTRAINT "event_definitions_consequence_type_chk" CHECK ((consequence_type = ANY (ARRAY['world_status'::text, 'environment'::text])));
-ALTER TABLE "public"."event_definitions" ADD CONSTRAINT "event_definitions_pkey" PRIMARY KEY (event_type);
-ALTER TABLE "public"."event_executions" ADD CONSTRAINT "event_executions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."event_executions" ADD CONSTRAINT "event_executions_status_check" CHECK ((status = ANY (ARRAY['running'::text, 'completed'::text, 'failed'::text])));
-ALTER TABLE "public"."event_executions" ADD CONSTRAINT "event_executions_time_event_id_fkey" FOREIGN KEY (time_event_id) REFERENCES time_events(id) ON DELETE CASCADE;
-ALTER TABLE "public"."family_groups" ADD CONSTRAINT "family_groups_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."family_memberships" ADD CONSTRAINT "family_memberships_family_id_fkey" FOREIGN KEY (family_id) REFERENCES family_groups(id) ON DELETE CASCADE;
-ALTER TABLE "public"."family_memberships" ADD CONSTRAINT "family_memberships_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."family_memberships" ADD CONSTRAINT "family_memberships_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_energy_recovery_check" CHECK ((energy_recovery >= (0)::numeric));
-ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE;
-ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_item_id_key" UNIQUE (item_id);
-ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."history_causes" ADD CONSTRAINT "history_causes_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
-ALTER TABLE "public"."history_causes" ADD CONSTRAINT "history_causes_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."history_consequences" ADD CONSTRAINT "history_consequences_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
-ALTER TABLE "public"."history_consequences" ADD CONSTRAINT "history_consequences_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."history_events" ADD CONSTRAINT "history_events_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
-ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_event_id_location_id_key" UNIQUE (event_id, location_id);
-ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."history_participants" ADD CONSTRAINT "history_participants_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
-ALTER TABLE "public"."history_participants" ADD CONSTRAINT "history_participants_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."households" ADD CONSTRAINT "households_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."households" ADD CONSTRAINT "households_residence_location_id_fkey" FOREIGN KEY (residence_location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."households" ADD CONSTRAINT "households_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
-ALTER TABLE "public"."inventory_aggregates" ADD CONSTRAINT "inventory_aggregates_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."inventory_aggregates" ADD CONSTRAINT "inventory_aggregates_pkey" PRIMARY KEY (life_id);
 ALTER TABLE "public"."inventory_aggregates" ADD CONSTRAINT "inventory_aggregates_total_weight_check" CHECK ((total_weight >= (0)::numeric));
 ALTER TABLE "public"."inventory_aggregates" ADD CONSTRAINT "inventory_aggregates_used_capacity_check" CHECK ((used_capacity >= (0)::numeric));
-ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE SET NULL;
-ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_container_id_fkey" FOREIGN KEY (container_id) REFERENCES containers(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE SET NULL;
-ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_quantity_check" CHECK ((quantity > (0)::numeric));
 ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_status_check" CHECK ((status = ANY (ARRAY['completed'::text, 'reversed'::text])));
-ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_container_id_fkey" FOREIGN KEY (container_id) REFERENCES containers(id) ON DELETE CASCADE;
-ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE SET NULL;
-ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_quantity_positive" CHECK ((quantity > (0)::numeric));
-ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "uq_inventory_entries_container_item_instance" UNIQUE (container_id, item_id, item_instance_id);
 ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "chk_inventory_transfer_distinct_containers" CHECK ((source_container_id <> destination_container_id));
-ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE SET NULL;
-ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_destination_container_id_fkey" FOREIGN KEY (destination_container_id) REFERENCES containers(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_quantity_check" CHECK ((quantity > (0)::numeric));
-ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_source_container_id_fkey" FOREIGN KEY (source_container_id) REFERENCES containers(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_status_check" CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'cancelled'::text, 'rejected'::text])));
 ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_transfer_type_check" CHECK ((transfer_type = ANY (ARRAY['move'::text, 'give'::text, 'drop'::text, 'pickup'::text, 'trade'::text, 'equip'::text, 'unequip'::text, 'consume'::text])));
-ALTER TABLE "public"."item_durability_history" ADD CONSTRAINT "item_durability_history_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE CASCADE;
-ALTER TABLE "public"."item_durability_history" ADD CONSTRAINT "item_durability_history_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."item_instances" ADD CONSTRAINT "chk_item_instances_condition_nonnegative" CHECK (((condition IS NULL) OR (condition >= (0)::numeric)));
 ALTER TABLE "public"."item_instances" ADD CONSTRAINT "chk_item_instances_lifecycle_status" CHECK ((lifecycle_status = ANY (ARRAY['active'::text, 'consumed'::text, 'destroyed'::text])));
 ALTER TABLE "public"."item_instances" ADD CONSTRAINT "chk_item_instances_max_durability_nonnegative" CHECK (((max_durability IS NULL) OR (max_durability >= (0)::numeric)));
-ALTER TABLE "public"."item_instances" ADD CONSTRAINT "item_instances_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."item_instances" ADD CONSTRAINT "item_instances_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."item_instances" ADD CONSTRAINT "item_instances_quantity_check" CHECK ((quantity > (0)::numeric));
 ALTER TABLE "public"."items" ADD CONSTRAINT "chk_items_base_durability_nonnegative" CHECK ((base_durability >= (0)::numeric));
 ALTER TABLE "public"."items" ADD CONSTRAINT "chk_items_base_value_nonnegative" CHECK ((base_value >= (0)::numeric));
 ALTER TABLE "public"."items" ADD CONSTRAINT "chk_items_base_weight_nonnegative" CHECK ((base_weight >= (0)::numeric));
 ALTER TABLE "public"."items" ADD CONSTRAINT "chk_items_max_stack_size_positive" CHECK ((max_stack_size > (0)::numeric));
-ALTER TABLE "public"."items" ADD CONSTRAINT "items_name_key" UNIQUE (name);
-ALTER TABLE "public"."items" ADD CONSTRAINT "items_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."languages" ADD CONSTRAINT "languages_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."legacies" ADD CONSTRAINT "legacies_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."legacy_links" ADD CONSTRAINT "legacy_links_legacy_id_fkey" FOREIGN KEY (legacy_id) REFERENCES legacies(id) ON DELETE CASCADE;
-ALTER TABLE "public"."legacy_links" ADD CONSTRAINT "legacy_links_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."legacy_modifications" ADD CONSTRAINT "legacy_modifications_history_event_id_fkey" FOREIGN KEY (history_event_id) REFERENCES history_events(id) ON DELETE SET NULL;
-ALTER TABLE "public"."legacy_modifications" ADD CONSTRAINT "legacy_modifications_legacy_id_fkey" FOREIGN KEY (legacy_id) REFERENCES legacies(id) ON DELETE CASCADE;
-ALTER TABLE "public"."legacy_modifications" ADD CONSTRAINT "legacy_modifications_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."legacy_versions" ADD CONSTRAINT "legacy_versions_legacy_id_fkey" FOREIGN KEY (legacy_id) REFERENCES legacies(id) ON DELETE CASCADE;
-ALTER TABLE "public"."legacy_versions" ADD CONSTRAINT "legacy_versions_legacy_id_version_number_key" UNIQUE (legacy_id, version_number);
-ALTER TABLE "public"."legacy_versions" ADD CONSTRAINT "legacy_versions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE SET NULL;
-ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id);
-ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_goal_id_fkey" FOREIGN KEY (goal_id) REFERENCES life_ai_goals(id) ON DELETE SET NULL;
-ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_priority_check" CHECK ((priority >= (0)::numeric));
 ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_progress_check" CHECK (((progress >= (0)::numeric) AND (progress <= (100)::numeric)));
 ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'completed'::text, 'paused'::text, 'failed'::text, 'cancelled'::text])));
 ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_target_check" CHECK (((target_value IS NULL) OR (target_value >= (0)::numeric)));
 ALTER TABLE "public"."life_ai_profiles" ADD CONSTRAINT "life_ai_profiles_archetype_nonempty" CHECK ((length(btrim(archetype)) > 0));
-ALTER TABLE "public"."life_ai_profiles" ADD CONSTRAINT "life_ai_profiles_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_ai_profiles" ADD CONSTRAINT "life_ai_profiles_pkey" PRIMARY KEY (life_id);
-ALTER TABLE "public"."life_attributes" ADD CONSTRAINT "life_attributes_attribute_type_fkey" FOREIGN KEY (attribute_type) REFERENCES attribute_definitions(code) ON UPDATE CASCADE ON DELETE RESTRICT;
-ALTER TABLE "public"."life_attributes" ADD CONSTRAINT "life_attributes_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_attributes" ADD CONSTRAINT "life_attributes_pkey" PRIMARY KEY (life_id, attribute_type);
 ALTER TABLE "public"."life_currency" ADD CONSTRAINT "life_currency_balance_check" CHECK ((balance >= (0)::numeric));
-ALTER TABLE "public"."life_currency" ADD CONSTRAINT "life_currency_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_currency" ADD CONSTRAINT "life_currency_pkey" PRIMARY KEY (life_id, currency_type);
 ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_delta_consistent" CHECK ((delta = (new_intensity - previous_intensity)));
-ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_emotion_definition_id_fkey" FOREIGN KEY (emotion_definition_id) REFERENCES emotion_definitions(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
 ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_new_nonnegative" CHECK ((new_intensity >= (0)::numeric));
-ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_emotion_definition_id_fkey" FOREIGN KEY (emotion_definition_id) REFERENCES emotion_definitions(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_intensity_nonnegative" CHECK ((intensity >= (0)::numeric));
-ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_pkey" PRIMARY KEY (life_id, emotion_definition_id);
 ALTER TABLE "public"."life_energy" ADD CONSTRAINT "life_energy_current_energy_check" CHECK ((current_energy >= (0)::numeric));
-ALTER TABLE "public"."life_energy" ADD CONSTRAINT "life_energy_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
 ALTER TABLE "public"."life_energy" ADD CONSTRAINT "life_energy_max_energy_check" CHECK ((max_energy >= (0)::numeric));
-ALTER TABLE "public"."life_energy" ADD CONSTRAINT "life_energy_pkey" PRIMARY KEY (life_id);
-ALTER TABLE "public"."life_identity" ADD CONSTRAINT "life_identity_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_identity" ADD CONSTRAINT "life_identity_pkey" PRIMARY KEY (life_id);
-ALTER TABLE "public"."life_needs" ADD CONSTRAINT "life_needs_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_needs" ADD CONSTRAINT "life_needs_pkey" PRIMARY KEY (life_id, need_type);
-ALTER TABLE "public"."life_skills" ADD CONSTRAINT "life_skills_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."life_skills" ADD CONSTRAINT "life_skills_pkey" PRIMARY KEY (life_id, skill_type);
 ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_check" CHECK ((((status = 'dead'::text) AND (death_date IS NOT NULL)) OR (status <> 'dead'::text)));
-ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_household_id_fkey" FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE SET NULL;
-ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_status_check" CHECK ((status = ANY (ARRAY['alive'::text, 'dead'::text, 'unknown'::text])));
-ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_destination_location_id_fkey" FOREIGN KEY (destination_location_id) REFERENCES locations(id) ON DELETE CASCADE;
 ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_distance_km_check" CHECK ((distance_km >= (0)::numeric));
-ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_origin_location_id_destination_location_id_key" UNIQUE (origin_location_id, destination_location_id);
-ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_origin_location_id_fkey" FOREIGN KEY (origin_location_id) REFERENCES locations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_travel_cost_check" CHECK ((travel_cost >= (0)::numeric));
 ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_travel_speed_kmh_check" CHECK ((travel_speed_kmh > (0)::numeric));
-ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_parent_location_id_fkey" FOREIGN KEY (parent_location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_region_id_fkey" FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_region_id_name_key" UNIQUE (region_id, name);
 ALTER TABLE "public"."map_annotations" ADD CONSTRAINT "map_annotations_annotation_type_check" CHECK ((annotation_type = ANY (ARRAY['label'::text, 'marker'::text, 'area'::text, 'line'::text, 'measurement'::text, 'note'::text, 'custom'::text])));
-ALTER TABLE "public"."map_annotations" ADD CONSTRAINT "map_annotations_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_annotations" ADD CONSTRAINT "map_annotations_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_building_id_fkey" FOREIGN KEY (building_id) REFERENCES building_instances(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_layer_id_building_id_key" UNIQUE (layer_id, building_id);
-ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES map_layers(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_map_id_building_id_key" UNIQUE (map_id, building_id);
-ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_decoration_asset_id_fkey" FOREIGN KEY (decoration_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_map_id_grid_x_grid_y_key" UNIQUE (map_id, grid_x, grid_y);
-ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_season_variant_check" CHECK (((season_variant IS NULL) OR (season_variant = ANY (ARRAY['spring'::text, 'summer'::text, 'autumn'::text, 'winter'::text]))));
-ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_structural_asset_id_fkey" FOREIGN KEY (structural_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_terrain_asset_id_fkey" FOREIGN KEY (terrain_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_check" CHECK ((source_map_id <> target_map_id));
 ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_connection_type_check" CHECK ((connection_type = ANY (ARRAY['door'::text, 'exit'::text, 'entrance'::text, 'portal'::text, 'stairs'::text, 'ladder'::text, 'travel'::text, 'custom'::text])));
-ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_source_map_id_fkey" FOREIGN KEY (source_map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_target_map_id_fkey" FOREIGN KEY (target_map_id) REFERENCES maps(id) ON DELETE CASCADE;
 ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_camera_mode_check" CHECK ((camera_mode = ANY (ARRAY['pan_zoom'::text, 'pan_zoom_rotate'::text])));
 ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_check" CHECK (((min_zoom > (0)::numeric) AND (max_zoom >= min_zoom) AND ((default_zoom >= min_zoom) AND (default_zoom <= max_zoom))));
 ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_coordinate_mode_check" CHECK ((coordinate_mode = ANY (ARRAY['grid'::text, 'world'::text, 'room_grid'::text])));
 ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_grid_unit_check" CHECK ((grid_unit > 0));
-ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_map_type_key" UNIQUE (map_type);
 ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_origin_mode_check" CHECK ((origin_mode = ANY (ARRAY['top_left'::text, 'center'::text])));
-ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_coordinate_profiles" ADD CONSTRAINT "map_coordinate_profiles_snap_mode_check" CHECK ((snap_mode = ANY (ARRAY['grid'::text, 'half_grid'::text, 'free'::text])));
-ALTER TABLE "public"."map_editor_clipboards" ADD CONSTRAINT "map_editor_clipboards_map_id_user_id_clipboard_key_key" UNIQUE (map_id, user_id, clipboard_key);
-ALTER TABLE "public"."map_editor_clipboards" ADD CONSTRAINT "map_editor_clipboards_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_editor_command_groups" ADD CONSTRAINT "map_editor_command_groups_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_editor_command_groups" ADD CONSTRAINT "map_editor_command_groups_status_check" CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'undone'::text])));
 ALTER TABLE "public"."map_editor_commands" ADD CONSTRAINT "map_editor_commands_command_type_check" CHECK ((command_type = ANY (ARRAY['create_object'::text, 'delete_object'::text, 'transform_object'::text, 'rotate_object'::text, 'set_obstacle'::text, 'remove_obstacle'::text])));
 ALTER TABLE "public"."map_editor_commands" ADD CONSTRAINT "map_editor_commands_entity_type_check" CHECK ((entity_type = ANY (ARRAY['map_object'::text, 'navigation_obstacle'::text])));
-ALTER TABLE "public"."map_editor_commands" ADD CONSTRAINT "map_editor_commands_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_editor_commands" ADD CONSTRAINT "map_editor_commands_status_check" CHECK ((status = ANY (ARRAY['applied'::text, 'undone'::text, 'redone'::text])));
 ALTER TABLE "public"."map_editor_gizmo_sessions" ADD CONSTRAINT "map_editor_gizmo_sessions_axis_check" CHECK ((axis = ANY (ARRAY['x'::text, 'y'::text, 'xy'::text, 'uniform'::text])));
 ALTER TABLE "public"."map_editor_gizmo_sessions" ADD CONSTRAINT "map_editor_gizmo_sessions_operation_check" CHECK ((operation = ANY (ARRAY['move'::text, 'rotate'::text, 'scale'::text])));
-ALTER TABLE "public"."map_editor_gizmo_sessions" ADD CONSTRAINT "map_editor_gizmo_sessions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_editor_gizmo_sessions" ADD CONSTRAINT "map_editor_gizmo_sessions_snap_mode_check" CHECK ((snap_mode = ANY (ARRAY['none'::text, 'grid'::text, 'object'::text, 'edge'::text, 'center'::text, 'all'::text])));
 ALTER TABLE "public"."map_editor_gizmo_sessions" ADD CONSTRAINT "map_editor_gizmo_sessions_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'committed'::text, 'cancelled'::text])));
-ALTER TABLE "public"."map_editor_layer_rules" ADD CONSTRAINT "map_editor_layer_rules_map_id_layer_id_key" UNIQUE (map_id, layer_id);
-ALTER TABLE "public"."map_editor_layer_rules" ADD CONSTRAINT "map_editor_layer_rules_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_snapshot_object" CHECK ((jsonb_typeof(snapshot) = 'object'::text));
-ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_version_id_fkey" FOREIGN KEY (version_id) REFERENCES map_versions(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id);
-ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_map_id_slot_number_key" UNIQUE (map_id, slot_number);
-ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_slot_number_check" CHECK (((slot_number >= 1) AND (slot_number <= 12)));
 ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_snapshot_check" CHECK ((jsonb_typeof(snapshot) = 'object'::text));
-ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_version_id_fkey" FOREIGN KEY (version_id) REFERENCES map_versions(id) ON DELETE SET NULL;
 ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_version_number_check" CHECK ((version_number > 0));
-ALTER TABLE "public"."map_editor_selections" ADD CONSTRAINT "map_editor_selections_map_id_user_id_selection_key_entity_t_key" UNIQUE (map_id, user_id, selection_key, entity_type, entity_id);
-ALTER TABLE "public"."map_editor_selections" ADD CONSTRAINT "map_editor_selections_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_editor_snap_settings" ADD CONSTRAINT "map_editor_snap_settings_grid_size_check" CHECK ((grid_size > (0)::numeric));
-ALTER TABLE "public"."map_editor_snap_settings" ADD CONSTRAINT "map_editor_snap_settings_pkey" PRIMARY KEY (map_id);
 ALTER TABLE "public"."map_editor_snap_settings" ADD CONSTRAINT "map_editor_snap_settings_snap_tolerance_check" CHECK ((snap_tolerance >= (0)::numeric));
-ALTER TABLE "public"."map_environment_policies" ADD CONSTRAINT "map_environment_policies_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_environment_policies" ADD CONSTRAINT "map_environment_policies_pkey" PRIMARY KEY (map_id);
 ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_layer_type_check" CHECK ((layer_type = ANY (ARRAY['terrain'::text, 'structural'::text, 'building'::text, 'decoration'::text, 'annotation'::text, 'collision'::text, 'lighting'::text, 'world'::text, 'room'::text, 'interior'::text])));
-ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_map_id_name_key" UNIQUE (map_id, name);
 ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_opacity_check" CHECK (((opacity >= (0)::numeric) AND (opacity <= (1)::numeric)));
-ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_cell_type_check" CHECK ((cell_type = ANY (ARRAY['empty'::text, 'floor'::text, 'wall'::text, 'door'::text, 'corridor'::text, 'obstacle'::text, 'water'::text, 'void'::text, 'stairs'::text])));
-ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_corridor_id_fkey" FOREIGN KEY (corridor_id) REFERENCES dungeon_corridors(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_opening_id_fkey" FOREIGN KEY (opening_id) REFERENCES dungeon_openings(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_pkey" PRIMARY KEY (map_id, x, y);
-ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_room_id_fkey" FOREIGN KEY (room_id) REFERENCES dungeon_rooms(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_navigation_obstacles" ADD CONSTRAINT "map_navigation_obstacles_map_id_x_y_layer_key" UNIQUE (map_id, x, y, layer);
 ALTER TABLE "public"."map_navigation_obstacles" ADD CONSTRAINT "map_navigation_obstacles_obstacle_type_check" CHECK ((obstacle_type = ANY (ARRAY['generic'::text, 'wall'::text, 'furniture'::text, 'prop'::text, 'water'::text, 'hazard'::text, 'custom'::text])));
-ALTER TABLE "public"."map_navigation_obstacles" ADD CONSTRAINT "map_navigation_obstacles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_object_id_fkey" FOREIGN KEY (object_id) REFERENCES map_objects(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_pkey" PRIMARY KEY (object_id);
 ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_rotation_ck" CHECK ((rotation = ANY (ARRAY[(0)::numeric, (90)::numeric, (180)::numeric, (270)::numeric])));
 ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_size_ck" CHECK (((half_width >= (0)::numeric) AND (half_height >= (0)::numeric)));
 ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_type_ck" CHECK ((geometry_type = 'obb'::text));
 ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_check" CHECK (((entity_type IS NULL) = (entity_id IS NULL)));
-ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES map_layers(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
 ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_object_type_check" CHECK ((object_type = ANY (ARRAY['prop'::text, 'furniture'::text, 'decoration'::text, 'chest'::text, 'container'::text, 'interactive'::text, 'custom'::text])));
-ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_scale_x_check" CHECK ((scale_x > (0)::numeric));
 ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_scale_y_check" CHECK ((scale_y > (0)::numeric));
 ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_size_check" CHECK ((((width >= 1) AND (width <= 64)) AND ((height >= 1) AND (height <= 64))));
-ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_building_placement_id_fkey" FOREIGN KEY (building_placement_id) REFERENCES map_building_placements(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES map_layers(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_map_id_grid_x_grid_y_occupancy_type_key" UNIQUE (map_id, grid_x, grid_y, occupancy_type);
-ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE SET NULL;
 ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_mask_check" CHECK (((mask >= 0) AND (mask <= 255)));
-ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_rule_id_fkey" FOREIGN KEY (rule_id) REFERENCES map_terrain_rules(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_rule_id_mask_variant_key_key" UNIQUE (rule_id, mask, variant_key);
-ALTER TABLE "public"."map_terrain_rules" ADD CONSTRAINT "map_terrain_rules_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_terrain_rules" ADD CONSTRAINT "map_terrain_rules_rule_key_key" UNIQUE (rule_key);
 ALTER TABLE "public"."map_terrain_rules" ADD CONSTRAINT "map_terrain_rules_tile_size_check" CHECK ((tile_size > 0));
 ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_check" CHECK ((from_terrain <> to_terrain));
-ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_rule_id_fkey" FOREIGN KEY (rule_id) REFERENCES map_terrain_rules(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_transition_key_key" UNIQUE (transition_key);
-ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_map_id_version_number_key" UNIQUE (map_id, version_number);
-ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_version_number_check" CHECK ((version_number > 0));
 ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_intensity_check" CHECK (((intensity >= 0) AND (intensity <= 5)));
-ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
-ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_weather_id_fkey" FOREIGN KEY (weather_id) REFERENCES weather_definitions(id);
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_building_id_fkey" FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE SET NULL;
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_check" CHECK ((((map_type = 'world'::text) AND (building_id IS NULL)) OR (map_type <> 'world'::text)));
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_check1" CHECK ((((map_type = 'interior'::text) AND (building_id IS NOT NULL)) OR (map_type <> 'interior'::text)));
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_coordinate_mode_check" CHECK ((coordinate_mode = ANY (ARRAY['square'::text, 'hex'::text, 'freeform'::text])));
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_coordinate_profile_id_fkey" FOREIGN KEY (coordinate_profile_id) REFERENCES map_coordinate_profiles(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_height_check" CHECK (((height IS NULL) OR (height > 0)));
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_map_type_check" CHECK ((map_type = ANY (ARRAY['world'::text, 'exterior'::text, 'interior'::text])));
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_tile_size_check" CHECK (((tile_size IS NULL) OR (tile_size > (0)::numeric)));
 ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_width_check" CHECK (((width IS NULL) OR (width > 0)));
-ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."notifications" ADD CONSTRAINT "notifications_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE "public"."npc_seed_catalog" ADD CONSTRAINT "npc_seed_catalog_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."npc_seed_catalog" ADD CONSTRAINT "npc_seed_catalog_seed_key_key" UNIQUE (seed_key);
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_household_id_fkey" FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE SET NULL;
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE SET NULL;
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_occupation_id_fkey" FOREIGN KEY (occupation_id) REFERENCES occupations(id) ON DELETE SET NULL;
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_index_check" CHECK ((seed_index >= 0));
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_run_id_fkey" FOREIGN KEY (seed_run_id) REFERENCES npc_seed_runs(id) ON DELETE CASCADE;
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_run_id_seed_index_key" UNIQUE (seed_run_id, seed_index);
-ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_run_id_seed_key_key" UNIQUE (seed_run_id, seed_key);
-ALTER TABLE "public"."npc_seed_runs" ADD CONSTRAINT "npc_seed_runs_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."npc_seed_runs" ADD CONSTRAINT "npc_seed_runs_seed_key_key" UNIQUE (seed_key);
 ALTER TABLE "public"."npc_seed_runs" ADD CONSTRAINT "npc_seed_runs_seed_version_check" CHECK ((seed_version > 0));
 ALTER TABLE "public"."npc_seed_runs" ADD CONSTRAINT "npc_seed_runs_status_check" CHECK ((status = ANY (ARRAY['planned'::text, 'running'::text, 'completed'::text, 'failed'::text, 'rolled_back'::text])));
-ALTER TABLE "public"."occupation_skill_affinities" ADD CONSTRAINT "occupation_skill_affinities_occupation_id_fkey" FOREIGN KEY (occupation_id) REFERENCES occupations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."occupation_skill_affinities" ADD CONSTRAINT "occupation_skill_affinities_pkey" PRIMARY KEY (occupation_id, skill_type);
 ALTER TABLE "public"."occupation_skill_affinities" ADD CONSTRAINT "occupation_skill_affinities_weight_check" CHECK ((weight > (0)::numeric));
-ALTER TABLE "public"."occupations" ADD CONSTRAINT "occupations_name_key" UNIQUE (name);
-ALTER TABLE "public"."occupations" ADD CONSTRAINT "occupations_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_organization_id_fkey" FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_role_id_fkey" FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE SET NULL;
-ALTER TABLE "public"."organization_roles" ADD CONSTRAINT "organization_roles_name_key" UNIQUE (name);
-ALTER TABLE "public"."organization_roles" ADD CONSTRAINT "organization_roles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."organizations" ADD CONSTRAINT "organizations_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."organizations" ADD CONSTRAINT "organizations_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
-ALTER TABLE "public"."permissions" ADD CONSTRAINT "permissions_name_key" UNIQUE (name);
-ALTER TABLE "public"."permissions" ADD CONSTRAINT "permissions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."polities" ADD CONSTRAINT "polities_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."polity_memberships" ADD CONSTRAINT "polity_memberships_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."polity_memberships" ADD CONSTRAINT "polity_memberships_polity_id_fkey" FOREIGN KEY (polity_id) REFERENCES polities(id) ON DELETE CASCADE;
-ALTER TABLE "public"."profiles" ADD CONSTRAINT "fk_profiles_user_id" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE "public"."profiles" ADD CONSTRAINT "pk_profiles_id" PRIMARY KEY (id);
-ALTER TABLE "public"."profiles" ADD CONSTRAINT "uq_profiles_user_id" UNIQUE (user_id);
-ALTER TABLE "public"."quest_definitions" ADD CONSTRAINT "quest_definitions_code_key" UNIQUE (code);
-ALTER TABLE "public"."quest_definitions" ADD CONSTRAINT "quest_definitions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."quest_definitions" ADD CONSTRAINT "quest_definitions_state_check" CHECK ((state = ANY (ARRAY['DRAFT'::text, 'AVAILABLE'::text])));
-ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_quest_id_life_id_key" UNIQUE (quest_id, life_id);
 ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_state_check" CHECK ((state = ANY (ARRAY['AVAILABLE'::text, 'ACTIVE'::text, 'COMPLETED'::text, 'FAILED'::text, 'ABANDONED'::text])));
 ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_state_timestamps_check" CHECK ((((state = 'AVAILABLE'::text) AND (started_at IS NULL) AND (completed_at IS NULL) AND (failed_at IS NULL) AND (abandoned_at IS NULL)) OR ((state = 'ACTIVE'::text) AND (started_at IS NOT NULL) AND (completed_at IS NULL) AND (failed_at IS NULL) AND (abandoned_at IS NULL)) OR ((state = 'COMPLETED'::text) AND (started_at IS NOT NULL) AND (completed_at IS NOT NULL) AND (failed_at IS NULL) AND (abandoned_at IS NULL)) OR ((state = 'FAILED'::text) AND (started_at IS NOT NULL) AND (completed_at IS NULL) AND (failed_at IS NOT NULL) AND (abandoned_at IS NULL)) OR ((state = 'ABANDONED'::text) AND (started_at IS NOT NULL) AND (completed_at IS NULL) AND (failed_at IS NULL) AND (abandoned_at IS NOT NULL))));
-ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_objective_id_fkey" FOREIGN KEY (objective_id) REFERENCES quest_objectives(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_progress_check" CHECK ((progress >= (0)::numeric));
-ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_quest_instance_id_fkey" FOREIGN KEY (quest_instance_id) REFERENCES quest_instances(id) ON DELETE CASCADE;
-ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_quest_instance_id_objective_id_key" UNIQUE (quest_instance_id, objective_id);
-ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_quest_id_code_key" UNIQUE (quest_id, code);
-ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE CASCADE;
 ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_target_value_check" CHECK ((target_value > (0)::numeric));
 ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_check" CHECK ((quest_id <> prerequisite_quest_id));
-ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_pkey" PRIMARY KEY (quest_id, prerequisite_quest_id);
-ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_prerequisite_quest_id_fkey" FOREIGN KEY (prerequisite_quest_id) REFERENCES quest_definitions(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_quest_instance_id_fkey" FOREIGN KEY (quest_instance_id) REFERENCES quest_instances(id) ON DELETE CASCADE;
-ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_quest_instance_id_reward_id_key" UNIQUE (quest_instance_id, reward_id);
-ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_reward_id_fkey" FOREIGN KEY (reward_id) REFERENCES quest_rewards(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."quest_rewards" ADD CONSTRAINT "quest_rewards_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."quest_rewards" ADD CONSTRAINT "quest_rewards_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."region_weather_profiles" ADD CONSTRAINT "region_weather_profiles_pkey" PRIMARY KEY (region_id);
-ALTER TABLE "public"."region_weather_profiles" ADD CONSTRAINT "region_weather_profiles_region_id_fkey" FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."regions" ADD CONSTRAINT "regions_continent_id_fkey" FOREIGN KEY (continent_id) REFERENCES continents(id) ON DELETE CASCADE;
-ALTER TABLE "public"."regions" ADD CONSTRAINT "regions_continent_id_name_key" UNIQUE (continent_id, name);
-ALTER TABLE "public"."regions" ADD CONSTRAINT "regions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_check" CHECK ((life_a <> life_b));
-ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_life_a_fkey" FOREIGN KEY (life_a) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_life_b_fkey" FOREIGN KEY (life_b) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."religions" ADD CONSTRAINT "religions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."resources" ADD CONSTRAINT "resources_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."resources" ADD CONSTRAINT "resources_quantity_check" CHECK ((quantity >= (0)::numeric));
-ALTER TABLE "public"."resources" ADD CONSTRAINT "resources_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE;
-ALTER TABLE "public"."role_permissions" ADD CONSTRAINT "role_permissions_permission_id_fkey" FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."role_permissions" ADD CONSTRAINT "role_permissions_pkey" PRIMARY KEY (role_id, permission_id);
-ALTER TABLE "public"."role_permissions" ADD CONSTRAINT "role_permissions_role_id_fkey" FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE;
-ALTER TABLE "public"."roles" ADD CONSTRAINT "roles_name_key" UNIQUE (name);
-ALTER TABLE "public"."roles" ADD CONSTRAINT "roles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_check" CHECK (((start_minute >= 0) AND (end_minute > start_minute) AND (end_minute <= 1440)));
-ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_schedule_id_fkey" FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE;
-ALTER TABLE "public"."schedules" ADD CONSTRAINT "schedules_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."schedules" ADD CONSTRAINT "schedules_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_check" CHECK (((next_season_id IS NULL) OR (next_season_id <> season_id)));
 ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_duration_days_check" CHECK ((duration_days > (0)::numeric));
-ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_next_season_id_fkey" FOREIGN KEY (next_season_id) REFERENCES season_definitions(id) ON DELETE SET NULL;
-ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_season_id_key" UNIQUE (season_id);
 ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_key_chk" CHECK ((season_key = ANY (ARRAY['spring'::text, 'summer'::text, 'autumn'::text, 'winter'::text])));
 ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_ordinal_chk" CHECK (((ordinal >= 1) AND (ordinal <= 4)));
-ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_ordinal_key" UNIQUE (ordinal);
-ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."season_definitions" ADD CONSTRAINT "season_definitions_season_key_key" UNIQUE (season_key);
-ALTER TABLE "public"."season_rules" ADD CONSTRAINT "season_rules_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."season_rules" ADD CONSTRAINT "season_rules_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."season_rules" ADD CONSTRAINT "season_rules_season_id_rule_key_key" UNIQUE (season_id, rule_key);
 ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_base_weight_check" CHECK ((base_weight >= (0)::numeric));
 ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_check" CHECK (((min_probability IS NULL) OR (max_probability IS NULL) OR (min_probability <= max_probability)));
 ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_max_probability_check" CHECK (((max_probability >= (0)::numeric) AND (max_probability <= (1)::numeric)));
 ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_min_probability_check" CHECK (((min_probability >= (0)::numeric) AND (min_probability <= (1)::numeric)));
-ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_season_id_weather_id_key" UNIQUE (season_id, weather_id);
-ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_weather_id_fkey" FOREIGN KEY (weather_id) REFERENCES weather_definitions(id) ON DELETE CASCADE;
 ALTER TABLE "public"."security_table_boundaries" ADD CONSTRAINT "security_table_boundaries_access_class_check" CHECK ((access_class = ANY (ARRAY['public'::text, 'player'::text, 'simulation'::text, 'admin'::text])));
-ALTER TABLE "public"."security_table_boundaries" ADD CONSTRAINT "security_table_boundaries_pkey" PRIMARY KEY (table_name);
-ALTER TABLE "public"."services" ADD CONSTRAINT "services_building_id_fkey" FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE;
-ALTER TABLE "public"."services" ADD CONSTRAINT "services_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_device_id_fkey" FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE SET NULL;
-ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'expired'::text, 'revoked'::text])));
-ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE "public"."settings" ADD CONSTRAINT "fk_settings_user_id" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE "public"."settings" ADD CONSTRAINT "pk_settings_id" PRIMARY KEY (id);
-ALTER TABLE "public"."settings" ADD CONSTRAINT "uq_settings_user_id" UNIQUE (user_id);
-ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
-ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_event_id_key" UNIQUE (event_id);
-ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE;
-ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE;
-ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_location_id_key" UNIQUE (location_id);
-ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_population_limit_check" CHECK (((population_limit IS NULL) OR (population_limit >= 0)));
 ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'abandoned'::text])));
 ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_current_tick_check" CHECK ((current_tick >= 0));
-ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_speed_check" CHECK ((speed >= (0)::numeric));
-ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_world_id_key" UNIQUE (world_id);
 ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_check" CHECK ((source_life_id <> target_life_id));
-ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_source_life_id_fkey" FOREIGN KEY (source_life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_target_life_id_fkey" FOREIGN KEY (target_life_id) REFERENCES lives(id) ON DELETE CASCADE;
 ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_neighborhood_check" CHECK ((neighborhood = ANY (ARRAY['4_way'::text, '8_way'::text])));
-ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_profile_key_key" UNIQUE (profile_key);
 ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_tile_size_check" CHECK ((tile_size > 0));
 ALTER TABLE "public"."terrain_autotile_profiles" ADD CONSTRAINT "terrain_autotile_profiles_topology_check" CHECK ((topology = ANY (ARRAY['wang_4'::text, 'wang_8'::text, 'blob_47'::text, 'blob_256'::text, 'manual'::text])));
-ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_seasonal_variant_id_fkey" FOREIGN KEY (seasonal_variant_id) REFERENCES asset_seasonal_variants(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
-ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_terrain_type_id_season_id_key" UNIQUE (terrain_type_id, season_id);
-ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_neighbor_mask_check" CHECK (((neighbor_mask >= 0) AND (neighbor_mask <= 255)));
-ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_season_check" CHECK (((season IS NULL) OR (season = ANY (ARRAY['spring'::text, 'summer'::text, 'autumn'::text, 'winter'::text]))));
-ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
-ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_terrain_type_id_neighbor_mask_seas_key" UNIQUE (terrain_type_id, neighbor_mask, season);
 ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_transition_type_check" CHECK ((transition_type = ANY (ARRAY['full'::text, 'edge'::text, 'corner'::text, 'inner_corner'::text, 'isolated'::text, 'blend'::text])));
-ALTER TABLE "public"."terrain_type_profiles" ADD CONSTRAINT "terrain_type_profiles_pkey" PRIMARY KEY (terrain_type_id, profile_id);
-ALTER TABLE "public"."terrain_type_profiles" ADD CONSTRAINT "terrain_type_profiles_profile_id_fkey" FOREIGN KEY (profile_id) REFERENCES terrain_autotile_profiles(id) ON DELETE CASCADE;
-ALTER TABLE "public"."terrain_type_profiles" ADD CONSTRAINT "terrain_type_profiles_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
-ALTER TABLE "public"."terrain_types" ADD CONSTRAINT "terrain_types_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."terrain_types" ADD CONSTRAINT "terrain_types_terrain_key_key" UNIQUE (terrain_key);
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_chain_delay_check" CHECK (((next_event_delay_seconds IS NULL) OR (next_event_delay_seconds >= 0)));
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_chain_step_check" CHECK (((chain_step IS NULL) OR (chain_step >= 0)));
-ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_event_type_fk" FOREIGN KEY (event_type) REFERENCES event_definitions(event_type);
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_max_retries_check" CHECK ((max_retries >= 0));
-ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_recurrence_interval_check" CHECK (((recurrence_type IS NULL) OR ((recurrence_interval_seconds IS NOT NULL) AND (recurrence_interval_seconds > 0))));
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_recurrence_type_check" CHECK (((recurrence_type IS NULL) OR (recurrence_type = 'interval'::text)));
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_retry_count_check" CHECK ((retry_count >= 0));
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_retry_delay_check" CHECK ((retry_delay_seconds >= 0));
+ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_check" CHECK ((origin_location_id <> destination_location_id));
+ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_state_check" CHECK ((state = ANY (ARRAY['planned'::text, 'traveling'::text, 'arrived'::text, 'cancelled'::text, 'failed'::text])));
+ALTER TABLE "public"."users" ADD CONSTRAINT "users_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'disabled'::text, 'deleted'::text])));
+ALTER TABLE "public"."weather_definitions" ADD CONSTRAINT "weather_definitions_intensity_check" CHECK (((intensity >= 0) AND (intensity <= 5)));
+ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_check" CHECK (((max_duration_minutes IS NULL) OR (max_duration_minutes >= min_duration_minutes)));
+ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_min_duration_minutes_check" CHECK ((min_duration_minutes > 0));
+ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_selection_status_check" CHECK ((selection_status = ANY (ARRAY['enabled'::text, 'excluded'::text, 'review'::text])));
+ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_world_role_check" CHECK ((world_role = ANY (ARRAY['base_terrain'::text, 'polar_terrain'::text, 'mountain'::text, 'polar_mountain'::text])));
+ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_biome_key_check" CHECK ((biome_key = ANY (ARRAY['forest'::text, 'jungle'::text, 'desert'::text, 'swamp'::text, 'snow_tundra'::text, 'coastal'::text, 'grassland'::text, 'mountain'::text, 'hills'::text, 'rocky'::text, 'cave'::text, 'volcanic'::text])));
+ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_compatibility_check" CHECK ((compatibility = ANY (ARRAY['candidate'::text, 'compatible'::text, 'preferred'::text, 'blocked'::text])));
+ALTER TABLE "public"."world_environment_clocks" ADD CONSTRAINT "world_environment_clocks_speed_multiplier_check" CHECK ((speed_multiplier >= (0)::numeric));
+ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
+ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_landform_key_check" CHECK ((landform_key = ANY (ARRAY['mountain'::text, 'hill'::text, 'cliff'::text, 'natural_rock'::text, 'cave'::text, 'cave_opening'::text, 'waterfall'::text, 'pit'::text, 'hole'::text, 'volcanic'::text, 'lava_rock'::text])));
+ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
+ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_directionality_check" CHECK ((directionality = ANY (ARRAY['bidirectional'::text, 'source_to_target'::text, 'target_to_source'::text])));
+ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_edge_type_check" CHECK ((edge_type = ANY (ARRAY['edge'::text, 'corner'::text, 'three_way'::text, 'four_way'::text, 'overlay'::text, 'transition_sheet'::text])));
+ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
+ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_vegetation_family_check" CHECK ((vegetation_family = ANY (ARRAY['woodland_deciduous'::text, 'conifer'::text, 'seasonal'::text, 'dead_tree'::text, 'jungle_giant_tree'::text, 'jungle_viney_tree'::text, 'jungle_giant_plant'::text, 'jungle_giant_fungi'::text, 'understory_flower'::text, 'understory_bush'::text, 'understory_fern'::text, 'understory_fungi'::text, 'orchard_fruit'::text, 'desert_cactus'::text, 'desert_succulent'::text, 'desert_dry_shrub'::text, 'desert_tree'::text, 'wetland_reed'::text, 'wetland_water_plant'::text, 'wetland_waterlogged'::text, 'magical'::text, 'hazardous'::text, 'special'::text])));
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_flow_direction_check" CHECK (((flow_direction IS NULL) OR (flow_direction = ANY (ARRAY['none'::text, 'north'::text, 'south'::text, 'east'::text, 'west'::text, 'northeast'::text, 'northwest'::text, 'southeast'::text, 'southwest'::text, 'radial'::text]))));
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_flow_strength_check" CHECK (((flow_strength IS NULL) OR (flow_strength = ANY (ARRAY['none'::text, 'slow'::text, 'medium'::text, 'fast'::text]))));
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_water_feature_check" CHECK ((water_feature = ANY (ARRAY['shoreline'::text, 'river'::text, 'lake'::text, 'waterfall'::text, 'ocean_sea'::text, 'generic'::text])));
+ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_water_state_check" CHECK ((water_state = ANY (ARRAY['coastal_shallow'::text, 'open'::text, 'deep'::text, 'brackish'::text, 'cold'::text, 'frozen'::text])));
+ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_intensity_check" CHECK (((intensity >= 0) AND (intensity <= 5)));
+ALTER TABLE "public"."worlds" ADD CONSTRAINT "worlds_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'archived'::text])));
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."activity_attribute_affinities" ADD CONSTRAINT "activity_attribute_affinities_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_next_activity_id_fkey" FOREIGN KEY (next_activity_id) REFERENCES activities(id) ON DELETE SET NULL;
+ALTER TABLE "public"."activity_completion_transitions" ADD CONSTRAINT "activity_completion_transitions_schedule_id_fkey" FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_food_consumptions" ADD CONSTRAINT "activity_food_consumptions_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."activity_interruptions" ADD CONSTRAINT "activity_interruptions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_inventory_requirements" ADD CONSTRAINT "activity_inventory_requirements_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_skill_affinities" ADD CONSTRAINT "activity_skill_affinities_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_skill_xp_awards" ADD CONSTRAINT "activity_skill_xp_awards_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE;
+ALTER TABLE "public"."activity_xp_policies" ADD CONSTRAINT "activity_xp_policies_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."ai_activity_need_rules" ADD CONSTRAINT "ai_activity_need_rules_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."ai_archetype_activity_policies" ADD CONSTRAINT "ai_archetype_activity_policies_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."ai_goal_activity_rules" ADD CONSTRAINT "ai_goal_activity_rules_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."ai_improvement_proposals" ADD CONSTRAINT "ai_improvement_proposals_evaluation_id_fkey" FOREIGN KEY (evaluation_id) REFERENCES ai_improvement_evaluations(id);
+ALTER TABLE "public"."asset_binary_verifications" ADD CONSTRAINT "asset_binary_verifications_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."asset_binding_candidates" ADD CONSTRAINT "asset_binding_candidates_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_contributors" ADD CONSTRAINT "asset_contributors_source_id_fkey" FOREIGN KEY (source_id) REFERENCES asset_sources(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_dependency_asset_id_fkey" FOREIGN KEY (dependency_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."asset_dependencies" ADD CONSTRAINT "asset_dependencies_dependency_source_id_fkey" FOREIGN KEY (dependency_source_id) REFERENCES asset_sources(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."asset_files" ADD CONSTRAINT "asset_files_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_license_registry" ADD CONSTRAINT "asset_license_registry_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE "public"."asset_manifest" ADD CONSTRAINT "asset_manifest_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_package_assets" ADD CONSTRAINT "asset_package_assets_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_package_assets" ADD CONSTRAINT "asset_package_assets_package_id_fkey" FOREIGN KEY (package_id) REFERENCES asset_packages(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_package_files" ADD CONSTRAINT "asset_package_files_package_id_fkey" FOREIGN KEY (package_id) REFERENCES asset_packages(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_packages" ADD CONSTRAINT "asset_packages_source_id_fkey" FOREIGN KEY (source_id) REFERENCES asset_sources(id) ON DELETE SET NULL;
+ALTER TABLE "public"."asset_provenance_verifications" ADD CONSTRAINT "asset_provenance_verifications_license_registry_id_fkey" FOREIGN KEY (license_registry_id) REFERENCES asset_license_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id);
+ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_license_registry_id_fkey" FOREIGN KEY (license_registry_id) REFERENCES asset_license_registry(id);
+ALTER TABLE "public"."asset_registry" ADD CONSTRAINT "asset_registry_source_id_fkey" FOREIGN KEY (source_id) REFERENCES asset_sources(id);
+ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_asset_license_id_fkey" FOREIGN KEY (asset_license_id) REFERENCES asset_license_registry(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_seasonal_variants" ADD CONSTRAINT "asset_seasonal_variants_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."asset_sources" ADD CONSTRAINT "asset_sources_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id);
+ALTER TABLE "public"."audit_logs" ADD CONSTRAINT "audit_logs_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_birth_location_id_fkey" FOREIGN KEY (birth_location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_parent_a_id_fkey" FOREIGN KEY (parent_a_id) REFERENCES lives(id) ON DELETE SET NULL;
+ALTER TABLE "public"."birth_records" ADD CONSTRAINT "birth_records_parent_b_id_fkey" FOREIGN KEY (parent_b_id) REFERENCES lives(id) ON DELETE SET NULL;
+ALTER TABLE "public"."building_assembly_constraints" ADD CONSTRAINT "building_assembly_constraints_spec_id_fkey" FOREIGN KEY (spec_id) REFERENCES building_assembly_specs(id) ON DELETE CASCADE;
+ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_role_id_fkey" FOREIGN KEY (role_id) REFERENCES building_kit_roles(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."building_assembly_rules" ADD CONSTRAINT "building_assembly_rules_spec_id_fkey" FOREIGN KEY (spec_id) REFERENCES building_assembly_specs(id) ON DELETE CASCADE;
+ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_building_id_fkey" FOREIGN KEY (building_id) REFERENCES building_instances(id) ON DELETE CASCADE;
+ALTER TABLE "public"."building_instance_components" ADD CONSTRAINT "building_instance_components_role_id_fkey" FOREIGN KEY (role_id) REFERENCES building_kit_roles(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."building_instances" ADD CONSTRAINT "building_instances_spec_id_fkey" FOREIGN KEY (spec_id) REFERENCES building_assembly_specs(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE SET NULL;
+ALTER TABLE "public"."building_kit_bindings" ADD CONSTRAINT "building_kit_bindings_role_id_fkey" FOREIGN KEY (role_id) REFERENCES building_kit_roles(id) ON DELETE CASCADE;
+ALTER TABLE "public"."buildings" ADD CONSTRAINT "buildings_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE;
+ALTER TABLE "public"."calendar_definitions" ADD CONSTRAINT "calendar_definitions_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
+ALTER TABLE "public"."civilization_influences" ADD CONSTRAINT "civilization_influences_civilization_id_fkey" FOREIGN KEY (civilization_id) REFERENCES civilizations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."communities" ADD CONSTRAINT "communities_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
+ALTER TABLE "public"."community_memberships" ADD CONSTRAINT "community_memberships_community_id_fkey" FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE;
+ALTER TABLE "public"."community_memberships" ADD CONSTRAINT "community_memberships_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_container_id_fkey" FOREIGN KEY (container_id) REFERENCES containers(id) ON DELETE CASCADE;
+ALTER TABLE "public"."container_access" ADD CONSTRAINT "container_access_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."containers" ADD CONSTRAINT "containers_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."containers" ADD CONSTRAINT "containers_owner_life_id_fkey" FOREIGN KEY (owner_life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."continents" ADD CONSTRAINT "continents_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
+ALTER TABLE "public"."day_records" ADD CONSTRAINT "day_records_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
+ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."death_records" ADD CONSTRAINT "death_records_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."devices" ADD CONSTRAINT "devices_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_node_id_fkey" FOREIGN KEY (node_id) REFERENCES dialogue_nodes(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dialogue_choices" ADD CONSTRAINT "dialogue_choices_target_node_id_fkey" FOREIGN KEY (target_node_id) REFERENCES dialogue_nodes(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_choice_id_fkey" FOREIGN KEY (choice_id) REFERENCES dialogue_choices(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES dialogue_conversations(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_node_id_fkey" FOREIGN KEY (node_id) REFERENCES dialogue_nodes(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_history" ADD CONSTRAINT "dialogue_history_session_id_fkey" FOREIGN KEY (session_id) REFERENCES dialogue_sessions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_lines" ADD CONSTRAINT "dialogue_lines_node_id_fkey" FOREIGN KEY (node_id) REFERENCES dialogue_nodes(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dialogue_nodes" ADD CONSTRAINT "dialogue_nodes_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES dialogue_conversations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_conversation_id_fkey" FOREIGN KEY (conversation_id) REFERENCES dialogue_conversations(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_current_node_id_fkey" FOREIGN KEY (current_node_id) REFERENCES dialogue_nodes(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dialogue_sessions" ADD CONSTRAINT "dialogue_sessions_node_conversation_fkey" FOREIGN KEY (current_node_id, conversation_id) REFERENCES dialogue_nodes(id, conversation_id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_corridor_id_fkey" FOREIGN KEY (corridor_id) REFERENCES dungeon_corridors(id) ON DELETE SET NULL;
+ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_from_room_id_fkey" FOREIGN KEY (from_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_connections" ADD CONSTRAINT "dungeon_connections_to_room_id_fkey" FOREIGN KEY (to_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_from_room_id_fkey" FOREIGN KEY (from_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_corridors" ADD CONSTRAINT "dungeon_corridors_to_room_id_fkey" FOREIGN KEY (to_room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_corridor_id_fkey" FOREIGN KEY (corridor_id) REFERENCES dungeon_corridors(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_openings" ADD CONSTRAINT "dungeon_openings_room_id_fkey" FOREIGN KEY (room_id) REFERENCES dungeon_rooms(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_pathfinding_runs" ADD CONSTRAINT "dungeon_pathfinding_runs_connection_id_fkey" FOREIGN KEY (connection_id) REFERENCES dungeon_connections(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_rooms" ADD CONSTRAINT "dungeon_rooms_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE SET NULL;
+ALTER TABLE "public"."dungeon_structural_asset_bindings" ADD CONSTRAINT "dungeon_structural_asset_bindings_role_id_fkey" FOREIGN KEY (role_id) REFERENCES dungeon_structural_asset_roles(id) ON DELETE CASCADE;
+ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."dungeon_structural_rules" ADD CONSTRAINT "dungeon_structural_rules_profile_id_fkey" FOREIGN KEY (profile_id) REFERENCES dungeon_structural_profiles(id) ON DELETE CASCADE;
+ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_legacy_map_id_fkey" FOREIGN KEY (legacy_map_id) REFERENCES maps(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_parent_fk" FOREIGN KEY (parent_editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_identity" ADD CONSTRAINT "editor_map_identity_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_building_id_fkey" FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_editor_map_id_fkey" FOREIGN KEY (editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE CASCADE;
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_legacy_map_id_fkey" FOREIGN KEY (legacy_map_id) REFERENCES maps(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_interior" ADD CONSTRAINT "editor_map_interior_playable_editor_map_id_fkey" FOREIGN KEY (playable_editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."editor_map_versions" ADD CONSTRAINT "editor_map_versions_editor_map_id_fkey" FOREIGN KEY (editor_map_id) REFERENCES editor_map_identity(editor_map_id) ON DELETE CASCADE;
+ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_occupation_id_fkey" FOREIGN KEY (occupation_id) REFERENCES occupations(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."employment" ADD CONSTRAINT "employment_organization_id_fkey" FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."energy_history" ADD CONSTRAINT "energy_history_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."equipment_loadouts" ADD CONSTRAINT "equipment_loadouts_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."event_executions" ADD CONSTRAINT "event_executions_time_event_id_fkey" FOREIGN KEY (time_event_id) REFERENCES time_events(id) ON DELETE CASCADE;
+ALTER TABLE "public"."family_memberships" ADD CONSTRAINT "family_memberships_family_id_fkey" FOREIGN KEY (family_id) REFERENCES family_groups(id) ON DELETE CASCADE;
+ALTER TABLE "public"."family_memberships" ADD CONSTRAINT "family_memberships_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."food_effects" ADD CONSTRAINT "food_effects_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE;
+ALTER TABLE "public"."history_causes" ADD CONSTRAINT "history_causes_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
+ALTER TABLE "public"."history_consequences" ADD CONSTRAINT "history_consequences_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
+ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
+ALTER TABLE "public"."history_locations" ADD CONSTRAINT "history_locations_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."history_participants" ADD CONSTRAINT "history_participants_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
+ALTER TABLE "public"."households" ADD CONSTRAINT "households_residence_location_id_fkey" FOREIGN KEY (residence_location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."households" ADD CONSTRAINT "households_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
+ALTER TABLE "public"."inventory_aggregates" ADD CONSTRAINT "inventory_aggregates_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE SET NULL;
+ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_container_id_fkey" FOREIGN KEY (container_id) REFERENCES containers(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."inventory_consumptions" ADD CONSTRAINT "inventory_consumptions_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE SET NULL;
+ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_container_id_fkey" FOREIGN KEY (container_id) REFERENCES containers(id) ON DELETE CASCADE;
+ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."inventory_entries" ADD CONSTRAINT "inventory_entries_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE SET NULL;
+ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE SET NULL;
+ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_destination_container_id_fkey" FOREIGN KEY (destination_container_id) REFERENCES containers(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."inventory_transfers" ADD CONSTRAINT "inventory_transfers_source_container_id_fkey" FOREIGN KEY (source_container_id) REFERENCES containers(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."item_durability_history" ADD CONSTRAINT "item_durability_history_item_instance_id_fkey" FOREIGN KEY (item_instance_id) REFERENCES item_instances(id) ON DELETE CASCADE;
+ALTER TABLE "public"."item_instances" ADD CONSTRAINT "item_instances_item_id_fkey" FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."legacy_links" ADD CONSTRAINT "legacy_links_legacy_id_fkey" FOREIGN KEY (legacy_id) REFERENCES legacies(id) ON DELETE CASCADE;
+ALTER TABLE "public"."legacy_modifications" ADD CONSTRAINT "legacy_modifications_history_event_id_fkey" FOREIGN KEY (history_event_id) REFERENCES history_events(id) ON DELETE SET NULL;
+ALTER TABLE "public"."legacy_modifications" ADD CONSTRAINT "legacy_modifications_legacy_id_fkey" FOREIGN KEY (legacy_id) REFERENCES legacies(id) ON DELETE CASCADE;
+ALTER TABLE "public"."legacy_versions" ADD CONSTRAINT "legacy_versions_legacy_id_fkey" FOREIGN KEY (legacy_id) REFERENCES legacies(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE SET NULL;
+ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_activity_id_fkey" FOREIGN KEY (activity_id) REFERENCES activities(id);
+ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_goal_id_fkey" FOREIGN KEY (goal_id) REFERENCES life_ai_goals(id) ON DELETE SET NULL;
+ALTER TABLE "public"."life_ai_decisions" ADD CONSTRAINT "life_ai_decisions_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_ai_goals" ADD CONSTRAINT "life_ai_goals_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_ai_profiles" ADD CONSTRAINT "life_ai_profiles_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_attributes" ADD CONSTRAINT "life_attributes_attribute_type_fkey" FOREIGN KEY (attribute_type) REFERENCES attribute_definitions(code) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE "public"."life_attributes" ADD CONSTRAINT "life_attributes_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_currency" ADD CONSTRAINT "life_currency_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_emotion_definition_id_fkey" FOREIGN KEY (emotion_definition_id) REFERENCES emotion_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."life_emotion_history" ADD CONSTRAINT "life_emotion_history_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_emotion_definition_id_fkey" FOREIGN KEY (emotion_definition_id) REFERENCES emotion_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."life_emotions" ADD CONSTRAINT "life_emotions_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_energy" ADD CONSTRAINT "life_energy_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_identity" ADD CONSTRAINT "life_identity_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_needs" ADD CONSTRAINT "life_needs_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."life_skills" ADD CONSTRAINT "life_skills_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_household_id_fkey" FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE SET NULL;
+ALTER TABLE "public"."lives" ADD CONSTRAINT "lives_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_destination_location_id_fkey" FOREIGN KEY (destination_location_id) REFERENCES locations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."location_routes" ADD CONSTRAINT "location_routes_origin_location_id_fkey" FOREIGN KEY (origin_location_id) REFERENCES locations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_parent_location_id_fkey" FOREIGN KEY (parent_location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."locations" ADD CONSTRAINT "locations_region_id_fkey" FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_annotations" ADD CONSTRAINT "map_annotations_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_building_id_fkey" FOREIGN KEY (building_id) REFERENCES building_instances(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES map_layers(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_building_placements" ADD CONSTRAINT "map_building_placements_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_decoration_asset_id_fkey" FOREIGN KEY (decoration_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_structural_asset_id_fkey" FOREIGN KEY (structural_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."map_cells" ADD CONSTRAINT "map_cells_terrain_asset_id_fkey" FOREIGN KEY (terrain_asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_source_map_id_fkey" FOREIGN KEY (source_map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_connections" ADD CONSTRAINT "map_connections_target_map_id_fkey" FOREIGN KEY (target_map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_editor_runtime_snapshots" ADD CONSTRAINT "map_editor_runtime_snapshots_version_id_fkey" FOREIGN KEY (version_id) REFERENCES map_versions(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id);
+ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_editor_save_slots" ADD CONSTRAINT "map_editor_save_slots_version_id_fkey" FOREIGN KEY (version_id) REFERENCES map_versions(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_environment_policies" ADD CONSTRAINT "map_environment_policies_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_layers" ADD CONSTRAINT "map_layers_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_corridor_id_fkey" FOREIGN KEY (corridor_id) REFERENCES dungeon_corridors(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_opening_id_fkey" FOREIGN KEY (opening_id) REFERENCES dungeon_openings(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_navigation_cells" ADD CONSTRAINT "map_navigation_cells_room_id_fkey" FOREIGN KEY (room_id) REFERENCES dungeon_rooms(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_object_geometry" ADD CONSTRAINT "map_object_geometry_object_id_fkey" FOREIGN KEY (object_id) REFERENCES map_objects(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES map_layers(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_objects" ADD CONSTRAINT "map_objects_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_building_placement_id_fkey" FOREIGN KEY (building_placement_id) REFERENCES map_building_placements(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES map_layers(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_occupancy_cells" ADD CONSTRAINT "map_occupancy_cells_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_terrain_rule_tiles" ADD CONSTRAINT "map_terrain_rule_tiles_rule_id_fkey" FOREIGN KEY (rule_id) REFERENCES map_terrain_rules(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_terrain_transitions" ADD CONSTRAINT "map_terrain_transitions_rule_id_fkey" FOREIGN KEY (rule_id) REFERENCES map_terrain_rules(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE "public"."map_versions" ADD CONSTRAINT "map_versions_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_map_id_fkey" FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE;
+ALTER TABLE "public"."map_weather_overrides" ADD CONSTRAINT "map_weather_overrides_weather_id_fkey" FOREIGN KEY (weather_id) REFERENCES weather_definitions(id);
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_building_id_fkey" FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE SET NULL;
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_coordinate_profile_id_fkey" FOREIGN KEY (coordinate_profile_id) REFERENCES map_coordinate_profiles(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_created_by_fkey" FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
+ALTER TABLE "public"."maps" ADD CONSTRAINT "maps_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
+ALTER TABLE "public"."notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_household_id_fkey" FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE SET NULL;
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE SET NULL;
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_occupation_id_fkey" FOREIGN KEY (occupation_id) REFERENCES occupations(id) ON DELETE SET NULL;
+ALTER TABLE "public"."npc_seed_entries" ADD CONSTRAINT "npc_seed_entries_seed_run_id_fkey" FOREIGN KEY (seed_run_id) REFERENCES npc_seed_runs(id) ON DELETE CASCADE;
+ALTER TABLE "public"."occupation_skill_affinities" ADD CONSTRAINT "occupation_skill_affinities_occupation_id_fkey" FOREIGN KEY (occupation_id) REFERENCES occupations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_organization_id_fkey" FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."organization_memberships" ADD CONSTRAINT "organization_memberships_role_id_fkey" FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE SET NULL;
+ALTER TABLE "public"."organizations" ADD CONSTRAINT "organizations_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE SET NULL;
+ALTER TABLE "public"."polity_memberships" ADD CONSTRAINT "polity_memberships_polity_id_fkey" FOREIGN KEY (polity_id) REFERENCES polities(id) ON DELETE CASCADE;
+ALTER TABLE "public"."profiles" ADD CONSTRAINT "fk_profiles_user_id" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."quest_instances" ADD CONSTRAINT "quest_instances_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_objective_id_fkey" FOREIGN KEY (objective_id) REFERENCES quest_objectives(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."quest_objective_progress" ADD CONSTRAINT "quest_objective_progress_quest_instance_id_fkey" FOREIGN KEY (quest_instance_id) REFERENCES quest_instances(id) ON DELETE CASCADE;
+ALTER TABLE "public"."quest_objectives" ADD CONSTRAINT "quest_objectives_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_prerequisite_quest_id_fkey" FOREIGN KEY (prerequisite_quest_id) REFERENCES quest_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."quest_prerequisites" ADD CONSTRAINT "quest_prerequisites_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_quest_instance_id_fkey" FOREIGN KEY (quest_instance_id) REFERENCES quest_instances(id) ON DELETE CASCADE;
+ALTER TABLE "public"."quest_reward_settlements" ADD CONSTRAINT "quest_reward_settlements_reward_id_fkey" FOREIGN KEY (reward_id) REFERENCES quest_rewards(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."quest_rewards" ADD CONSTRAINT "quest_rewards_quest_id_fkey" FOREIGN KEY (quest_id) REFERENCES quest_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."region_weather_profiles" ADD CONSTRAINT "region_weather_profiles_region_id_fkey" FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."regions" ADD CONSTRAINT "regions_continent_id_fkey" FOREIGN KEY (continent_id) REFERENCES continents(id) ON DELETE CASCADE;
+ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_life_a_fkey" FOREIGN KEY (life_a) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."relationships" ADD CONSTRAINT "relationships_life_b_fkey" FOREIGN KEY (life_b) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."resources" ADD CONSTRAINT "resources_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE;
+ALTER TABLE "public"."role_permissions" ADD CONSTRAINT "role_permissions_permission_id_fkey" FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."role_permissions" ADD CONSTRAINT "role_permissions_role_id_fkey" FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE;
+ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_activity_definition_id_fkey" FOREIGN KEY (activity_definition_id) REFERENCES activity_definitions(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."schedule_entries" ADD CONSTRAINT "schedule_entries_schedule_id_fkey" FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE;
+ALTER TABLE "public"."schedules" ADD CONSTRAINT "schedules_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_next_season_id_fkey" FOREIGN KEY (next_season_id) REFERENCES season_definitions(id) ON DELETE SET NULL;
+ALTER TABLE "public"."season_cycle_rules" ADD CONSTRAINT "season_cycle_rules_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."season_rules" ADD CONSTRAINT "season_rules_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."season_weather_rules" ADD CONSTRAINT "season_weather_rules_weather_id_fkey" FOREIGN KEY (weather_id) REFERENCES weather_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."services" ADD CONSTRAINT "services_building_id_fkey" FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE;
+ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_device_id_fkey" FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE SET NULL;
+ALTER TABLE "public"."sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE "public"."settings" ADD CONSTRAINT "fk_settings_user_id" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_event_id_fkey" FOREIGN KEY (event_id) REFERENCES history_events(id) ON DELETE CASCADE;
+ALTER TABLE "public"."settlement_history" ADD CONSTRAINT "settlement_history_settlement_id_fkey" FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE;
+ALTER TABLE "public"."settlements" ADD CONSTRAINT "settlements_location_id_fkey" FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE;
+ALTER TABLE "public"."simulation_clock" ADD CONSTRAINT "simulation_clock_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
+ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_source_life_id_fkey" FOREIGN KEY (source_life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."social_interactions" ADD CONSTRAINT "social_interactions_target_life_id_fkey" FOREIGN KEY (target_life_id) REFERENCES lives(id) ON DELETE CASCADE;
+ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE CASCADE;
+ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_seasonal_variant_id_fkey" FOREIGN KEY (seasonal_variant_id) REFERENCES asset_seasonal_variants(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."terrain_seasonal_bindings" ADD CONSTRAINT "terrain_seasonal_bindings_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
+ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE RESTRICT;
+ALTER TABLE "public"."terrain_transition_rules" ADD CONSTRAINT "terrain_transition_rules_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
+ALTER TABLE "public"."terrain_type_profiles" ADD CONSTRAINT "terrain_type_profiles_profile_id_fkey" FOREIGN KEY (profile_id) REFERENCES terrain_autotile_profiles(id) ON DELETE CASCADE;
+ALTER TABLE "public"."terrain_type_profiles" ADD CONSTRAINT "terrain_type_profiles_terrain_type_id_fkey" FOREIGN KEY (terrain_type_id) REFERENCES terrain_types(id) ON DELETE CASCADE;
+ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_event_type_fk" FOREIGN KEY (event_type) REFERENCES event_definitions(event_type);
 ALTER TABLE "public"."time_events" ADD CONSTRAINT "time_events_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
 ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_actor_life_id_fkey" FOREIGN KEY (actor_life_id) REFERENCES lives(id) ON DELETE CASCADE;
 ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_arrival_event_id_fkey" FOREIGN KEY (arrival_event_id) REFERENCES time_events(id) ON DELETE SET NULL;
-ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_check" CHECK ((origin_location_id <> destination_location_id));
 ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_destination_location_id_fkey" FOREIGN KEY (destination_location_id) REFERENCES locations(id) ON DELETE RESTRICT;
 ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_origin_location_id_fkey" FOREIGN KEY (origin_location_id) REFERENCES locations(id) ON DELETE RESTRICT;
-ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_route_id_fkey" FOREIGN KEY (route_id) REFERENCES location_routes(id) ON DELETE SET NULL;
-ALTER TABLE "public"."travel_records" ADD CONSTRAINT "travel_records_state_check" CHECK ((state = ANY (ARRAY['planned'::text, 'traveling'::text, 'arrived'::text, 'cancelled'::text, 'failed'::text])));
 ALTER TABLE "public"."user_lives" ADD CONSTRAINT "user_lives_life_id_fkey" FOREIGN KEY (life_id) REFERENCES lives(id) ON DELETE CASCADE;
-ALTER TABLE "public"."user_lives" ADD CONSTRAINT "user_lives_pkey" PRIMARY KEY (user_id, life_id);
 ALTER TABLE "public"."user_lives" ADD CONSTRAINT "user_lives_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_assigned_by_fkey" FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL;
-ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_pkey" PRIMARY KEY (user_id, role_id);
 ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_role_id_fkey" FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE;
 ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE "public"."users" ADD CONSTRAINT "pk_users_id" PRIMARY KEY (id);
-ALTER TABLE "public"."users" ADD CONSTRAINT "uq_users_email" UNIQUE (email);
-ALTER TABLE "public"."users" ADD CONSTRAINT "users_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'disabled'::text, 'deleted'::text])));
-ALTER TABLE "public"."weather_definitions" ADD CONSTRAINT "weather_definitions_intensity_check" CHECK (((intensity >= 0) AND (intensity <= 5)));
-ALTER TABLE "public"."weather_definitions" ADD CONSTRAINT "weather_definitions_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."weather_definitions" ADD CONSTRAINT "weather_definitions_weather_key_key" UNIQUE (weather_key);
-ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_check" CHECK (((max_duration_minutes IS NULL) OR (max_duration_minutes >= min_duration_minutes)));
-ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_min_duration_minutes_check" CHECK ((min_duration_minutes > 0));
-ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_weather_id_fkey" FOREIGN KEY (weather_id) REFERENCES weather_definitions(id) ON DELETE CASCADE;
-ALTER TABLE "public"."weather_transition_policies" ADD CONSTRAINT "weather_transition_policies_weather_id_key" UNIQUE (weather_id);
 ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_pkey" PRIMARY KEY (asset_id);
-ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_selection_status_check" CHECK ((selection_status = ANY (ARRAY['enabled'::text, 'excluded'::text, 'review'::text])));
-ALTER TABLE "public"."world_asset_manifest" ADD CONSTRAINT "world_asset_manifest_world_role_check" CHECK ((world_role = ANY (ARRAY['base_terrain'::text, 'polar_terrain'::text, 'mountain'::text, 'polar_mountain'::text])));
-ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_asset_id_biome_key_key" UNIQUE (asset_id, biome_key);
 ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_biome_key_check" CHECK ((biome_key = ANY (ARRAY['forest'::text, 'jungle'::text, 'desert'::text, 'swamp'::text, 'snow_tundra'::text, 'coastal'::text, 'grassland'::text, 'mountain'::text, 'hills'::text, 'rocky'::text, 'cave'::text, 'volcanic'::text])));
-ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_compatibility_check" CHECK ((compatibility = ANY (ARRAY['candidate'::text, 'compatible'::text, 'preferred'::text, 'blocked'::text])));
-ALTER TABLE "public"."world_biome_compatibility" ADD CONSTRAINT "world_biome_compatibility_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."world_environment_clocks" ADD CONSTRAINT "world_environment_clocks_current_season_id_fkey" FOREIGN KEY (current_season_id) REFERENCES season_definitions(id) ON DELETE SET NULL;
-ALTER TABLE "public"."world_environment_clocks" ADD CONSTRAINT "world_environment_clocks_pkey" PRIMARY KEY (world_id);
-ALTER TABLE "public"."world_environment_clocks" ADD CONSTRAINT "world_environment_clocks_speed_multiplier_check" CHECK ((speed_multiplier >= (0)::numeric));
 ALTER TABLE "public"."world_environment_clocks" ADD CONSTRAINT "world_environment_clocks_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_environment_states" ADD CONSTRAINT "world_environment_states_pkey" PRIMARY KEY (world_id);
 ALTER TABLE "public"."world_environment_states" ADD CONSTRAINT "world_environment_states_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id) ON DELETE SET NULL;
 ALTER TABLE "public"."world_environment_states" ADD CONSTRAINT "world_environment_states_weather_state_id_fkey" FOREIGN KEY (weather_state_id) REFERENCES world_weather_states(id) ON DELETE SET NULL;
 ALTER TABLE "public"."world_environment_states" ADD CONSTRAINT "world_environment_states_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
 ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_asset_id_landform_key_variant_key_key" UNIQUE (asset_id, landform_key, variant_key);
-ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
-ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_landform_key_check" CHECK ((landform_key = ANY (ARRAY['mountain'::text, 'hill'::text, 'cliff'::text, 'natural_rock'::text, 'cave'::text, 'cave_opening'::text, 'waterfall'::text, 'pit'::text, 'hole'::text, 'volcanic'::text, 'lava_rock'::text])));
-ALTER TABLE "public"."world_landform_bindings" ADD CONSTRAINT "world_landform_bindings_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
-ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_directionality_check" CHECK ((directionality = ANY (ARRAY['bidirectional'::text, 'source_to_target'::text, 'target_to_source'::text])));
-ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_edge_type_check" CHECK ((edge_type = ANY (ARRAY['edge'::text, 'corner'::text, 'three_way'::text, 'four_way'::text, 'overlay'::text, 'transition_sheet'::text])));
-ALTER TABLE "public"."world_transition_bindings" ADD CONSTRAINT "world_transition_bindings_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_asset_id_vegetation_family_season_key" UNIQUE (asset_id, vegetation_family, season);
-ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
-ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."world_vegetation_bindings" ADD CONSTRAINT "world_vegetation_bindings_vegetation_family_check" CHECK ((vegetation_family = ANY (ARRAY['woodland_deciduous'::text, 'conifer'::text, 'seasonal'::text, 'dead_tree'::text, 'jungle_giant_tree'::text, 'jungle_viney_tree'::text, 'jungle_giant_plant'::text, 'jungle_giant_fungi'::text, 'understory_flower'::text, 'understory_bush'::text, 'understory_fern'::text, 'understory_fungi'::text, 'orchard_fruit'::text, 'desert_cactus'::text, 'desert_succulent'::text, 'desert_dry_shrub'::text, 'desert_tree'::text, 'wetland_reed'::text, 'wetland_water_plant'::text, 'wetland_waterlogged'::text, 'magical'::text, 'hazardous'::text, 'special'::text])));
 ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES asset_registry(id) ON DELETE CASCADE;
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_asset_id_water_state_water_feature_key" UNIQUE (asset_id, water_state, water_feature);
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_binding_status_check" CHECK ((binding_status = ANY (ARRAY['candidate'::text, 'verified'::text, 'blocked'::text])));
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_flow_direction_check" CHECK (((flow_direction IS NULL) OR (flow_direction = ANY (ARRAY['none'::text, 'north'::text, 'south'::text, 'east'::text, 'west'::text, 'northeast'::text, 'northwest'::text, 'southeast'::text, 'southwest'::text, 'radial'::text]))));
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_flow_strength_check" CHECK (((flow_strength IS NULL) OR (flow_strength = ANY (ARRAY['none'::text, 'slow'::text, 'medium'::text, 'fast'::text]))));
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_water_feature_check" CHECK ((water_feature = ANY (ARRAY['shoreline'::text, 'river'::text, 'lake'::text, 'waterfall'::text, 'ocean_sea'::text, 'generic'::text])));
-ALTER TABLE "public"."world_water_bindings" ADD CONSTRAINT "world_water_bindings_water_state_check" CHECK ((water_state = ANY (ARRAY['coastal_shallow'::text, 'open'::text, 'deep'::text, 'brackish'::text, 'cold'::text, 'frozen'::text])));
-ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_intensity_check" CHECK (((intensity >= 0) AND (intensity <= 5)));
-ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_pkey" PRIMARY KEY (id);
 ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_season_id_fkey" FOREIGN KEY (season_id) REFERENCES season_definitions(id);
 ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_weather_id_fkey" FOREIGN KEY (weather_id) REFERENCES weather_definitions(id);
 ALTER TABLE "public"."world_weather_states" ADD CONSTRAINT "world_weather_states_world_id_fkey" FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE;
-ALTER TABLE "public"."worlds" ADD CONSTRAINT "worlds_name_key" UNIQUE (name);
-ALTER TABLE "public"."worlds" ADD CONSTRAINT "worlds_pkey" PRIMARY KEY (id);
-ALTER TABLE "public"."worlds" ADD CONSTRAINT "worlds_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'archived'::text])));
 
+SET check_function_bodies = false;
 CREATE OR REPLACE FUNCTION public.prevent_audit_log_mutation()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1132,7 +1133,7 @@ AS $function$
 begin
   raise exception 'audit_logs is append-only';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_updated_at()
@@ -1144,7 +1145,7 @@ begin
   new.updated_at = now();
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.seed_npc_from_catalog(p_seed_key text)
@@ -1249,7 +1250,7 @@ begin
 
   return v_life_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.vandrith_simulation_tick(p_world_id uuid, p_minutes integer DEFAULT 1)
@@ -1257,7 +1258,7 @@ CREATE OR REPLACE FUNCTION public.vandrith_simulation_tick(p_world_id uuid, p_mi
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_clock public.simulation_clock%rowtype; v_old_date timestamptz; v_new_date timestamptz; v_new_tick bigint; v_started integer:=0; v_completed integer:=0; v_created integer:=0; v_rows integer; v_event_result jsonb; v_dispatch_limit integer:=100; v_ai_limit integer:=10; v_ai_processed integer:=0; v_ai_result jsonb:='[]'::jsonb; v_completion_failures jsonb:='[]'::jsonb; life_rec record; day_rec record; ai_rec record; result_rec record; completion_rec record; v_completion_result jsonb; begin if p_minutes is null or p_minutes<1 or p_minutes>1440 then raise exception 'p_minutes must be between 1 and 1440'; end if; select * into v_clock from public.simulation_clock where world_id=p_world_id for update; if not found then raise exception 'simulation_clock not found'; end if; if v_clock.paused then raise exception 'simulation is paused'; end if; v_old_date:=v_clock."current_date"; v_new_date:=v_old_date+make_interval(mins=>p_minutes); v_new_tick:=v_clock.current_tick+p_minutes; update public.simulation_clock set current_tick=v_new_tick,"current_date"=v_new_date,updated_at=now() where id=v_clock.id; v_event_result:=public.dispatch_due_time_events(p_world_id,v_new_date,v_dispatch_limit); create temporary table if not exists _vandrith_tick_ai_lives(life_id uuid primary key) on commit drop; truncate _vandrith_tick_ai_lives; update public.activities act_start set state='running',end_time=coalesce(act_start.end_time,act_start.start_time+make_interval(mins=>coalesce((select ad.default_duration from public.activity_definitions ad where ad.id=act_start.activity_definition_id),0)::integer)),updated_at=now() where act_start.state='scheduled' and act_start.start_time>v_old_date and act_start.start_time<=v_new_date and exists(select 1 from public.lives ll join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where ll.id=act_start.actor_life_id and ll.status='alive' and cont0.world_id=p_world_id); get diagnostics v_started=row_count; for completion_rec in select act_complete.id,act_complete.actor_life_id from public.activities act_complete where act_complete.actor_life_id in(select ll.id from public.lives ll join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where cont0.world_id=p_world_id and ll.status='alive') and act_complete.state='running' and act_complete.end_time is not null and act_complete.end_time<=v_new_date order by act_complete.id loop v_completion_result:=public.complete_activity_safely(completion_rec.id); if coalesce((v_completion_result->>'ok')::boolean,false) then v_completed:=v_completed+1; insert into _vandrith_tick_ai_lives(life_id) values(completion_rec.actor_life_id) on conflict do nothing; else v_completion_failures:=v_completion_failures||jsonb_build_array(v_completion_result); end if; end loop; update public.activities act_start2 set state='running',end_time=coalesce(act_start2.end_time,act_start2.start_time+make_interval(mins=>coalesce((select ad.default_duration from public.activity_definitions ad where ad.id=act_start2.activity_definition_id),0)::integer)),updated_at=now() where act_start2.state='scheduled' and act_start2.start_time>v_old_date and act_start2.start_time<=v_new_date and exists(select 1 from public.lives ll join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where ll.id=act_start2.actor_life_id and ll.status='alive' and cont0.world_id=p_world_id); get diagnostics v_rows=row_count; v_started:=v_started+v_rows; for life_rec in select ll.id life_id,se.activity_definition_id,se.start_minute,se.end_minute from public.lives ll join public.schedules ss on ss.life_id=ll.id and ss.status='active' join public.schedule_entries se on se.schedule_id=ss.id join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where cont0.world_id=p_world_id and ll.status='alive' loop for day_rec in select gs as day_start from generate_series(date_trunc('day',v_old_date),date_trunc('day',v_new_date),interval '1 day') gs loop if day_rec.day_start+make_interval(mins=>life_rec.start_minute)>v_old_date and day_rec.day_start+make_interval(mins=>life_rec.start_minute)<=v_new_date then if not exists(select 1 from public.activities act2 where act2.actor_life_id=life_rec.life_id and act2.start_time=day_rec.day_start+make_interval(mins=>life_rec.start_minute)) then insert into public.activities(actor_life_id,activity_definition_id,start_time,end_time,state,metadata) values(life_rec.life_id,life_rec.activity_definition_id,day_rec.day_start+make_interval(mins=>life_rec.start_minute),day_rec.day_start+make_interval(mins=>life_rec.end_minute),'running',jsonb_build_object('source','schedule','simulation_tick',v_new_tick)); v_created:=v_created+1; end if; end if; end loop; end loop; for ai_rec in select life_id from _vandrith_tick_ai_lives order by life_id limit v_ai_limit loop begin select * into result_rec from public.reevaluate_life_activity(ai_rec.life_id,v_new_date) limit 1; v_ai_result:=v_ai_result||jsonb_build_array(jsonb_build_object('life_id',ai_rec.life_id,'result',to_jsonb(result_rec))); exception when others then v_ai_result:=v_ai_result||jsonb_build_array(jsonb_build_object('life_id',ai_rec.life_id,'error',sqlstate,'message',sqlerrm)); end; v_ai_processed:=v_ai_processed+1; end loop; return jsonb_build_object('world_id',p_world_id,'old_tick',v_clock.current_tick,'new_tick',v_new_tick,'old_date',v_old_date,'new_date',v_new_date,'event_dispatch',v_event_result,'activities_started',v_started,'activities_created',v_created,'activities_completed',v_completed,'activity_completion_failures',v_completion_failures,'ai_phase',jsonb_build_object('budget',v_ai_limit,'processed',v_ai_processed,'trigger','activity_completion','results',v_ai_result)); end; $function$
+AS $function$ declare v_clock public.simulation_clock%rowtype; v_old_date timestamptz; v_new_date timestamptz; v_new_tick bigint; v_started integer:=0; v_completed integer:=0; v_created integer:=0; v_rows integer; v_event_result jsonb; v_dispatch_limit integer:=100; v_ai_limit integer:=10; v_ai_processed integer:=0; v_ai_result jsonb:='[]'::jsonb; v_completion_failures jsonb:='[]'::jsonb; life_rec record; day_rec record; ai_rec record; result_rec record; completion_rec record; v_completion_result jsonb; begin if p_minutes is null or p_minutes<1 or p_minutes>1440 then raise exception 'p_minutes must be between 1 and 1440'; end if; select * into v_clock from public.simulation_clock where world_id=p_world_id for update; if not found then raise exception 'simulation_clock not found'; end if; if v_clock.paused then raise exception 'simulation is paused'; end if; v_old_date:=v_clock."current_date"; v_new_date:=v_old_date+make_interval(mins=>p_minutes); v_new_tick:=v_clock.current_tick+p_minutes; update public.simulation_clock set current_tick=v_new_tick,"current_date"=v_new_date,updated_at=now() where id=v_clock.id; v_event_result:=public.dispatch_due_time_events(p_world_id,v_new_date,v_dispatch_limit); create temporary table if not exists _vandrith_tick_ai_lives(life_id uuid primary key) on commit drop; truncate _vandrith_tick_ai_lives; update public.activities act_start set state='running',end_time=coalesce(act_start.end_time,act_start.start_time+make_interval(mins=>coalesce((select ad.default_duration from public.activity_definitions ad where ad.id=act_start.activity_definition_id),0)::integer)),updated_at=now() where act_start.state='scheduled' and act_start.start_time>v_old_date and act_start.start_time<=v_new_date and exists(select 1 from public.lives ll join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where ll.id=act_start.actor_life_id and ll.status='alive' and cont0.world_id=p_world_id); get diagnostics v_started=row_count; for completion_rec in select act_complete.id,act_complete.actor_life_id from public.activities act_complete where act_complete.actor_life_id in(select ll.id from public.lives ll join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where cont0.world_id=p_world_id and ll.status='alive') and act_complete.state='running' and act_complete.end_time is not null and act_complete.end_time<=v_new_date order by act_complete.id loop v_completion_result:=public.complete_activity_safely(completion_rec.id); if coalesce((v_completion_result->>'ok')::boolean,false) then v_completed:=v_completed+1; insert into _vandrith_tick_ai_lives(life_id) values(completion_rec.actor_life_id) on conflict do nothing; else v_completion_failures:=v_completion_failures||jsonb_build_array(v_completion_result); end if; end loop; update public.activities act_start2 set state='running',end_time=coalesce(act_start2.end_time,act_start2.start_time+make_interval(mins=>coalesce((select ad.default_duration from public.activity_definitions ad where ad.id=act_start2.activity_definition_id),0)::integer)),updated_at=now() where act_start2.state='scheduled' and act_start2.start_time>v_old_date and act_start2.start_time<=v_new_date and exists(select 1 from public.lives ll join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where ll.id=act_start2.actor_life_id and ll.status='alive' and cont0.world_id=p_world_id); get diagnostics v_rows=row_count; v_started:=v_started+v_rows; for life_rec in select ll.id life_id,se.activity_definition_id,se.start_minute,se.end_minute from public.lives ll join public.schedules ss on ss.life_id=ll.id and ss.status='active' join public.schedule_entries se on se.schedule_id=ss.id join public.locations loc0 on loc0.id=ll.location_id join public.regions reg0 on reg0.id=loc0.region_id join public.continents cont0 on cont0.id=reg0.continent_id where cont0.world_id=p_world_id and ll.status='alive' loop for day_rec in select gs as day_start from generate_series(date_trunc('day',v_old_date),date_trunc('day',v_new_date),interval '1 day') gs loop if day_rec.day_start+make_interval(mins=>life_rec.start_minute)>v_old_date and day_rec.day_start+make_interval(mins=>life_rec.start_minute)<=v_new_date then if not exists(select 1 from public.activities act2 where act2.actor_life_id=life_rec.life_id and act2.start_time=day_rec.day_start+make_interval(mins=>life_rec.start_minute)) then insert into public.activities(actor_life_id,activity_definition_id,start_time,end_time,state,metadata) values(life_rec.life_id,life_rec.activity_definition_id,day_rec.day_start+make_interval(mins=>life_rec.start_minute),day_rec.day_start+make_interval(mins=>life_rec.end_minute),'running',jsonb_build_object('source','schedule','simulation_tick',v_new_tick)); v_created:=v_created+1; end if; end if; end loop; end loop; for ai_rec in select life_id from _vandrith_tick_ai_lives order by life_id limit v_ai_limit loop begin select * into result_rec from public.reevaluate_life_activity(ai_rec.life_id,v_new_date) limit 1; v_ai_result:=v_ai_result||jsonb_build_array(jsonb_build_object('life_id',ai_rec.life_id,'result',to_jsonb(result_rec))); exception when others then v_ai_result:=v_ai_result||jsonb_build_array(jsonb_build_object('life_id',ai_rec.life_id,'error',sqlstate,'message',sqlerrm)); end; v_ai_processed:=v_ai_processed+1; end loop; return jsonb_build_object('world_id',p_world_id,'old_tick',v_clock.current_tick,'new_tick',v_new_tick,'old_date',v_old_date,'new_date',v_new_date,'event_dispatch',v_event_result,'activities_started',v_started,'activities_created',v_created,'activities_completed',v_completed,'activity_completion_failures',v_completion_failures,'ai_phase',jsonb_build_object('budget',v_ai_limit,'processed',v_ai_processed,'trigger','activity_completion','results',v_ai_result)); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.continue_completed_activity(p_activity_id uuid)
@@ -1341,7 +1342,7 @@ begin
 
   return v_next_activity_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.trg_continue_completed_activity()
@@ -1355,21 +1356,21 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.consume_activity_energy()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare cost numeric:=0; old_energy numeric; new_energy numeric; old_state text; new_state text; v_at timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' then v_at:=(new.metadata->>'simulation_time')::timestamptz; if v_at is null then raise exception 'activity energy mutation requires authoritative simulation_time'; end if; select coalesce(ad.energy_cost,0) into cost from public.activity_definitions ad where ad.id=new.activity_definition_id; select le.current_energy,le.state into old_energy,old_state from public.life_energy le where le.life_id=new.actor_life_id for update; if old_energy is null then return new; end if; new_energy:=greatest(0,old_energy-cost); update public.life_energy set current_energy=new_energy,updated_at=now() where life_id=new.actor_life_id returning state into new_state; perform public.record_energy_history(new.actor_life_id,old_energy,new_energy,'activity_energy_cost:'||new.id::text,v_at,jsonb_build_object('activity_id',new.id,'simulation_time',v_at)); end if; return new; end; $function$
+AS $function$ declare cost numeric:=0; old_energy numeric; new_energy numeric; old_state text; new_state text; v_at timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' then v_at:=(new.metadata->>'simulation_time')::timestamptz; if v_at is null then raise exception 'activity energy mutation requires authoritative simulation_time'; end if; select coalesce(ad.energy_cost,0) into cost from public.activity_definitions ad where ad.id=new.activity_definition_id; select le.current_energy,le.state into old_energy,old_state from public.life_energy le where le.life_id=new.actor_life_id for update; if old_energy is null then return new; end if; new_energy:=greatest(0,old_energy-cost); update public.life_energy set current_energy=new_energy,updated_at=now() where life_id=new.actor_life_id returning state into new_state; perform public.record_energy_history(new.actor_life_id,old_energy,new_energy,'activity_energy_cost:'||new.id::text,v_at,jsonb_build_object('activity_id',new.id,'simulation_time',v_at)); end if; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_activity_energy_completion()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare recovery numeric:=0; fatigue_delta numeric:=0; food_recovery numeric:=0; food_fatigue numeric:=0; old_energy numeric; new_energy numeric; old_state text; new_state text; rule_type text; activity_name text; v_at timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' then v_at:=(new.metadata->>'simulation_time')::timestamptz; if v_at is null then raise exception 'activity energy recovery requires authoritative simulation_time'; end if; select lower(ad.name) into activity_name from public.activity_definitions ad where ad.id=new.activity_definition_id; rule_type:=case when activity_name in ('eat','eating','makan') then 'eat' when activity_name in ('rest','istirahat') then 'rest' when activity_name in ('sleep','tidur') then 'sleep' else null end; if rule_type is null then return new; end if; if rule_type='eat' then select coalesce(sum(afc.energy_recovery),0),coalesce(sum(afc.fatigue_delta),0) into food_recovery,food_fatigue from public.activity_food_consumptions afc where afc.activity_id=new.id; recovery:=food_recovery; fatigue_delta:=food_fatigue; else select coalesce(er.recovery_amount,0),coalesce(er.fatigue_delta,0) into recovery,fatigue_delta from public.energy_recovery_rules er where lower(er.activity_type)=rule_type and er.active=true; end if; if recovery=0 and fatigue_delta=0 then return new; end if; select le.current_energy,le.state into old_energy,old_state from public.life_energy le where le.life_id=new.actor_life_id for update; if old_energy is null then return new; end if; new_energy:=least((select max_energy from public.life_energy where life_id=new.actor_life_id),greatest(0,old_energy+recovery)); update public.life_energy set current_energy=new_energy,fatigue=greatest(0,fatigue+fatigue_delta),updated_at=now() where life_id=new.actor_life_id returning state into new_state; perform public.record_energy_history(new.actor_life_id,old_energy,new_energy,'activity_recovery:'||new.id::text||':type='||rule_type,v_at,jsonb_build_object('activity_id',new.id,'rule_type',rule_type,'simulation_time',v_at)); end if; return new; end; $function$
+AS $function$ declare recovery numeric:=0; fatigue_delta numeric:=0; food_recovery numeric:=0; food_fatigue numeric:=0; old_energy numeric; new_energy numeric; old_state text; new_state text; rule_type text; activity_name text; v_at timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' then v_at:=(new.metadata->>'simulation_time')::timestamptz; if v_at is null then raise exception 'activity energy recovery requires authoritative simulation_time'; end if; select lower(ad.name) into activity_name from public.activity_definitions ad where ad.id=new.activity_definition_id; rule_type:=case when activity_name in ('eat','eating','makan') then 'eat' when activity_name in ('rest','istirahat') then 'rest' when activity_name in ('sleep','tidur') then 'sleep' else null end; if rule_type is null then return new; end if; if rule_type='eat' then select coalesce(sum(afc.energy_recovery),0),coalesce(sum(afc.fatigue_delta),0) into food_recovery,food_fatigue from public.activity_food_consumptions afc where afc.activity_id=new.id; recovery:=food_recovery; fatigue_delta:=food_fatigue; else select coalesce(er.recovery_amount,0),coalesce(er.fatigue_delta,0) into recovery,fatigue_delta from public.energy_recovery_rules er where lower(er.activity_type)=rule_type and er.active=true; end if; if recovery=0 and fatigue_delta=0 then return new; end if; select le.current_energy,le.state into old_energy,old_state from public.life_energy le where le.life_id=new.actor_life_id for update; if old_energy is null then return new; end if; new_energy:=least((select max_energy from public.life_energy where life_id=new.actor_life_id),greatest(0,old_energy+recovery)); update public.life_energy set current_energy=new_energy,fatigue=greatest(0,fatigue+fatigue_delta),updated_at=now() where life_id=new.actor_life_id returning state into new_state; perform public.record_energy_history(new.actor_life_id,old_energy,new_energy,'activity_recovery:'||new.id::text||':type='||rule_type,v_at,jsonb_build_object('activity_id',new.id,'rule_type',rule_type,'simulation_time',v_at)); end if; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.transfer_inventory(p_source_container_id uuid, p_destination_container_id uuid, p_item_id uuid, p_quantity numeric, p_actor_life_id uuid DEFAULT NULL::uuid, p_transfer_type text DEFAULT 'move'::text, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1377,14 +1378,14 @@ CREATE OR REPLACE FUNCTION public.transfer_inventory(p_source_container_id uuid,
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_source_entry_id uuid; v_destination_entry_id uuid; v_source_quantity numeric; v_transfer_id uuid; v_first uuid; v_second uuid; begin if p_source_container_id=p_destination_container_id then raise exception 'inventory_transfer_same_container'; end if; if p_quantity is null or p_quantity<=0 then raise exception 'inventory_transfer_invalid_quantity'; end if; if p_actor_life_id is null then raise exception 'inventory_transfer_actor_required'; end if; if p_transfer_type not in ('move','give','drop','pickup','trade','equip','unequip','consume') then raise exception 'inventory_transfer_invalid_type'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_destination_not_authorized'; end if; v_first:=least(p_source_container_id,p_destination_container_id); v_second:=greatest(p_source_container_id,p_destination_container_id); perform 1 from public.containers where id=v_first for update; if not found then raise exception 'inventory_transfer_source_container_missing'; end if; perform 1 from public.containers where id=v_second for update; if not found then raise exception 'inventory_transfer_destination_container_missing'; end if; select id,quantity into v_source_entry_id,v_source_quantity from public.inventory_entries where container_id=p_source_container_id and item_id=p_item_id and item_instance_id is null order by updated_at,id limit 1 for update; if v_source_entry_id is null then raise exception 'inventory_transfer_source_item_missing'; end if; if v_source_quantity<p_quantity then raise exception 'inventory_transfer_insufficient_quantity'; end if; if v_source_quantity=p_quantity then delete from public.inventory_entries where id=v_source_entry_id; else update public.inventory_entries set quantity=quantity-p_quantity,updated_at=now() where id=v_source_entry_id; end if; insert into public.inventory_entries(container_id,item_id,item_instance_id,quantity,updated_at) values(p_destination_container_id,p_item_id,null,p_quantity,now()) on conflict (container_id,item_id) where item_instance_id is null do update set quantity=public.inventory_entries.quantity+excluded.quantity,updated_at=now() returning id into v_destination_entry_id; insert into public.inventory_transfers(source_container_id,destination_container_id,item_id,quantity,actor_life_id,transfer_type,status,reason,metadata) values(p_source_container_id,p_destination_container_id,p_item_id,p_quantity,p_actor_life_id,p_transfer_type,'completed',p_reason,coalesce(p_metadata,'{}'::jsonb)) returning id into v_transfer_id; perform public.record_inventory_transfer_history(v_transfer_id); return v_transfer_id; end; $function$
+AS $function$ declare v_source_entry_id uuid; v_destination_entry_id uuid; v_source_quantity numeric; v_transfer_id uuid; v_first uuid; v_second uuid; begin if p_source_container_id=p_destination_container_id then raise exception 'inventory_transfer_same_container'; end if; if p_quantity is null or p_quantity<=0 then raise exception 'inventory_transfer_invalid_quantity'; end if; if p_actor_life_id is null then raise exception 'inventory_transfer_actor_required'; end if; if p_transfer_type not in ('move','give','drop','pickup','trade','equip','unequip','consume') then raise exception 'inventory_transfer_invalid_type'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_destination_not_authorized'; end if; v_first:=least(p_source_container_id,p_destination_container_id); v_second:=greatest(p_source_container_id,p_destination_container_id); perform 1 from public.containers where id=v_first for update; if not found then raise exception 'inventory_transfer_source_container_missing'; end if; perform 1 from public.containers where id=v_second for update; if not found then raise exception 'inventory_transfer_destination_container_missing'; end if; select id,quantity into v_source_entry_id,v_source_quantity from public.inventory_entries where container_id=p_source_container_id and item_id=p_item_id and item_instance_id is null order by updated_at,id limit 1 for update; if v_source_entry_id is null then raise exception 'inventory_transfer_source_item_missing'; end if; if v_source_quantity<p_quantity then raise exception 'inventory_transfer_insufficient_quantity'; end if; if v_source_quantity=p_quantity then delete from public.inventory_entries where id=v_source_entry_id; else update public.inventory_entries set quantity=quantity-p_quantity,updated_at=now() where id=v_source_entry_id; end if; insert into public.inventory_entries(container_id,item_id,item_instance_id,quantity,updated_at) values(p_destination_container_id,p_item_id,null,p_quantity,now()) on conflict (container_id,item_id) where item_instance_id is null do update set quantity=public.inventory_entries.quantity+excluded.quantity,updated_at=now() returning id into v_destination_entry_id; insert into public.inventory_transfers(source_container_id,destination_container_id,item_id,quantity,actor_life_id,transfer_type,status,reason,metadata) values(p_source_container_id,p_destination_container_id,p_item_id,p_quantity,p_actor_life_id,p_transfer_type,'completed',p_reason,coalesce(p_metadata,'{}'::jsonb)) returning id into v_transfer_id; perform public.record_inventory_transfer_history(v_transfer_id); return v_transfer_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.transfer_inventory_instance(p_source_container_id uuid, p_destination_container_id uuid, p_item_instance_id uuid, p_actor_life_id uuid DEFAULT NULL::uuid, p_transfer_type text DEFAULT 'move'::text, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS uuid
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_source_entry_id uuid; v_destination_entry_id uuid; v_item_id uuid; v_quantity numeric; v_transfer_id uuid; v_first uuid; v_second uuid; v_source_container public.containers%rowtype; v_destination_container public.containers%rowtype; v_instance public.item_instances%rowtype; v_item public.items%rowtype; v_destination_used_capacity numeric; begin if p_source_container_id=p_destination_container_id then raise exception 'inventory_instance_transfer_same_container'; end if; if p_item_instance_id is null then raise exception 'inventory_instance_transfer_missing_instance'; end if; if p_actor_life_id is null then raise exception 'inventory_instance_transfer_actor_required'; end if; if p_transfer_type not in ('move','give','drop','pickup','trade','equip','unequip','consume') then raise exception 'inventory_instance_transfer_invalid_type'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_destination_not_authorized'; end if; v_first:=least(p_source_container_id,p_destination_container_id); v_second:=greatest(p_source_container_id,p_destination_container_id); select * into v_source_container from public.containers where id=v_first for update; if not found then raise exception 'inventory_instance_transfer_source_container_missing'; end if; select * into v_destination_container from public.containers where id=v_second for update; if not found then raise exception 'inventory_instance_transfer_destination_container_missing'; end if; if v_source_container.status <> 'active' then raise exception 'inventory_instance_transfer_source_container_inactive'; end if; if v_destination_container.status <> 'active' then raise exception 'inventory_instance_transfer_destination_container_inactive'; end if; if v_source_container.is_locked then raise exception 'inventory_instance_transfer_source_container_locked'; end if; if v_destination_container.is_locked then raise exception 'inventory_instance_transfer_destination_container_locked'; end if; select * into v_instance from public.item_instances where id=p_item_instance_id for update; if not found then raise exception 'inventory_instance_transfer_instance_missing'; end if; if v_instance.lifecycle_status <> 'active' then raise exception 'inventory_instance_transfer_instance_inactive'; end if; if v_instance.quantity <= 0 then raise exception 'inventory_instance_transfer_invalid_instance_quantity'; end if; v_item_id:=v_instance.item_id; select * into v_item from public.items where id=v_item_id for share; if not found then raise exception 'inventory_instance_transfer_item_missing'; end if; if v_item.status <> 'active' then raise exception 'inventory_instance_transfer_item_inactive'; end if; if v_item.stackable then raise exception 'inventory_instance_transfer_stackable_item_not_instance_path'; end if; select ie.id,ie.quantity into v_source_entry_id,v_quantity from public.inventory_entries ie where ie.container_id=p_source_container_id and ie.item_id=v_item_id and ie.item_instance_id=p_item_instance_id for update; if v_source_entry_id is null then raise exception 'inventory_instance_transfer_source_instance_missing'; end if; if v_quantity<=0 then raise exception 'inventory_instance_transfer_invalid_source_quantity'; end if; select id into v_destination_entry_id from public.inventory_entries where container_id=p_destination_container_id and item_id=v_item_id and item_instance_id=p_item_instance_id for update; if v_destination_entry_id is not null then raise exception 'inventory_instance_transfer_destination_instance_already_present'; end if; if v_destination_container.capacity is not null then select coalesce(sum(quantity),0) into v_destination_used_capacity from public.inventory_entries where container_id=p_destination_container_id; if v_destination_used_capacity+v_quantity>v_destination_container.capacity then raise exception 'inventory_instance_transfer_capacity_exceeded'; end if; end if; delete from public.inventory_entries where id=v_source_entry_id; insert into public.inventory_entries(container_id,item_id,item_instance_id,quantity,updated_at) values(p_destination_container_id,v_item_id,p_item_instance_id,v_quantity,now()); insert into public.inventory_transfers(source_container_id,destination_container_id,item_id,item_instance_id,quantity,actor_life_id,transfer_type,status,reason,metadata) values(p_source_container_id,p_destination_container_id,v_item_id,p_item_instance_id,v_quantity,p_actor_life_id,p_transfer_type,'completed',p_reason,coalesce(p_metadata,'{}'::jsonb)) returning id into v_transfer_id; return v_transfer_id; end; $function$
+AS $function$ declare v_source_entry_id uuid; v_destination_entry_id uuid; v_item_id uuid; v_quantity numeric; v_transfer_id uuid; v_first uuid; v_second uuid; v_source_container public.containers%rowtype; v_destination_container public.containers%rowtype; v_instance public.item_instances%rowtype; v_item public.items%rowtype; v_destination_used_capacity numeric; begin if p_source_container_id=p_destination_container_id then raise exception 'inventory_instance_transfer_same_container'; end if; if p_item_instance_id is null then raise exception 'inventory_instance_transfer_missing_instance'; end if; if p_actor_life_id is null then raise exception 'inventory_instance_transfer_actor_required'; end if; if p_transfer_type not in ('move','give','drop','pickup','trade','equip','unequip','consume') then raise exception 'inventory_instance_transfer_invalid_type'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_destination_not_authorized'; end if; v_first:=least(p_source_container_id,p_destination_container_id); v_second:=greatest(p_source_container_id,p_destination_container_id); select * into v_source_container from public.containers where id=v_first for update; if not found then raise exception 'inventory_instance_transfer_source_container_missing'; end if; select * into v_destination_container from public.containers where id=v_second for update; if not found then raise exception 'inventory_instance_transfer_destination_container_missing'; end if; if v_source_container.status <> 'active' then raise exception 'inventory_instance_transfer_source_container_inactive'; end if; if v_destination_container.status <> 'active' then raise exception 'inventory_instance_transfer_destination_container_inactive'; end if; if v_source_container.is_locked then raise exception 'inventory_instance_transfer_source_container_locked'; end if; if v_destination_container.is_locked then raise exception 'inventory_instance_transfer_destination_container_locked'; end if; select * into v_instance from public.item_instances where id=p_item_instance_id for update; if not found then raise exception 'inventory_instance_transfer_instance_missing'; end if; if v_instance.lifecycle_status <> 'active' then raise exception 'inventory_instance_transfer_instance_inactive'; end if; if v_instance.quantity <= 0 then raise exception 'inventory_instance_transfer_invalid_instance_quantity'; end if; v_item_id:=v_instance.item_id; select * into v_item from public.items where id=v_item_id for share; if not found then raise exception 'inventory_instance_transfer_item_missing'; end if; if v_item.status <> 'active' then raise exception 'inventory_instance_transfer_item_inactive'; end if; if v_item.stackable then raise exception 'inventory_instance_transfer_stackable_item_not_instance_path'; end if; select ie.id,ie.quantity into v_source_entry_id,v_quantity from public.inventory_entries ie where ie.container_id=p_source_container_id and ie.item_id=v_item_id and ie.item_instance_id=p_item_instance_id for update; if v_source_entry_id is null then raise exception 'inventory_instance_transfer_source_instance_missing'; end if; if v_quantity<=0 then raise exception 'inventory_instance_transfer_invalid_source_quantity'; end if; select id into v_destination_entry_id from public.inventory_entries where container_id=p_destination_container_id and item_id=v_item_id and item_instance_id=p_item_instance_id for update; if v_destination_entry_id is not null then raise exception 'inventory_instance_transfer_destination_instance_already_present'; end if; if v_destination_container.capacity is not null then select coalesce(sum(quantity),0) into v_destination_used_capacity from public.inventory_entries where container_id=p_destination_container_id; if v_destination_used_capacity+v_quantity>v_destination_container.capacity then raise exception 'inventory_instance_transfer_capacity_exceeded'; end if; end if; delete from public.inventory_entries where id=v_source_entry_id; insert into public.inventory_entries(container_id,item_id,item_instance_id,quantity,updated_at) values(p_destination_container_id,v_item_id,p_item_instance_id,v_quantity,now()); insert into public.inventory_transfers(source_container_id,destination_container_id,item_id,item_instance_id,quantity,actor_life_id,transfer_type,status,reason,metadata) values(p_source_container_id,p_destination_container_id,v_item_id,p_item_instance_id,v_quantity,p_actor_life_id,p_transfer_type,'completed',p_reason,coalesce(p_metadata,'{}'::jsonb)) returning id into v_transfer_id; return v_transfer_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.consume_inventory_item(p_container_id uuid, p_item_id uuid, p_quantity numeric DEFAULT 1, p_item_instance_id uuid DEFAULT NULL::uuid, p_actor_life_id uuid DEFAULT NULL::uuid, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1392,21 +1393,21 @@ CREATE OR REPLACE FUNCTION public.consume_inventory_item(p_container_id uuid, p_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_entry_id uuid; v_instance_id uuid; v_available numeric; v_stackable boolean; v_consumption_id uuid; v_instance_quantity numeric; v_simulation_time timestamptz; begin if p_quantity is null or p_quantity<=0 then raise exception 'inventory_consume_invalid_quantity'; end if; if p_actor_life_id is null then raise exception 'inventory_consume_actor_required'; end if; if not public.can_mutate_container(p_container_id,p_actor_life_id,'use') then raise exception 'inventory_consume_not_authorized'; end if; v_simulation_time:=(p_metadata->>'simulation_time')::timestamptz; if p_reason like 'eat_activity:%' and v_simulation_time is null then raise exception 'inventory_consume_simulation_time_required'; end if; select stackable into v_stackable from public.items where id=p_item_id; if v_stackable is null then raise exception 'inventory_consume_item_missing'; end if; if p_item_instance_id is not null then select ie.id,ie.item_instance_id,ie.quantity into v_entry_id,v_instance_id,v_available from public.inventory_entries ie where ie.container_id=p_container_id and ie.item_id=p_item_id and ie.item_instance_id=p_item_instance_id for update; else select ie.id,ie.item_instance_id,ie.quantity into v_entry_id,v_instance_id,v_available from public.inventory_entries ie where ie.container_id=p_container_id and ie.item_id=p_item_id and (v_stackable or ie.item_instance_id is null) order by ie.item_instance_id nulls first limit 1 for update; end if; if v_entry_id is null then raise exception 'inventory_consume_entry_missing'; end if; if v_available<p_quantity then raise exception 'inventory_consume_insufficient_quantity'; end if; if v_available=p_quantity then delete from public.inventory_entries where id=v_entry_id; else update public.inventory_entries set quantity=quantity-p_quantity,updated_at=now() where id=v_entry_id; end if; if v_instance_id is not null then select quantity into v_instance_quantity from public.item_instances where id=v_instance_id for update; if v_instance_quantity is null then raise exception 'inventory_consume_instance_missing'; end if; if v_instance_quantity<=p_quantity then update public.item_instances set lifecycle_status='consumed',updated_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('consumed_at',now(),'consumed_by',p_actor_life_id,'consumed_simulation_time',v_simulation_time) where id=v_instance_id; else update public.item_instances set quantity=quantity-p_quantity,updated_at=now() where id=v_instance_id; end if; end if; insert into public.inventory_consumptions(container_id,item_id,item_instance_id,quantity,actor_life_id,consumption_type,status,reason,metadata,simulation_time) values(p_container_id,p_item_id,v_instance_id,p_quantity,p_actor_life_id,'consume','completed',p_reason,coalesce(p_metadata,'{}'::jsonb),v_simulation_time) returning id into v_consumption_id; perform public.record_inventory_consumption_history(v_consumption_id); return v_consumption_id; end; $function$
+AS $function$ declare v_entry_id uuid; v_instance_id uuid; v_available numeric; v_stackable boolean; v_consumption_id uuid; v_instance_quantity numeric; v_simulation_time timestamptz; begin if p_quantity is null or p_quantity<=0 then raise exception 'inventory_consume_invalid_quantity'; end if; if p_actor_life_id is null then raise exception 'inventory_consume_actor_required'; end if; if not public.can_mutate_container(p_container_id,p_actor_life_id,'use') then raise exception 'inventory_consume_not_authorized'; end if; v_simulation_time:=(p_metadata->>'simulation_time')::timestamptz; if p_reason like 'eat_activity:%' and v_simulation_time is null then raise exception 'inventory_consume_simulation_time_required'; end if; select stackable into v_stackable from public.items where id=p_item_id; if v_stackable is null then raise exception 'inventory_consume_item_missing'; end if; if p_item_instance_id is not null then select ie.id,ie.item_instance_id,ie.quantity into v_entry_id,v_instance_id,v_available from public.inventory_entries ie where ie.container_id=p_container_id and ie.item_id=p_item_id and ie.item_instance_id=p_item_instance_id for update; else select ie.id,ie.item_instance_id,ie.quantity into v_entry_id,v_instance_id,v_available from public.inventory_entries ie where ie.container_id=p_container_id and ie.item_id=p_item_id and (v_stackable or ie.item_instance_id is null) order by ie.item_instance_id nulls first limit 1 for update; end if; if v_entry_id is null then raise exception 'inventory_consume_entry_missing'; end if; if v_available<p_quantity then raise exception 'inventory_consume_insufficient_quantity'; end if; if v_available=p_quantity then delete from public.inventory_entries where id=v_entry_id; else update public.inventory_entries set quantity=quantity-p_quantity,updated_at=now() where id=v_entry_id; end if; if v_instance_id is not null then select quantity into v_instance_quantity from public.item_instances where id=v_instance_id for update; if v_instance_quantity is null then raise exception 'inventory_consume_instance_missing'; end if; if v_instance_quantity<=p_quantity then update public.item_instances set lifecycle_status='consumed',updated_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('consumed_at',now(),'consumed_by',p_actor_life_id,'consumed_simulation_time',v_simulation_time) where id=v_instance_id; else update public.item_instances set quantity=quantity-p_quantity,updated_at=now() where id=v_instance_id; end if; end if; insert into public.inventory_consumptions(container_id,item_id,item_instance_id,quantity,actor_life_id,consumption_type,status,reason,metadata,simulation_time) values(p_container_id,p_item_id,v_instance_id,p_quantity,p_actor_life_id,'consume','completed',p_reason,coalesce(p_metadata,'{}'::jsonb),v_simulation_time) returning id into v_consumption_id; perform public.record_inventory_consumption_history(v_consumption_id); return v_consumption_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_food_consumption_energy()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_recovery numeric:=0; v_fatigue_delta numeric:=0; v_old_energy numeric; v_new_energy numeric; v_old_state text; v_new_state text; v_at timestamptz; begin if new.status='completed' and (tg_op='INSERT' or old.status is distinct from 'completed') then if coalesce(new.reason,'') like 'eat_activity:%' then return new; end if; if new.actor_life_id is not null then begin v_at:=public.get_life_simulation_time(new.actor_life_id); exception when others then v_at:=null; end; end if; if v_at is null then v_at:=(new.metadata->>'simulation_time')::timestamptz; end if; if v_at is null then raise exception 'food energy mutation requires authoritative simulation_time'; end if; select coalesce(fe.energy_recovery,0),coalesce(fe.fatigue_delta,0) into v_recovery,v_fatigue_delta from public.food_effects fe where fe.item_id=new.item_id and fe.active=true; if v_recovery=0 and v_fatigue_delta=0 then return new; end if; if new.actor_life_id is null then return new; end if; select current_energy,state into v_old_energy,v_old_state from public.life_energy where life_id=new.actor_life_id for update; if v_old_energy is null then return new; end if; v_new_energy:=least((select max_energy from public.life_energy where life_id=new.actor_life_id),greatest(0,v_old_energy+v_recovery)); update public.life_energy set current_energy=v_new_energy,fatigue=greatest(0,fatigue+v_fatigue_delta),updated_at=now() where life_id=new.actor_life_id returning state into v_new_state; perform public.record_energy_history(new.actor_life_id,v_old_energy,v_new_energy,'food_consumption:'||new.id::text,v_at,jsonb_build_object('consumption_id',new.id,'simulation_time',v_at)); end if; return new; end; $function$
+AS $function$ declare v_recovery numeric:=0; v_fatigue_delta numeric:=0; v_old_energy numeric; v_new_energy numeric; v_old_state text; v_new_state text; v_at timestamptz; begin if new.status='completed' and (tg_op='INSERT' or old.status is distinct from 'completed') then if coalesce(new.reason,'') like 'eat_activity:%' then return new; end if; if new.actor_life_id is not null then begin v_at:=public.get_life_simulation_time(new.actor_life_id); exception when others then v_at:=null; end; end if; if v_at is null then v_at:=(new.metadata->>'simulation_time')::timestamptz; end if; if v_at is null then raise exception 'food energy mutation requires authoritative simulation_time'; end if; select coalesce(fe.energy_recovery,0),coalesce(fe.fatigue_delta,0) into v_recovery,v_fatigue_delta from public.food_effects fe where fe.item_id=new.item_id and fe.active=true; if v_recovery=0 and v_fatigue_delta=0 then return new; end if; if new.actor_life_id is null then return new; end if; select current_energy,state into v_old_energy,v_old_state from public.life_energy where life_id=new.actor_life_id for update; if v_old_energy is null then return new; end if; v_new_energy:=least((select max_energy from public.life_energy where life_id=new.actor_life_id),greatest(0,v_old_energy+v_recovery)); update public.life_energy set current_energy=v_new_energy,fatigue=greatest(0,fatigue+v_fatigue_delta),updated_at=now() where life_id=new.actor_life_id returning state into v_new_state; perform public.record_energy_history(new.actor_life_id,v_old_energy,v_new_energy,'food_consumption:'||new.id::text,v_at,jsonb_build_object('consumption_id',new.id,'simulation_time',v_at)); end if; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_eat_activity_inventory()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_type text; v_quantity numeric; v_item_id uuid; v_entry_id uuid; v_instance_id uuid; v_consume_id uuid; v_container_id uuid; v_requested_item_id uuid; v_requested_instance_id uuid; v_requested_container_id uuid; v_requested_quantity numeric; v_simulation_time timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' then v_simulation_time:=(new.metadata->>'simulation_time')::timestamptz; if v_simulation_time is null then raise exception 'EAT_ACTIVITY_SIMULATION_TIME_REQUIRED'; end if; if new.metadata ? 'inventory_container_id' then v_requested_container_id:=(new.metadata->>'inventory_container_id')::uuid; v_requested_item_id:=case when new.metadata ? 'inventory_item_id' then (new.metadata->>'inventory_item_id')::uuid end; v_requested_instance_id:=case when new.metadata ? 'inventory_item_instance_id' then (new.metadata->>'inventory_item_instance_id')::uuid end; v_requested_quantity:=coalesce((new.metadata->>'inventory_quantity')::numeric,1); if v_requested_item_id is null then raise exception 'EAT_ACTIVITY_INVENTORY_ITEM_REQUIRED'; end if; select ie.id,ie.item_id,ie.item_instance_id,ie.container_id into v_entry_id,v_item_id,v_instance_id,v_container_id from public.inventory_entries ie where ie.container_id=v_requested_container_id and ie.item_id=v_requested_item_id and (v_requested_instance_id is null or ie.item_instance_id=v_requested_instance_id) and ie.quantity>=v_requested_quantity order by ie.item_instance_id nulls first limit 1 for update of ie; if v_entry_id is null then raise exception 'EAT_ACTIVITY_INVENTORY_REQUIRED: insufficient requested inventory'; end if; v_quantity:=v_requested_quantity; else select lower(r.item_type),r.quantity into v_type,v_quantity from public.activity_inventory_requirements r where r.activity_definition_id=new.activity_definition_id and r.active=true; if v_type is null then return new; end if; select ie.id,ie.item_id,ie.item_instance_id,ie.container_id into v_entry_id,v_item_id,v_instance_id,v_container_id from public.inventory_entries ie join public.items i on i.id=ie.item_id join public.containers c on c.id=ie.container_id where c.owner_type='life' and c.owner_id=new.actor_life_id and lower(i.item_type)=v_type and ie.quantity>=v_quantity order by ie.updated_at asc limit 1 for update of ie; if v_entry_id is null then raise exception 'EAT_ACTIVITY_INVENTORY_REQUIRED: no sufficient % inventory for life %',v_type,new.actor_life_id; end if; end if; v_consume_id:=public.consume_inventory_item(v_container_id,v_item_id,v_quantity,v_instance_id,new.actor_life_id,'eat_activity:'||new.id::text,jsonb_build_object('activity_id',new.id,'activity_definition_id',new.activity_definition_id,'simulation_time',v_simulation_time)); insert into public.activity_food_consumptions(activity_id,item_id,quantity,energy_recovery,fatigue_delta,simulation_time) select new.id,v_item_id,v_quantity,coalesce(fe.energy_recovery,0),coalesce(fe.fatigue_delta,0),v_simulation_time from public.food_effects fe where fe.item_id=v_item_id; update public.activities set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('inventory_consumption_id',v_consume_id,'consumed_item_id',v_item_id,'consumed_quantity',v_quantity,'inventory_consumption_simulation_time',v_simulation_time) where id=new.id; end if; return new; end; $function$
+AS $function$ declare v_type text; v_quantity numeric; v_item_id uuid; v_entry_id uuid; v_instance_id uuid; v_consume_id uuid; v_container_id uuid; v_requested_item_id uuid; v_requested_instance_id uuid; v_requested_container_id uuid; v_requested_quantity numeric; v_simulation_time timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' then v_simulation_time:=(new.metadata->>'simulation_time')::timestamptz; if v_simulation_time is null then raise exception 'EAT_ACTIVITY_SIMULATION_TIME_REQUIRED'; end if; if new.metadata ? 'inventory_container_id' then v_requested_container_id:=(new.metadata->>'inventory_container_id')::uuid; v_requested_item_id:=case when new.metadata ? 'inventory_item_id' then (new.metadata->>'inventory_item_id')::uuid end; v_requested_instance_id:=case when new.metadata ? 'inventory_item_instance_id' then (new.metadata->>'inventory_item_instance_id')::uuid end; v_requested_quantity:=coalesce((new.metadata->>'inventory_quantity')::numeric,1); if v_requested_item_id is null then raise exception 'EAT_ACTIVITY_INVENTORY_ITEM_REQUIRED'; end if; select ie.id,ie.item_id,ie.item_instance_id,ie.container_id into v_entry_id,v_item_id,v_instance_id,v_container_id from public.inventory_entries ie where ie.container_id=v_requested_container_id and ie.item_id=v_requested_item_id and (v_requested_instance_id is null or ie.item_instance_id=v_requested_instance_id) and ie.quantity>=v_requested_quantity order by ie.item_instance_id nulls first limit 1 for update of ie; if v_entry_id is null then raise exception 'EAT_ACTIVITY_INVENTORY_REQUIRED: insufficient requested inventory'; end if; v_quantity:=v_requested_quantity; else select lower(r.item_type),r.quantity into v_type,v_quantity from public.activity_inventory_requirements r where r.activity_definition_id=new.activity_definition_id and r.active=true; if v_type is null then return new; end if; select ie.id,ie.item_id,ie.item_instance_id,ie.container_id into v_entry_id,v_item_id,v_instance_id,v_container_id from public.inventory_entries ie join public.items i on i.id=ie.item_id join public.containers c on c.id=ie.container_id where c.owner_type='life' and c.owner_id=new.actor_life_id and lower(i.item_type)=v_type and ie.quantity>=v_quantity order by ie.updated_at asc limit 1 for update of ie; if v_entry_id is null then raise exception 'EAT_ACTIVITY_INVENTORY_REQUIRED: no sufficient % inventory for life %',v_type,new.actor_life_id; end if; end if; v_consume_id:=public.consume_inventory_item(v_container_id,v_item_id,v_quantity,v_instance_id,new.actor_life_id,'eat_activity:'||new.id::text,jsonb_build_object('activity_id',new.id,'activity_definition_id',new.activity_definition_id,'simulation_time',v_simulation_time)); insert into public.activity_food_consumptions(activity_id,item_id,quantity,energy_recovery,fatigue_delta,simulation_time) select new.id,v_item_id,v_quantity,coalesce(fe.energy_recovery,0),coalesce(fe.fatigue_delta,0),v_simulation_time from public.food_effects fe where fe.item_id=v_item_id; update public.activities set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('inventory_consumption_id',v_consume_id,'consumed_item_id',v_item_id,'consumed_quantity',v_quantity,'inventory_consumption_simulation_time',v_simulation_time) where id=new.id; end if; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_eat_activity_with_inventory(p_activity_id uuid, p_container_id uuid, p_item_id uuid, p_quantity numeric DEFAULT 1, p_item_instance_id uuid DEFAULT NULL::uuid, p_reason text DEFAULT 'eat_activity'::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1414,21 +1415,21 @@ CREATE OR REPLACE FUNCTION public.complete_eat_activity_with_inventory(p_activit
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_activity public.activities%rowtype; v_consumption_id uuid; v_clock timestamptz; begin select a.* into v_activity from public.activities a where a.id=p_activity_id for update; if v_activity.id is null then raise exception 'eat_activity_missing'; end if; if not exists(select 1 from public.activity_definitions ad where ad.id=v_activity.activity_definition_id and lower(ad.name)='eat') then raise exception 'eat_activity_wrong_definition'; end if; if v_activity.state in ('completed','cancelled','failed','interrupted') then raise exception 'eat_activity_invalid_state'; end if; if p_quantity is null or p_quantity<=0 then raise exception 'eat_activity_invalid_quantity'; end if; v_clock:=public.get_life_simulation_time(v_activity.actor_life_id); update public.activities set state='completed',end_time=coalesce(end_time,v_clock),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('inventory_container_id',p_container_id,'inventory_item_id',p_item_id,'inventory_quantity',p_quantity,'simulation_time',v_clock)||case when p_item_instance_id is null then '{}'::jsonb else jsonb_build_object('inventory_item_instance_id',p_item_instance_id) end,updated_at=now() where id=p_activity_id; select (metadata->>'inventory_consumption_id')::uuid into v_consumption_id from public.activities where id=p_activity_id; return v_consumption_id; end; $function$
+AS $function$ declare v_activity public.activities%rowtype; v_consumption_id uuid; v_clock timestamptz; begin select a.* into v_activity from public.activities a where a.id=p_activity_id for update; if v_activity.id is null then raise exception 'eat_activity_missing'; end if; if not exists(select 1 from public.activity_definitions ad where ad.id=v_activity.activity_definition_id and lower(ad.name)='eat') then raise exception 'eat_activity_wrong_definition'; end if; if v_activity.state in ('completed','cancelled','failed','interrupted') then raise exception 'eat_activity_invalid_state'; end if; if p_quantity is null or p_quantity<=0 then raise exception 'eat_activity_invalid_quantity'; end if; v_clock:=public.get_life_simulation_time(v_activity.actor_life_id); update public.activities set state='completed',end_time=coalesce(end_time,v_clock),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('inventory_container_id',p_container_id,'inventory_item_id',p_item_id,'inventory_quantity',p_quantity,'simulation_time',v_clock)||case when p_item_instance_id is null then '{}'::jsonb else jsonb_build_object('inventory_item_instance_id',p_item_instance_id) end,updated_at=now() where id=p_activity_id; select (metadata->>'inventory_consumption_id')::uuid into v_consumption_id from public.activities where id=p_activity_id; return v_consumption_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_item_durability_damage(p_item_instance_id uuid, p_damage numeric, p_cause text DEFAULT 'unknown'::text, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS item_instances
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_catalog'
-AS $function$ declare r public.item_instances%rowtype; v_container_id uuid; v_actor_life_id uuid; v_old_condition numeric; v_new_condition numeric; v_max numeric; v_old_broken boolean; v_new_broken boolean; begin if auth.uid() is null then raise exception 'inventory_durability_auth_required'; end if; if p_damage is null or p_damage<0 then raise exception 'damage must be >= 0'; end if; select ie.container_id into v_container_id from public.inventory_entries ie where ie.item_instance_id=p_item_instance_id limit 1; if v_container_id is null then raise exception 'item instance not currently in inventory'; end if; select ul.life_id into v_actor_life_id from public.user_lives ul where ul.user_id=auth.uid() and exists(select 1 from public.containers c where c.id=v_container_id and (c.owner_life_id=ul.life_id or public.can_mutate_container(c.id,ul.life_id,'use'))) limit 1; if v_actor_life_id is null then raise exception 'inventory_durability_not_authorized'; end if; select * into r from public.item_instances where id=p_item_instance_id for update; if not found then raise exception 'item instance % not found',p_item_instance_id; end if; v_max:=greatest(coalesce(r.max_durability,0),0); v_old_condition:=greatest(coalesce(r.condition,v_max),0); v_old_broken:=coalesce(r.is_broken,false); if p_damage=0 then return r; end if; v_new_condition:=greatest(0,v_old_condition-p_damage); v_new_broken:=v_new_condition<=0; update public.item_instances set condition=v_new_condition,is_broken=v_new_broken,updated_at=now() where id=p_item_instance_id returning * into r; insert into public.item_durability_history(item_instance_id,old_condition,new_condition,delta,old_is_broken,new_is_broken,cause,metadata) values(p_item_instance_id,v_old_condition,v_new_condition,v_new_condition-v_old_condition,v_old_broken,v_new_broken,coalesce(p_cause,'unknown'),coalesce(p_metadata,'{}')); return r; end;$function$
+AS $function$ declare r public.item_instances%rowtype; v_container_id uuid; v_actor_life_id uuid; v_old_condition numeric; v_new_condition numeric; v_max numeric; v_old_broken boolean; v_new_broken boolean; begin if auth.uid() is null then raise exception 'inventory_durability_auth_required'; end if; if p_damage is null or p_damage<0 then raise exception 'damage must be >= 0'; end if; select ie.container_id into v_container_id from public.inventory_entries ie where ie.item_instance_id=p_item_instance_id limit 1; if v_container_id is null then raise exception 'item instance not currently in inventory'; end if; select ul.life_id into v_actor_life_id from public.user_lives ul where ul.user_id=auth.uid() and exists(select 1 from public.containers c where c.id=v_container_id and (c.owner_life_id=ul.life_id or public.can_mutate_container(c.id,ul.life_id,'use'))) limit 1; if v_actor_life_id is null then raise exception 'inventory_durability_not_authorized'; end if; select * into r from public.item_instances where id=p_item_instance_id for update; if not found then raise exception 'item instance % not found',p_item_instance_id; end if; v_max:=greatest(coalesce(r.max_durability,0),0); v_old_condition:=greatest(coalesce(r.condition,v_max),0); v_old_broken:=coalesce(r.is_broken,false); if p_damage=0 then return r; end if; v_new_condition:=greatest(0,v_old_condition-p_damage); v_new_broken:=v_new_condition<=0; update public.item_instances set condition=v_new_condition,is_broken=v_new_broken,updated_at=now() where id=p_item_instance_id returning * into r; insert into public.item_durability_history(item_instance_id,old_condition,new_condition,delta,old_is_broken,new_is_broken,cause,metadata) values(p_item_instance_id,v_old_condition,v_new_condition,v_new_condition-v_old_condition,v_old_broken,v_new_broken,coalesce(p_cause,'unknown'),coalesce(p_metadata,'{}')); return r; end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.repair_item_instance(p_item_instance_id uuid, p_repair_amount numeric, p_cause text DEFAULT 'repair'::text, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS item_instances
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_catalog'
-AS $function$ declare r public.item_instances%rowtype; v_container_id uuid; v_actor_life_id uuid; v_old_condition numeric; v_new_condition numeric; v_max numeric; v_old_broken boolean; begin if auth.uid() is null then raise exception 'inventory_repair_auth_required'; end if; if p_repair_amount is null or p_repair_amount<0 then raise exception 'repair_amount must be >= 0'; end if; select ie.container_id into v_container_id from public.inventory_entries ie where ie.item_instance_id=p_item_instance_id limit 1; if v_container_id is null then raise exception 'item instance not currently in inventory'; end if; select ul.life_id into v_actor_life_id from public.user_lives ul where ul.user_id=auth.uid() and public.can_mutate_container(v_container_id,ul.life_id,'use') limit 1; if v_actor_life_id is null then raise exception 'inventory_repair_not_authorized'; end if; select * into r from public.item_instances where id=p_item_instance_id for update; if not found then raise exception 'item instance % not found',p_item_instance_id; end if; v_max:=greatest(coalesce(r.max_durability,0),0); v_old_condition:=greatest(coalesce(r.condition,0),0); v_old_broken:=coalesce(r.is_broken,false); v_new_condition:=least(v_max,v_old_condition+p_repair_amount); update public.item_instances set condition=v_new_condition,is_broken=(v_new_condition<=0),updated_at=now() where id=p_item_instance_id returning * into r; if v_new_condition<>v_old_condition then insert into public.item_durability_history(item_instance_id,old_condition,new_condition,delta,old_is_broken,new_is_broken,cause,metadata) values(p_item_instance_id,v_old_condition,v_new_condition,v_new_condition-v_old_condition,v_old_broken,(v_new_condition<=0),coalesce(p_cause,'repair'),coalesce(p_metadata,'{}')); end if; return r; end;$function$
+AS $function$ declare r public.item_instances%rowtype; v_container_id uuid; v_actor_life_id uuid; v_old_condition numeric; v_new_condition numeric; v_max numeric; v_old_broken boolean; begin if auth.uid() is null then raise exception 'inventory_repair_auth_required'; end if; if p_repair_amount is null or p_repair_amount<0 then raise exception 'repair_amount must be >= 0'; end if; select ie.container_id into v_container_id from public.inventory_entries ie where ie.item_instance_id=p_item_instance_id limit 1; if v_container_id is null then raise exception 'item instance not currently in inventory'; end if; select ul.life_id into v_actor_life_id from public.user_lives ul where ul.user_id=auth.uid() and public.can_mutate_container(v_container_id,ul.life_id,'use') limit 1; if v_actor_life_id is null then raise exception 'inventory_repair_not_authorized'; end if; select * into r from public.item_instances where id=p_item_instance_id for update; if not found then raise exception 'item instance % not found',p_item_instance_id; end if; v_max:=greatest(coalesce(r.max_durability,0),0); v_old_condition:=greatest(coalesce(r.condition,0),0); v_old_broken:=coalesce(r.is_broken,false); v_new_condition:=least(v_max,v_old_condition+p_repair_amount); update public.item_instances set condition=v_new_condition,is_broken=(v_new_condition<=0),updated_at=now() where id=p_item_instance_id returning * into r; if v_new_condition<>v_old_condition then insert into public.item_durability_history(item_instance_id,old_condition,new_condition,delta,old_is_broken,new_is_broken,cause,metadata) values(p_item_instance_id,v_old_condition,v_new_condition,v_new_condition-v_old_condition,v_old_broken,(v_new_condition<=0),coalesce(p_cause,'repair'),coalesce(p_metadata,'{}')); end if; return r; end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.evaluate_attribute_condition(p_life_id uuid, p_attribute_code text, p_operator text, p_expected numeric)
@@ -1436,7 +1437,7 @@ CREATE OR REPLACE FUNCTION public.evaluate_attribute_condition(p_life_id uuid, p
  LANGUAGE plpgsql
  STABLE
  SET search_path TO ''
-AS $function$ declare v_actual numeric; v_dialogue_usable boolean; v_active boolean; begin if p_operator not in ('=','!=','>','>=','<','<=') then raise exception 'Unsupported attribute operator: %', p_operator; end if; select ad.dialogue_usable, ad.active into v_dialogue_usable, v_active from public.attribute_definitions ad where ad.code = p_attribute_code; if not found then raise exception 'Unknown attribute definition: %', p_attribute_code; end if; if not v_active or not v_dialogue_usable then return false; end if; select la.value into v_actual from public.life_attributes la where la.life_id = p_life_id and la.attribute_type = p_attribute_code; if not found then return false; end if; case p_operator when '=' then return v_actual = p_expected; when '!=' then return v_actual <> p_expected; when '>' then return v_actual > p_expected; when '>=' then return v_actual >= p_expected; when '<' then return v_actual < p_expected; when '<=' then return v_actual <= p_expected; end case; return false; end; $function$
+AS $function$ declare v_actual numeric; v_dialogue_usable boolean; v_active boolean; begin if p_operator not in ('=','!=','>','>=','<','<=') then raise exception 'Unsupported attribute operator: %', p_operator; end if; select ad.dialogue_usable, ad.active into v_dialogue_usable, v_active from public.attribute_definitions ad where ad.code = p_attribute_code; if not found then raise exception 'Unknown attribute definition: %', p_attribute_code; end if; if not v_active or not v_dialogue_usable then return false; end if; select la.value into v_actual from public.life_attributes la where la.life_id = p_life_id and la.attribute_type = p_attribute_code; if not found then return false; end if; case p_operator when '=' then return v_actual = p_expected; when '!=' then return v_actual <> p_expected; when '>' then return v_actual > p_expected; when '>=' then return v_actual >= p_expected; when '<' then return v_actual < p_expected; when '<=' then return v_actual <= p_expected; end case; return false; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.evaluate_attribute_condition_group(p_life_id uuid, p_conditions jsonb, p_logic text DEFAULT 'AND'::text)
@@ -1444,7 +1445,7 @@ CREATE OR REPLACE FUNCTION public.evaluate_attribute_condition_group(p_life_id u
  LANGUAGE plpgsql
  STABLE
  SET search_path TO 'public'
-AS $function$ declare c jsonb; result boolean; current_result boolean; v_code text; v_operator text; v_expected numeric; v_subject text; begin if p_life_id is null then raise exception 'life_id is required'; end if; if jsonb_typeof(p_conditions) <> 'array' or jsonb_array_length(p_conditions) = 0 then raise exception 'conditions must be a non-empty JSON array'; end if; if upper(p_logic) not in ('AND','OR') then raise exception 'logic must be AND or OR'; end if; result := case when upper(p_logic)='AND' then true else false end; for c in select value from jsonb_array_elements(p_conditions) loop v_code := c->>'attribute_code'; v_operator := c->>'operator'; v_expected := (c->>'expected_value')::numeric; v_subject := coalesce(c->>'subject','speaker'); if v_subject <> 'speaker' then raise exception 'Only subject=speaker is supported by v1.0'; end if; current_result := public.evaluate_attribute_condition(p_life_id, v_code, v_operator, v_expected); if upper(p_logic)='AND' then result := result and current_result; else result := result or current_result; end if; end loop; return result; end; $function$
+AS $function$ declare c jsonb; result boolean; current_result boolean; v_code text; v_operator text; v_expected numeric; v_subject text; begin if p_life_id is null then raise exception 'life_id is required'; end if; if jsonb_typeof(p_conditions) <> 'array' or jsonb_array_length(p_conditions) = 0 then raise exception 'conditions must be a non-empty JSON array'; end if; if upper(p_logic) not in ('AND','OR') then raise exception 'logic must be AND or OR'; end if; result := case when upper(p_logic)='AND' then true else false end; for c in select value from jsonb_array_elements(p_conditions) loop v_code := c->>'attribute_code'; v_operator := c->>'operator'; v_expected := (c->>'expected_value')::numeric; v_subject := coalesce(c->>'subject','speaker'); if v_subject <> 'speaker' then raise exception 'Only subject=speaker is supported by v1.0'; end if; current_result := public.evaluate_attribute_condition(p_life_id, v_code, v_operator, v_expected); if upper(p_logic)='AND' then result := result and current_result; else result := result or current_result; end if; end loop; return result; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_dialogue_choices(p_node_id uuid, p_speaker_life_id uuid DEFAULT NULL::uuid, p_listener_life_id uuid DEFAULT NULL::uuid, p_player_life_id uuid DEFAULT NULL::uuid)
@@ -1591,7 +1592,7 @@ begin
     end if;
   end loop;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_dialogue_data_contract()
@@ -1653,7 +1654,7 @@ AS $function$
     on ad.code = dc.value->>'attribute_code'
   where dc.condition_type = 'attribute'
     and (ad.code is null or not ad.active or not ad.dialogue_usable);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.evaluate_relationship_condition(p_source_life_id uuid, p_target_life_id uuid, p_relationship_type text, p_operator text, p_expected_value numeric)
@@ -1661,7 +1662,7 @@ CREATE OR REPLACE FUNCTION public.evaluate_relationship_condition(p_source_life_
  LANGUAGE plpgsql
  STABLE
  SET search_path TO ''
-AS $function$ declare v_strength numeric; v_status text; begin if p_source_life_id is null or p_target_life_id is null then return false; end if; if p_relationship_type is null or btrim(p_relationship_type) = '' then raise exception 'relationship_type is required'; end if; if p_operator not in ('=','!=','>','>=','<','<=') then raise exception 'Unsupported relationship operator: %', p_operator; end if; if p_expected_value is null then raise exception 'expected relationship value is required'; end if; select r.strength,r.status into v_strength,v_status from public.relationships r where r.life_a=p_source_life_id and r.life_b=p_target_life_id and r.relationship_type=p_relationship_type and (r.end_time is null or r.end_time > now()) order by r.start_time desc nulls last limit 1; if v_strength is null then return false; end if; case p_operator when '=' then return v_strength=p_expected_value; when '!=' then return v_strength<>p_expected_value; when '>' then return v_strength>p_expected_value; when '>=' then return v_strength>=p_expected_value; when '<' then return v_strength<p_expected_value; when '<=' then return v_strength<=p_expected_value; end case; return false; end; $function$
+AS $function$ declare v_strength numeric; v_status text; begin if p_source_life_id is null or p_target_life_id is null then return false; end if; if p_relationship_type is null or btrim(p_relationship_type) = '' then raise exception 'relationship_type is required'; end if; if p_operator not in ('=','!=','>','>=','<','<=') then raise exception 'Unsupported relationship operator: %', p_operator; end if; if p_expected_value is null then raise exception 'expected relationship value is required'; end if; select r.strength,r.status into v_strength,v_status from public.relationships r where r.life_a=p_source_life_id and r.life_b=p_target_life_id and r.relationship_type=p_relationship_type and (r.end_time is null or r.end_time > now()) order by r.start_time desc nulls last limit 1; if v_strength is null then return false; end if; case p_operator when '=' then return v_strength=p_expected_value; when '!=' then return v_strength<>p_expected_value; when '>' then return v_strength>p_expected_value; when '>=' then return v_strength>=p_expected_value; when '<' then return v_strength<p_expected_value; when '<=' then return v_strength<=p_expected_value; end case; return false; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_emotion_change(p_life_id uuid, p_emotion_definition_id uuid, p_delta numeric, p_cause_type text, p_cause_id uuid DEFAULT NULL::uuid, p_cause_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1708,7 +1709,7 @@ begin
 
   return v_row;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.evaluate_emotion_condition(p_life_id uuid, p_emotion_code text, p_operator text, p_expected_value numeric)
@@ -1716,7 +1717,7 @@ CREATE OR REPLACE FUNCTION public.evaluate_emotion_condition(p_life_id uuid, p_e
  LANGUAGE plpgsql
  STABLE
  SET search_path TO ''
-AS $function$ declare v_intensity numeric; begin if p_life_id is null then return false; end if; if p_emotion_code is null or btrim(p_emotion_code) = '' then raise exception 'emotion_code is required'; end if; if p_expected_value is null then raise exception 'expected emotion value is required'; end if; if p_operator not in ('=', '!=', '>', '>=', '<', '<=') then raise exception 'Unsupported emotion operator: %', p_operator; end if; select le.intensity into v_intensity from public.life_emotions le join public.emotion_definitions ed on ed.id = le.emotion_definition_id where le.life_id = p_life_id and ed.code = p_emotion_code and ed.active = true; if v_intensity is null then return false; end if; case p_operator when '=' then return v_intensity = p_expected_value; when '!=' then return v_intensity <> p_expected_value; when '>' then return v_intensity > p_expected_value; when '>=' then return v_intensity >= p_expected_value; when '<' then return v_intensity < p_expected_value; when '<=' then return v_intensity <= p_expected_value; end case; return false; end; $function$
+AS $function$ declare v_intensity numeric; begin if p_life_id is null then return false; end if; if p_emotion_code is null or btrim(p_emotion_code) = '' then raise exception 'emotion_code is required'; end if; if p_expected_value is null then raise exception 'expected emotion value is required'; end if; if p_operator not in ('=', '!=', '>', '>=', '<', '<=') then raise exception 'Unsupported emotion operator: %', p_operator; end if; select le.intensity into v_intensity from public.life_emotions le join public.emotion_definitions ed on ed.id = le.emotion_definition_id where le.life_id = p_life_id and ed.code = p_emotion_code and ed.active = true; if v_intensity is null then return false; end if; case p_operator when '=' then return v_intensity = p_expected_value; when '!=' then return v_intensity <> p_expected_value; when '>' then return v_intensity > p_expected_value; when '>=' then return v_intensity >= p_expected_value; when '<' then return v_intensity < p_expected_value; when '<=' then return v_intensity <= p_expected_value; end case; return false; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.start_dialogue_session(p_conversation_id uuid, p_initiator_entity_id uuid, p_target_entity_id uuid, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1764,7 +1765,7 @@ begin
 
   return v_session;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.advance_dialogue_session(p_session_id uuid, p_choice_id uuid)
@@ -1772,7 +1773,7 @@ CREATE OR REPLACE FUNCTION public.advance_dialogue_session(p_session_id uuid, p_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_session public.dialogue_sessions; v_choice public.dialogue_choices; v_resolved record; v_next_status text; v_ended_at timestamptz; v_metadata jsonb; v_relationship public.relationships; v_relationship_delta numeric; v_history_id uuid; v_event_id uuid; begin if auth.uid() is null then raise exception 'authentication required'; end if; select ds.* into v_session from public.dialogue_sessions ds where ds.id=p_session_id for update; if not found then raise exception 'Dialogue session % not found',p_session_id; end if; if v_session.status <> 'active' then raise exception 'Dialogue session % is not active',p_session_id; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_session.initiator_entity_id) then raise exception 'dialogue session is not owned by caller'; end if; select dc.* into v_choice from public.dialogue_choices dc where dc.id=p_choice_id; if not found then raise exception 'Choice % not found',p_choice_id; end if; if v_choice.node_id <> v_session.current_node_id then raise exception 'Choice % belongs to wrong node',p_choice_id; end if; if v_choice.target_node_id is not null and not exists (select 1 from public.dialogue_nodes dn where dn.id=v_choice.target_node_id and dn.conversation_id=v_session.conversation_id) then raise exception 'Choice % targets a node outside the session conversation',p_choice_id; end if; select r.* into v_resolved from public.resolve_dialogue_choices(v_session.current_node_id,v_session.initiator_entity_id,v_session.target_entity_id,v_session.initiator_entity_id) r where r.choice_id=p_choice_id; if not found then raise exception 'Choice % is not currently available',p_choice_id; end if; v_metadata:=coalesce(v_session.metadata,'{}'::jsonb)||jsonb_build_object('target_node_id',v_choice.target_node_id,'source_node_id',v_session.current_node_id); if v_choice.metadata ? 'relationship_delta' then if jsonb_typeof(v_choice.metadata->'relationship_delta') <> 'number' then raise exception 'relationship_delta must be numeric'; end if; v_relationship_delta:=(v_choice.metadata->>'relationship_delta')::numeric; if v_session.initiator_entity_id=v_session.target_entity_id then raise exception 'relationship consequence requires distinct participants'; end if; end if; insert into public.dialogue_history(session_id,conversation_id,node_id,choice_id,actor_entity_id,event_type,metadata) values(v_session.id,v_session.conversation_id,v_session.current_node_id,v_choice.id,v_session.initiator_entity_id,'choice_selected',v_metadata) returning id into v_history_id; v_event_id:=public.record_dialogue_history(v_session.id,'dialogue_choice_selected'); if v_relationship_delta is not null then select * into v_relationship from public.apply_relationship_change(v_session.initiator_entity_id,v_session.target_entity_id,v_relationship_delta,'dialogue_choice',v_history_id,jsonb_build_object('session_id',v_session.id,'conversation_id',v_session.conversation_id,'choice_id',v_choice.id,'dialogue_history_id',v_history_id)); perform public.add_history_consequence(v_event_id,'relationship',v_relationship.id::text,jsonb_build_object('relationship_id',v_relationship.id,'delta',v_relationship_delta,'strength',v_relationship.strength,'cause_type','dialogue_choice','cause_id',v_history_id)); v_metadata:=v_metadata||jsonb_build_object('relationship_delta',v_relationship_delta,'relationship_applied',true,'relationship_id',v_relationship.id,'relationship_strength',v_relationship.strength,'relationship_history_event_id',v_event_id); update public.dialogue_history set metadata=v_metadata where id=v_history_id; end if; if v_choice.target_node_id is null or exists(select 1 from public.dialogue_nodes dn where dn.id=v_choice.target_node_id and coalesce(dn.is_terminal,false)=true) then v_next_status='completed'; v_ended_at=now(); else v_next_status='active'; v_ended_at=null; end if; update public.dialogue_sessions set current_node_id=v_choice.target_node_id,status=v_next_status,ended_at=v_ended_at,paused_at=null where id=p_session_id returning * into v_session; return v_session; end; $function$
+AS $function$ declare v_session public.dialogue_sessions; v_choice public.dialogue_choices; v_resolved record; v_next_status text; v_ended_at timestamptz; v_metadata jsonb; v_relationship public.relationships; v_relationship_delta numeric; v_history_id uuid; v_event_id uuid; begin if auth.uid() is null then raise exception 'authentication required'; end if; select ds.* into v_session from public.dialogue_sessions ds where ds.id=p_session_id for update; if not found then raise exception 'Dialogue session % not found',p_session_id; end if; if v_session.status <> 'active' then raise exception 'Dialogue session % is not active',p_session_id; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_session.initiator_entity_id) then raise exception 'dialogue session is not owned by caller'; end if; select dc.* into v_choice from public.dialogue_choices dc where dc.id=p_choice_id; if not found then raise exception 'Choice % not found',p_choice_id; end if; if v_choice.node_id <> v_session.current_node_id then raise exception 'Choice % belongs to wrong node',p_choice_id; end if; if v_choice.target_node_id is not null and not exists (select 1 from public.dialogue_nodes dn where dn.id=v_choice.target_node_id and dn.conversation_id=v_session.conversation_id) then raise exception 'Choice % targets a node outside the session conversation',p_choice_id; end if; select r.* into v_resolved from public.resolve_dialogue_choices(v_session.current_node_id,v_session.initiator_entity_id,v_session.target_entity_id,v_session.initiator_entity_id) r where r.choice_id=p_choice_id; if not found then raise exception 'Choice % is not currently available',p_choice_id; end if; v_metadata:=coalesce(v_session.metadata,'{}'::jsonb)||jsonb_build_object('target_node_id',v_choice.target_node_id,'source_node_id',v_session.current_node_id); if v_choice.metadata ? 'relationship_delta' then if jsonb_typeof(v_choice.metadata->'relationship_delta') <> 'number' then raise exception 'relationship_delta must be numeric'; end if; v_relationship_delta:=(v_choice.metadata->>'relationship_delta')::numeric; if v_session.initiator_entity_id=v_session.target_entity_id then raise exception 'relationship consequence requires distinct participants'; end if; end if; insert into public.dialogue_history(session_id,conversation_id,node_id,choice_id,actor_entity_id,event_type,metadata) values(v_session.id,v_session.conversation_id,v_session.current_node_id,v_choice.id,v_session.initiator_entity_id,'choice_selected',v_metadata) returning id into v_history_id; v_event_id:=public.record_dialogue_history(v_session.id,'dialogue_choice_selected'); if v_relationship_delta is not null then select * into v_relationship from public.apply_relationship_change(v_session.initiator_entity_id,v_session.target_entity_id,v_relationship_delta,'dialogue_choice',v_history_id,jsonb_build_object('session_id',v_session.id,'conversation_id',v_session.conversation_id,'choice_id',v_choice.id,'dialogue_history_id',v_history_id)); perform public.add_history_consequence(v_event_id,'relationship',v_relationship.id::text,jsonb_build_object('relationship_id',v_relationship.id,'delta',v_relationship_delta,'strength',v_relationship.strength,'cause_type','dialogue_choice','cause_id',v_history_id)); v_metadata:=v_metadata||jsonb_build_object('relationship_delta',v_relationship_delta,'relationship_applied',true,'relationship_id',v_relationship.id,'relationship_strength',v_relationship.strength,'relationship_history_event_id',v_event_id); update public.dialogue_history set metadata=v_metadata where id=v_history_id; end if; if v_choice.target_node_id is null or exists(select 1 from public.dialogue_nodes dn where dn.id=v_choice.target_node_id and coalesce(dn.is_terminal,false)=true) then v_next_status='completed'; v_ended_at=now(); else v_next_status='active'; v_ended_at=null; end if; update public.dialogue_sessions set current_node_id=v_choice.target_node_id,status=v_next_status,ended_at=v_ended_at,paused_at=null where id=p_session_id returning * into v_session; return v_session; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_relationship_change(p_life_a uuid, p_life_b uuid, p_delta numeric, p_cause_type text DEFAULT 'system'::text, p_cause_id uuid DEFAULT NULL::uuid, p_cause_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1794,7 +1795,7 @@ begin
   update public.relationships set strength = strength + p_delta where id=v_relationship.id returning * into v_relationship;
   return v_relationship;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_inventory_item(p_container_id uuid, p_item_id uuid, p_quantity numeric DEFAULT 1, p_item_instance_id uuid DEFAULT NULL::uuid, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1905,7 +1906,7 @@ begin
   returning id into v_entry_id;
   return v_entry_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.refresh_inventory_aggregate(p_life_id uuid)
@@ -1932,7 +1933,7 @@ begin
         used_capacity=excluded.used_capacity,
         updated_at=now();
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.refresh_inventory_aggregate_for_container(p_container_id uuid)
@@ -1945,7 +1946,7 @@ begin
   select owner_type, owner_id into v_owner_type, v_owner_id from public.containers where id=p_container_id;
   if v_owner_type='life' and v_owner_id is not null then perform public.refresh_inventory_aggregate(v_owner_id); end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.sync_inventory_aggregate_trigger()
@@ -1964,7 +1965,7 @@ begin
   end if;
   return coalesce(new,old);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.can_mutate_container(p_container_id uuid, p_actor_life_id uuid, p_required_access text DEFAULT 'use'::text)
@@ -1972,7 +1973,7 @@ CREATE OR REPLACE FUNCTION public.can_mutate_container(p_container_id uuid, p_ac
  LANGUAGE plpgsql
  STABLE
  SET search_path TO 'public'
-AS $function$ declare v_owner_life_id uuid; v_is_locked boolean; v_status text; v_access_level text; begin if p_container_id is null or p_actor_life_id is null then return false; end if; if p_required_access not in ('use','manage') then raise exception 'inventory_invalid_required_access'; end if; select owner_life_id,is_locked,status into v_owner_life_id,v_is_locked,v_status from public.containers where id=p_container_id; if not found or v_status <> 'active' or v_is_locked then return false; end if; if v_owner_life_id = p_actor_life_id then return true; end if; select access_level into v_access_level from public.container_access where container_id=p_container_id and life_id=p_actor_life_id and (expires_at is null or expires_at > now()); if p_required_access='manage' then return coalesce(v_access_level='manage',false); end if; return coalesce(v_access_level in ('use','manage'),false); end; $function$
+AS $function$ declare v_owner_life_id uuid; v_is_locked boolean; v_status text; v_access_level text; begin if p_container_id is null or p_actor_life_id is null then return false; end if; if p_required_access not in ('use','manage') then raise exception 'inventory_invalid_required_access'; end if; select owner_life_id,is_locked,status into v_owner_life_id,v_is_locked,v_status from public.containers where id=p_container_id; if not found or v_status <> 'active' or v_is_locked then return false; end if; if v_owner_life_id = p_actor_life_id then return true; end if; select access_level into v_access_level from public.container_access where container_id=p_container_id and life_id=p_actor_life_id and (expires_at is null or expires_at > now()); if p_required_access='manage' then return coalesce(v_access_level='manage',false); end if; return coalesce(v_access_level in ('use','manage'),false); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_inventory_item_authorized(p_container_id uuid, p_item_id uuid, p_quantity numeric DEFAULT 1, p_item_instance_id uuid DEFAULT NULL::uuid, p_actor_life_id uuid DEFAULT NULL::uuid, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -1980,7 +1981,7 @@ CREATE OR REPLACE FUNCTION public.add_inventory_item_authorized(p_container_id u
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin if auth.uid() is null then raise exception 'inventory_add_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_add_actor_required'; end if; if not exists(select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_actor_life_id) then raise exception 'inventory_add_actor_not_owned'; end if; if not public.can_mutate_container(p_container_id,p_actor_life_id,'use') then raise exception 'inventory_add_not_authorized'; end if; return public.add_inventory_item(p_container_id,p_item_id,p_quantity,p_item_instance_id,p_metadata); end;$function$
+AS $function$ begin if auth.uid() is null then raise exception 'inventory_add_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_add_actor_required'; end if; if not exists(select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_actor_life_id) then raise exception 'inventory_add_actor_not_owned'; end if; if not public.can_mutate_container(p_container_id,p_actor_life_id,'use') then raise exception 'inventory_add_not_authorized'; end if; return public.add_inventory_item(p_container_id,p_item_id,p_quantity,p_item_instance_id,p_metadata); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.evaluate_life_activity_candidates(p_life_id uuid, p_minute integer)
@@ -1988,7 +1989,7 @@ CREATE OR REPLACE FUNCTION public.evaluate_life_activity_candidates(p_life_id uu
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ with scheduled as (select se.id schedule_entry_id,se.activity_definition_id,se.priority schedule_priority,ad.name activity_name,ad.activity_type from public.schedule_entries se join public.schedules s on s.id=se.schedule_id join public.activity_definitions ad on ad.id=se.activity_definition_id where s.life_id=p_life_id and s.status='active' and ad.status='active' and p_minute>=se.start_minute and p_minute<se.end_minute), scheduled_scored as (select s.*,coalesce(max(greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))*nr.weight),0) need_score,coalesce(max(greatest(nr.priority_floor,0)),0) need_floor,(array_agg(nr.need_type order by greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))*nr.weight desc nulls last))[1] primary_need,coalesce(max(greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))),0) max_need_urgency from scheduled s left join public.ai_activity_need_rules nr on nr.activity_definition_id=s.activity_definition_id left join public.life_needs n on n.life_id=p_life_id and n.need_type=nr.need_type group by s.schedule_entry_id,s.activity_definition_id,s.schedule_priority,s.activity_name,s.activity_type), urgent as (select null::uuid schedule_entry_id,ad.id activity_definition_id,0::integer schedule_priority,ad.name activity_name,ad.activity_type,nr.need_type,greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0)) need_urgency,nr.weight,nr.priority_floor from public.ai_activity_need_rules nr join public.activity_definitions ad on ad.id=nr.activity_definition_id join public.life_needs n on n.life_id=p_life_id and n.need_type=nr.need_type where ad.status='active' and greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))>0 and greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))>=greatest(nr.priority_floor,0)), urgent_dedup as (select u.*,row_number() over(partition by u.activity_definition_id order by u.need_urgency*u.weight desc,u.priority_floor desc,u.need_type) rn from urgent u), all_candidates as (select ss.activity_definition_id,ss.activity_name,ss.activity_type,ss.schedule_entry_id,ss.schedule_priority,ss.primary_need need_type,ss.max_need_urgency need_urgency,(ss.schedule_priority::numeric*100)+ss.need_score+ss.need_floor score,case when ss.primary_need is not null and ss.max_need_urgency>0 then format('scheduled=%s; need=%s urgency=%s',ss.schedule_priority,ss.primary_need,ss.max_need_urgency) else format('scheduled=%s',ss.schedule_priority) end reason from scheduled_scored ss union all select u.activity_definition_id,u.activity_name,u.activity_type,u.schedule_entry_id,u.schedule_priority,u.need_type,u.need_urgency,(u.need_urgency*u.weight)+greatest(u.priority_floor,0)+100 score,format('urgent; need=%s urgency=%s',u.need_type,u.need_urgency) from urgent_dedup u where u.rn=1 and not exists(select 1 from scheduled_scored s where s.activity_definition_id=u.activity_definition_id)) select * from all_candidates order by score desc,schedule_priority desc,activity_name $function$
+AS $function$ with scheduled as (select se.id schedule_entry_id,se.activity_definition_id,se.priority schedule_priority,ad.name activity_name,ad.activity_type from public.schedule_entries se join public.schedules s on s.id=se.schedule_id join public.activity_definitions ad on ad.id=se.activity_definition_id where s.life_id=p_life_id and s.status='active' and ad.status='active' and p_minute>=se.start_minute and p_minute<se.end_minute), scheduled_scored as (select s.*,coalesce(max(greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))*nr.weight),0) need_score,coalesce(max(greatest(nr.priority_floor,0)),0) need_floor,(array_agg(nr.need_type order by greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))*nr.weight desc nulls last))[1] primary_need,coalesce(max(greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))),0) max_need_urgency from scheduled s left join public.ai_activity_need_rules nr on nr.activity_definition_id=s.activity_definition_id left join public.life_needs n on n.life_id=p_life_id and n.need_type=nr.need_type group by s.schedule_entry_id,s.activity_definition_id,s.schedule_priority,s.activity_name,s.activity_type), urgent as (select null::uuid schedule_entry_id,ad.id activity_definition_id,0::integer schedule_priority,ad.name activity_name,ad.activity_type,nr.need_type,greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0)) need_urgency,nr.weight,nr.priority_floor from public.ai_activity_need_rules nr join public.activity_definitions ad on ad.id=nr.activity_definition_id join public.life_needs n on n.life_id=p_life_id and n.need_type=nr.need_type where ad.status='active' and greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))>0 and greatest(0::numeric,coalesce(n.target_value,0)-coalesce(n.current_value,0))>=greatest(nr.priority_floor,0)), urgent_dedup as (select u.*,row_number() over(partition by u.activity_definition_id order by u.need_urgency*u.weight desc,u.priority_floor desc,u.need_type) rn from urgent u), all_candidates as (select ss.activity_definition_id,ss.activity_name,ss.activity_type,ss.schedule_entry_id,ss.schedule_priority,ss.primary_need need_type,ss.max_need_urgency need_urgency,(ss.schedule_priority::numeric*100)+ss.need_score+ss.need_floor score,case when ss.primary_need is not null and ss.max_need_urgency>0 then format('scheduled=%s; need=%s urgency=%s',ss.schedule_priority,ss.primary_need,ss.max_need_urgency) else format('scheduled=%s',ss.schedule_priority) end reason from scheduled_scored ss union all select u.activity_definition_id,u.activity_name,u.activity_type,u.schedule_entry_id,u.schedule_priority,u.need_type,u.need_urgency,(u.need_urgency*u.weight)+greatest(u.priority_floor,0)+100 score,format('urgent; need=%s urgency=%s',u.need_type,u.need_urgency) from urgent_dedup u where u.rn=1 and not exists(select 1 from scheduled_scored s where s.activity_definition_id=u.activity_definition_id)) select * from all_candidates order by score desc,schedule_priority desc,activity_name $function$;
 
 
 CREATE OR REPLACE FUNCTION public.plan_life_activity(p_life_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -2009,14 +2010,14 @@ begin
  insert into public.life_ai_decisions(life_id,goal_id,activity_definition_id,decision_type,score,reason,context,selected)
  values(p_life_id,v_goal_id,v_def,'activity_selection',v_score,jsonb_build_object('reason',v_reason,'activity_name',v_name),jsonb_build_object('at',p_at,'need_type',v_need,'need_urgency',v_urgency,'schedule_priority',v_schedule_priority),true);
  return v_activity_id;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_food_recovery_to_hunger_on_eat_completion()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_recovery numeric; v_at timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' and exists(select 1 from public.activity_definitions ad where ad.id=new.activity_definition_id and lower(ad.name)='eat') and not coalesce(new.metadata->>'ai_food_need_applied','false')::boolean then v_at=coalesce((new.metadata->>'simulation_time')::timestamptz,new.end_time,new.start_time); if v_at is null then raise exception 'eat completion requires authoritative simulation_time'; end if; select coalesce(sum(energy_recovery),0) into v_recovery from public.activity_food_consumptions where activity_id=new.id; if v_recovery<>0 then perform public.apply_life_need_delta_at(new.actor_life_id,'hunger',v_recovery,v_at,'eat_food_recovery'); end if; update public.activities set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('ai_food_need_applied',true,'ai_food_need_recovery',v_recovery,'need_mutation_simulation_time',v_at) where id=new.id; end if; return new; end; $function$
+AS $function$ declare v_recovery numeric; v_at timestamptz; begin if new.state='completed' and old.state is distinct from 'completed' and exists(select 1 from public.activity_definitions ad where ad.id=new.activity_definition_id and lower(ad.name)='eat') and not coalesce(new.metadata->>'ai_food_need_applied','false')::boolean then v_at=coalesce((new.metadata->>'simulation_time')::timestamptz,new.end_time,new.start_time); if v_at is null then raise exception 'eat completion requires authoritative simulation_time'; end if; select coalesce(sum(energy_recovery),0) into v_recovery from public.activity_food_consumptions where activity_id=new.id; if v_recovery<>0 then perform public.apply_life_need_delta_at(new.actor_life_id,'hunger',v_recovery,v_at,'eat_food_recovery'); end if; update public.activities set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('ai_food_need_applied',true,'ai_food_need_recovery',v_recovery,'need_mutation_simulation_time',v_at) where id=new.id; end if; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_activity_skill_score(p_life_id uuid, p_activity_definition_id uuid)
@@ -2024,7 +2025,7 @@ CREATE OR REPLACE FUNCTION public.get_life_activity_skill_score(p_life_id uuid, 
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ with occupation_affinity as (select coalesce(sum(coalesce(ls.level,0)::numeric*osa.weight),0) score from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id join public.life_skills ls on ls.life_id=e.life_id and ls.skill_type=osa.skill_type where e.life_id=p_life_id), activity_affinity as (select coalesce(sum(coalesce(ls.level,0)::numeric*asa.weight),0) score from public.activity_skill_affinities asa join public.life_skills ls on ls.life_id=p_life_id and ls.skill_type=asa.skill_type where asa.activity_definition_id=p_activity_definition_id) select activity_affinity.score + occupation_affinity.score from activity_affinity,occupation_affinity; $function$
+AS $function$ with occupation_affinity as (select coalesce(sum(coalesce(ls.level,0)::numeric*osa.weight),0) score from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id join public.life_skills ls on ls.life_id=e.life_id and ls.skill_type=osa.skill_type where e.life_id=p_life_id), activity_affinity as (select coalesce(sum(coalesce(ls.level,0)::numeric*asa.weight),0) score from public.activity_skill_affinities asa join public.life_skills ls on ls.life_id=p_life_id and ls.skill_type=asa.skill_type where asa.activity_definition_id=p_activity_definition_id) select activity_affinity.score + occupation_affinity.score from activity_affinity,occupation_affinity; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_work_skill_score(p_life_id uuid)
@@ -2032,14 +2033,14 @@ CREATE OR REPLACE FUNCTION public.get_life_work_skill_score(p_life_id uuid)
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ select coalesce(sum(ls.level * osa.weight),0)::numeric from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id join public.life_skills ls on ls.life_id=e.life_id and ls.skill_type=osa.skill_type where e.life_id=p_life_id $function$
+AS $function$ select coalesce(sum(ls.level * osa.weight),0)::numeric from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id join public.life_skills ls on ls.life_id=e.life_id and ls.skill_type=osa.skill_type where e.life_id=p_life_id $function$;
 
 
 CREATE OR REPLACE FUNCTION public.grant_life_skill_experience(p_life_id uuid, p_skill_type text, p_experience numeric, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS TABLE(skill_level integer, skill_experience numeric, leveled_up boolean)
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_level integer; v_xp numeric; v_old_level integer; v_threshold numeric; begin if p_experience is null or p_experience<=0 then raise exception 'skill_invalid_experience'; end if; select level,experience into v_old_level,v_xp from public.life_skills where life_id=p_life_id and skill_type=p_skill_type for update; if not found then insert into public.life_skills(life_id,skill_type,level,experience) values(p_life_id,p_skill_type,0,p_experience) returning level,experience into v_old_level,v_xp; else v_xp:=v_xp+p_experience; end if; v_level:=v_old_level; while v_level < 100 loop v_threshold := ((v_level+1)*(v_level+1)*100); exit when v_xp < v_threshold; v_level:=v_level+1; end loop; update public.life_skills set level=v_level,experience=v_xp where life_id=p_life_id and skill_type=p_skill_type; return query select v_level,v_xp,v_level>v_old_level; end; $function$
+AS $function$ declare v_level integer; v_xp numeric; v_old_level integer; v_threshold numeric; begin if p_experience is null or p_experience<=0 then raise exception 'skill_invalid_experience'; end if; select level,experience into v_old_level,v_xp from public.life_skills where life_id=p_life_id and skill_type=p_skill_type for update; if not found then insert into public.life_skills(life_id,skill_type,level,experience) values(p_life_id,p_skill_type,0,p_experience) returning level,experience into v_old_level,v_xp; else v_xp:=v_xp+p_experience; end if; v_level:=v_old_level; while v_level < 100 loop v_threshold := ((v_level+1)*(v_level+1)*100); exit when v_xp < v_threshold; v_level:=v_level+1; end loop; update public.life_skills set level=v_level,experience=v_xp where life_id=p_life_id and skill_type=p_skill_type; return query select v_level,v_xp,v_level>v_old_level; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.calculate_activity_skill_xp(p_activity_id uuid)
@@ -2047,28 +2048,28 @@ CREATE OR REPLACE FUNCTION public.calculate_activity_skill_xp(p_activity_id uuid
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ select coalesce(sum(p.base_xp * p.duration_factor * coalesce(nullif(extract(epoch from (coalesce(a.end_time,now())-a.start_time))/60,0)/nullif(ad.default_duration,0),1)),0) from public.activities a join public.activity_definitions ad on ad.id=a.activity_definition_id join public.activity_xp_policies p on p.activity_definition_id=ad.id where a.id=p_activity_id $function$
+AS $function$ select coalesce(sum(p.base_xp * p.duration_factor * coalesce(nullif(extract(epoch from (coalesce(a.end_time,now())-a.start_time))/60,0)/nullif(ad.default_duration,0),1)),0) from public.activities a join public.activity_definitions ad on ad.id=a.activity_definition_id join public.activity_xp_policies p on p.activity_definition_id=ad.id where a.id=p_activity_id $function$;
 
 
 CREATE OR REPLACE FUNCTION public.award_activity_skill_experience_once(p_activity_id uuid)
  RETURNS integer
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_life_id uuid; v_xp numeric; v_count integer:=0; v_skill text; v_is_work boolean; begin select a.actor_life_id,(ad.name='Work') into v_life_id,v_is_work from public.activities a join public.activity_definitions ad on ad.id=a.activity_definition_id where a.id=p_activity_id; if v_life_id is null then raise exception 'activity_skill_life_missing'; end if; v_xp:=public.calculate_activity_skill_xp(p_activity_id); if v_xp<=0 then return 0; end if; if v_is_work then for v_skill in select distinct osa.skill_type from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id where e.life_id=v_life_id loop insert into public.activity_skill_xp_awards(activity_id,skill_type,experience,metadata) values(p_activity_id,v_skill,v_xp,jsonb_build_object('source','activity_completion','skill_source','occupation')) on conflict(activity_id,skill_type) do nothing; if found then perform public.grant_life_skill_experience(v_life_id,v_skill,v_xp,'activity_completion',jsonb_build_object('activity_id',p_activity_id,'skill_source','occupation')); v_count:=v_count+1; end if; end loop; else for v_skill in select distinct asa.skill_type from public.activity_skill_affinities asa join public.activities a on a.activity_definition_id=asa.activity_definition_id where a.id=p_activity_id loop insert into public.activity_skill_xp_awards(activity_id,skill_type,experience,metadata) values(p_activity_id,v_skill,v_xp,jsonb_build_object('source','activity_completion','skill_source','activity_affinity')) on conflict(activity_id,skill_type) do nothing; if found then perform public.grant_life_skill_experience(v_life_id,v_skill,v_xp,'activity_completion',jsonb_build_object('activity_id',p_activity_id,'skill_source','activity_affinity')); v_count:=v_count+1; end if; end loop; end if; return v_count; end; $function$
+AS $function$ declare v_life_id uuid; v_xp numeric; v_count integer:=0; v_skill text; v_is_work boolean; begin select a.actor_life_id,(ad.name='Work') into v_life_id,v_is_work from public.activities a join public.activity_definitions ad on ad.id=a.activity_definition_id where a.id=p_activity_id; if v_life_id is null then raise exception 'activity_skill_life_missing'; end if; v_xp:=public.calculate_activity_skill_xp(p_activity_id); if v_xp<=0 then return 0; end if; if v_is_work then for v_skill in select distinct osa.skill_type from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id where e.life_id=v_life_id loop insert into public.activity_skill_xp_awards(activity_id,skill_type,experience,metadata) values(p_activity_id,v_skill,v_xp,jsonb_build_object('source','activity_completion','skill_source','occupation')) on conflict(activity_id,skill_type) do nothing; if found then perform public.grant_life_skill_experience(v_life_id,v_skill,v_xp,'activity_completion',jsonb_build_object('activity_id',p_activity_id,'skill_source','occupation')); v_count:=v_count+1; end if; end loop; else for v_skill in select distinct asa.skill_type from public.activity_skill_affinities asa join public.activities a on a.activity_definition_id=asa.activity_definition_id where a.id=p_activity_id loop insert into public.activity_skill_xp_awards(activity_id,skill_type,experience,metadata) values(p_activity_id,v_skill,v_xp,jsonb_build_object('source','activity_completion','skill_source','activity_affinity')) on conflict(activity_id,skill_type) do nothing; if found then perform public.grant_life_skill_experience(v_life_id,v_skill,v_xp,'activity_completion',jsonb_build_object('activity_id',p_activity_id,'skill_source','activity_affinity')); v_count:=v_count+1; end if; end loop; end if; return v_count; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.trg_award_activity_skill_experience()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ begin if new.state='completed' and old.state is distinct from new.state then perform public.award_activity_skill_experience_once(new.id); end if; return new; end; $function$
+AS $function$ begin if new.state='completed' and old.state is distinct from new.state then perform public.award_activity_skill_experience_once(new.id); end if; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.grant_activity_skill_experience(p_activity_id uuid, p_experience numeric, p_reason text, p_metadata jsonb)
  RETURNS integer
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_life_id uuid; v_count integer:=0; v_skill text; v_activity_name text; begin select actor_life_id,ad.name into v_life_id,v_activity_name from public.activities a join public.activity_definitions ad on ad.id=a.activity_definition_id where a.id=p_activity_id; if v_life_id is null then raise exception 'activity_skill_life_missing'; end if; if p_experience is null or p_experience<=0 then raise exception 'activity_invalid_experience'; end if; if v_activity_name='Work' then for v_skill in select osa.skill_type from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id where e.life_id=v_life_id loop perform public.grant_life_skill_experience(v_life_id,v_skill,p_experience,p_reason,p_metadata||jsonb_build_object('activity_id',p_activity_id,'activity','Work')); v_count:=v_count+1; end loop; else for v_skill in select distinct asa.skill_type from public.activities a join public.activity_skill_affinities asa on asa.activity_definition_id=a.activity_definition_id where a.id=p_activity_id loop perform public.grant_life_skill_experience(v_life_id,v_skill,p_experience,p_reason,p_metadata||jsonb_build_object('activity_id',p_activity_id)); v_count:=v_count+1; end loop; end if; return v_count; end; $function$
+AS $function$ declare v_life_id uuid; v_count integer:=0; v_skill text; v_activity_name text; begin select actor_life_id,ad.name into v_life_id,v_activity_name from public.activities a join public.activity_definitions ad on ad.id=a.activity_definition_id where a.id=p_activity_id; if v_life_id is null then raise exception 'activity_skill_life_missing'; end if; if p_experience is null or p_experience<=0 then raise exception 'activity_invalid_experience'; end if; if v_activity_name='Work' then for v_skill in select osa.skill_type from public.employment e join public.occupation_skill_affinities osa on osa.occupation_id=e.occupation_id where e.life_id=v_life_id loop perform public.grant_life_skill_experience(v_life_id,v_skill,p_experience,p_reason,p_metadata||jsonb_build_object('activity_id',p_activity_id,'activity','Work')); v_count:=v_count+1; end loop; else for v_skill in select distinct asa.skill_type from public.activities a join public.activity_skill_affinities asa on asa.activity_definition_id=a.activity_definition_id where a.id=p_activity_id loop perform public.grant_life_skill_experience(v_life_id,v_skill,p_experience,p_reason,p_metadata||jsonb_build_object('activity_id',p_activity_id)); v_count:=v_count+1; end loop; end if; return v_count; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_activity_personality_score(p_life_id uuid, p_activity_definition_id uuid)
@@ -2076,7 +2077,7 @@ CREATE OR REPLACE FUNCTION public.get_life_activity_personality_score(p_life_id 
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ select coalesce(sum(la.value*aaa.weight),0)::numeric from public.life_attributes la join public.activity_attribute_affinities aaa on aaa.attribute_type=la.attribute_type where la.life_id=p_life_id and aaa.activity_definition_id=p_activity_definition_id $function$
+AS $function$ select coalesce(sum(la.value*aaa.weight),0)::numeric from public.life_attributes la join public.activity_attribute_affinities aaa on aaa.attribute_type=la.attribute_type where la.life_id=p_life_id and aaa.activity_definition_id=p_activity_definition_id $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_archetype_activity_bonus(p_life_id uuid, p_activity_definition_id uuid)
@@ -2084,14 +2085,14 @@ CREATE OR REPLACE FUNCTION public.get_life_archetype_activity_bonus(p_life_id uu
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ select coalesce(sum(p.score_bonus),0)::numeric from public.life_ai_profiles lp join public.ai_archetype_activity_policies p on p.archetype=lp.archetype and p.activity_definition_id=p_activity_definition_id where lp.life_id=p_life_id $function$
+AS $function$ select coalesce(sum(p.score_bonus),0)::numeric from public.life_ai_profiles lp join public.ai_archetype_activity_policies p on p.archetype=lp.archetype and p.activity_definition_id=p_activity_definition_id where lp.life_id=p_life_id $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_life_activity(p_activity_id uuid, p_completed_at timestamp with time zone DEFAULT now())
  RETURNS boolean
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_activity public.activities%rowtype; begin select * into v_activity from public.activities where id=p_activity_id for update; if not found then raise exception 'activity_not_found'; end if; if v_activity.state not in ('planned','active') then return false; end if; update public.activities set state='completed',end_time=least(coalesce(end_time,p_completed_at),p_completed_at),updated_at=now() where id=p_activity_id; return true; end; $function$
+AS $function$ declare v_activity public.activities%rowtype; begin select * into v_activity from public.activities where id=p_activity_id for update; if not found then raise exception 'activity_not_found'; end if; if v_activity.state not in ('planned','active') then return false; end if; update public.activities set state='completed',end_time=least(coalesce(end_time,p_completed_at),p_completed_at),updated_at=now() where id=p_activity_id; return true; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.select_social_target(p_source_life_id uuid)
@@ -2099,7 +2100,7 @@ CREATE OR REPLACE FUNCTION public.select_social_target(p_source_life_id uuid)
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ select * from public.get_life_social_targets(p_source_life_id) limit 1 $function$
+AS $function$ select * from public.get_life_social_targets(p_source_life_id) limit 1 $function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_social_interaction(p_source_life_id uuid, p_target_life_id uuid, p_interaction_type text DEFAULT 'socialize'::text, p_at timestamp with time zone DEFAULT now())
@@ -2107,14 +2108,14 @@ CREATE OR REPLACE FUNCTION public.execute_social_interaction(p_source_life_id uu
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_source_sociability numeric:=0; v_target_sociability numeric:=0; v_strength numeric:=0; v_type text:='acquaintance'; v_delta numeric; v_outcome text; v_id uuid; begin if (select auth.uid()) is null then raise exception 'authentication_required'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=(select auth.uid()) and ul.life_id=p_source_life_id) then raise exception 'source_life_not_owned'; end if; if p_source_life_id=p_target_life_id then raise exception 'social_self_target'; end if; perform 1 from public.lives where id=p_source_life_id; if not found then raise exception 'source_life_not_found'; end if; perform 1 from public.lives where id=p_target_life_id; if not found then raise exception 'target_life_not_found'; end if; select coalesce(value,0) into v_source_sociability from public.life_attributes where life_id=p_source_life_id and attribute_type='sociability'; select coalesce(value,0) into v_target_sociability from public.life_attributes where life_id=p_target_life_id and attribute_type='sociability'; select coalesce(r.strength,0),coalesce(r.relationship_type,'acquaintance') into v_strength,v_type from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_b=p_source_life_id and r.life_a=p_target_life_id)) and r.end_time is null order by r.start_time desc limit 1; if v_type='rival' then v_delta:=greatest(-10,least(10,-2-(v_source_sociability+v_target_sociability)/60)); elsif v_type='friend' then v_delta:=greatest(-10,least(10,5+(v_source_sociability+v_target_sociability)/50)); else v_delta:=greatest(-10,least(10,2+(v_source_sociability+v_target_sociability)/40)); end if; v_outcome:=case when v_delta>=7 then 'warm' when v_delta>=3 then 'positive' when v_delta<=-5 then 'negative' else 'neutral' end; insert into public.social_interactions(source_life_id,target_life_id,interaction_type,outcome,relationship_delta,metadata,occurred_at) values(p_source_life_id,p_target_life_id,p_interaction_type,v_outcome,v_delta,jsonb_build_object('source_sociability',v_source_sociability,'target_sociability',v_target_sociability,'previous_relationship_strength',v_strength,'previous_relationship_type',v_type),p_at) returning id into v_id; if exists(select 1 from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_a=p_target_life_id and r.life_b=p_source_life_id)) and r.end_time is null) then perform public.apply_relationship_change(p_source_life_id,p_target_life_id,v_delta,'social_interaction',v_id,jsonb_build_object('interaction_type',p_interaction_type,'outcome',v_outcome)); else insert into public.relationships(life_a,life_b,relationship_type,strength,status,start_time) values(p_source_life_id,p_target_life_id,'acquaintance',v_delta,'active',p_at); end if; perform public.evolve_social_relationship(p_source_life_id,p_target_life_id,p_at); select coalesce(r.strength,0) into v_strength from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_a=p_target_life_id and r.life_b=p_source_life_id)) and r.end_time is null order by r.start_time desc limit 1; return query select v_id,v_outcome,v_delta,v_strength; end; $function$
+AS $function$ declare v_source_sociability numeric:=0; v_target_sociability numeric:=0; v_strength numeric:=0; v_type text:='acquaintance'; v_delta numeric; v_outcome text; v_id uuid; begin if (select auth.uid()) is null then raise exception 'authentication_required'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=(select auth.uid()) and ul.life_id=p_source_life_id) then raise exception 'source_life_not_owned'; end if; if p_source_life_id=p_target_life_id then raise exception 'social_self_target'; end if; perform 1 from public.lives where id=p_source_life_id; if not found then raise exception 'source_life_not_found'; end if; perform 1 from public.lives where id=p_target_life_id; if not found then raise exception 'target_life_not_found'; end if; select coalesce(value,0) into v_source_sociability from public.life_attributes where life_id=p_source_life_id and attribute_type='sociability'; select coalesce(value,0) into v_target_sociability from public.life_attributes where life_id=p_target_life_id and attribute_type='sociability'; select coalesce(r.strength,0),coalesce(r.relationship_type,'acquaintance') into v_strength,v_type from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_b=p_source_life_id and r.life_a=p_target_life_id)) and r.end_time is null order by r.start_time desc limit 1; if v_type='rival' then v_delta:=greatest(-10,least(10,-2-(v_source_sociability+v_target_sociability)/60)); elsif v_type='friend' then v_delta:=greatest(-10,least(10,5+(v_source_sociability+v_target_sociability)/50)); else v_delta:=greatest(-10,least(10,2+(v_source_sociability+v_target_sociability)/40)); end if; v_outcome:=case when v_delta>=7 then 'warm' when v_delta>=3 then 'positive' when v_delta<=-5 then 'negative' else 'neutral' end; insert into public.social_interactions(source_life_id,target_life_id,interaction_type,outcome,relationship_delta,metadata,occurred_at) values(p_source_life_id,p_target_life_id,p_interaction_type,v_outcome,v_delta,jsonb_build_object('source_sociability',v_source_sociability,'target_sociability',v_target_sociability,'previous_relationship_strength',v_strength,'previous_relationship_type',v_type),p_at) returning id into v_id; if exists(select 1 from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_a=p_target_life_id and r.life_b=p_source_life_id)) and r.end_time is null) then perform public.apply_relationship_change(p_source_life_id,p_target_life_id,v_delta,'social_interaction',v_id,jsonb_build_object('interaction_type',p_interaction_type,'outcome',v_outcome)); else insert into public.relationships(life_a,life_b,relationship_type,strength,status,start_time) values(p_source_life_id,p_target_life_id,'acquaintance',v_delta,'active',p_at); end if; perform public.evolve_social_relationship(p_source_life_id,p_target_life_id,p_at); select coalesce(r.strength,0) into v_strength from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_a=p_target_life_id and r.life_b=p_source_life_id)) and r.end_time is null order by r.start_time desc limit 1; return query select v_id,v_outcome,v_delta,v_strength; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.evolve_social_relationship(p_life_a uuid, p_life_b uuid, p_at timestamp with time zone DEFAULT now())
  RETURNS TABLE(relationship_type text, strength numeric, changed boolean, reason text)
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_r public.relationships; v_new text; begin select * into v_r from public.relationships where ((life_a=p_life_a and life_b=p_life_b) or (life_a=p_life_b and life_b=p_life_a)) and end_time is null order by start_time desc limit 1 for update; if not found then raise exception 'relationship_not_found'; end if; v_new:=case when v_r.strength>=60 then 'friend' when v_r.strength<=-40 then 'rival' else 'acquaintance' end; if v_new is distinct from v_r.relationship_type then update public.relationships set relationship_type=v_new where id=v_r.id returning * into v_r; return query select v_r.relationship_type,v_r.strength,true,case when v_new='friend' then 'strength_reached_friend_threshold' when v_new='rival' then 'strength_reached_rival_threshold' else 'relationship_type_policy' end; else return query select v_r.relationship_type,v_r.strength,false,'threshold_not_reached'; end if; end; $function$
+AS $function$ declare v_r public.relationships; v_new text; begin select * into v_r from public.relationships where ((life_a=p_life_a and life_b=p_life_b) or (life_a=p_life_b and life_b=p_life_a)) and end_time is null order by start_time desc limit 1 for update; if not found then raise exception 'relationship_not_found'; end if; v_new:=case when v_r.strength>=60 then 'friend' when v_r.strength<=-40 then 'rival' else 'acquaintance' end; if v_new is distinct from v_r.relationship_type then update public.relationships set relationship_type=v_new where id=v_r.id returning * into v_r; return query select v_r.relationship_type,v_r.strength,true,case when v_new='friend' then 'strength_reached_friend_threshold' when v_new='rival' then 'strength_reached_rival_threshold' else 'relationship_type_policy' end; else return query select v_r.relationship_type,v_r.strength,false,'threshold_not_reached'; end if; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_social_memory_summary(p_source_life_id uuid, p_target_life_id uuid)
@@ -2122,7 +2123,7 @@ CREATE OR REPLACE FUNCTION public.get_social_memory_summary(p_source_life_id uui
  LANGUAGE sql
  STABLE
  SET search_path TO 'public'
-AS $function$ with i as (select * from public.social_interactions where source_life_id=p_source_life_id and target_life_id=p_target_life_id),r as (select r.strength,r.relationship_type from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_a=p_target_life_id and r.life_b=p_source_life_id)) and r.end_time is null order by r.start_time desc limit 1),a as (select count(*) interaction_count,count(*) filter(where outcome in ('positive','warm')) positive_count,count(*) filter(where outcome='negative') negative_count,count(*) filter(where outcome='warm') warm_count,count(*) filter(where outcome in ('positive','warm') and occurred_at>=now()-interval '7 days') recent_positive_count,count(*) filter(where outcome='negative' and occurred_at>=now()-interval '7 days') recent_negative_count,coalesce(avg(relationship_delta),0) avg_relationship_delta,coalesce(sum(relationship_delta),0) cumulative_delta,max(occurred_at) last_interaction_at from i) select a.*,coalesce(r.strength,0),coalesce(r.relationship_type,'acquaintance'),greatest(-100,least(100,(a.cumulative_delta*0.5)+((a.positive_count-a.negative_count)*2)+(a.warm_count*3)+(a.recent_positive_count*2)-(a.recent_negative_count*3)))::numeric memory_score from a left join r on true $function$
+AS $function$ with i as (select * from public.social_interactions where source_life_id=p_source_life_id and target_life_id=p_target_life_id),r as (select r.strength,r.relationship_type from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=p_target_life_id) or (r.life_a=p_target_life_id and r.life_b=p_source_life_id)) and r.end_time is null order by r.start_time desc limit 1),a as (select count(*) interaction_count,count(*) filter(where outcome in ('positive','warm')) positive_count,count(*) filter(where outcome='negative') negative_count,count(*) filter(where outcome='warm') warm_count,count(*) filter(where outcome in ('positive','warm') and occurred_at>=now()-interval '7 days') recent_positive_count,count(*) filter(where outcome='negative' and occurred_at>=now()-interval '7 days') recent_negative_count,coalesce(avg(relationship_delta),0) avg_relationship_delta,coalesce(sum(relationship_delta),0) cumulative_delta,max(occurred_at) last_interaction_at from i) select a.*,coalesce(r.strength,0),coalesce(r.relationship_type,'acquaintance'),greatest(-100,least(100,(a.cumulative_delta*0.5)+((a.positive_count-a.negative_count)*2)+(a.warm_count*3)+(a.recent_positive_count*2)-(a.recent_negative_count*3)))::numeric memory_score from a left join r on true $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_social_targets(p_source_life_id uuid)
@@ -2130,14 +2131,14 @@ CREATE OR REPLACE FUNCTION public.get_life_social_targets(p_source_life_id uuid)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO ''
-AS $function$ with src as (select coalesce(max(la.value) filter(where la.attribute_type='sociability'),0)::numeric sociability from public.life_attributes la where la.life_id=p_source_life_id),candidates as (select l.id target_life_id,l.name target_name,coalesce(r.relationship_type,'acquaintance') relationship_type,coalesce(r.strength,0)::numeric relationship_strength from public.lives l left join lateral (select r.* from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=l.id) or (r.life_b=p_source_life_id and r.life_a=l.id)) and r.status='active' order by r.strength desc limit 1) r on true where l.id<>p_source_life_id and exists(select 1 from public.user_lives ul where ul.life_id=p_source_life_id and ul.user_id=(select auth.uid()))),scored as (select c.*,coalesce(m.memory_score,0)::numeric memory_score,s.sociability from candidates c cross join src s left join lateral (select memory_score from public.get_social_memory_summary(p_source_life_id,c.target_life_id)) m on true) select target_life_id,target_name,relationship_type,relationship_strength,memory_score,(20+(sociability*0.5)+case when relationship_type='friend' then 20 when relationship_type='rival' then -30 else 0 end+(greatest(relationship_strength,0)*0.5)+(memory_score*0.35))::numeric score,('sociability='||sociability::text||';relationship='||relationship_strength::text||';type='||relationship_type||';memory='||memory_score::text) reason from scored order by score desc,target_life_id $function$
+AS $function$ with src as (select coalesce(max(la.value) filter(where la.attribute_type='sociability'),0)::numeric sociability from public.life_attributes la where la.life_id=p_source_life_id),candidates as (select l.id target_life_id,l.name target_name,coalesce(r.relationship_type,'acquaintance') relationship_type,coalesce(r.strength,0)::numeric relationship_strength from public.lives l left join lateral (select r.* from public.relationships r where ((r.life_a=p_source_life_id and r.life_b=l.id) or (r.life_b=p_source_life_id and r.life_a=l.id)) and r.status='active' order by r.strength desc limit 1) r on true where l.id<>p_source_life_id and exists(select 1 from public.user_lives ul where ul.life_id=p_source_life_id and ul.user_id=(select auth.uid()))),scored as (select c.*,coalesce(m.memory_score,0)::numeric memory_score,s.sociability from candidates c cross join src s left join lateral (select memory_score from public.get_social_memory_summary(p_source_life_id,c.target_life_id)) m on true) select target_life_id,target_name,relationship_type,relationship_strength,memory_score,(20+(sociability*0.5)+case when relationship_type='friend' then 20 when relationship_type='rival' then -30 else 0 end+(greatest(relationship_strength,0)*0.5)+(memory_score*0.35))::numeric score,('sociability='||sociability::text||';relationship='||relationship_strength::text||';type='||relationship_type||';memory='||memory_score::text) reason from scored order by score desc,target_life_id $function$;
 
 
 CREATE OR REPLACE FUNCTION public.cancel_life_activity(p_activity_id uuid, p_reason text DEFAULT 'cancelled'::text)
  RETURNS activities
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_activity public.activities; begin select * into v_activity from public.activities where id = p_activity_id for update; if not found then raise exception 'activity_not_found'; end if; if v_activity.state not in ('scheduled','running','planned') then raise exception 'activity_not_cancellable'; end if; update public.activities set state = 'cancelled', cancellation_reason = p_reason, cancelled_at = coalesce(cancelled_at, now()) where id = p_activity_id returning * into v_activity; return v_activity; end; $function$
+AS $function$ declare v_activity public.activities; begin select * into v_activity from public.activities where id = p_activity_id for update; if not found then raise exception 'activity_not_found'; end if; if v_activity.state not in ('scheduled','running','planned') then raise exception 'activity_not_cancellable'; end if; update public.activities set state = 'cancelled', cancellation_reason = p_reason, cancelled_at = coalesce(cancelled_at, now()) where id = p_activity_id returning * into v_activity; return v_activity; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.reevaluate_life_activity(p_life_id uuid, p_minute integer)
@@ -2145,7 +2146,7 @@ CREATE OR REPLACE FUNCTION public.reevaluate_life_activity(p_life_id uuid, p_min
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_at timestamptz; v_result jsonb; begin if p_life_id is null then raise exception 'life_id is required'; end if; select sc.current_date into v_at from public.lives l join public.households h on h.id=l.household_id join public.worlds w on w.id=h.world_id join public.simulation_clock sc on sc.world_id=w.id where l.id=p_life_id; if v_at is null then raise exception 'simulation_clock not found for life %',p_life_id; end if; select to_jsonb(r) into v_result from public.reevaluate_life_activity(p_life_id,v_at) r limit 1; return coalesce(v_result,'{}'::jsonb); end; $function$
+AS $function$ declare v_at timestamptz; v_result jsonb; begin if p_life_id is null then raise exception 'life_id is required'; end if; select sc.current_date into v_at from public.lives l join public.households h on h.id=l.household_id join public.worlds w on w.id=h.world_id join public.simulation_clock sc on sc.world_id=w.id where l.id=p_life_id; if v_at is null then raise exception 'simulation_clock not found for life %',p_life_id; end if; select to_jsonb(r) into v_result from public.reevaluate_life_activity(p_life_id,v_at) r limit 1; return coalesce(v_result,'{}'::jsonb); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.claim_due_time_events(p_world_id uuid, p_now timestamp with time zone DEFAULT now(), p_limit integer DEFAULT 100)
@@ -2153,7 +2154,7 @@ CREATE OR REPLACE FUNCTION public.claim_due_time_events(p_world_id uuid, p_now t
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events; v_attempt integer; begin for v_event in select te.* from public.time_events te where te.world_id=p_world_id and te.status='scheduled' and te.scheduled_time<=p_now and not exists(select 1 from public.event_executions ee where ee.time_event_id=te.id and ee.status='running') order by te.scheduled_time,te.priority desc,te.created_at,te.id for update skip locked limit greatest(p_limit,0) loop update public.time_events set status='processing',updated_at=now() where id=v_event.id; select coalesce((ee.metadata->>'attempt_count')::int,0)+1 into v_attempt from public.event_executions ee where ee.time_event_id=v_event.id order by ee.created_at desc,ee.id desc limit 1; if v_attempt is null then v_attempt:=1; end if; insert into public.event_executions(time_event_id,status,claimed_at,metadata) values(v_event.id,'running',now(),jsonb_build_object('dispatcher','claim_due_time_events','priority',v_event.priority,'attempt_count',v_attempt)); return next v_event; end loop; end; $function$
+AS $function$ declare v_event public.time_events; v_attempt integer; begin for v_event in select te.* from public.time_events te where te.world_id=p_world_id and te.status='scheduled' and te.scheduled_time<=p_now and not exists(select 1 from public.event_executions ee where ee.time_event_id=te.id and ee.status='running') order by te.scheduled_time,te.priority desc,te.created_at,te.id for update skip locked limit greatest(p_limit,0) loop update public.time_events set status='processing',updated_at=now() where id=v_event.id; select coalesce((ee.metadata->>'attempt_count')::int,0)+1 into v_attempt from public.event_executions ee where ee.time_event_id=v_event.id order by ee.created_at desc,ee.id desc limit 1; if v_attempt is null then v_attempt:=1; end if; insert into public.event_executions(time_event_id,status,claimed_at,metadata) values(v_event.id,'running',now(),jsonb_build_object('dispatcher','claim_due_time_events','priority',v_event.priority,'attempt_count',v_attempt)); return next v_event; end loop; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_time_event(p_event_id uuid, p_summary text DEFAULT NULL::text, p_metadata jsonb DEFAULT NULL::jsonb)
@@ -2161,7 +2162,7 @@ CREATE OR REPLACE FUNCTION public.complete_time_event(p_event_id uuid, p_summary
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events; v_next uuid; v_chain_id uuid; v_chain_step integer; v_def public.event_definitions%rowtype; begin update public.time_events set status='completed',updated_at=now() where id=p_event_id and status='processing' returning * into v_event; if v_event.id is null then raise exception 'time event % is not in processing state',p_event_id; end if; update public.event_executions set status='completed',completed_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb),updated_at=now() where time_event_id=p_event_id and status='running'; perform public.record_time_event_history(p_event_id,'time_event_completed',v_event.world_id,now(),p_summary,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('event_type',v_event.event_type)); if v_event.recurrence_type='interval' and (v_event.recurrence_remaining is null or v_event.recurrence_remaining>0) then if v_event.recurrence_remaining is not null then update public.time_events set recurrence_remaining=recurrence_remaining-1,updated_at=now() where id=p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true limit 1; if found then insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,recurrence_type,recurrence_interval_seconds,recurrence_remaining) values(v_event.world_id,v_event.event_type,v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds),'scheduled',v_event.payload,v_event.priority,v_event.recurrence_type,v_event.recurrence_interval_seconds,case when v_event.recurrence_remaining is null then null else greatest(v_event.recurrence_remaining-1,0) end) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_recurrence_scheduled',v_event.world_id,now(),'Next recurring time event scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type)); else perform public.record_time_event_history(p_event_id,'time_event_recurrence_blocked',v_event.world_id,now(),'Recurring event blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'event_type',v_event.event_type)); end if; end if; if v_event.next_event_type is not null then select * into v_def from public.event_definitions where event_type=v_event.next_event_type and enabled=true limit 1; if not found then perform public.record_time_event_history(p_event_id,'time_event_chain_blocked',v_event.world_id,now(),'Next event chain step blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'next_event_type',v_event.next_event_type)); return v_event; end if; v_chain_id:=coalesce(v_event.chain_id,gen_random_uuid()); v_chain_step:=coalesce(v_event.chain_step,0)+1; insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,chain_id,chain_step) values(v_event.world_id,v_event.next_event_type,v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)),'scheduled',coalesce(v_event.next_event_payload,'{}'::jsonb),v_event.priority,v_chain_id,v_chain_step) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_chain_scheduled',v_event.world_id,now(),'Next event chain step scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type,'chain_id',v_chain_id,'chain_step',v_chain_step)); end if; return v_event; end; $function$
+AS $function$ declare v_event public.time_events; v_next uuid; v_chain_id uuid; v_chain_step integer; v_def public.event_definitions%rowtype; begin update public.time_events set status='completed',updated_at=now() where id=p_event_id and status='processing' returning * into v_event; if v_event.id is null then raise exception 'time event % is not in processing state',p_event_id; end if; update public.event_executions set status='completed',completed_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb),updated_at=now() where time_event_id=p_event_id and status='running'; perform public.record_time_event_history(p_event_id,'time_event_completed',v_event.world_id,now(),p_summary,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('event_type',v_event.event_type)); if v_event.recurrence_type='interval' and (v_event.recurrence_remaining is null or v_event.recurrence_remaining>0) then if v_event.recurrence_remaining is not null then update public.time_events set recurrence_remaining=recurrence_remaining-1,updated_at=now() where id=p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true limit 1; if found then insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,recurrence_type,recurrence_interval_seconds,recurrence_remaining) values(v_event.world_id,v_event.event_type,v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds),'scheduled',v_event.payload,v_event.priority,v_event.recurrence_type,v_event.recurrence_interval_seconds,case when v_event.recurrence_remaining is null then null else greatest(v_event.recurrence_remaining-1,0) end) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_recurrence_scheduled',v_event.world_id,now(),'Next recurring time event scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type)); else perform public.record_time_event_history(p_event_id,'time_event_recurrence_blocked',v_event.world_id,now(),'Recurring event blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'event_type',v_event.event_type)); end if; end if; if v_event.next_event_type is not null then select * into v_def from public.event_definitions where event_type=v_event.next_event_type and enabled=true limit 1; if not found then perform public.record_time_event_history(p_event_id,'time_event_chain_blocked',v_event.world_id,now(),'Next event chain step blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'next_event_type',v_event.next_event_type)); return v_event; end if; v_chain_id:=coalesce(v_event.chain_id,gen_random_uuid()); v_chain_step:=coalesce(v_event.chain_step,0)+1; insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,chain_id,chain_step) values(v_event.world_id,v_event.next_event_type,v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)),'scheduled',coalesce(v_event.next_event_payload,'{}'::jsonb),v_event.priority,v_chain_id,v_chain_step) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_chain_scheduled',v_event.world_id,now(),'Next event chain step scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type,'chain_id',v_chain_id,'chain_step',v_chain_step)); end if; return v_event; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.fail_time_event(p_event_id uuid, p_error_message text, p_metadata jsonb DEFAULT NULL::jsonb)
@@ -2169,7 +2170,7 @@ CREATE OR REPLACE FUNCTION public.fail_time_event(p_event_id uuid, p_error_messa
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events; begin update public.time_events set status='failed',updated_at=now() where id=p_event_id and status='processing' returning * into v_event; if v_event.id is null then raise exception 'time event % is not in processing state',p_event_id; end if; update public.event_executions set status='failed',error_message=p_error_message,completed_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb),updated_at=now() where time_event_id=p_event_id and status='running'; perform public.record_time_event_history(p_event_id,'time_event_failed',v_event.world_id,now(),p_error_message,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('event_type',v_event.event_type,'error',p_error_message)); return v_event; end; $function$
+AS $function$ declare v_event public.time_events; begin update public.time_events set status='failed',updated_at=now() where id=p_event_id and status='processing' returning * into v_event; if v_event.id is null then raise exception 'time event % is not in processing state',p_event_id; end if; update public.event_executions set status='failed',error_message=p_error_message,completed_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb),updated_at=now() where time_event_id=p_event_id and status='running'; perform public.record_time_event_history(p_event_id,'time_event_failed',v_event.world_id,now(),p_error_message,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('event_type',v_event.event_type,'error',p_error_message)); return v_event; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_event_executions_updated_at()
@@ -2181,7 +2182,7 @@ begin
   new.updated_at = now();
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.event_condition_passes(p_event_id uuid)
@@ -2189,7 +2190,7 @@ CREATE OR REPLACE FUNCTION public.event_condition_passes(p_event_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events%rowtype; v_world public.worlds%rowtype; v_def public.event_definitions%rowtype; v_expected text; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true; if not found then raise exception 'no enabled event definition for %',v_event.event_type; end if; select * into v_world from public.worlds where id=v_event.world_id; if not found then raise exception 'world % not found',v_event.world_id; end if; if v_def.condition_type='always' then return true; elsif v_def.condition_type='world_status' then v_expected:=coalesce(v_event.payload->>'expected_status',v_def.condition_config->>'expected_status'); if v_expected is null then raise exception 'world_status condition requires expected_status for %',v_event.event_type; end if; return v_world.status=v_expected; else raise exception 'unsupported event condition type: %',v_def.condition_type; end if; end; $function$
+AS $function$ declare v_event public.time_events%rowtype; v_world public.worlds%rowtype; v_def public.event_definitions%rowtype; v_expected text; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true; if not found then raise exception 'no enabled event definition for %',v_event.event_type; end if; select * into v_world from public.worlds where id=v_event.world_id; if not found then raise exception 'world % not found',v_event.world_id; end if; if v_def.condition_type='always' then return true; elsif v_def.condition_type='world_status' then v_expected:=coalesce(v_event.payload->>'expected_status',v_def.condition_config->>'expected_status'); if v_expected is null then raise exception 'world_status condition requires expected_status for %',v_event.event_type; end if; return v_world.status=v_expected; else raise exception 'unsupported event condition type: %',v_def.condition_type; end if; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_time_event(p_event_id uuid)
@@ -2197,7 +2198,7 @@ CREATE OR REPLACE FUNCTION public.execute_time_event(p_event_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_event public.time_events%rowtype; v_execution public.event_executions%rowtype; v_pass boolean; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; if v_event.status<>'processing' then raise exception 'time event % must be processing',p_event_id; end if; select * into v_execution from public.event_executions where time_event_id=p_event_id and status='running' order by created_at desc limit 1 for update; if not found then raise exception 'running execution ledger missing for %',p_event_id; end if; v_pass:=public.event_condition_passes(p_event_id); if not v_pass then update public.event_executions set status='failed',completed_at=now(),error_message='event condition failed',updated_at=now() where id=v_execution.id; update public.time_events set status='failed',updated_at=now() where id=p_event_id; perform public.record_time_event_history(p_event_id,'time_event_condition_failed',v_event.world_id,now(),'Time event condition failed',jsonb_build_object('condition_passed',false,'execution_id',v_execution.id,'error','event condition failed')); return false; end if; perform public.apply_time_event_consequence(p_event_id); perform public.complete_time_event(p_event_id,'Time event consequence applied',jsonb_build_object('event_type',v_event.event_type)); return true; exception when others then update public.event_executions set status='failed',completed_at=now(),error_message=sqlerrm,metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('atomic_failure',true,'failed_at',now()) where time_event_id=p_event_id and status='running'; update public.time_events set status='failed',updated_at=now() where id=p_event_id and status='processing'; perform public.record_time_event_history(p_event_id,'time_event_failed',v_event.world_id,now(),sqlerrm,jsonb_build_object('atomic_failure',true,'event_type',coalesce(v_event.event_type,'unknown'),'error',sqlerrm)); return false; end; $function$
+AS $function$ declare v_event public.time_events%rowtype; v_execution public.event_executions%rowtype; v_pass boolean; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; if v_event.status<>'processing' then raise exception 'time event % must be processing',p_event_id; end if; select * into v_execution from public.event_executions where time_event_id=p_event_id and status='running' order by created_at desc limit 1 for update; if not found then raise exception 'running execution ledger missing for %',p_event_id; end if; v_pass:=public.event_condition_passes(p_event_id); if not v_pass then update public.event_executions set status='failed',completed_at=now(),error_message='event condition failed',updated_at=now() where id=v_execution.id; update public.time_events set status='failed',updated_at=now() where id=p_event_id; perform public.record_time_event_history(p_event_id,'time_event_condition_failed',v_event.world_id,now(),'Time event condition failed',jsonb_build_object('condition_passed',false,'execution_id',v_execution.id,'error','event condition failed')); return false; end if; perform public.apply_time_event_consequence(p_event_id); perform public.complete_time_event(p_event_id,'Time event consequence applied',jsonb_build_object('event_type',v_event.event_type)); return true; exception when others then update public.event_executions set status='failed',completed_at=now(),error_message=sqlerrm,metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('atomic_failure',true,'failed_at',now()) where time_event_id=p_event_id and status='running'; update public.time_events set status='failed',updated_at=now() where id=p_event_id and status='processing'; perform public.record_time_event_history(p_event_id,'time_event_failed',v_event.world_id,now(),sqlerrm,jsonb_build_object('atomic_failure',true,'event_type',coalesce(v_event.event_type,'unknown'),'error',sqlerrm)); return false; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.retry_time_event(p_event_id uuid, p_error text DEFAULT NULL::text)
@@ -2205,7 +2206,7 @@ CREATE OR REPLACE FUNCTION public.retry_time_event(p_event_id uuid, p_error text
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events; v_simulation_time timestamptz; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; if v_event.status not in ('processing','failed') then raise exception 'time event % cannot retry from status %',p_event_id,v_event.status; end if; if v_event.retry_count >= v_event.max_retries then raise exception 'time event % retry limit reached',p_event_id; end if; select sc.current_date into v_simulation_time from public.simulation_clock sc where sc.world_id=v_event.world_id for update; if v_simulation_time is null then raise exception 'simulation clock missing for world %',v_event.world_id; end if; update public.event_executions set status='failed',completed_at=now(),error_message=coalesce(p_error,error_message),updated_at=now() where time_event_id=p_event_id and status='running'; update public.time_events set retry_count=retry_count+1,status='scheduled',scheduled_time=greatest(scheduled_time,v_simulation_time)+make_interval(secs=>retry_delay_seconds),updated_at=now() where id=p_event_id returning * into v_event; perform public.record_time_event_history(p_event_id,'time_event_retry_scheduled',v_event.world_id,now(),'Time event retry scheduled',jsonb_build_object('retry_count',v_event.retry_count,'max_retries',v_event.max_retries,'error',p_error,'event_type',v_event.event_type,'simulation_time',v_simulation_time)); return v_event; end; $function$
+AS $function$ declare v_event public.time_events; v_simulation_time timestamptz; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; if v_event.status not in ('processing','failed') then raise exception 'time event % cannot retry from status %',p_event_id,v_event.status; end if; if v_event.retry_count >= v_event.max_retries then raise exception 'time event % retry limit reached',p_event_id; end if; select sc.current_date into v_simulation_time from public.simulation_clock sc where sc.world_id=v_event.world_id for update; if v_simulation_time is null then raise exception 'simulation clock missing for world %',v_event.world_id; end if; update public.event_executions set status='failed',completed_at=now(),error_message=coalesce(p_error,error_message),updated_at=now() where time_event_id=p_event_id and status='running'; update public.time_events set retry_count=retry_count+1,status='scheduled',scheduled_time=greatest(scheduled_time,v_simulation_time)+make_interval(secs=>retry_delay_seconds),updated_at=now() where id=p_event_id returning * into v_event; perform public.record_time_event_history(p_event_id,'time_event_retry_scheduled',v_event.world_id,now(),'Time event retry scheduled',jsonb_build_object('retry_count',v_event.retry_count,'max_retries',v_event.max_retries,'error',p_error,'event_type',v_event.event_type,'simulation_time',v_simulation_time)); return v_event; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_life_ai_goal(p_life_id uuid, p_goal_type text, p_title text, p_priority numeric DEFAULT 0, p_target_value numeric DEFAULT NULL::numeric, p_source text DEFAULT 'ai'::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -2222,7 +2223,7 @@ begin
  values(p_life_id,p_goal_type,p_title,p_priority,p_target_value,coalesce(p_source,'ai'),coalesce(p_metadata,'{}'::jsonb))
  returning * into v_goal;
  return v_goal;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.update_life_ai_goal_progress(p_goal_id uuid, p_current_value numeric, p_progress numeric DEFAULT NULL::numeric)
@@ -2238,7 +2239,7 @@ begin
  v_progress := coalesce(p_progress,case when v_goal.target_value is null or v_goal.target_value=0 then v_goal.progress else least(100,greatest(0,(p_current_value/v_goal.target_value)*100)) end);
  update public.life_ai_goals set current_value=p_current_value,progress=v_progress,status=case when v_progress>=100 then 'completed' else status end,completed_at=case when v_progress>=100 then coalesce(completed_at,now()) else completed_at end,updated_at=now() where id=p_goal_id returning * into v_goal;
  return v_goal;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_goal_activity_score(p_life_id uuid, p_activity_definition_id uuid)
@@ -2251,7 +2252,7 @@ select coalesce(max(g.priority * coalesce(r.score_bonus,0)),0)
 from public.life_ai_goals g
 join public.ai_goal_activity_rules r on r.goal_type=g.goal_type
 where g.life_id=p_life_id and g.status='active' and r.activity_definition_id=p_activity_definition_id;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_life_ai_goal(p_goal_id uuid, p_reason text DEFAULT NULL::text)
@@ -2266,7 +2267,7 @@ begin
  if not found then raise exception 'goal % not found',p_goal_id; end if;
  update public.life_ai_goals set status='completed',progress=100,completed_at=coalesce(completed_at,now()),updated_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('completion_reason',p_reason) where id=p_goal_id returning * into v_goal;
  return v_goal;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.block_life_ai_goal(p_goal_id uuid, p_reason text DEFAULT NULL::text)
@@ -2281,7 +2282,7 @@ begin
  if not found then raise exception 'goal % not found',p_goal_id; end if;
  update public.life_ai_goals set status='failed',updated_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('blocked_reason',p_reason,'terminal_state','blocked') where id=p_goal_id returning * into v_goal;
  return v_goal;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.reevaluate_life_goals(p_life_id uuid)
@@ -2294,7 +2295,7 @@ AS $function$
  from public.life_ai_goals g
  where g.life_id=p_life_id and g.status='active'
  order by g.priority desc,g.created_at asc;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_schedule_timezone(p_life_id uuid)
@@ -2304,7 +2305,7 @@ CREATE OR REPLACE FUNCTION public.get_life_schedule_timezone(p_life_id uuid)
  SET search_path TO 'public'
 AS $function$
  select coalesce((select s.timezone_name from public.schedules s where s.life_id=p_life_id and s.status='active' order by s.priority desc,s.created_at asc limit 1),'UTC');
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_schedule_minute(p_life_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -2314,7 +2315,7 @@ CREATE OR REPLACE FUNCTION public.get_life_schedule_minute(p_life_id uuid, p_at 
  SET search_path TO 'public'
 AS $function$
  select extract(hour from (p_at at time zone public.get_life_schedule_timezone(p_life_id)))::int*60 + extract(minute from (p_at at time zone public.get_life_schedule_timezone(p_life_id)))::int;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.start_travel(p_travel_id uuid, p_departure_time timestamp with time zone DEFAULT now())
@@ -2322,7 +2323,7 @@ CREATE OR REPLACE FUNCTION public.start_travel(p_travel_id uuid, p_departure_tim
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v public.travel_records; v_departure timestamptz; v_arrival timestamptz; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state<>'planned' then raise exception 'travel % cannot start from state %',p_travel_id,v.state; end if; v_departure=coalesce(v.departure_time,p_departure_time); if v.planned_duration_seconds is null or v.planned_duration_seconds < 0 then raise exception 'travel % has invalid planned duration',p_travel_id; end if; v_arrival=v_departure+(v.planned_duration_seconds * interval '1 second'); update public.travel_records set state='traveling',departure_time=v_departure,arrival_time=v_arrival where id=p_travel_id returning * into v; return v; end; $function$
+AS $function$ declare v public.travel_records; v_departure timestamptz; v_arrival timestamptz; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state<>'planned' then raise exception 'travel % cannot start from state %',p_travel_id,v.state; end if; v_departure=coalesce(v.departure_time,p_departure_time); if v.planned_duration_seconds is null or v.planned_duration_seconds < 0 then raise exception 'travel % has invalid planned duration',p_travel_id; end if; v_arrival=v_departure+(v.planned_duration_seconds * interval '1 second'); update public.travel_records set state='traveling',departure_time=v_departure,arrival_time=v_arrival where id=p_travel_id returning * into v; return v; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_travel(p_travel_id uuid, p_arrival_time timestamp with time zone DEFAULT now())
@@ -2330,7 +2331,7 @@ CREATE OR REPLACE FUNCTION public.complete_travel(p_travel_id uuid, p_arrival_ti
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v public.travel_records; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state<>'traveling' then raise exception 'travel % cannot complete from state %',p_travel_id,v.state; end if; update public.travel_records set state='arrived',arrival_time=coalesce(arrival_time,p_arrival_time) where id=p_travel_id returning * into v; update public.lives set location_id=v.destination_location_id,updated_at=now() where id=v.actor_life_id; perform public.apply_travel_energy_cost(v.id); perform public.record_travel_history(v.id); return v; end; $function$
+AS $function$ declare v public.travel_records; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state<>'traveling' then raise exception 'travel % cannot complete from state %',p_travel_id,v.state; end if; update public.travel_records set state='arrived',arrival_time=coalesce(arrival_time,p_arrival_time) where id=p_travel_id returning * into v; update public.lives set location_id=v.destination_location_id,updated_at=now() where id=v.actor_life_id; perform public.apply_travel_energy_cost(v.id); perform public.record_travel_history(v.id); return v; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.cancel_travel(p_travel_id uuid)
@@ -2338,7 +2339,7 @@ CREATE OR REPLACE FUNCTION public.cancel_travel(p_travel_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v public.travel_records; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state not in ('planned','traveling') then raise exception 'travel % cannot cancel from state %',p_travel_id,v.state; end if; update public.travel_records set state='cancelled' where id=p_travel_id returning * into v; return v; end $function$
+AS $function$ declare v public.travel_records; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state not in ('planned','traveling') then raise exception 'travel % cannot cancel from state %',p_travel_id,v.state; end if; update public.travel_records set state='cancelled' where id=p_travel_id returning * into v; return v; end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_direct_location_route(p_origin uuid, p_destination uuid)
@@ -2346,7 +2347,7 @@ CREATE OR REPLACE FUNCTION public.get_direct_location_route(p_origin uuid, p_des
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$ select r.id,r.distance_km,r.travel_speed_kmh,r.travel_cost,ceil((r.distance_km/nullif(r.travel_speed_kmh,0))*3600)::bigint,r.route_type from public.location_routes r where r.origin_location_id=p_origin and r.destination_location_id=p_destination and r.is_enabled order by r.distance_km asc,r.id asc limit 1; $function$
+AS $function$ select r.id,r.distance_km,r.travel_speed_kmh,r.travel_cost,ceil((r.distance_km/nullif(r.travel_speed_kmh,0))*3600)::bigint,r.route_type from public.location_routes r where r.origin_location_id=p_origin and r.destination_location_id=p_destination and r.is_enabled order by r.distance_km asc,r.id asc limit 1; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.find_location_route(p_origin uuid, p_destination uuid, p_max_hops integer DEFAULT 8)
@@ -2384,7 +2385,7 @@ from paths
 where current_location=p_destination
 order by total_distance_km,total_cost,total_duration_seconds,route_ids
 limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.plan_travel_from_route(p_life_id uuid, p_origin uuid, p_destination uuid, p_departure_time timestamp with time zone DEFAULT now())
@@ -2392,7 +2393,7 @@ CREATE OR REPLACE FUNCTION public.plan_travel_from_route(p_life_id uuid, p_origi
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare r record; v public.travel_records; begin select * into r from public.find_location_route(p_origin,p_destination,8) limit 1; if r.route_ids is null or array_length(r.route_ids,1) is null then raise exception 'no route from % to %',p_origin,p_destination; end if; insert into public.travel_records(actor_life_id,origin_location_id,destination_location_id,departure_time,state,route_id,distance_km,travel_cost,planned_duration_seconds) values(p_life_id,p_origin,p_destination,p_departure_time,'planned',r.route_ids[1],r.total_distance_km,r.total_cost,r.total_duration_seconds) returning * into v; return v; end; $function$
+AS $function$ declare r record; v public.travel_records; begin select * into r from public.find_location_route(p_origin,p_destination,8) limit 1; if r.route_ids is null or array_length(r.route_ids,1) is null then raise exception 'no route from % to %',p_origin,p_destination; end if; insert into public.travel_records(actor_life_id,origin_location_id,destination_location_id,departure_time,state,route_id,distance_km,travel_cost,planned_duration_seconds) values(p_life_id,p_origin,p_destination,p_departure_time,'planned',r.route_ids[1],r.total_distance_km,r.total_cost,r.total_duration_seconds) returning * into v; return v; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.schedule_travel_arrival(p_travel_id uuid)
@@ -2400,7 +2401,7 @@ CREATE OR REPLACE FUNCTION public.schedule_travel_arrival(p_travel_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v public.travel_records; e uuid; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state <> 'traveling' then raise exception 'travel % must be traveling',p_travel_id; end if; if v.arrival_time is null then raise exception 'travel % has no arrival_time',p_travel_id; end if; insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority) select co.world_id,'travel_arrival',v.arrival_time,'scheduled',jsonb_build_object('travel_id',v.id,'life_id',v.actor_life_id,'destination_location_id',v.destination_location_id),70 from public.locations loc join public.regions reg on reg.id=loc.region_id join public.continents co on co.id=reg.continent_id where loc.id=v.destination_location_id returning id into e; if e is null then raise exception 'cannot resolve world for destination location %',v.destination_location_id; end if; update public.travel_records set arrival_event_id=e where id=v.id returning * into v; return v; end; $function$
+AS $function$ declare v public.travel_records; e uuid; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state <> 'traveling' then raise exception 'travel % must be traveling',p_travel_id; end if; if v.arrival_time is null then raise exception 'travel % has no arrival_time',p_travel_id; end if; insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority) select co.world_id,'travel_arrival',v.arrival_time,'scheduled',jsonb_build_object('travel_id',v.id,'life_id',v.actor_life_id,'destination_location_id',v.destination_location_id),70 from public.locations loc join public.regions reg on reg.id=loc.region_id join public.continents co on co.id=reg.continent_id where loc.id=v.destination_location_id returning id into e; if e is null then raise exception 'cannot resolve world for destination location %',v.destination_location_id; end if; update public.travel_records set arrival_event_id=e where id=v.id returning * into v; return v; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_travel_energy_cost(p_travel_id uuid)
@@ -2408,7 +2409,7 @@ CREATE OR REPLACE FUNCTION public.apply_travel_energy_cost(p_travel_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v public.travel_records; e public.life_energy%rowtype; v_old numeric; v_new numeric; v_at timestamptz; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state<>'arrived' then raise exception 'travel % must be arrived',p_travel_id; end if; v_at:=v.arrival_time; if v_at is null then raise exception 'travel energy cost requires authoritative simulation_time'; end if; select * into e from public.life_energy where life_id=v.actor_life_id for update; if not found then return v; end if; v_old:=e.current_energy; v_new:=greatest(0,e.current_energy-coalesce(v.travel_cost,0)); update public.life_energy set current_energy=v_new,updated_at=now() where life_id=v.actor_life_id; perform public.record_energy_history(v.actor_life_id,v_old,v_new,'travel_cost:'||v.id::text,v_at,jsonb_build_object('travel_id',v.id,'travel_cost',v.travel_cost,'simulation_time',v_at)); return v; end; $function$
+AS $function$ declare v public.travel_records; e public.life_energy%rowtype; v_old numeric; v_new numeric; v_at timestamptz; begin select * into v from public.travel_records where id=p_travel_id for update; if not found then raise exception 'travel % not found',p_travel_id; end if; if v.state<>'arrived' then raise exception 'travel % must be arrived',p_travel_id; end if; v_at:=v.arrival_time; if v_at is null then raise exception 'travel energy cost requires authoritative simulation_time'; end if; select * into e from public.life_energy where life_id=v.actor_life_id for update; if not found then return v; end if; v_old:=e.current_energy; v_new:=greatest(0,e.current_energy-coalesce(v.travel_cost,0)); update public.life_energy set current_energy=v_new,updated_at=now() where life_id=v.actor_life_id; perform public.record_energy_history(v.actor_life_id,v_old,v_new,'travel_cost:'||v.id::text,v_at,jsonb_build_object('travel_id',v.id,'travel_cost',v.travel_cost,'simulation_time',v_at)); return v; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_travel_history(p_travel_id uuid)
@@ -2416,7 +2417,7 @@ CREATE OR REPLACE FUNCTION public.record_travel_history(p_travel_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v public.travel_records; e uuid; begin select * into v from public.travel_records where id=p_travel_id; if not found then raise exception 'travel % not found',p_travel_id; end if; e:=public.create_history_event('travel_completed','life',v.actor_life_id,coalesce(v.arrival_time,now()),'Travel completed',jsonb_build_object('travel_id',v.id,'origin_location_id',v.origin_location_id,'destination_location_id',v.destination_location_id,'distance_km',v.distance_km,'travel_cost',v.travel_cost)); perform public.add_history_location(e,v.destination_location_id); perform public.add_history_participant(e,'life',v.actor_life_id,'traveler'); perform public.add_history_cause(e,'travel',v.id::text,jsonb_build_object('route_id',v.route_id)); perform public.add_history_consequence(e,'location_change',v.destination_location_id::text,jsonb_build_object('travel_id',v.id)); return e; end; $function$
+AS $function$ declare v public.travel_records; e uuid; begin select * into v from public.travel_records where id=p_travel_id; if not found then raise exception 'travel % not found',p_travel_id; end if; e:=public.create_history_event('travel_completed','life',v.actor_life_id,coalesce(v.arrival_time,now()),'Travel completed',jsonb_build_object('travel_id',v.id,'origin_location_id',v.origin_location_id,'destination_location_id',v.destination_location_id,'distance_km',v.distance_km,'travel_cost',v.travel_cost)); perform public.add_history_location(e,v.destination_location_id); perform public.add_history_participant(e,'life',v.actor_life_id,'traveler'); perform public.add_history_cause(e,'travel',v.id::text,jsonb_build_object('route_id',v.route_id)); perform public.add_history_consequence(e,'location_change',v.destination_location_id::text,jsonb_build_object('travel_id',v.id)); return e; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_history_event(p_event_type text, p_scope_type text, p_scope_id uuid, p_timestamp timestamp with time zone, p_summary text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -2424,7 +2425,7 @@ CREATE OR REPLACE FUNCTION public.create_history_event(p_event_type text, p_scop
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_id uuid; begin insert into public.history_events(event_type,scope_type,scope_id,timestamp,summary,metadata) values(p_event_type,p_scope_type,p_scope_id,coalesce(p_timestamp,now()),p_summary,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin insert into public.history_events(event_type,scope_type,scope_id,timestamp,summary,metadata) values(p_event_type,p_scope_type,p_scope_id,coalesce(p_timestamp,now()),p_summary,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_history_location(p_event_id uuid, p_location_id uuid)
@@ -2432,7 +2433,7 @@ CREATE OR REPLACE FUNCTION public.add_history_location(p_event_id uuid, p_locati
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_id uuid; begin insert into public.history_locations(event_id,location_id) values(p_event_id,p_location_id) on conflict(event_id,location_id) do update set location_id=excluded.location_id returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin insert into public.history_locations(event_id,location_id) values(p_event_id,p_location_id) on conflict(event_id,location_id) do update set location_id=excluded.location_id returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_history_participant(p_event_id uuid, p_entity_type text, p_entity_id uuid, p_role text DEFAULT NULL::text)
@@ -2440,7 +2441,7 @@ CREATE OR REPLACE FUNCTION public.add_history_participant(p_event_id uuid, p_ent
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_id uuid; begin insert into public.history_participants(event_id,entity_type,entity_id,role) values(p_event_id,p_entity_type,p_entity_id,p_role) returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin insert into public.history_participants(event_id,entity_type,entity_id,role) values(p_event_id,p_entity_type,p_entity_id,p_role) returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_history_cause(p_event_id uuid, p_cause_type text, p_cause_reference text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -2448,7 +2449,7 @@ CREATE OR REPLACE FUNCTION public.add_history_cause(p_event_id uuid, p_cause_typ
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_id uuid; begin insert into public.history_causes(event_id,cause_type,cause_reference,metadata) values(p_event_id,p_cause_type,p_cause_reference,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin insert into public.history_causes(event_id,cause_type,cause_reference,metadata) values(p_event_id,p_cause_type,p_cause_reference,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.add_history_consequence(p_event_id uuid, p_consequence_type text, p_consequence_reference text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -2456,7 +2457,7 @@ CREATE OR REPLACE FUNCTION public.add_history_consequence(p_event_id uuid, p_con
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_id uuid; begin insert into public.history_consequences(event_id,consequence_type,consequence_reference,metadata) values(p_event_id,p_consequence_type,p_consequence_reference,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin insert into public.history_consequences(event_id,consequence_type,consequence_reference,metadata) values(p_event_id,p_consequence_type,p_consequence_reference,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_dialogue_history(p_session_id uuid, p_event_type text DEFAULT 'dialogue_choice_selected'::text)
@@ -2526,7 +2527,7 @@ begin
 
   return e;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_time_event_history(p_event_id uuid, p_event_type text, p_scope_id uuid, p_timestamp timestamp with time zone, p_summary text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -2534,7 +2535,7 @@ CREATE OR REPLACE FUNCTION public.record_time_event_history(p_event_id uuid, p_e
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare e uuid; begin e:=public.create_history_event(p_event_type,'world',p_scope_id,p_timestamp,p_summary,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('time_event_id',p_event_id)); perform public.add_history_cause(e,'time_event',p_event_id::text,jsonb_build_object('event_type',p_event_type)); perform public.add_history_consequence(e,'event_executed',p_event_type,jsonb_build_object('time_event_id',p_event_id)); return e; end; $function$
+AS $function$ declare e uuid; begin e:=public.create_history_event(p_event_type,'world',p_scope_id,p_timestamp,p_summary,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('time_event_id',p_event_id)); perform public.add_history_cause(e,'time_event',p_event_id::text,jsonb_build_object('event_type',p_event_type)); perform public.add_history_consequence(e,'event_executed',p_event_type,jsonb_build_object('time_event_id',p_event_id)); return e; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_energy_history(p_life_id uuid, p_old_energy numeric, p_new_energy numeric, p_cause text, p_timestamp timestamp with time zone DEFAULT now(), p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -2542,7 +2543,7 @@ CREATE OR REPLACE FUNCTION public.record_energy_history(p_life_id uuid, p_old_en
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare e uuid; begin if p_timestamp is null then raise exception 'energy history requires authoritative simulation_time'; end if; e:=public.create_history_event('energy_changed','life',p_life_id,p_timestamp,'Energy changed',coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('old_energy',p_old_energy,'new_energy',p_new_energy,'cause',p_cause,'simulation_time',p_timestamp)); perform public.add_history_participant(e,'life',p_life_id,'subject'); perform public.add_history_cause(e,'energy',p_cause,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',p_timestamp)); perform public.add_history_consequence(e,'energy_change',p_life_id::text,jsonb_build_object('old_energy',p_old_energy,'new_energy',p_new_energy,'simulation_time',p_timestamp)); return e; end; $function$
+AS $function$ declare e uuid; begin if p_timestamp is null then raise exception 'energy history requires authoritative simulation_time'; end if; e:=public.create_history_event('energy_changed','life',p_life_id,p_timestamp,'Energy changed',coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('old_energy',p_old_energy,'new_energy',p_new_energy,'cause',p_cause,'simulation_time',p_timestamp)); perform public.add_history_participant(e,'life',p_life_id,'subject'); perform public.add_history_cause(e,'energy',p_cause,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',p_timestamp)); perform public.add_history_consequence(e,'energy_change',p_life_id::text,jsonb_build_object('old_energy',p_old_energy,'new_energy',p_new_energy,'simulation_time',p_timestamp)); return e; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_inventory_consumption_history(p_consumption_id uuid)
@@ -2550,7 +2551,7 @@ CREATE OR REPLACE FUNCTION public.record_inventory_consumption_history(p_consump
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare c public.inventory_consumptions; e uuid; v_timestamp timestamptz; begin select * into c from public.inventory_consumptions where id=p_consumption_id; if not found then raise exception 'inventory consumption % not found',p_consumption_id; end if; v_timestamp:=coalesce(c.simulation_time,c.created_at); e:=public.create_history_event('inventory_consumed','life',c.actor_life_id,v_timestamp,'Inventory item consumed',jsonb_build_object('consumption_id',c.id,'container_id',c.container_id,'item_id',c.item_id,'item_instance_id',c.item_instance_id,'quantity',c.quantity,'reason',c.reason,'metadata',c.metadata,'simulation_time',c.simulation_time)); if c.actor_life_id is not null then perform public.add_history_participant(e,'life',c.actor_life_id,'consumer'); end if; perform public.add_history_cause(e,'inventory_consumption',c.id::text,jsonb_build_object('item_id',c.item_id,'item_instance_id',c.item_instance_id)); perform public.add_history_consequence(e,'inventory_quantity_change',c.item_id::text,jsonb_build_object('quantity',-c.quantity,'container_id',c.container_id)); return e; end; $function$
+AS $function$ declare c public.inventory_consumptions; e uuid; v_timestamp timestamptz; begin select * into c from public.inventory_consumptions where id=p_consumption_id; if not found then raise exception 'inventory consumption % not found',p_consumption_id; end if; v_timestamp:=coalesce(c.simulation_time,c.created_at); e:=public.create_history_event('inventory_consumed','life',c.actor_life_id,v_timestamp,'Inventory item consumed',jsonb_build_object('consumption_id',c.id,'container_id',c.container_id,'item_id',c.item_id,'item_instance_id',c.item_instance_id,'quantity',c.quantity,'reason',c.reason,'metadata',c.metadata,'simulation_time',c.simulation_time)); if c.actor_life_id is not null then perform public.add_history_participant(e,'life',c.actor_life_id,'consumer'); end if; perform public.add_history_cause(e,'inventory_consumption',c.id::text,jsonb_build_object('item_id',c.item_id,'item_instance_id',c.item_instance_id)); perform public.add_history_consequence(e,'inventory_quantity_change',c.item_id::text,jsonb_build_object('quantity',-c.quantity,'container_id',c.container_id)); return e; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_inventory_transfer_history(p_transfer_id uuid)
@@ -2558,7 +2559,7 @@ CREATE OR REPLACE FUNCTION public.record_inventory_transfer_history(p_transfer_i
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare t public.inventory_transfers; e uuid; begin select * into t from public.inventory_transfers where id=p_transfer_id; if not found then raise exception 'inventory transfer % not found',p_transfer_id; end if; e:=public.create_history_event('inventory_transferred','life',t.actor_life_id,t.created_at,'Inventory transferred',jsonb_build_object('transfer_id',t.id,'source_container_id',t.source_container_id,'destination_container_id',t.destination_container_id,'item_id',t.item_id,'item_instance_id',t.item_instance_id,'quantity',t.quantity,'transfer_type',t.transfer_type,'reason',t.reason,'metadata',t.metadata)); if t.actor_life_id is not null then perform public.add_history_participant(e,'life',t.actor_life_id,'actor'); end if; perform public.add_history_cause(e,'inventory_transfer',t.id::text,jsonb_build_object('transfer_type',t.transfer_type,'item_id',t.item_id)); perform public.add_history_consequence(e,'inventory_location_change',t.item_id::text,jsonb_build_object('quantity',t.quantity,'source_container_id',t.source_container_id,'destination_container_id',t.destination_container_id,'item_instance_id',t.item_instance_id)); return e; end; $function$
+AS $function$ declare t public.inventory_transfers; e uuid; begin select * into t from public.inventory_transfers where id=p_transfer_id; if not found then raise exception 'inventory transfer % not found',p_transfer_id; end if; e:=public.create_history_event('inventory_transferred','life',t.actor_life_id,t.created_at,'Inventory transferred',jsonb_build_object('transfer_id',t.id,'source_container_id',t.source_container_id,'destination_container_id',t.destination_container_id,'item_id',t.item_id,'item_instance_id',t.item_instance_id,'quantity',t.quantity,'transfer_type',t.transfer_type,'reason',t.reason,'metadata',t.metadata)); if t.actor_life_id is not null then perform public.add_history_participant(e,'life',t.actor_life_id,'actor'); end if; perform public.add_history_cause(e,'inventory_transfer',t.id::text,jsonb_build_object('transfer_type',t.transfer_type,'item_id',t.item_id)); perform public.add_history_consequence(e,'inventory_location_change',t.item_id::text,jsonb_build_object('quantity',t.quantity,'source_container_id',t.source_container_id,'destination_container_id',t.destination_container_id,'item_instance_id',t.item_instance_id)); return e; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_life_ai_decision_history(p_decision_id uuid)
@@ -2566,7 +2567,7 @@ CREATE OR REPLACE FUNCTION public.record_life_ai_decision_history(p_decision_id 
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare d public.life_ai_decisions; e uuid; begin select * into d from public.life_ai_decisions where id=p_decision_id; if not found then raise exception 'AI decision % not found',p_decision_id; end if; e:=public.create_history_event('ai_decision','life',d.life_id,d.created_at,'Life AI decision',jsonb_build_object('decision_id',d.id,'goal_id',d.goal_id,'activity_definition_id',d.activity_definition_id,'decision_type',d.decision_type,'score',d.score,'selected',d.selected,'reason',d.reason,'context',d.context)); perform public.add_history_participant(e,'life',d.life_id,'decision_maker'); perform public.add_history_cause(e,'ai_decision',d.id::text,jsonb_build_object('decision_type',d.decision_type,'goal_id',d.goal_id,'activity_definition_id',d.activity_definition_id)); perform public.add_history_consequence(e,'ai_selection',case when d.activity_definition_id is null then null else d.activity_definition_id::text end,jsonb_build_object('selected',d.selected,'score',d.score)); return e; end; $function$
+AS $function$ declare d public.life_ai_decisions; e uuid; begin select * into d from public.life_ai_decisions where id=p_decision_id; if not found then raise exception 'AI decision % not found',p_decision_id; end if; e:=public.create_history_event('ai_decision','life',d.life_id,d.created_at,'Life AI decision',jsonb_build_object('decision_id',d.id,'goal_id',d.goal_id,'activity_definition_id',d.activity_definition_id,'decision_type',d.decision_type,'score',d.score,'selected',d.selected,'reason',d.reason,'context',d.context)); perform public.add_history_participant(e,'life',d.life_id,'decision_maker'); perform public.add_history_cause(e,'ai_decision',d.id::text,jsonb_build_object('decision_type',d.decision_type,'goal_id',d.goal_id,'activity_definition_id',d.activity_definition_id)); perform public.add_history_consequence(e,'ai_selection',case when d.activity_definition_id is null then null else d.activity_definition_id::text end,jsonb_build_object('selected',d.selected,'score',d.score)); return e; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_time_event_consequence(p_event_id uuid)
@@ -2574,7 +2575,7 @@ CREATE OR REPLACE FUNCTION public.apply_time_event_consequence(p_event_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_event public.time_events%rowtype; v_def public.event_definitions%rowtype; v_target text; v_changed integer; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true; if not found then raise exception 'no enabled event definition for %',v_event.event_type; end if; if v_def.consequence_type='world_status' then v_target:=coalesce(v_event.payload->>'target_status',v_def.consequence_config->>'target_status'); if v_target is null then raise exception 'world_status consequence requires target_status for %',v_event.event_type; end if; update public.worlds set status=v_target,updated_at=now() where id=v_event.world_id; get diagnostics v_changed=row_count; if v_changed<>1 then raise exception 'world % not updated',v_event.world_id; end if; return true; else raise exception 'unsupported event consequence type: %',v_def.consequence_type; end if; end; $function$
+AS $function$ declare v_event public.time_events%rowtype; v_def public.event_definitions%rowtype; v_target text; v_changed integer; begin select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true; if not found then raise exception 'no enabled event definition for %',v_event.event_type; end if; if v_def.consequence_type='world_status' then v_target:=coalesce(v_event.payload->>'target_status',v_def.consequence_config->>'target_status'); if v_target is null then raise exception 'world_status consequence requires target_status for %',v_event.event_type; end if; update public.worlds set status=v_target,updated_at=now() where id=v_event.world_id; get diagnostics v_changed=row_count; if v_changed<>1 then raise exception 'world % not updated',v_event.world_id; end if; return true; else raise exception 'unsupported event consequence type: %',v_def.consequence_type; end if; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.recover_stale_time_events(p_world_id uuid, p_stale_before timestamp with time zone, p_limit integer DEFAULT 100)
@@ -2582,7 +2583,7 @@ CREATE OR REPLACE FUNCTION public.recover_stale_time_events(p_world_id uuid, p_s
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_exec public.event_executions%rowtype; v_count integer:=0; begin if p_stale_before is null then raise exception 'p_stale_before is required and must be wall-clock lease time'; end if; for v_exec in select ee.* from public.time_events te join public.event_executions ee on ee.time_event_id=te.id where ee.status='running' and ee.claimed_at<=p_stale_before and (p_world_id is null or te.world_id=p_world_id) and te.status='processing' order by ee.claimed_at,ee.id for update of te,ee skip locked limit greatest(p_limit,0) loop update public.event_executions set status='failed',completed_at=now(),error_message='stale worker lease recovered',metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('recovery','stale_worker','recovered_at',now(),'previous_claimed_at',v_exec.claimed_at),updated_at=now() where id=v_exec.id and status='running'; update public.time_events set status='failed',updated_at=now() where id=v_exec.time_event_id and status='processing'; perform public.record_time_event_history(v_exec.time_event_id,'time_event_stale_worker_recovered',(select world_id from public.time_events where id=v_exec.time_event_id),now(),'Stale worker lease recovered',jsonb_build_object('execution_id',v_exec.id,'claimed_at',v_exec.claimed_at,'stale_before',p_stale_before)); v_count:=v_count+1; end loop; return v_count; end; $function$
+AS $function$ declare v_exec public.event_executions%rowtype; v_count integer:=0; begin if p_stale_before is null then raise exception 'p_stale_before is required and must be wall-clock lease time'; end if; for v_exec in select ee.* from public.time_events te join public.event_executions ee on ee.time_event_id=te.id where ee.status='running' and ee.claimed_at<=p_stale_before and (p_world_id is null or te.world_id=p_world_id) and te.status='processing' order by ee.claimed_at,ee.id for update of te,ee skip locked limit greatest(p_limit,0) loop update public.event_executions set status='failed',completed_at=now(),error_message='stale worker lease recovered',metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('recovery','stale_worker','recovered_at',now(),'previous_claimed_at',v_exec.claimed_at),updated_at=now() where id=v_exec.id and status='running'; update public.time_events set status='failed',updated_at=now() where id=v_exec.time_event_id and status='processing'; perform public.record_time_event_history(v_exec.time_event_id,'time_event_stale_worker_recovered',(select world_id from public.time_events where id=v_exec.time_event_id),now(),'Stale worker lease recovered',jsonb_build_object('execution_id',v_exec.id,'claimed_at',v_exec.claimed_at,'stale_before',p_stale_before)); v_count:=v_count+1; end loop; return v_count; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.dispatch_due_time_events(p_world_id uuid, p_simulation_time timestamp with time zone, p_limit integer DEFAULT 100)
@@ -2590,7 +2591,7 @@ CREATE OR REPLACE FUNCTION public.dispatch_due_time_events(p_world_id uuid, p_si
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare r record; v_claimed integer:=0; v_succeeded integer:=0; v_failed integer:=0; v_clock_time timestamptz; begin if p_simulation_time is null then raise exception 'p_simulation_time is required'; end if; if p_limit is null or p_limit<1 or p_limit>1000 then raise exception 'p_limit must be between 1 and 1000'; end if; select sc.current_date into v_clock_time from public.simulation_clock sc where sc.world_id=p_world_id; if v_clock_time is null then raise exception 'simulation_clock not found'; end if; if v_clock_time<>p_simulation_time then raise exception 'simulation time mismatch for world %: clock %, supplied %',p_world_id,v_clock_time,p_simulation_time; end if; for r in select * from public.claim_due_time_events(p_world_id,p_simulation_time,p_limit) loop v_claimed:=v_claimed+1; if public.execute_time_event_at(r.id,p_simulation_time) then v_succeeded:=v_succeeded+1; else v_failed:=v_failed+1; end if; end loop; return jsonb_build_object('world_id',p_world_id,'simulation_time',p_simulation_time,'claimed',v_claimed,'succeeded',v_succeeded,'failed',v_failed,'batch_limit',p_limit); end; $function$
+AS $function$ declare r record; v_claimed integer:=0; v_succeeded integer:=0; v_failed integer:=0; v_clock_time timestamptz; begin if p_simulation_time is null then raise exception 'p_simulation_time is required'; end if; if p_limit is null or p_limit<1 or p_limit>1000 then raise exception 'p_limit must be between 1 and 1000'; end if; select sc.current_date into v_clock_time from public.simulation_clock sc where sc.world_id=p_world_id; if v_clock_time is null then raise exception 'simulation_clock not found'; end if; if v_clock_time<>p_simulation_time then raise exception 'simulation time mismatch for world %: clock %, supplied %',p_world_id,v_clock_time,p_simulation_time; end if; for r in select * from public.claim_due_time_events(p_world_id,p_simulation_time,p_limit) loop v_claimed:=v_claimed+1; if public.execute_time_event_at(r.id,p_simulation_time) then v_succeeded:=v_succeeded+1; else v_failed:=v_failed+1; end if; end loop; return jsonb_build_object('world_id',p_world_id,'simulation_time',p_simulation_time,'claimed',v_claimed,'succeeded',v_succeeded,'failed',v_failed,'batch_limit',p_limit); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.reevaluate_life_activity_at(p_life_id uuid, p_at timestamp with time zone)
@@ -2598,7 +2599,7 @@ CREATE OR REPLACE FUNCTION public.reevaluate_life_activity_at(p_life_id uuid, p_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ begin if p_life_id is null then raise exception 'p_life_id is required'; end if; if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; return query select * from public.reevaluate_life_activity(p_life_id,p_at); end; $function$
+AS $function$ begin if p_life_id is null then raise exception 'p_life_id is required'; end if; if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; return query select * from public.reevaluate_life_activity(p_life_id,p_at); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.reevaluate_life_goals_at(p_life_id uuid, p_at timestamp with time zone)
@@ -2606,7 +2607,7 @@ CREATE OR REPLACE FUNCTION public.reevaluate_life_goals_at(p_life_id uuid, p_at 
  LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ select g.id,g.goal_type,g.title,g.status,g.priority,g.progress from public.life_ai_goals g where g.life_id=p_life_id and g.status='active' order by g.priority desc,g.created_at asc; $function$
+AS $function$ select g.id,g.goal_type,g.title,g.status,g.priority,g.progress from public.life_ai_goals g where g.life_id=p_life_id and g.status='active' order by g.priority desc,g.created_at asc; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_life_ai_goal_at(p_goal_id uuid, p_reason text, p_at timestamp with time zone)
@@ -2614,7 +2615,7 @@ CREATE OR REPLACE FUNCTION public.complete_life_ai_goal_at(p_goal_id uuid, p_rea
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_goal public.life_ai_goals; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_goal from public.life_ai_goals where id=p_goal_id for update; if not found then raise exception 'goal % not found',p_goal_id; end if; update public.life_ai_goals set status='completed',progress=100,completed_at=coalesce(completed_at,p_at),updated_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('completion_reason',p_reason,'completion_simulation_time',p_at) where id=p_goal_id returning * into v_goal; return v_goal; end; $function$
+AS $function$ declare v_goal public.life_ai_goals; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_goal from public.life_ai_goals where id=p_goal_id for update; if not found then raise exception 'goal % not found',p_goal_id; end if; update public.life_ai_goals set status='completed',progress=100,completed_at=coalesce(completed_at,p_at),updated_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('completion_reason',p_reason,'completion_simulation_time',p_at) where id=p_goal_id returning * into v_goal; return v_goal; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.update_life_ai_goal_progress_at(p_goal_id uuid, p_current_value numeric, p_progress numeric, p_at timestamp with time zone)
@@ -2622,7 +2623,7 @@ CREATE OR REPLACE FUNCTION public.update_life_ai_goal_progress_at(p_goal_id uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_goal public.life_ai_goals; v_progress numeric; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_goal from public.life_ai_goals where id=p_goal_id for update; if not found then raise exception 'goal % not found',p_goal_id; end if; v_progress:=coalesce(p_progress,case when v_goal.target_value is null or v_goal.target_value=0 then v_goal.progress else least(100,greatest(0,(p_current_value/v_goal.target_value)*100)) end); update public.life_ai_goals set current_value=p_current_value,progress=v_progress,status=case when v_progress>=100 then 'completed' else status end,completed_at=case when v_progress>=100 then coalesce(completed_at,p_at) else completed_at end,updated_at=now(),metadata=case when v_progress>=100 then coalesce(metadata,'{}'::jsonb)||jsonb_build_object('completion_simulation_time',p_at) else metadata end where id=p_goal_id returning * into v_goal; return v_goal; end; $function$
+AS $function$ declare v_goal public.life_ai_goals; v_progress numeric; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_goal from public.life_ai_goals where id=p_goal_id for update; if not found then raise exception 'goal % not found',p_goal_id; end if; v_progress:=coalesce(p_progress,case when v_goal.target_value is null or v_goal.target_value=0 then v_goal.progress else least(100,greatest(0,(p_current_value/v_goal.target_value)*100)) end); update public.life_ai_goals set current_value=p_current_value,progress=v_progress,status=case when v_progress>=100 then 'completed' else status end,completed_at=case when v_progress>=100 then coalesce(completed_at,p_at) else completed_at end,updated_at=now(),metadata=case when v_progress>=100 then coalesce(metadata,'{}'::jsonb)||jsonb_build_object('completion_simulation_time',p_at) else metadata end where id=p_goal_id returning * into v_goal; return v_goal; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.plan_life_activity_at(p_life_id uuid, p_at timestamp with time zone)
@@ -2630,7 +2631,7 @@ CREATE OR REPLACE FUNCTION public.plan_life_activity_at(p_life_id uuid, p_at tim
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_clock timestamptz; v_def uuid; v_name text; v_score numeric; v_duration numeric; v_location uuid; v_activity_id uuid; v_goal_id uuid; v_reason text; v_need text; v_urgency numeric; v_schedule_priority integer; v_decision_activity uuid; v_decision_id uuid; begin if p_life_id is null then raise exception 'ai_plan_life_required'; end if; if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; perform pg_advisory_xact_lock(hashtextextended(p_life_id::text,0)); v_clock:=public.get_life_simulation_time(p_life_id); if v_clock<>p_at then raise exception 'simulation time mismatch: clock %, supplied %',v_clock,p_at; end if; select d.activity_id,d.id into v_decision_activity,v_decision_id from public.life_ai_decisions d where d.life_id=p_life_id and d.simulation_time=p_at and d.decision_type='activity_selection' and d.selected=true order by d.created_at desc limit 1; if v_decision_activity is not null then if exists(select 1 from public.activities a where a.id=v_decision_activity and a.actor_life_id=p_life_id) then return v_decision_activity; end if; raise exception 'ai_decision_activity_missing: decision % references missing activity %',v_decision_id,v_decision_activity; end if; if v_decision_id is not null then raise exception 'ai_decision_missing_activity: decision % has no activity_id',v_decision_id; end if; select a.id into v_decision_activity from public.activities a where a.actor_life_id=p_life_id and a.state in ('planned','running','active') and a.start_time=p_at order by a.created_at desc limit 1; if v_decision_activity is not null then return v_decision_activity; end if; select a.activity_definition_id,a.activity_name,a.score,a.need_type,a.need_urgency,a.schedule_priority,a.reason into v_def,v_name,v_score,v_need,v_urgency,v_schedule_priority,v_reason from public.select_life_activity(p_life_id,p_at); if v_def is null then return null; end if; select id into v_goal_id from public.life_ai_goals where life_id=p_life_id and status='active' order by priority desc,created_at asc limit 1; select default_duration into v_duration from public.activity_definitions where id=v_def; select location_id into v_location from public.lives where id=p_life_id; insert into public.activities(actor_life_id,activity_definition_id,location_id,start_time,end_time,state,metadata) values(p_life_id,v_def,v_location,p_at,p_at+(greatest(1,coalesce(v_duration,1))*interval '1 minute'),'planned',jsonb_build_object('source','ai_decision','score',v_score,'activity_name',v_name,'goal_id',v_goal_id,'need_type',v_need,'need_urgency',v_urgency,'schedule_priority',v_schedule_priority,'reason',v_reason,'simulation_time',p_at)) returning id into v_activity_id; insert into public.life_ai_decisions(life_id,goal_id,activity_definition_id,decision_type,score,reason,context,selected,simulation_time,activity_id) values(p_life_id,v_goal_id,v_def,'activity_selection',v_score,jsonb_build_object('reason',v_reason,'activity_name',v_name),jsonb_build_object('at',p_at,'need_type',v_need,'need_urgency',v_urgency,'schedule_priority',v_schedule_priority),true,p_at,v_activity_id) returning id into v_decision_id; if not exists(select 1 from public.life_ai_decisions where id=v_decision_id and activity_id=v_activity_id) then raise exception 'ai_decision_activity_link_failed'; end if; return v_activity_id; end; $function$
+AS $function$ declare v_clock timestamptz; v_def uuid; v_name text; v_score numeric; v_duration numeric; v_location uuid; v_activity_id uuid; v_goal_id uuid; v_reason text; v_need text; v_urgency numeric; v_schedule_priority integer; v_decision_activity uuid; v_decision_id uuid; begin if p_life_id is null then raise exception 'ai_plan_life_required'; end if; if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; perform pg_advisory_xact_lock(hashtextextended(p_life_id::text,0)); v_clock:=public.get_life_simulation_time(p_life_id); if v_clock<>p_at then raise exception 'simulation time mismatch: clock %, supplied %',v_clock,p_at; end if; select d.activity_id,d.id into v_decision_activity,v_decision_id from public.life_ai_decisions d where d.life_id=p_life_id and d.simulation_time=p_at and d.decision_type='activity_selection' and d.selected=true order by d.created_at desc limit 1; if v_decision_activity is not null then if exists(select 1 from public.activities a where a.id=v_decision_activity and a.actor_life_id=p_life_id) then return v_decision_activity; end if; raise exception 'ai_decision_activity_missing: decision % references missing activity %',v_decision_id,v_decision_activity; end if; if v_decision_id is not null then raise exception 'ai_decision_missing_activity: decision % has no activity_id',v_decision_id; end if; select a.id into v_decision_activity from public.activities a where a.actor_life_id=p_life_id and a.state in ('planned','running','active') and a.start_time=p_at order by a.created_at desc limit 1; if v_decision_activity is not null then return v_decision_activity; end if; select a.activity_definition_id,a.activity_name,a.score,a.need_type,a.need_urgency,a.schedule_priority,a.reason into v_def,v_name,v_score,v_need,v_urgency,v_schedule_priority,v_reason from public.select_life_activity(p_life_id,p_at); if v_def is null then return null; end if; select id into v_goal_id from public.life_ai_goals where life_id=p_life_id and status='active' order by priority desc,created_at asc limit 1; select default_duration into v_duration from public.activity_definitions where id=v_def; select location_id into v_location from public.lives where id=p_life_id; insert into public.activities(actor_life_id,activity_definition_id,location_id,start_time,end_time,state,metadata) values(p_life_id,v_def,v_location,p_at,p_at+(greatest(1,coalesce(v_duration,1))*interval '1 minute'),'planned',jsonb_build_object('source','ai_decision','score',v_score,'activity_name',v_name,'goal_id',v_goal_id,'need_type',v_need,'need_urgency',v_urgency,'schedule_priority',v_schedule_priority,'reason',v_reason,'simulation_time',p_at)) returning id into v_activity_id; insert into public.life_ai_decisions(life_id,goal_id,activity_definition_id,decision_type,score,reason,context,selected,simulation_time,activity_id) values(p_life_id,v_goal_id,v_def,'activity_selection',v_score,jsonb_build_object('reason',v_reason,'activity_name',v_name),jsonb_build_object('at',p_at,'need_type',v_need,'need_urgency',v_urgency,'schedule_priority',v_schedule_priority),true,p_at,v_activity_id) returning id into v_decision_id; if not exists(select 1 from public.life_ai_decisions where id=v_decision_id and activity_id=v_activity_id) then raise exception 'ai_decision_activity_link_failed'; end if; return v_activity_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.reevaluate_life_activity(p_life_id uuid, p_at timestamp with time zone)
@@ -2638,7 +2639,7 @@ CREATE OR REPLACE FUNCTION public.reevaluate_life_activity(p_life_id uuid, p_at 
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_current public.activities%rowtype; v_best record; v_new uuid; v_current_score numeric:=0; v_improvement numeric:=0; v_urgent boolean:=false; begin if p_life_id is null or p_at is null then raise exception 'life_id and authoritative simulation time are required'; end if; perform pg_advisory_xact_lock(hashtextextended(p_life_id::text,0)); if public.get_life_simulation_time(p_life_id)<>p_at then raise exception 'simulation time mismatch for life %',p_life_id; end if; select * into v_current from public.activities where actor_life_id=p_life_id and state in ('planned','scheduled','running','active') and start_time<=p_at and (end_time is null or end_time>p_at) order by case state when 'running' then 1 when 'active' then 1 when 'scheduled' then 2 when 'planned' then 3 else 4 end,start_time desc,created_at desc limit 1 for update; select * into v_best from public.select_life_activity(p_life_id,p_at); if v_best.activity_definition_id is null then return query select 'no_candidate',v_current.id,null::uuid,null::text,null::numeric,'no_candidate'; return; end if; if v_current.id is null then v_new:=public.plan_life_activity_at(p_life_id,p_at); return query select 'plan',v_new,v_best.activity_definition_id,v_best.activity_name,v_best.score,'no_current_activity'; return; end if; if v_current.activity_definition_id=v_best.activity_definition_id then return query select 'keep',v_current.id,v_best.activity_definition_id,v_best.activity_name,v_best.score,'current_matches_best'; return; end if; v_current_score:=coalesce((v_current.metadata->>'score')::numeric,0); v_improvement:=v_best.score-v_current_score; v_urgent:=coalesce(v_best.need_urgency,0)>=50; if not v_urgent and v_improvement<25 then return query select 'keep',v_current.id,v_best.activity_definition_id,v_best.activity_name,v_best.score,'below_interrupt_threshold'; return; end if; insert into public.activity_interruptions(activity_id,cause,interrupted_at,status,resolution,resolved_at) values(v_current.id,case when v_urgent then 'urgent_need_reevaluation' else 'ai_reevaluation' end,p_at,'resolved','replaced_by_ai_decision',p_at); update public.activities set state='interrupted',end_time=p_at,updated_at=now() where id=v_current.id; v_new:=public.plan_life_activity_at(p_life_id,p_at); return query select 'interrupt_and_plan',v_new,v_best.activity_definition_id,v_best.activity_name,v_best.score,case when v_urgent then 'urgent_need_override' else 'score_improvement='||v_improvement::text end; end; $function$
+AS $function$ declare v_current public.activities%rowtype; v_best record; v_new uuid; v_current_score numeric:=0; v_improvement numeric:=0; v_urgent boolean:=false; begin if p_life_id is null or p_at is null then raise exception 'life_id and authoritative simulation time are required'; end if; perform pg_advisory_xact_lock(hashtextextended(p_life_id::text,0)); if public.get_life_simulation_time(p_life_id)<>p_at then raise exception 'simulation time mismatch for life %',p_life_id; end if; select * into v_current from public.activities where actor_life_id=p_life_id and state in ('planned','scheduled','running','active') and start_time<=p_at and (end_time is null or end_time>p_at) order by case state when 'running' then 1 when 'active' then 1 when 'scheduled' then 2 when 'planned' then 3 else 4 end,start_time desc,created_at desc limit 1 for update; select * into v_best from public.select_life_activity(p_life_id,p_at); if v_best.activity_definition_id is null then return query select 'no_candidate',v_current.id,null::uuid,null::text,null::numeric,'no_candidate'; return; end if; if v_current.id is null then v_new:=public.plan_life_activity_at(p_life_id,p_at); return query select 'plan',v_new,v_best.activity_definition_id,v_best.activity_name,v_best.score,'no_current_activity'; return; end if; if v_current.activity_definition_id=v_best.activity_definition_id then return query select 'keep',v_current.id,v_best.activity_definition_id,v_best.activity_name,v_best.score,'current_matches_best'; return; end if; v_current_score:=coalesce((v_current.metadata->>'score')::numeric,0); v_improvement:=v_best.score-v_current_score; v_urgent:=coalesce(v_best.need_urgency,0)>=50; if not v_urgent and v_improvement<25 then return query select 'keep',v_current.id,v_best.activity_definition_id,v_best.activity_name,v_best.score,'below_interrupt_threshold'; return; end if; insert into public.activity_interruptions(activity_id,cause,interrupted_at,status,resolution,resolved_at) values(v_current.id,case when v_urgent then 'urgent_need_reevaluation' else 'ai_reevaluation' end,p_at,'resolved','replaced_by_ai_decision',p_at); update public.activities set state='interrupted',end_time=p_at,updated_at=now() where id=v_current.id; v_new:=public.plan_life_activity_at(p_life_id,p_at); return query select 'interrupt_and_plan',v_new,v_best.activity_definition_id,v_best.activity_name,v_best.score,case when v_urgent then 'urgent_need_override' else 'score_improvement='||v_improvement::text end; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_activity_safely(p_activity_id uuid)
@@ -2646,7 +2647,7 @@ CREATE OR REPLACE FUNCTION public.complete_activity_safely(p_activity_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_state text; v_clock timestamptz; v_life_id uuid; begin select a.actor_life_id into v_life_id from public.activities a where a.id=p_activity_id; if v_life_id is null then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error','activity_missing'); end if; begin v_clock:=public.get_life_simulation_time(v_life_id); exception when others then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error','simulation_clock_not_found'); end; update public.activities set state='completed',end_time=coalesce(end_time,v_clock),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',v_clock),updated_at=now() where id=p_activity_id and state='running' and end_time is not null and end_time<=v_clock; if not found then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error','activity_not_due_or_not_running'); end if; select state into v_state from public.activities where id=p_activity_id; return jsonb_build_object('ok',true,'activity_id',p_activity_id,'state',v_state,'simulation_time',v_clock); exception when others then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error',sqlstate,'message',sqlerrm); end; $function$
+AS $function$ declare v_state text; v_clock timestamptz; v_life_id uuid; begin select a.actor_life_id into v_life_id from public.activities a where a.id=p_activity_id; if v_life_id is null then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error','activity_missing'); end if; begin v_clock:=public.get_life_simulation_time(v_life_id); exception when others then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error','simulation_clock_not_found'); end; update public.activities set state='completed',end_time=coalesce(end_time,v_clock),metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',v_clock),updated_at=now() where id=p_activity_id and state='running' and end_time is not null and end_time<=v_clock; if not found then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error','activity_not_due_or_not_running'); end if; select state into v_state from public.activities where id=p_activity_id; return jsonb_build_object('ok',true,'activity_id',p_activity_id,'state',v_state,'simulation_time',v_clock); exception when others then return jsonb_build_object('ok',false,'activity_id',p_activity_id,'error',sqlstate,'message',sqlerrm); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_time_event_consequence_at(p_event_id uuid, p_at timestamp with time zone)
@@ -2654,7 +2655,7 @@ CREATE OR REPLACE FUNCTION public.apply_time_event_consequence_at(p_event_id uui
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events%rowtype; v_def public.event_definitions%rowtype; v_target text; v_changed integer; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true; if not found then raise exception 'no enabled event definition for %',v_event.event_type; end if; if v_def.consequence_type='world_status' then v_target:=coalesce(v_event.payload->>'target_status',v_def.consequence_config->>'target_status'); if v_target is null then raise exception 'world_status consequence requires target_status for %',v_event.event_type; end if; update public.worlds set status=v_target,updated_at=now() where id=v_event.world_id; get diagnostics v_changed=row_count; if v_changed<>1 then raise exception 'world % not updated',v_event.world_id; end if; perform public.record_time_event_history(p_event_id,'time_event_consequence_applied',v_event.world_id,p_at,'Time event consequence applied',jsonb_build_object('event_type',v_event.event_type,'consequence_type',v_def.consequence_type,'simulation_time',p_at)); return true; else raise exception 'unsupported event consequence type: %',v_def.consequence_type; end if; end; $function$
+AS $function$ declare v_event public.time_events%rowtype; v_def public.event_definitions%rowtype; v_target text; v_changed integer; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true; if not found then raise exception 'no enabled event definition for %',v_event.event_type; end if; if v_def.consequence_type='world_status' then v_target:=coalesce(v_event.payload->>'target_status',v_def.consequence_config->>'target_status'); if v_target is null then raise exception 'world_status consequence requires target_status for %',v_event.event_type; end if; update public.worlds set status=v_target,updated_at=now() where id=v_event.world_id; get diagnostics v_changed=row_count; if v_changed<>1 then raise exception 'world % not updated',v_event.world_id; end if; perform public.record_time_event_history(p_event_id,'time_event_consequence_applied',v_event.world_id,p_at,'Time event consequence applied',jsonb_build_object('event_type',v_event.event_type,'consequence_type',v_def.consequence_type,'simulation_time',p_at)); return true; else raise exception 'unsupported event consequence type: %',v_def.consequence_type; end if; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_time_event_at(p_event_id uuid, p_at timestamp with time zone)
@@ -2662,7 +2663,7 @@ CREATE OR REPLACE FUNCTION public.execute_time_event_at(p_event_id uuid, p_at ti
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events%rowtype; v_execution public.event_executions%rowtype; v_pass boolean; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; if v_event.status<>'processing' then raise exception 'time event % must be processing',p_event_id; end if; if v_event.scheduled_time>p_at then raise exception 'event % is not due at simulation time %',p_event_id,p_at; end if; select * into v_execution from public.event_executions where time_event_id=p_event_id and status='running' order by created_at desc limit 1 for update; if not found then raise exception 'running execution ledger missing for %',p_event_id; end if; v_pass:=public.event_condition_passes(p_event_id); if not v_pass then update public.event_executions set status='failed',completed_at=now(),error_message='event condition failed',metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',p_at),updated_at=now() where id=v_execution.id; update public.time_events set status='failed',updated_at=now() where id=p_event_id; perform public.record_time_event_history(p_event_id,'time_event_condition_failed',v_event.world_id,p_at,'Time event condition failed',jsonb_build_object('condition_passed',false,'execution_id',v_execution.id,'error','event condition failed','simulation_time',p_at)); return false; end if; perform public.apply_time_event_consequence_at(p_event_id,p_at); perform public.complete_time_event_at(p_event_id,p_at,'Time event consequence applied',jsonb_build_object('event_type',v_event.event_type,'simulation_time',p_at)); return true; exception when others then update public.event_executions set status='failed',completed_at=now(),error_message=sqlerrm,metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('atomic_failure',true,'failed_at',now(),'simulation_time',p_at) where time_event_id=p_event_id and status='running'; update public.time_events set status='failed',updated_at=now() where id=p_event_id and status='processing'; perform public.record_time_event_history(p_event_id,'time_event_failed',v_event.world_id,p_at,sqlerrm,jsonb_build_object('atomic_failure',true,'event_type',coalesce(v_event.event_type,'unknown'),'error',sqlerrm,'simulation_time',p_at)); return false; end; $function$
+AS $function$ declare v_event public.time_events%rowtype; v_execution public.event_executions%rowtype; v_pass boolean; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; select * into v_event from public.time_events where id=p_event_id for update; if not found then raise exception 'time event % not found',p_event_id; end if; if v_event.status<>'processing' then raise exception 'time event % must be processing',p_event_id; end if; if v_event.scheduled_time>p_at then raise exception 'event % is not due at simulation time %',p_event_id,p_at; end if; select * into v_execution from public.event_executions where time_event_id=p_event_id and status='running' order by created_at desc limit 1 for update; if not found then raise exception 'running execution ledger missing for %',p_event_id; end if; v_pass:=public.event_condition_passes(p_event_id); if not v_pass then update public.event_executions set status='failed',completed_at=now(),error_message='event condition failed',metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',p_at),updated_at=now() where id=v_execution.id; update public.time_events set status='failed',updated_at=now() where id=p_event_id; perform public.record_time_event_history(p_event_id,'time_event_condition_failed',v_event.world_id,p_at,'Time event condition failed',jsonb_build_object('condition_passed',false,'execution_id',v_execution.id,'error','event condition failed','simulation_time',p_at)); return false; end if; perform public.apply_time_event_consequence_at(p_event_id,p_at); perform public.complete_time_event_at(p_event_id,p_at,'Time event consequence applied',jsonb_build_object('event_type',v_event.event_type,'simulation_time',p_at)); return true; exception when others then update public.event_executions set status='failed',completed_at=now(),error_message=sqlerrm,metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('atomic_failure',true,'failed_at',now(),'simulation_time',p_at) where time_event_id=p_event_id and status='running'; update public.time_events set status='failed',updated_at=now() where id=p_event_id and status='processing'; perform public.record_time_event_history(p_event_id,'time_event_failed',v_event.world_id,p_at,sqlerrm,jsonb_build_object('atomic_failure',true,'event_type',coalesce(v_event.event_type,'unknown'),'error',sqlerrm,'simulation_time',p_at)); return false; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.complete_time_event_at(p_event_id uuid, p_at timestamp with time zone, p_summary text DEFAULT NULL::text, p_metadata jsonb DEFAULT NULL::jsonb)
@@ -2670,7 +2671,7 @@ CREATE OR REPLACE FUNCTION public.complete_time_event_at(p_event_id uuid, p_at t
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_event public.time_events; v_next uuid; v_chain_id uuid; v_chain_step integer; v_def public.event_definitions%rowtype; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; update public.time_events set status='completed',updated_at=now() where id=p_event_id and status='processing' returning * into v_event; if v_event.id is null then raise exception 'time event % is not in processing state',p_event_id; end if; update public.event_executions set status='completed',completed_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',p_at),updated_at=now() where time_event_id=p_event_id and status='running'; perform public.record_time_event_history(p_event_id,'time_event_completed',v_event.world_id,p_at,p_summary,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('event_type',v_event.event_type,'simulation_time',p_at)); if v_event.recurrence_type='interval' and (v_event.recurrence_remaining is null or v_event.recurrence_remaining>0) then if v_event.recurrence_remaining is not null then update public.time_events set recurrence_remaining=recurrence_remaining-1,updated_at=now() where id=p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true limit 1; if found then insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,recurrence_type,recurrence_interval_seconds,recurrence_remaining) values(v_event.world_id,v_event.event_type,v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds),'scheduled',v_event.payload,v_event.priority,v_event.recurrence_type,v_event.recurrence_interval_seconds,case when v_event.recurrence_remaining is null then null else greatest(v_event.recurrence_remaining-1,0) end) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_recurrence_scheduled',v_event.world_id,v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds),'Next recurring time event scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type,'simulation_time',v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds))); else perform public.record_time_event_history(p_event_id,'time_event_recurrence_blocked',v_event.world_id,p_at,'Recurring event blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'event_type',v_event.event_type,'simulation_time',p_at)); end if; end if; if v_event.next_event_type is not null then select * into v_def from public.event_definitions where event_type=v_event.next_event_type and enabled=true limit 1; if not found then perform public.record_time_event_history(p_event_id,'time_event_chain_blocked',v_event.world_id,p_at,'Next event chain step blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'next_event_type',v_event.next_event_type,'simulation_time',p_at)); return v_event; end if; v_chain_id:=coalesce(v_event.chain_id,gen_random_uuid()); v_chain_step:=coalesce(v_event.chain_step,0)+1; insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,chain_id,chain_step) values(v_event.world_id,v_event.next_event_type,v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)),'scheduled',coalesce(v_event.next_event_payload,'{}'::jsonb),v_event.priority,v_chain_id,v_chain_step) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_chain_scheduled',v_event.world_id,v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)),'Next event chain step scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type,'chain_id',v_chain_id,'chain_step',v_chain_step,'simulation_time',v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)))); end if; return v_event; end; $function$
+AS $function$ declare v_event public.time_events; v_next uuid; v_chain_id uuid; v_chain_step integer; v_def public.event_definitions%rowtype; begin if p_at is null then raise exception 'p_at is required and must be authoritative simulation time'; end if; update public.time_events set status='completed',updated_at=now() where id=p_event_id and status='processing' returning * into v_event; if v_event.id is null then raise exception 'time event % is not in processing state',p_event_id; end if; update public.event_executions set status='completed',completed_at=now(),metadata=coalesce(metadata,'{}'::jsonb)||coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('simulation_time',p_at),updated_at=now() where time_event_id=p_event_id and status='running'; perform public.record_time_event_history(p_event_id,'time_event_completed',v_event.world_id,p_at,p_summary,coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('event_type',v_event.event_type,'simulation_time',p_at)); if v_event.recurrence_type='interval' and (v_event.recurrence_remaining is null or v_event.recurrence_remaining>0) then if v_event.recurrence_remaining is not null then update public.time_events set recurrence_remaining=recurrence_remaining-1,updated_at=now() where id=p_event_id; end if; select * into v_def from public.event_definitions where event_type=v_event.event_type and enabled=true limit 1; if found then insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,recurrence_type,recurrence_interval_seconds,recurrence_remaining) values(v_event.world_id,v_event.event_type,v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds),'scheduled',v_event.payload,v_event.priority,v_event.recurrence_type,v_event.recurrence_interval_seconds,case when v_event.recurrence_remaining is null then null else greatest(v_event.recurrence_remaining-1,0) end) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_recurrence_scheduled',v_event.world_id,v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds),'Next recurring time event scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type,'simulation_time',v_event.scheduled_time+make_interval(secs=>v_event.recurrence_interval_seconds))); else perform public.record_time_event_history(p_event_id,'time_event_recurrence_blocked',v_event.world_id,p_at,'Recurring event blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'event_type',v_event.event_type,'simulation_time',p_at)); end if; end if; if v_event.next_event_type is not null then select * into v_def from public.event_definitions where event_type=v_event.next_event_type and enabled=true limit 1; if not found then perform public.record_time_event_history(p_event_id,'time_event_chain_blocked',v_event.world_id,p_at,'Next event chain step blocked: missing enabled definition',jsonb_build_object('source_event_id',p_event_id,'next_event_type',v_event.next_event_type,'simulation_time',p_at)); return v_event; end if; v_chain_id:=coalesce(v_event.chain_id,gen_random_uuid()); v_chain_step:=coalesce(v_event.chain_step,0)+1; insert into public.time_events(world_id,event_type,scheduled_time,status,payload,priority,chain_id,chain_step) values(v_event.world_id,v_event.next_event_type,v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)),'scheduled',coalesce(v_event.next_event_payload,'{}'::jsonb),v_event.priority,v_chain_id,v_chain_step) returning id into v_next; perform public.record_time_event_history(v_next,'time_event_chain_scheduled',v_event.world_id,v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)),'Next event chain step scheduled',jsonb_build_object('source_event_id',p_event_id,'next_event_id',v_next,'event_definition_event_type',v_def.event_type,'chain_id',v_chain_id,'chain_step',v_chain_step,'simulation_time',v_event.scheduled_time+make_interval(secs=>coalesce(v_event.next_event_delay_seconds,0)))); end if; return v_event; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_life_need_delta_at(p_life_id uuid, p_need_type text, p_delta numeric, p_at timestamp with time zone, p_reason text DEFAULT NULL::text)
@@ -2678,14 +2679,14 @@ CREATE OR REPLACE FUNCTION public.apply_life_need_delta_at(p_life_id uuid, p_nee
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_clock timestamptz; v_current numeric; begin if p_life_id is null or p_need_type is null or p_at is null then raise exception 'life_id, need_type and authoritative simulation time are required'; end if; select sc.current_date into v_clock from public.lives l join public.locations loc on loc.id=l.location_id join public.regions r on r.id=loc.region_id join public.continents c on c.id=r.continent_id join public.simulation_clock sc on sc.world_id=c.world_id where l.id=p_life_id; if v_clock is null then raise exception 'simulation_clock not found for life %',p_life_id; end if; if v_clock<>p_at then raise exception 'simulation time mismatch: clock %, supplied %',v_clock,p_at; end if; perform pg_advisory_xact_lock(hashtextextended(p_life_id::text,0)); select current_value into v_current from public.life_needs where life_id=p_life_id and need_type=p_need_type for update; if not found then raise exception 'life_need not found: %/%',p_life_id,p_need_type; end if; update public.life_needs set current_value=greatest(0,least(100,v_current+p_delta)),simulation_time=p_at,updated_at=now() where life_id=p_life_id and need_type=p_need_type; end; $function$
+AS $function$ declare v_clock timestamptz; v_current numeric; begin if p_life_id is null or p_need_type is null or p_at is null then raise exception 'life_id, need_type and authoritative simulation time are required'; end if; select sc.current_date into v_clock from public.lives l join public.locations loc on loc.id=l.location_id join public.regions r on r.id=loc.region_id join public.continents c on c.id=r.continent_id join public.simulation_clock sc on sc.world_id=c.world_id where l.id=p_life_id; if v_clock is null then raise exception 'simulation_clock not found for life %',p_life_id; end if; if v_clock<>p_at then raise exception 'simulation time mismatch: clock %, supplied %',v_clock,p_at; end if; perform pg_advisory_xact_lock(hashtextextended(p_life_id::text,0)); select current_value into v_current from public.life_needs where life_id=p_life_id and need_type=p_need_type for update; if not found then raise exception 'life_need not found: %/%',p_life_id,p_need_type; end if; update public.life_needs set current_value=greatest(0,least(100,v_current+p_delta)),simulation_time=p_at,updated_at=now() where life_id=p_life_id and need_type=p_need_type; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.select_life_activity(p_life_id uuid, p_at timestamp with time zone)
  RETURNS TABLE(activity_definition_id uuid, activity_name text, activity_type text, score numeric, need_type text, need_urgency numeric, schedule_priority integer, reason text)
  LANGUAGE sql
  SET search_path TO 'public'
-AS $function$ with candidates as (select * from public.evaluate_life_activity_candidates(p_life_id,public.get_life_schedule_minute(p_life_id,p_at))), scored as (select c.*,public.get_life_activity_personality_score(p_life_id,c.activity_definition_id) personality_bonus,case when c.activity_name='Work' then public.get_life_work_skill_score(p_life_id)*10 else 0 end skill_bonus,public.get_life_archetype_activity_bonus(p_life_id,c.activity_definition_id) archetype_bonus,public.get_life_goal_activity_score(p_life_id,c.activity_definition_id) goal_bonus from candidates c) select activity_definition_id,activity_name,activity_type,(score+skill_bonus+personality_bonus+archetype_bonus+goal_bonus) score,need_type,need_urgency,schedule_priority,reason||';skill_bonus='||skill_bonus::text||';personality_bonus='||personality_bonus::text||';archetype_bonus='||archetype_bonus::text||';goal_bonus='||goal_bonus::text reason from scored order by (score+skill_bonus+personality_bonus+archetype_bonus+goal_bonus) desc,schedule_priority desc,activity_definition_id limit 1; $function$
+AS $function$ with candidates as (select * from public.evaluate_life_activity_candidates(p_life_id,public.get_life_schedule_minute(p_life_id,p_at))), scored as (select c.*,public.get_life_activity_personality_score(p_life_id,c.activity_definition_id) personality_bonus,case when c.activity_name='Work' then public.get_life_work_skill_score(p_life_id)*10 else 0 end skill_bonus,public.get_life_archetype_activity_bonus(p_life_id,c.activity_definition_id) archetype_bonus,public.get_life_goal_activity_score(p_life_id,c.activity_definition_id) goal_bonus from candidates c) select activity_definition_id,activity_name,activity_type,(score+skill_bonus+personality_bonus+archetype_bonus+goal_bonus) score,need_type,need_urgency,schedule_priority,reason||';skill_bonus='||skill_bonus::text||';personality_bonus='||personality_bonus::text||';archetype_bonus='||archetype_bonus::text||';goal_bonus='||goal_bonus::text reason from scored order by (score+skill_bonus+personality_bonus+archetype_bonus+goal_bonus) desc,schedule_priority desc,activity_definition_id limit 1; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_life_simulation_time(p_life_id uuid)
@@ -2693,7 +2694,7 @@ CREATE OR REPLACE FUNCTION public.get_life_simulation_time(p_life_id uuid)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_at timestamptz; begin if p_life_id is null then raise exception 'life_id_required'; end if; select sc."current_date" into v_at from public.lives l join public.locations loc on loc.id=l.location_id join public.regions r on r.id=loc.region_id join public.continents c on c.id=r.continent_id join public.simulation_clock sc on sc.world_id=c.world_id where l.id=p_life_id; if v_at is null then raise exception 'simulation_clock_not_found_for_life:%',p_life_id; end if; return v_at; end; $function$
+AS $function$ declare v_at timestamptz; begin if p_life_id is null then raise exception 'life_id_required'; end if; select sc."current_date" into v_at from public.lives l join public.locations loc on loc.id=l.location_id join public.regions r on r.id=loc.region_id join public.continents c on c.id=r.continent_id join public.simulation_clock sc on sc.world_id=c.world_id where l.id=p_life_id; if v_at is null then raise exception 'simulation_clock_not_found_for_life:%',p_life_id; end if; return v_at; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_start(p_quest_instance_id uuid)
@@ -2701,7 +2702,7 @@ CREATE OR REPLACE FUNCTION public.quest_start(p_quest_instance_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_instance public.quest_instances; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'AVAILABLE' then raise exception 'quest cannot start from state %',v_instance.state; end if; if not public.quest_can_start(p_quest_instance_id) then raise exception 'quest prerequisites or definition state not satisfied'; end if; update public.quest_instances set state='ACTIVE',started_at=coalesce(started_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; insert into public.quest_objective_progress (quest_instance_id,objective_id,progress) select v_instance.id,qo.id,0 from public.quest_objectives qo where qo.quest_id=v_instance.quest_id on conflict (quest_instance_id,objective_id) do nothing; return v_instance; end; $function$
+AS $function$ declare v_instance public.quest_instances; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'AVAILABLE' then raise exception 'quest cannot start from state %',v_instance.state; end if; if not public.quest_can_start(p_quest_instance_id) then raise exception 'quest prerequisites or definition state not satisfied'; end if; update public.quest_instances set state='ACTIVE',started_at=coalesce(started_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; insert into public.quest_objective_progress (quest_instance_id,objective_id,progress) select v_instance.id,qo.id,0 from public.quest_objectives qo where qo.quest_id=v_instance.quest_id on conflict (quest_instance_id,objective_id) do nothing; return v_instance; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_update_objective(p_quest_instance_id uuid, p_objective_id uuid, p_progress integer)
@@ -2709,7 +2710,7 @@ CREATE OR REPLACE FUNCTION public.quest_update_objective(p_quest_instance_id uui
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_instance public.quest_instances; v_progress public.quest_objective_progress; v_target integer; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest is not active'; end if; select qo.target_value into v_target from public.quest_objectives qo where qo.id=p_objective_id and qo.quest_id=v_instance.quest_id; if not found then raise exception 'objective does not belong to quest'; end if; insert into public.quest_objective_progress(quest_instance_id,objective_id,progress) values(p_quest_instance_id,p_objective_id,greatest(0,least(p_progress,v_target))) on conflict (quest_instance_id,objective_id) do update set progress=greatest(public.quest_objective_progress.progress,excluded.progress),completed_at=case when excluded.progress >= v_target then coalesce(public.quest_objective_progress.completed_at,now()) else public.quest_objective_progress.completed_at end returning * into v_progress; if v_progress.progress >= v_target then update public.quest_objective_progress set completed_at=coalesce(completed_at,now()) where id=v_progress.id; end if; return v_progress; end; $function$
+AS $function$ declare v_instance public.quest_instances; v_progress public.quest_objective_progress; v_target integer; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest is not active'; end if; select qo.target_value into v_target from public.quest_objectives qo where qo.id=p_objective_id and qo.quest_id=v_instance.quest_id; if not found then raise exception 'objective does not belong to quest'; end if; insert into public.quest_objective_progress(quest_instance_id,objective_id,progress) values(p_quest_instance_id,p_objective_id,greatest(0,least(p_progress,v_target))) on conflict (quest_instance_id,objective_id) do update set progress=greatest(public.quest_objective_progress.progress,excluded.progress),completed_at=case when excluded.progress >= v_target then coalesce(public.quest_objective_progress.completed_at,now()) else public.quest_objective_progress.completed_at end returning * into v_progress; if v_progress.progress >= v_target then update public.quest_objective_progress set completed_at=coalesce(completed_at,now()) where id=v_progress.id; end if; return v_progress; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_complete(p_quest_instance_id uuid)
@@ -2717,7 +2718,7 @@ CREATE OR REPLACE FUNCTION public.quest_complete(p_quest_instance_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_instance public.quest_instances; v_incomplete integer; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest cannot complete from state %',v_instance.state; end if; select count(*) into v_incomplete from public.quest_objectives qo left join public.quest_objective_progress qp on qp.quest_instance_id=v_instance.id and qp.objective_id=qo.id where qo.quest_id=v_instance.quest_id and coalesce(qp.progress,0) < qo.target_value; if v_incomplete > 0 then raise exception 'quest has % incomplete objectives',v_incomplete; end if; update public.quest_instances set state='COMPLETED',completed_at=coalesce(completed_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; return v_instance; end; $function$
+AS $function$ declare v_instance public.quest_instances; v_incomplete integer; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest cannot complete from state %',v_instance.state; end if; select count(*) into v_incomplete from public.quest_objectives qo left join public.quest_objective_progress qp on qp.quest_instance_id=v_instance.id and qp.objective_id=qo.id where qo.quest_id=v_instance.quest_id and coalesce(qp.progress,0) < qo.target_value; if v_incomplete > 0 then raise exception 'quest has % incomplete objectives',v_incomplete; end if; update public.quest_instances set state='COMPLETED',completed_at=coalesce(completed_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; return v_instance; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_fail(p_quest_instance_id uuid)
@@ -2725,7 +2726,7 @@ CREATE OR REPLACE FUNCTION public.quest_fail(p_quest_instance_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_instance public.quest_instances; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest cannot fail from state %',v_instance.state; end if; update public.quest_instances set state='FAILED',failed_at=coalesce(failed_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; return v_instance; end; $function$
+AS $function$ declare v_instance public.quest_instances; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest cannot fail from state %',v_instance.state; end if; update public.quest_instances set state='FAILED',failed_at=coalesce(failed_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; return v_instance; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_abandon(p_quest_instance_id uuid)
@@ -2733,7 +2734,7 @@ CREATE OR REPLACE FUNCTION public.quest_abandon(p_quest_instance_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_instance public.quest_instances; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest cannot abandon from state %',v_instance.state; end if; update public.quest_instances set state='ABANDONED',abandoned_at=coalesce(abandoned_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; return v_instance; end; $function$
+AS $function$ declare v_instance public.quest_instances; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'ACTIVE' then raise exception 'quest cannot abandon from state %',v_instance.state; end if; update public.quest_instances set state='ABANDONED',abandoned_at=coalesce(abandoned_at,now()),updated_at=now() where id=p_quest_instance_id returning * into v_instance; return v_instance; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_settle_skill_xp(p_quest_instance_id uuid)
@@ -2741,7 +2742,7 @@ CREATE OR REPLACE FUNCTION public.quest_settle_skill_xp(p_quest_instance_id uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$ declare v_instance public.quest_instances; v_reward public.quest_rewards; v_settled integer := 0; v_skill_type text; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'COMPLETED' then raise exception 'quest is not completed'; end if; for v_reward in select qr.* from public.quest_rewards qr where qr.quest_id=v_instance.quest_id and qr.reward_type='skill_xp' order by qr.sort_order,qr.id loop if not exists (select 1 from public.quest_reward_settlements qs where qs.quest_instance_id=v_instance.id and qs.reward_id=v_reward.id) then v_skill_type := coalesce(v_reward.payload->>'skill_type',v_reward.payload->>'skill'); if v_skill_type is null or v_skill_type = '' then raise exception 'skill_xp reward % missing payload.skill_type',v_reward.id; end if; if coalesce(v_reward.amount,0) <= 0 then raise exception 'skill_xp reward % has non-positive amount',v_reward.id; end if; perform public.grant_life_skill_experience(v_instance.life_id,v_skill_type,v_reward.amount,'quest_reward',jsonb_build_object('quest_instance_id',v_instance.id,'quest_reward_id',v_reward.id)); insert into public.quest_reward_settlements(quest_instance_id,reward_id,settlement_ref) values(v_instance.id,v_reward.id,'quest_skill_xp:'||v_reward.id::text); v_settled := v_settled + 1; end if; end loop; return v_settled; end; $function$
+AS $function$ declare v_instance public.quest_instances; v_reward public.quest_rewards; v_settled integer := 0; v_skill_type text; begin select qi.* into v_instance from public.quest_instances qi where qi.id=p_quest_instance_id for update; if not found then raise exception 'quest instance not found'; end if; if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=v_instance.life_id) then raise exception 'not authorized'; end if; if v_instance.state <> 'COMPLETED' then raise exception 'quest is not completed'; end if; for v_reward in select qr.* from public.quest_rewards qr where qr.quest_id=v_instance.quest_id and qr.reward_type='skill_xp' order by qr.sort_order,qr.id loop if not exists (select 1 from public.quest_reward_settlements qs where qs.quest_instance_id=v_instance.id and qs.reward_id=v_reward.id) then v_skill_type := coalesce(v_reward.payload->>'skill_type',v_reward.payload->>'skill'); if v_skill_type is null or v_skill_type = '' then raise exception 'skill_xp reward % missing payload.skill_type',v_reward.id; end if; if coalesce(v_reward.amount,0) <= 0 then raise exception 'skill_xp reward % has non-positive amount',v_reward.id; end if; perform public.grant_life_skill_experience(v_instance.life_id,v_skill_type,v_reward.amount,'quest_reward',jsonb_build_object('quest_instance_id',v_instance.id,'quest_reward_id',v_reward.id)); insert into public.quest_reward_settlements(quest_instance_id,reward_id,settlement_ref) values(v_instance.id,v_reward.id,'quest_skill_xp:'||v_reward.id::text); v_settled := v_settled + 1; end if; end loop; return v_settled; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_can_start(p_quest_instance_id uuid)
@@ -2749,7 +2750,7 @@ CREATE OR REPLACE FUNCTION public.quest_can_start(p_quest_instance_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_quest_id uuid; v_life_id uuid; v_definition_state text; begin select qi.quest_id,qi.life_id,qd.state into v_quest_id,v_life_id,v_definition_state from public.quest_instances qi join public.quest_definitions qd on qd.id=qi.quest_id where qi.id=p_quest_instance_id; if not found or v_definition_state <> 'AVAILABLE' then return false; end if; return not exists (select 1 from public.quest_prerequisites qp where qp.quest_id=v_quest_id and not exists (select 1 from public.quest_instances prior_qi where prior_qi.quest_id=qp.prerequisite_quest_id and prior_qi.life_id=v_life_id and prior_qi.state='COMPLETED')); end; $function$
+AS $function$ declare v_quest_id uuid; v_life_id uuid; v_definition_state text; begin select qi.quest_id,qi.life_id,qd.state into v_quest_id,v_life_id,v_definition_state from public.quest_instances qi join public.quest_definitions qd on qd.id=qi.quest_id where qi.id=p_quest_instance_id; if not found or v_definition_state <> 'AVAILABLE' then return false; end if; return not exists (select 1 from public.quest_prerequisites qp where qp.quest_id=v_quest_id and not exists (select 1 from public.quest_instances prior_qi where prior_qi.quest_id=qp.prerequisite_quest_id and prior_qi.life_id=v_life_id and prior_qi.state='COMPLETED')); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_create_instance(p_quest_id uuid, p_life_id uuid)
@@ -2757,7 +2758,7 @@ CREATE OR REPLACE FUNCTION public.quest_create_instance(p_quest_id uuid, p_life_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_instance public.quest_instances; begin if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_life_id) then raise exception 'not authorized'; end if; if not exists (select 1 from public.quest_definitions q where q.id=p_quest_id and q.state='AVAILABLE') then raise exception 'quest definition is not available'; end if; if not public.quest_can_start(p_quest_id,p_life_id) then raise exception 'quest prerequisites not met'; end if; insert into public.quest_instances(quest_id,life_id,state) values(p_quest_id,p_life_id,'AVAILABLE') on conflict (quest_id,life_id) do update set updated_at=now() returning * into v_instance; return v_instance; end; $function$
+AS $function$ declare v_instance public.quest_instances; begin if not exists (select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_life_id) then raise exception 'not authorized'; end if; if not exists (select 1 from public.quest_definitions q where q.id=p_quest_id and q.state='AVAILABLE') then raise exception 'quest definition is not available'; end if; if not public.quest_can_start(p_quest_id,p_life_id) then raise exception 'quest prerequisites not met'; end if; insert into public.quest_instances(quest_id,life_id,state) values(p_quest_id,p_life_id,'AVAILABLE') on conflict (quest_id,life_id) do update set updated_at=now() returning * into v_instance; return v_instance; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.quest_can_start(p_quest_id uuid, p_life_id uuid)
@@ -2765,7 +2766,7 @@ CREATE OR REPLACE FUNCTION public.quest_can_start(p_quest_id uuid, p_life_id uui
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ declare v_definition_state text; begin select qd.state into v_definition_state from public.quest_definitions qd where qd.id=p_quest_id; if not found or v_definition_state <> 'AVAILABLE' then return false; end if; return not exists (select 1 from public.quest_prerequisites qp where qp.quest_id=p_quest_id and not exists (select 1 from public.quest_instances prior_qi where prior_qi.quest_id=qp.prerequisite_quest_id and prior_qi.life_id=p_life_id and prior_qi.state='COMPLETED')); end; $function$
+AS $function$ declare v_definition_state text; begin select qd.state into v_definition_state from public.quest_definitions qd where qd.id=p_quest_id; if not found or v_definition_state <> 'AVAILABLE' then return false; end if; return not exists (select 1 from public.quest_prerequisites qp where qp.quest_id=p_quest_id and not exists (select 1 from public.quest_instances prior_qi where prior_qi.quest_id=qp.prerequisite_quest_id and prior_qi.life_id=p_life_id and prior_qi.state='COMPLETED')); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_dialogue_choices_for_session(p_session_id uuid)
@@ -2808,7 +2809,7 @@ begin
     v_session.initiator_entity_id
   ) r;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_building_instance(p_building_id uuid)
@@ -2844,7 +2845,7 @@ begin
   update public.building_instances set validation_status=case when jsonb_array_length(errors)>0 then 'invalid' when jsonb_array_length(warnings)>0 then 'warning' else 'valid' end, validation_errors=errors, validation_warnings=warnings, updated_at=now() where id=b.id;
   return jsonb_build_object('valid',jsonb_array_length(errors)=0,'errors',errors,'warnings',warnings);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.place_building_on_map(p_map_id uuid, p_building_id uuid, p_layer_id uuid)
@@ -2865,14 +2866,14 @@ begin
  return jsonb_build_object('ok',true,'placement_id',p.id,'occupied_cells',b.width*b.height);
 exception when unique_violation then return jsonb_build_object('ok',false,'code','PLACEMENT_COLLISION');
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.compute_terrain_neighbor_mask(p_map_id uuid, p_grid_x integer, p_grid_y integer, p_terrain_key text)
  RETURNS integer
  LANGUAGE sql
  SET search_path TO 'public'
-AS $function$ select (case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x and c.grid_y=p_grid_y-1 and c.metadata->>'terrain_key'=p_terrain_key) then 1 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x+1 and c.grid_y=p_grid_y and c.metadata->>'terrain_key'=p_terrain_key) then 2 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x and c.grid_y=p_grid_y+1 and c.metadata->>'terrain_key'=p_terrain_key) then 4 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x-1 and c.grid_y=p_grid_y and c.metadata->>'terrain_key'=p_terrain_key) then 8 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x+1 and c.grid_y=p_grid_y-1 and c.metadata->>'terrain_key'=p_terrain_key) then 16 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x+1 and c.grid_y=p_grid_y+1 and c.metadata->>'terrain_key'=p_terrain_key) then 32 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x-1 and c.grid_y=p_grid_y+1 and c.metadata->>'terrain_key'=p_terrain_key) then 64 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x-1 and c.grid_y=p_grid_y-1 and c.metadata->>'terrain_key'=p_terrain_key) then 128 else 0 end); $function$
+AS $function$ select (case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x and c.grid_y=p_grid_y-1 and c.metadata->>'terrain_key'=p_terrain_key) then 1 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x+1 and c.grid_y=p_grid_y and c.metadata->>'terrain_key'=p_terrain_key) then 2 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x and c.grid_y=p_grid_y+1 and c.metadata->>'terrain_key'=p_terrain_key) then 4 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x-1 and c.grid_y=p_grid_y and c.metadata->>'terrain_key'=p_terrain_key) then 8 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x+1 and c.grid_y=p_grid_y-1 and c.metadata->>'terrain_key'=p_terrain_key) then 16 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x+1 and c.grid_y=p_grid_y+1 and c.metadata->>'terrain_key'=p_terrain_key) then 32 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x-1 and c.grid_y=p_grid_y+1 and c.metadata->>'terrain_key'=p_terrain_key) then 64 else 0 end)|(case when exists(select 1 from public.map_cells c where c.map_id=p_map_id and c.grid_x=p_grid_x-1 and c.grid_y=p_grid_y-1 and c.metadata->>'terrain_key'=p_terrain_key) then 128 else 0 end); $function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_terrain_variant(p_terrain_type_id uuid, p_neighbor_mask integer, p_season text DEFAULT NULL::text)
@@ -2922,14 +2923,14 @@ begin
 
   return jsonb_build_object('resolved',false,'code','NO_RULE_AVAILABLE','neighbor_mask',p_neighbor_mask);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.approve_terrain_asset_binding(p_candidate_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_catalog'
-AS $function$ declare c public.asset_binding_candidates%rowtype; a public.asset_registry%rowtype; begin select * into c from public.asset_binding_candidates where id=p_candidate_id; if not found then return jsonb_build_object('ok',false,'code','CANDIDATE_NOT_FOUND'); end if; if c.candidate_status <> 'approved' then return jsonb_build_object('ok',false,'code','CANDIDATE_NOT_APPROVED'); end if; select * into a from public.asset_registry where id=c.asset_id; if not found then return jsonb_build_object('ok',false,'code','ASSET_NOT_FOUND'); end if; if a.status <> 'approved' then return jsonb_build_object('ok',false,'code','ASSET_NOT_LEGAL'); end if; if c.terrain_type_id is null or c.transition_type is null or c.neighbor_mask is null then return jsonb_build_object('ok',false,'code','INCOMPLETE_BINDING'); end if; insert into public.terrain_transition_rules(terrain_type_id,neighbor_mask,transition_type,variant_key,season,asset_id,metadata) values(c.terrain_type_id,c.neighbor_mask,c.transition_type,'binding:'||c.id,c.season,c.asset_id,c.evidence) on conflict(terrain_type_id,neighbor_mask,season) do update set transition_type=excluded.transition_type,variant_key=excluded.variant_key,asset_id=excluded.asset_id,metadata=excluded.metadata; return jsonb_build_object('ok',true,'rule_created',true,'candidate_id',c.id,'asset_id',c.asset_id,'neighbor_mask',c.neighbor_mask,'season',c.season); end; $function$
+AS $function$ declare c public.asset_binding_candidates%rowtype; a public.asset_registry%rowtype; begin select * into c from public.asset_binding_candidates where id=p_candidate_id; if not found then return jsonb_build_object('ok',false,'code','CANDIDATE_NOT_FOUND'); end if; if c.candidate_status <> 'approved' then return jsonb_build_object('ok',false,'code','CANDIDATE_NOT_APPROVED'); end if; select * into a from public.asset_registry where id=c.asset_id; if not found then return jsonb_build_object('ok',false,'code','ASSET_NOT_FOUND'); end if; if a.status <> 'approved' then return jsonb_build_object('ok',false,'code','ASSET_NOT_LEGAL'); end if; if c.terrain_type_id is null or c.transition_type is null or c.neighbor_mask is null then return jsonb_build_object('ok',false,'code','INCOMPLETE_BINDING'); end if; insert into public.terrain_transition_rules(terrain_type_id,neighbor_mask,transition_type,variant_key,season,asset_id,metadata) values(c.terrain_type_id,c.neighbor_mask,c.transition_type,'binding:'||c.id,c.season,c.asset_id,c.evidence) on conflict(terrain_type_id,neighbor_mask,season) do update set transition_type=excluded.transition_type,variant_key=excluded.variant_key,asset_id=excluded.asset_id,metadata=excluded.metadata; return jsonb_build_object('ok',true,'rule_created',true,'candidate_id',c.id,'asset_id',c.asset_id,'neighbor_mask',c.neighbor_mask,'season',c.season); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_dungeon_structural_variant(p_neighbor_mask integer)
@@ -2972,7 +2973,7 @@ begin
   end if;
   return jsonb_build_object('resolved',false,'code','NO_VERIFIED_RULE_AVAILABLE','neighbor_mask',p_neighbor_mask);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_dungeon_structural_variant(p_neighbor_mask integer, p_structural_role text DEFAULT NULL::text)
@@ -2991,7 +2992,7 @@ begin
  limit 1;
  if found then return jsonb_build_object('resolved',true,'match','exact','asset_id',r.asset_id,'variant_key',r.variant_key,'structural_role',r.structural_role,'neighbor_mask',r.neighbor_mask,'confidence',r.confidence); end if;
  return jsonb_build_object('resolved',false,'code','NO_VERIFIED_RULE','neighbor_mask',p_neighbor_mask,'structural_role',p_structural_role);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.generate_dungeon_corridor(p_map_id uuid, p_from_room_id uuid, p_to_room_id uuid, p_width integer DEFAULT 1)
@@ -3013,7 +3014,7 @@ begin
  openings:=jsonb_build_array(jsonb_build_object('room_id',p_from_room_id,'x',sx,'y',sy),jsonb_build_object('room_id',p_to_room_id,'x',ex,'y',ey));
  insert into public.dungeon_corridors(map_id,from_room_id,to_room_id,width,path,openings,metadata) values(p_map_id,p_from_room_id,p_to_room_id,p_width,pts,openings,jsonb_build_object('algorithm','orthogonal_center_l','version',1)) returning id into cid;
  return jsonb_build_object('ok',true,'corridor_id',cid,'path',pts,'openings',openings);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_dungeon_corridor(p_corridor_id uuid)
@@ -3031,35 +3032,35 @@ begin
  end loop;
  update public.dungeon_corridors set status='generated',updated_at=now() where id=p_corridor_id;
  return jsonb_build_object('ok',true,'corridor_id',p_corridor_id,'cells_opened',changed);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.apply_dungeon_room_connection(p_connection_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare c public.dungeon_connections%rowtype;r1 public.dungeon_rooms%rowtype;r2 public.dungeon_rooms%rowtype;x integer;y integer;minx integer;maxx integer;miny integer;maxy integer;changed integer:=0;oid uuid;begin select * into c from public.dungeon_connections where id=p_connection_id for update;if not found then return jsonb_build_object('ok',false,'code','CONNECTION_NOT_FOUND');end if;if not exists(select 1 from public.maps where id=c.map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED');end if;if c.status='applied' then return jsonb_build_object('ok',true,'code','ALREADY_APPLIED','connection_id',c.id,'corridor_id',c.corridor_id);end if;select * into r1 from public.dungeon_rooms where id=c.from_room_id;select * into r2 from public.dungeon_rooms where id=c.to_room_id;if r1.map_id<>r2.map_id or r1.map_id<>c.map_id then update public.dungeon_connections set status='invalid',updated_at=now() where id=c.id;return jsonb_build_object('ok',false,'code','MAP_MISMATCH');end if;if c.from_side in ('east','west') then minx:=least(c.from_x,c.to_x);maxx:=greatest(c.from_x,c.to_x);for x in minx..maxx loop for y in greatest(least(c.from_y,c.to_y)-((c.opening_width-1)/2),least(r1.origin_y,r2.origin_y))..least(greatest(c.from_y,c.to_y)+((c.opening_width-1)/2),greatest(r1.origin_y+r1.height-1,r2.origin_y+r2.height-1)) loop insert into public.map_cells(map_id,grid_x,grid_y,collision,walkable,metadata) values(c.map_id,x,y,false,true,jsonb_build_object('dungeon_connector',c.id,'connection_apply','v1')) on conflict(map_id,grid_x,grid_y) do update set collision=false,walkable=true,metadata=public.map_cells.metadata||excluded.metadata;changed:=changed+1;end loop;end loop;else miny:=least(c.from_y,c.to_y);maxy:=greatest(c.from_y,c.to_y);for y in miny..maxy loop for x in greatest(least(c.from_x,c.to_x)-((c.opening_width-1)/2),least(r1.origin_x,r2.origin_x))..least(greatest(c.from_x,c.to_x)+((c.opening_width-1)/2),greatest(r1.origin_x+r1.width-1,r2.origin_x+r2.width-1)) loop insert into public.map_cells(map_id,grid_x,grid_y,collision,walkable,metadata) values(c.map_id,x,y,false,true,jsonb_build_object('dungeon_connector',c.id,'connection_apply','v1')) on conflict(map_id,grid_x,grid_y) do update set collision=false,walkable=true,metadata=public.map_cells.metadata||excluded.metadata;changed:=changed+1;end loop;end loop;end if;insert into public.dungeon_openings(map_id,room_id,x,y,opening_type,direction,width,state,is_walkable,blocks_when_closed,metadata) values(c.map_id,c.from_room_id,c.from_x,c.from_y,'corridor',c.from_side,c.opening_width,'open',true,true,jsonb_build_object('connection_id',c.id,'endpoint','from')) returning id into oid;insert into public.dungeon_openings(map_id,room_id,x,y,opening_type,direction,width,state,is_walkable,blocks_when_closed,metadata) values(c.map_id,c.to_room_id,c.to_x,c.to_y,'corridor',c.to_side,c.opening_width,'open',true,true,jsonb_build_object('connection_id',c.id,'endpoint','to'));update public.dungeon_connections set status='applied',updated_at=now() where id=c.id;return jsonb_build_object('ok',true,'connection_id',c.id,'cells_changed',changed,'openings_created',2,'status','applied');exception when others then update public.dungeon_connections set status='invalid',updated_at=now(),metadata=metadata||jsonb_build_object('apply_error',sqlerrm) where id=c.id;return jsonb_build_object('ok',false,'code','APPLY_FAILED','error',sqlerrm);end; $function$
+AS $function$ declare c public.dungeon_connections%rowtype;r1 public.dungeon_rooms%rowtype;r2 public.dungeon_rooms%rowtype;x integer;y integer;minx integer;maxx integer;miny integer;maxy integer;changed integer:=0;oid uuid;begin select * into c from public.dungeon_connections where id=p_connection_id for update;if not found then return jsonb_build_object('ok',false,'code','CONNECTION_NOT_FOUND');end if;if not exists(select 1 from public.maps where id=c.map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED');end if;if c.status='applied' then return jsonb_build_object('ok',true,'code','ALREADY_APPLIED','connection_id',c.id,'corridor_id',c.corridor_id);end if;select * into r1 from public.dungeon_rooms where id=c.from_room_id;select * into r2 from public.dungeon_rooms where id=c.to_room_id;if r1.map_id<>r2.map_id or r1.map_id<>c.map_id then update public.dungeon_connections set status='invalid',updated_at=now() where id=c.id;return jsonb_build_object('ok',false,'code','MAP_MISMATCH');end if;if c.from_side in ('east','west') then minx:=least(c.from_x,c.to_x);maxx:=greatest(c.from_x,c.to_x);for x in minx..maxx loop for y in greatest(least(c.from_y,c.to_y)-((c.opening_width-1)/2),least(r1.origin_y,r2.origin_y))..least(greatest(c.from_y,c.to_y)+((c.opening_width-1)/2),greatest(r1.origin_y+r1.height-1,r2.origin_y+r2.height-1)) loop insert into public.map_cells(map_id,grid_x,grid_y,collision,walkable,metadata) values(c.map_id,x,y,false,true,jsonb_build_object('dungeon_connector',c.id,'connection_apply','v1')) on conflict(map_id,grid_x,grid_y) do update set collision=false,walkable=true,metadata=public.map_cells.metadata||excluded.metadata;changed:=changed+1;end loop;end loop;else miny:=least(c.from_y,c.to_y);maxy:=greatest(c.from_y,c.to_y);for y in miny..maxy loop for x in greatest(least(c.from_x,c.to_x)-((c.opening_width-1)/2),least(r1.origin_x,r2.origin_x))..least(greatest(c.from_x,c.to_x)+((c.opening_width-1)/2),greatest(r1.origin_x+r1.width-1,r2.origin_x+r2.width-1)) loop insert into public.map_cells(map_id,grid_x,grid_y,collision,walkable,metadata) values(c.map_id,x,y,false,true,jsonb_build_object('dungeon_connector',c.id,'connection_apply','v1')) on conflict(map_id,grid_x,grid_y) do update set collision=false,walkable=true,metadata=public.map_cells.metadata||excluded.metadata;changed:=changed+1;end loop;end loop;end if;insert into public.dungeon_openings(map_id,room_id,x,y,opening_type,direction,width,state,is_walkable,blocks_when_closed,metadata) values(c.map_id,c.from_room_id,c.from_x,c.from_y,'corridor',c.from_side,c.opening_width,'open',true,true,jsonb_build_object('connection_id',c.id,'endpoint','from')) returning id into oid;insert into public.dungeon_openings(map_id,room_id,x,y,opening_type,direction,width,state,is_walkable,blocks_when_closed,metadata) values(c.map_id,c.to_room_id,c.to_x,c.to_y,'corridor',c.to_side,c.opening_width,'open',true,true,jsonb_build_object('connection_id',c.id,'endpoint','to'));update public.dungeon_connections set status='applied',updated_at=now() where id=c.id;return jsonb_build_object('ok',true,'connection_id',c.id,'cells_changed',changed,'openings_created',2,'status','applied');exception when others then update public.dungeon_connections set status='invalid',updated_at=now(),metadata=metadata||jsonb_build_object('apply_error',sqlerrm) where id=c.id;return jsonb_build_object('ok',false,'code','APPLY_FAILED','error',sqlerrm);end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_dungeon_room_connection(p_connection_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare c public.dungeon_connections%rowtype; r1 public.dungeon_rooms%rowtype; r2 public.dungeon_rooms%rowtype; bad_cells integer:=0; bad_openings integer:=0; connected_cells integer:=0; total_cells integer:=0; x integer; y integer; minx integer; maxx integer; miny integer; maxy integer; exists_cell boolean; begin select * into c from public.dungeon_connections where id=p_connection_id; if not found then return jsonb_build_object('ok',false,'code','CONNECTION_NOT_FOUND'); end if; if not exists(select 1 from public.maps where id=c.map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; select * into r1 from public.dungeon_rooms where id=c.from_room_id; select * into r2 from public.dungeon_rooms where id=c.to_room_id; if c.status<>'applied' then return jsonb_build_object('ok',false,'code','CONNECTION_NOT_APPLIED','status',c.status); end if; if c.from_side in ('east','west') then minx:=least(c.from_x,c.to_x); maxx:=greatest(c.from_x,c.to_x); miny:=least(c.from_y,c.to_y)-((c.opening_width-1)/2); maxy:=greatest(c.from_y,c.to_y)+((c.opening_width-1)/2); for x in minx..maxx loop for y in miny..maxy loop total_cells:=total_cells+1; select exists(select 1 from public.map_cells mc where mc.map_id=c.map_id and mc.x=x and mc.y=y and mc.walkable=true and mc.collision=false) into exists_cell; if exists_cell then connected_cells:=connected_cells+1; else bad_cells:=bad_cells+1; end if; end loop; end loop; else miny:=least(c.from_y,c.to_y); maxy:=greatest(c.from_y,c.to_y); minx:=least(c.from_x,c.to_x)-((c.opening_width-1)/2); maxx:=greatest(c.from_x,c.to_x)+((c.opening_width-1)/2); for y in miny..maxy loop for x in minx..maxx loop total_cells:=total_cells+1; select exists(select 1 from public.map_cells mc where mc.map_id=c.map_id and mc.x=x and mc.y=y and mc.walkable=true and mc.collision=false) into exists_cell; if exists_cell then connected_cells:=connected_cells+1; else bad_cells:=bad_cells+1; end if; end loop; end loop; end if; select count(*) into bad_openings from public.dungeon_openings o where o.metadata->>'connection_id'=c.id::text and (o.is_walkable=false or o.x is null or o.y is null); return jsonb_build_object('ok',bad_cells=0 and bad_openings=0,'connection_id',c.id,'status',case when bad_cells=0 and bad_openings=0 then 'valid' else 'invalid' end,'total_connector_cells',total_cells,'walkable_connector_cells',connected_cells,'bad_cells',bad_cells,'bad_openings',bad_openings); end; $function$
+AS $function$ declare c public.dungeon_connections%rowtype; r1 public.dungeon_rooms%rowtype; r2 public.dungeon_rooms%rowtype; bad_cells integer:=0; bad_openings integer:=0; connected_cells integer:=0; total_cells integer:=0; x integer; y integer; minx integer; maxx integer; miny integer; maxy integer; exists_cell boolean; begin select * into c from public.dungeon_connections where id=p_connection_id; if not found then return jsonb_build_object('ok',false,'code','CONNECTION_NOT_FOUND'); end if; if not exists(select 1 from public.maps where id=c.map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; select * into r1 from public.dungeon_rooms where id=c.from_room_id; select * into r2 from public.dungeon_rooms where id=c.to_room_id; if c.status<>'applied' then return jsonb_build_object('ok',false,'code','CONNECTION_NOT_APPLIED','status',c.status); end if; if c.from_side in ('east','west') then minx:=least(c.from_x,c.to_x); maxx:=greatest(c.from_x,c.to_x); miny:=least(c.from_y,c.to_y)-((c.opening_width-1)/2); maxy:=greatest(c.from_y,c.to_y)+((c.opening_width-1)/2); for x in minx..maxx loop for y in miny..maxy loop total_cells:=total_cells+1; select exists(select 1 from public.map_cells mc where mc.map_id=c.map_id and mc.x=x and mc.y=y and mc.walkable=true and mc.collision=false) into exists_cell; if exists_cell then connected_cells:=connected_cells+1; else bad_cells:=bad_cells+1; end if; end loop; end loop; else miny:=least(c.from_y,c.to_y); maxy:=greatest(c.from_y,c.to_y); minx:=least(c.from_x,c.to_x)-((c.opening_width-1)/2); maxx:=greatest(c.from_x,c.to_x)+((c.opening_width-1)/2); for y in miny..maxy loop for x in minx..maxx loop total_cells:=total_cells+1; select exists(select 1 from public.map_cells mc where mc.map_id=c.map_id and mc.x=x and mc.y=y and mc.walkable=true and mc.collision=false) into exists_cell; if exists_cell then connected_cells:=connected_cells+1; else bad_cells:=bad_cells+1; end if; end loop; end loop; end if; select count(*) into bad_openings from public.dungeon_openings o where o.metadata->>'connection_id'=c.id::text and (o.is_walkable=false or o.x is null or o.y is null); return jsonb_build_object('ok',bad_cells=0 and bad_openings=0,'connection_id',c.id,'status',case when bad_cells=0 and bad_openings=0 then 'valid' else 'invalid' end,'total_connector_cells',total_cells,'walkable_connector_cells',connected_cells,'bad_cells',bad_cells,'bad_openings',bad_openings); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_dungeon_map_connections(p_map_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare rec record; result jsonb:='[]'::jsonb; invalid_count integer:=0; r jsonb; begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; for rec in select id from public.dungeon_connections where map_id=p_map_id order by created_at loop r:=public.validate_dungeon_room_connection(rec.id); result:=result||jsonb_build_array(r); if coalesce((r->>'ok')::boolean,false)=false then invalid_count:=invalid_count+1; end if; end loop; return jsonb_build_object('ok',invalid_count=0,'map_id',p_map_id,'connections_checked',jsonb_array_length(result),'invalid_connections',invalid_count,'results',result); end; $function$
+AS $function$ declare rec record; result jsonb:='[]'::jsonb; invalid_count integer:=0; r jsonb; begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; for rec in select id from public.dungeon_connections where map_id=p_map_id order by created_at loop r:=public.validate_dungeon_room_connection(rec.id); result:=result||jsonb_build_array(r); if coalesce((r->>'ok')::boolean,false)=false then invalid_count:=invalid_count+1; end if; end loop; return jsonb_build_object('ok',invalid_count=0,'map_id',p_map_id,'connections_checked',jsonb_array_length(result),'invalid_connections',invalid_count,'results',result); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.plan_dungeon_pathfinding(p_map_id uuid, p_start_x integer, p_start_y integer, p_goal_x integer, p_goal_y integer)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare rid uuid; start_open boolean; goal_open boolean; begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; select exists(select 1 from public.map_cells where map_id=p_map_id and x=p_start_x and y=p_start_y and walkable=true and collision=false) into start_open; select exists(select 1 from public.map_cells where map_id=p_map_id and x=p_goal_x and y=p_goal_y and walkable=true and collision=false) into goal_open; if not start_open then return jsonb_build_object('ok',false,'code','START_BLOCKED'); end if; if not goal_open then return jsonb_build_object('ok',false,'code','GOAL_BLOCKED'); end if; insert into public.dungeon_pathfinding_runs(map_id,start_x,start_y,goal_x,goal_y,status,metadata) values(p_map_id,p_start_x,p_start_y,p_goal_x,p_goal_y,'planned',jsonb_build_object('mode','obstacle-aware','note','A* path computation is application-side; database stores auditable run state')) returning id into rid; return jsonb_build_object('ok',true,'run_id',rid,'algorithm','astar_v1','status','planned'); end; $function$
+AS $function$ declare rid uuid; start_open boolean; goal_open boolean; begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; select exists(select 1 from public.map_cells where map_id=p_map_id and x=p_start_x and y=p_start_y and walkable=true and collision=false) into start_open; select exists(select 1 from public.map_cells where map_id=p_map_id and x=p_goal_x and y=p_goal_y and walkable=true and collision=false) into goal_open; if not start_open then return jsonb_build_object('ok',false,'code','START_BLOCKED'); end if; if not goal_open then return jsonb_build_object('ok',false,'code','GOAL_BLOCKED'); end if; insert into public.dungeon_pathfinding_runs(map_id,start_x,start_y,goal_x,goal_y,status,metadata) values(p_map_id,p_start_x,p_start_y,p_goal_x,p_goal_y,'planned',jsonb_build_object('mode','obstacle-aware','note','A* path computation is application-side; database stores auditable run state')) returning id into rid; return jsonb_build_object('ok',true,'run_id',rid,'algorithm','astar_v1','status','planned'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.sync_dungeon_navigation_cell(p_map_id uuid, p_x integer, p_y integer)
@@ -3078,14 +3079,14 @@ begin
  w:=coalesce(mc.walkable,false); col:=coalesce(mc.collision,true);
  insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,room_id,corridor_id,opening_id,metadata) values(p_map_id,p_x,p_y,ctype,w,col,rid,cid,oid,jsonb_build_object('sync_source','map_cells','version','v1')) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,room_id=excluded.room_id,corridor_id=excluded.corridor_id,opening_id=excluded.opening_id,metadata=excluded.metadata,updated_at=now();
  return jsonb_build_object('ok',true,'map_id',p_map_id,'x',p_x,'y',p_y,'cell_type',ctype,'walkable',w,'collision',col);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.sync_dungeon_navigation_batch(p_map_id uuid, p_min_x integer, p_min_y integer, p_max_x integer, p_max_y integer)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare x integer;y integer;n integer:=0;res jsonb:='[]'::jsonb;r jsonb;begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; if p_min_x>p_max_x or p_min_y>p_max_y then return jsonb_build_object('ok',false,'code','INVALID_BOUNDS'); end if; for x in p_min_x..p_max_x loop for y in p_min_y..p_max_y loop r:=public.sync_dungeon_navigation_cell(p_map_id,x,y); res:=res||jsonb_build_array(r); n:=n+1; end loop; end loop; return jsonb_build_object('ok',true,'map_id',p_map_id,'cells_synced',n,'results',res); end; $function$
+AS $function$ declare x integer;y integer;n integer:=0;res jsonb:='[]'::jsonb;r jsonb;begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if; if p_min_x>p_max_x or p_min_y>p_max_y then return jsonb_build_object('ok',false,'code','INVALID_BOUNDS'); end if; for x in p_min_x..p_max_x loop for y in p_min_y..p_max_y loop r:=public.sync_dungeon_navigation_cell(p_map_id,x,y); res:=res||jsonb_build_array(r); n:=n+1; end loop; end loop; return jsonb_build_object('ok',true,'map_id',p_map_id,'cells_synced',n,'results',res); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_navigation_obstacle(p_map_id uuid, p_x integer, p_y integer, p_layer integer, p_obstacle_type text, p_blocks_movement boolean DEFAULT true, p_blocks_los boolean DEFAULT false, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -3096,142 +3097,142 @@ declare oid uuid;begin
  insert into public.map_navigation_obstacles(map_id,x,y,layer,obstacle_type,blocks_movement,blocks_los,metadata) values(p_map_id,p_x,p_y,p_layer,p_obstacle_type,p_blocks_movement,p_blocks_los,coalesce(p_metadata,'{}'::jsonb)) on conflict(map_id,x,y,layer) do update set obstacle_type=excluded.obstacle_type,blocks_movement=excluded.blocks_movement,blocks_los=excluded.blocks_los,metadata=excluded.metadata,updated_at=now() returning id into oid;
  update public.map_navigation_cells set collision=p_blocks_movement,walkable=case when p_blocks_movement then false else walkable end,metadata=metadata||jsonb_build_object('obstacle_id',oid) where map_id=p_map_id and x=p_x and y=p_y and layer=p_layer;
  return jsonb_build_object('ok',true,'obstacle_id',oid,'map_id',p_map_id,'x',p_x,'y',p_y,'layer',p_layer);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.remove_navigation_obstacle(p_map_id uuid, p_x integer, p_y integer, p_layer integer)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-begin delete from public.map_navigation_obstacles where map_id=p_map_id and x=p_x and y=p_y and layer=p_layer; update public.map_navigation_cells set collision=false,walkable=true,metadata=metadata-'obstacle_id' where map_id=p_map_id and x=p_x and y=p_y and layer=p_layer; return jsonb_build_object('ok',true); end; $function$
+begin delete from public.map_navigation_obstacles where map_id=p_map_id and x=p_x and y=p_y and layer=p_layer; update public.map_navigation_cells set collision=false,walkable=true,metadata=metadata-'obstacle_id' where map_id=p_map_id and x=p_x and y=p_y and layer=p_layer; return jsonb_build_object('ok',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_map_object(p_map_id uuid, p_asset_id uuid, p_object_type text, p_x numeric, p_y numeric, p_width integer DEFAULT 1, p_height integer DEFAULT 1, p_rotation numeric DEFAULT 0, p_layer_id uuid DEFAULT NULL::uuid, p_z_index integer DEFAULT 0, p_blocks_movement boolean DEFAULT false, p_blocks_los boolean DEFAULT false, p_footprint jsonb DEFAULT '[{"x": 0, "y": 0}]'::jsonb, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_create_object_leaf_v1(p_map_id,p_asset_id,p_object_type,p_x,p_y,p_width,p_height,p_rotation,p_layer_id,p_z_index,p_blocks_movement,p_blocks_los,p_footprint,p_metadata); end; $function$
+AS $function$ begin return public.editor_create_object_leaf_v1(p_map_id,p_asset_id,p_object_type,p_x,p_y,p_width,p_height,p_rotation,p_layer_id,p_z_index,p_blocks_movement,p_blocks_los,p_footprint,p_metadata); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.delete_map_object(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_mutation_gateway_v1('delete',p_object_id); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('delete',p_object_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_object_transform(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_z_index integer DEFAULT NULL::integer, p_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare v jsonb; begin v:=public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,null,null,p_layer_id); if not (v->>'ok')::boolean then return v; end if; if p_z_index is not null then update public.map_objects set z_index=p_z_index,updated_at=now() where id=p_object_id; end if; return v||jsonb_build_object('z_index',p_z_index); end; $function$
+declare v jsonb; begin v:=public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,null,null,p_layer_id); if not (v->>'ok')::boolean then return v; end if; if p_z_index is not null then update public.map_objects set z_index=p_z_index,updated_at=now() where id=p_object_id; end if; return v||jsonb_build_object('z_index',p_z_index); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.sync_map_object_footprint(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare o public.map_objects%rowtype; f jsonb; ax integer; ay integer; tx integer; ty integer; touched integer:=0; r jsonb; seen jsonb:='[]'::jsonb; rot integer; sx numeric; sy numeric; fx numeric; fy numeric; layer_z integer; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; select z_index into layer_z from public.map_layers where id=o.layer_id; rot:=mod(round(o.rotation)::integer+360,360); sx:=coalesce(o.scale_x,1); sy:=coalesce(o.scale_y,1); for f in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop fx:=coalesce((f->>'x')::numeric,0)*sx; fy:=coalesce((f->>'y')::numeric,0)*sy; case rot when 90 then tx:=round(o.x-fy)::integer; ty:=round(o.y+fx)::integer; when 180 then tx:=round(o.x-fx)::integer; ty:=round(o.y-fy)::integer; when 270 then tx:=round(o.x+fy)::integer; ty:=round(o.y-fx)::integer; else tx:=round(o.x+fx)::integer; ty:=round(o.y+fy)::integer; end case; if not (seen @> jsonb_build_array(jsonb_build_object('x',tx,'y',ty))) then r:=public.refresh_map_navigation_cell_v1(o.map_id,tx,ty,o.id); if not coalesce((r->>'ok')::boolean,false) then return r||jsonb_build_object('object_id',o.id); end if; insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(o.map_id,tx,ty,'obstacle',false,true,coalesce(layer_z,0),jsonb_build_object('object_id',o.id,'sync_source','map_object_footprint_v2')) on conflict(map_id,x,y) do update set cell_type='obstacle',walkable=false,collision=true,layer=excluded.layer,metadata=coalesce(public.map_navigation_cells.metadata,'{}'::jsonb)||jsonb_build_object('object_id',o.id,'sync_source','map_object_footprint_v2'),updated_at=now(); seen:=seen||jsonb_build_array(jsonb_build_object('x',tx,'y',ty)); touched:=touched+1; end if; end loop; return jsonb_build_object('ok',true,'object_id',o.id,'cells_synced',touched,'rotation',rot,'scale_x',sx,'scale_y',sy); end; $function$
+AS $function$ declare o public.map_objects%rowtype; f jsonb; ax integer; ay integer; tx integer; ty integer; touched integer:=0; r jsonb; seen jsonb:='[]'::jsonb; rot integer; sx numeric; sy numeric; fx numeric; fy numeric; layer_z integer; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; select z_index into layer_z from public.map_layers where id=o.layer_id; rot:=mod(round(o.rotation)::integer+360,360); sx:=coalesce(o.scale_x,1); sy:=coalesce(o.scale_y,1); for f in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop fx:=coalesce((f->>'x')::numeric,0)*sx; fy:=coalesce((f->>'y')::numeric,0)*sy; case rot when 90 then tx:=round(o.x-fy)::integer; ty:=round(o.y+fx)::integer; when 180 then tx:=round(o.x-fx)::integer; ty:=round(o.y-fy)::integer; when 270 then tx:=round(o.x+fy)::integer; ty:=round(o.y-fx)::integer; else tx:=round(o.x+fx)::integer; ty:=round(o.y+fy)::integer; end case; if not (seen @> jsonb_build_array(jsonb_build_object('x',tx,'y',ty))) then r:=public.refresh_map_navigation_cell_v1(o.map_id,tx,ty,o.id); if not coalesce((r->>'ok')::boolean,false) then return r||jsonb_build_object('object_id',o.id); end if; insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(o.map_id,tx,ty,'obstacle',false,true,coalesce(layer_z,0),jsonb_build_object('object_id',o.id,'sync_source','map_object_footprint_v2')) on conflict(map_id,x,y) do update set cell_type='obstacle',walkable=false,collision=true,layer=excluded.layer,metadata=coalesce(public.map_navigation_cells.metadata,'{}'::jsonb)||jsonb_build_object('object_id',o.id,'sync_source','map_object_footprint_v2'),updated_at=now(); seen:=seen||jsonb_build_array(jsonb_build_object('x',tx,'y',ty)); touched:=touched+1; end if; end loop; return jsonb_build_object('ok',true,'object_id',o.id,'cells_synced',touched,'rotation',rot,'scale_x',sx,'scale_y',sy); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.remove_map_object_footprint(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare o public.map_objects%rowtype; f jsonb; ax integer; ay integer; refreshed integer:=0; r jsonb; seen jsonb:='[]'::jsonb; rot integer; sx numeric; sy numeric; fx numeric; fy numeric; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; rot:=mod(round(o.rotation)::integer+360,360); sx:=coalesce(o.scale_x,1); sy:=coalesce(o.scale_y,1); for f in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop fx:=coalesce((f->>'x')::numeric,0)*sx; fy:=coalesce((f->>'y')::numeric,0)*sy; case rot when 90 then ax:=round(o.x-fy)::integer; ay:=round(o.y+fx)::integer; when 180 then ax:=round(o.x-fx)::integer; ay:=round(o.y-fy)::integer; when 270 then ax:=round(o.x+fy)::integer; ay:=round(o.y-fx)::integer; else ax:=round(o.x+fx)::integer; ay:=round(o.y+fy)::integer; end case; if not (seen @> jsonb_build_array(jsonb_build_object('x',ax,'y',ay))) then r:=public.refresh_map_navigation_cell_v1(o.map_id,ax,ay,o.id); if not coalesce((r->>'ok')::boolean,false) then return r||jsonb_build_object('object_id',o.id); end if; seen:=seen||jsonb_build_array(jsonb_build_object('x',ax,'y',ay)); refreshed:=refreshed+1; end if; end loop; return jsonb_build_object('ok',true,'object_id',o.id,'cells_refreshed',refreshed,'rotation',rot,'scale_x',sx,'scale_y',sy); end; $function$
+AS $function$ declare o public.map_objects%rowtype; f jsonb; ax integer; ay integer; refreshed integer:=0; r jsonb; seen jsonb:='[]'::jsonb; rot integer; sx numeric; sy numeric; fx numeric; fy numeric; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; rot:=mod(round(o.rotation)::integer+360,360); sx:=coalesce(o.scale_x,1); sy:=coalesce(o.scale_y,1); for f in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop fx:=coalesce((f->>'x')::numeric,0)*sx; fy:=coalesce((f->>'y')::numeric,0)*sy; case rot when 90 then ax:=round(o.x-fy)::integer; ay:=round(o.y+fx)::integer; when 180 then ax:=round(o.x-fx)::integer; ay:=round(o.y-fy)::integer; when 270 then ax:=round(o.x+fy)::integer; ay:=round(o.y-fx)::integer; else ax:=round(o.x+fx)::integer; ay:=round(o.y+fy)::integer; end case; if not (seen @> jsonb_build_array(jsonb_build_object('x',ax,'y',ay))) then r:=public.refresh_map_navigation_cell_v1(o.map_id,ax,ay,o.id); if not coalesce((r->>'ok')::boolean,false) then return r||jsonb_build_object('object_id',o.id); end if; seen:=seen||jsonb_build_array(jsonb_build_object('x',ax,'y',ay)); refreshed:=refreshed+1; end if; end loop; return jsonb_build_object('ok',true,'object_id',o.id,'cells_refreshed',refreshed,'rotation',rot,'scale_x',sx,'scale_y',sy); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_object_transform_safe(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-begin return public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,null,null,p_layer_id); end; $function$
+begin return public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,null,null,p_layer_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.rotate_map_object_safe(p_object_id uuid, p_rotation numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare o public.map_objects%rowtype; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; return public.commit_map_object_geometry_pipeline_v1(o.id,o.x,o.y,p_rotation,null,null,null); end; $function$
+declare o public.map_objects%rowtype; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; return public.commit_map_object_geometry_pipeline_v1(o.id,o.x,o.y,p_rotation,null,null,null); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.delete_map_object_safe(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_mutation_gateway_v1('delete',p_object_id,null::uuid,null::numeric,null::numeric,null::numeric,null::numeric,null::numeric,null::uuid,null::uuid,null::text,null::jsonb,null::jsonb); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('delete',p_object_id,null::uuid,null::numeric,null::numeric,null::numeric,null::numeric,null::numeric,null::uuid,null::uuid,null::text,null::jsonb,null::jsonb); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_map_editor_command(p_map_id uuid, p_command_type text, p_entity_type text, p_entity_id uuid, p_forward_payload jsonb, p_inverse_payload jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare cid uuid; n bigint; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if p_command_type not in ('create_object','delete_object','transform_object','rotate_object','set_obstacle','remove_obstacle') then return jsonb_build_object('ok',false,'code','INVALID_COMMAND_TYPE'); end if; if p_entity_type not in ('map_object','navigation_obstacle') then return jsonb_build_object('ok',false,'code','INVALID_ENTITY_TYPE'); end if; if not exists(select 1 from public.map_objects where id=p_entity_id and map_id=p_map_id) and p_entity_type='map_object' then return jsonb_build_object('ok',false,'code','ENTITY_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor-history:'||p_map_id::text,0)); update public.map_editor_command_groups g set metadata=coalesce(g.metadata,'{}'::jsonb)||jsonb_build_object('branch_abandoned',true,'abandoned_at',now()) where g.map_id=p_map_id and g.status='undone' and coalesce(g.metadata->>'branch_abandoned','false')<>'true' and exists(select 1 from public.map_editor_commands c where c.metadata->>'group_id'=g.id::text and c.status='undone'); insert into public.map_editor_commands(map_id,command_type,entity_type,entity_id,forward_payload,inverse_payload,status) values(p_map_id,p_command_type,p_entity_type,p_entity_id,coalesce(p_forward_payload,'{}'::jsonb),coalesce(p_inverse_payload,'{}'::jsonb),'applied') returning id,sequence_no into cid,n; return jsonb_build_object('ok',true,'command_id',cid,'status','applied','sequence_no',n); end; $function$
+AS $function$ declare cid uuid; n bigint; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if p_command_type not in ('create_object','delete_object','transform_object','rotate_object','set_obstacle','remove_obstacle') then return jsonb_build_object('ok',false,'code','INVALID_COMMAND_TYPE'); end if; if p_entity_type not in ('map_object','navigation_obstacle') then return jsonb_build_object('ok',false,'code','INVALID_ENTITY_TYPE'); end if; if not exists(select 1 from public.map_objects where id=p_entity_id and map_id=p_map_id) and p_entity_type='map_object' then return jsonb_build_object('ok',false,'code','ENTITY_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor-history:'||p_map_id::text,0)); update public.map_editor_command_groups g set metadata=coalesce(g.metadata,'{}'::jsonb)||jsonb_build_object('branch_abandoned',true,'abandoned_at',now()) where g.map_id=p_map_id and g.status='undone' and coalesce(g.metadata->>'branch_abandoned','false')<>'true' and exists(select 1 from public.map_editor_commands c where c.metadata->>'group_id'=g.id::text and c.status='undone'); insert into public.map_editor_commands(map_id,command_type,entity_type,entity_id,forward_payload,inverse_payload,status) values(p_map_id,p_command_type,p_entity_type,p_entity_id,coalesce(p_forward_payload,'{}'::jsonb),coalesce(p_inverse_payload,'{}'::jsonb),'applied') returning id,sequence_no into cid,n; return jsonb_build_object('ok',true,'command_id',cid,'status','applied','sequence_no',n); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.undo_map_editor_command(p_command_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.execute_map_editor_command(p_command_id,'inverse'); end; $function$
+AS $function$ begin return public.execute_map_editor_command(p_command_id,'inverse'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.redo_map_editor_command(p_command_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.execute_map_editor_command(p_command_id,'forward'); end; $function$
+AS $function$ begin return public.execute_map_editor_command(p_command_id,'forward'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_editor_selection(p_map_id uuid, p_selection_key text, p_entity_type text, p_entity_ids uuid[])
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare eid uuid; n integer:=0; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; delete from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key; foreach eid in array coalesce(p_entity_ids,'{}'::uuid[]) loop if p_entity_type='map_object' and not exists(select 1 from public.map_objects where id=eid and map_id=p_map_id) then continue; end if; insert into public.map_editor_selections(map_id,selection_key,entity_type,entity_id,user_id) values(p_map_id,p_selection_key,p_entity_type,eid,uid) on conflict do nothing; n:=n+1; end loop; return jsonb_build_object('ok',true,'map_id',p_map_id,'selection_key',p_selection_key,'selected_count',n); end;$function$
+AS $function$ declare eid uuid; n integer:=0; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; delete from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key; foreach eid in array coalesce(p_entity_ids,'{}'::uuid[]) loop if p_entity_type='map_object' and not exists(select 1 from public.map_objects where id=eid and map_id=p_map_id) then continue; end if; insert into public.map_editor_selections(map_id,selection_key,entity_type,entity_id,user_id) values(p_map_id,p_selection_key,p_entity_type,eid,uid) on conflict do nothing; n:=n+1; end loop; return jsonb_build_object('ok',true,'map_id',p_map_id,'selection_key',p_selection_key,'selected_count',n); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.clear_map_editor_selection(p_map_id uuid, p_selection_key text DEFAULT 'default'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin delete from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key; return jsonb_build_object('ok',true); end; $function$
+AS $function$ begin delete from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key; return jsonb_build_object('ok',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.begin_map_editor_command_group(p_map_id uuid, p_label text DEFAULT 'Edit'::text, p_group_key text DEFAULT 'default'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare gid uuid; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor-history:'||p_map_id::text,0)); insert into public.map_editor_command_groups(map_id,user_id,label,group_key,status) values(p_map_id,uid,coalesce(p_label,'Edit'),coalesce(p_group_key,'default'),'open') returning id into gid; return jsonb_build_object('ok',true,'group_id',gid,'status','open'); end; $function$
+AS $function$ declare gid uuid; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor-history:'||p_map_id::text,0)); insert into public.map_editor_command_groups(map_id,user_id,label,group_key,status) values(p_map_id,uid,coalesce(p_label,'Edit'),coalesce(p_group_key,'default'),'open') returning id into gid; return jsonb_build_object('ok',true,'group_id',gid,'status','open'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.close_map_editor_command_group(p_group_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare uid uuid:=auth.uid(); mid uuid; begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; select map_id into mid from public.map_editor_command_groups where id=p_group_id and user_id=uid; if mid is null or not exists(select 1 from public.maps where id=mid and created_by=uid) then return jsonb_build_object('ok',false,'code','GROUP_ACCESS_DENIED'); end if; update public.map_editor_command_groups set status='closed',closed_at=coalesce(closed_at,now()) where id=p_group_id; return jsonb_build_object('ok',true,'group_id',p_group_id,'status','closed'); end; $function$
+AS $function$ declare uid uuid:=auth.uid(); mid uuid; begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; select map_id into mid from public.map_editor_command_groups where id=p_group_id and user_id=uid; if mid is null or not exists(select 1 from public.maps where id=mid and created_by=uid) then return jsonb_build_object('ok',false,'code','GROUP_ACCESS_DENIED'); end if; update public.map_editor_command_groups set status='closed',closed_at=coalesce(closed_at,now()) where id=p_group_id; return jsonb_build_object('ok',true,'group_id',p_group_id,'status','closed'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.select_map_objects_in_rect(p_map_id uuid, p_min_x numeric, p_min_y numeric, p_max_x numeric, p_max_y numeric, p_selection_key text DEFAULT 'default'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare ids uuid[]; n integer:=0; begin if p_min_x>p_max_x or p_min_y>p_max_y then return jsonb_build_object('ok',false,'code','INVALID_BOUNDS'); end if; select coalesce(array_agg(id order by id),'{}'::uuid[]) into ids from public.map_objects where map_id=p_map_id and x+width-1>=p_min_x and x<=p_max_x and y+height-1>=p_min_y and y<=p_max_y; perform public.set_map_editor_selection(p_map_id,p_selection_key,'map_object',ids); select coalesce(array_length(ids,1),0) into n; return jsonb_build_object('ok',true,'selected_count',n,'selection_key',p_selection_key); end; $function$
+AS $function$ declare ids uuid[]; n integer:=0; begin if p_min_x>p_max_x or p_min_y>p_max_y then return jsonb_build_object('ok',false,'code','INVALID_BOUNDS'); end if; select coalesce(array_agg(id order by id),'{}'::uuid[]) into ids from public.map_objects where map_id=p_map_id and x+width-1>=p_min_x and x<=p_max_x and y+height-1>=p_min_y and y<=p_max_y; perform public.set_map_editor_selection(p_map_id,p_selection_key,'map_object',ids); select coalesce(array_length(ids,1),0) into n; return jsonb_build_object('ok',true,'selected_count',n,'selection_key',p_selection_key); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.transform_selected_map_objects_safe(p_map_id uuid, p_selection_key text, p_dx integer, p_dy integer, p_rotation_delta integer DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare s record; o public.map_objects%rowtype; result jsonb:='[]'::jsonb; n integer:=0; r jsonb; target_rot integer; begin if p_rotation_delta not in (0,90,180,270,-90,-180,-270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION_DELTA'); end if; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by entity_id loop select * into o from public.map_objects where id=s.entity_id for update; if not found then continue; end if; target_rot:=mod(o.rotation+ p_rotation_delta + 360,360); if target_rot not in (0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_TARGET_ROTATION','object_id',o.id); end if; r:=public.set_map_object_transform_safe(o.id,o.x+p_dx,o.y+p_dy,target_rot,null); if coalesce((r->>'ok')::boolean,false)=false then return jsonb_build_object('ok',false,'code','MULTI_TRANSFORM_ABORTED','object_id',o.id,'detail',r); end if; result:=result||jsonb_build_array(r); n:=n+1; end loop; return jsonb_build_object('ok',true,'transformed_count',n,'results',result); end; $function$
+AS $function$ declare s record; o public.map_objects%rowtype; result jsonb:='[]'::jsonb; n integer:=0; r jsonb; target_rot integer; begin if p_rotation_delta not in (0,90,180,270,-90,-180,-270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION_DELTA'); end if; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by entity_id loop select * into o from public.map_objects where id=s.entity_id for update; if not found then continue; end if; target_rot:=mod(o.rotation+ p_rotation_delta + 360,360); if target_rot not in (0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_TARGET_ROTATION','object_id',o.id); end if; r:=public.set_map_object_transform_safe(o.id,o.x+p_dx,o.y+p_dy,target_rot,null); if coalesce((r->>'ok')::boolean,false)=false then return jsonb_build_object('ok',false,'code','MULTI_TRANSFORM_ABORTED','object_id',o.id,'detail',r); end if; result:=result||jsonb_build_array(r); n:=n+1; end loop; return jsonb_build_object('ok',true,'transformed_count',n,'results',result); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.transform_selected_map_objects_atomic(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 0, p_dy numeric DEFAULT 0, p_rotation_delta numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_batch_selection_transform_leaf_v2(p_map_id,p_selection_key,p_dx,p_dy,p_rotation_delta); end; $function$
+AS $function$ begin return public.editor_batch_selection_transform_leaf_v2(p_map_id,p_selection_key,p_dx,p_dy,p_rotation_delta); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.duplicate_selected_map_objects_atomic(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 1, p_dy numeric DEFAULT 1)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_batch_selection_duplicate_leaf_v2(p_map_id,p_selection_key,p_dx,p_dy); end; $function$
+AS $function$ begin return public.editor_batch_selection_duplicate_leaf_v2(p_map_id,p_selection_key,p_dx,p_dy); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_editor_snap_settings(p_map_id uuid, p_grid_size numeric DEFAULT 1, p_grid_enabled boolean DEFAULT true, p_object_snap_enabled boolean DEFAULT true, p_edge_snap_enabled boolean DEFAULT true, p_center_snap_enabled boolean DEFAULT true, p_snap_tolerance numeric DEFAULT 0.35)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if p_grid_size<=0 or p_snap_tolerance<0 then return jsonb_build_object('ok',false,'code','INVALID_SNAP_SETTINGS'); end if; insert into public.map_editor_snap_settings(map_id,grid_size,grid_enabled,object_snap_enabled,edge_snap_enabled,center_snap_enabled,snap_tolerance) values(p_map_id,p_grid_size,p_grid_enabled,p_object_snap_enabled,p_edge_snap_enabled,p_center_snap_enabled,p_snap_tolerance) on conflict(map_id) do update set grid_size=excluded.grid_size,grid_enabled=excluded.grid_enabled,object_snap_enabled=excluded.object_snap_enabled,edge_snap_enabled=excluded.edge_snap_enabled,center_snap_enabled=excluded.center_snap_enabled,snap_tolerance=excluded.snap_tolerance,updated_at=now(); return jsonb_build_object('ok',true,'map_id',p_map_id); end;$function$
+AS $function$ declare uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if p_grid_size<=0 or p_snap_tolerance<0 then return jsonb_build_object('ok',false,'code','INVALID_SNAP_SETTINGS'); end if; insert into public.map_editor_snap_settings(map_id,grid_size,grid_enabled,object_snap_enabled,edge_snap_enabled,center_snap_enabled,snap_tolerance) values(p_map_id,p_grid_size,p_grid_enabled,p_object_snap_enabled,p_edge_snap_enabled,p_center_snap_enabled,p_snap_tolerance) on conflict(map_id) do update set grid_size=excluded.grid_size,grid_enabled=excluded.grid_enabled,object_snap_enabled=excluded.object_snap_enabled,edge_snap_enabled=excluded.edge_snap_enabled,center_snap_enabled=excluded.center_snap_enabled,snap_tolerance=excluded.snap_tolerance,updated_at=now(); return jsonb_build_object('ok',true,'map_id',p_map_id); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.snap_editor_point(p_map_id uuid, p_x numeric, p_y numeric, p_exclude_object_id uuid DEFAULT NULL::uuid)
@@ -3242,7 +3243,7 @@ declare s public.map_editor_snap_settings%rowtype; gx numeric;gy numeric;best_x 
  select * into s from public.map_editor_snap_settings where map_id=p_map_id; if not found then s.grid_size:=1;s.grid_enabled:=true;s.object_snap_enabled:=true;s.edge_snap_enabled:=true;s.center_snap_enabled:=true;s.snap_tolerance:=0.35; end if;
  if s.grid_enabled then gx:=round(p_x/s.grid_size)*s.grid_size;gy:=round(p_y/s.grid_size)*s.grid_size;dist:=sqrt(power(gx-p_x,2)+power(gy-p_y,2));if dist<=s.snap_tolerance then best_x:=gx;best_y:=gy;best_dist:=dist;end if;end if;
  if s.object_snap_enabled then for r in select x,y from public.map_objects where map_id=p_map_id and (p_exclude_object_id is null or id<>p_exclude_object_id) order by ((x-p_x)*(x-p_x)+(y-p_y)*(y-p_y)) limit 8 loop dist:=sqrt(power(r.x-p_x,2)+power(r.y-p_y,2));if dist<=s.snap_tolerance and (best_dist is null or dist<best_dist) then best_x:=r.x;best_y:=r.y;best_dist:=dist;end if;end loop;end if;
- return jsonb_build_object('ok',true,'x',best_x,'y',best_y,'snapped',best_dist is not null,'distance',coalesce(best_dist,0)); end; $function$
+ return jsonb_build_object('ok',true,'x',best_x,'y',best_y,'snapped',best_dist is not null,'distance',coalesce(best_dist,0)); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_map_object_snap_v2(p_map_id uuid, p_x numeric, p_y numeric, p_selection_key text DEFAULT 'default'::text, p_tolerance numeric DEFAULT 0.35, p_mode text DEFAULT 'all'::text)
@@ -3253,32 +3254,32 @@ if mode in ('grid','all') then d:=power(p_x-round(p_x),2)+power(p_y-round(p_y),2
 for o in select mo.* from public.map_objects mo where mo.map_id=p_map_id and not exists(select 1 from public.map_editor_selections es where es.map_id=p_map_id and es.selection_key=p_selection_key and es.entity_type='map_object' and es.entity_id=mo.id) loop
  if mode in ('center','all') then cx:=o.x+(o.width*o.scale_x)/2;cy:=o.y+(o.height*o.scale_y)/2;d:=sqrt(power(p_x-cx,2)+power(p_y-cy,2));if d<=p_tolerance and d<bestd then bestd:=d;bestx:=cx;besty:=cy;end if;end if;
  if mode in ('edge','all') then minx:=o.x;maxx:=o.x+(o.width*o.scale_x);miny:=o.y;maxy:=o.y+(o.height*o.scale_y);d:=abs(p_x-minx);if d<=p_tolerance and d<bestd then bestd:=d;bestx:=minx;besty:=p_y;end if;d:=abs(p_x-maxx);if d<=p_tolerance and d<bestd then bestd:=d;bestx:=maxx;besty:=p_y;end if;d:=abs(p_y-miny);if d<=p_tolerance and d<bestd then bestd:=d;bestx:=p_x;besty:=miny;end if;d:=abs(p_y-maxy);if d<=p_tolerance and d<bestd then bestd:=d;bestx:=p_x;besty:=maxy;end if;end if;
-end loop;return jsonb_build_object('ok',true,'x',bestx,'y',besty,'snapped',bestd<1e99,'distance',case when bestd<1e99 then bestd else null end,'mode',mode);end;$function$
+end loop;return jsonb_build_object('ok',true,'x',bestx,'y',besty,'snapped',bestd<1e99,'distance',case when bestd<1e99 then bestd else null end,'mode',mode);end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_map_object_bounds_v2(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare o public.map_objects%rowtype;minx numeric;maxx numeric;miny numeric;maxy numeric;begin select * into o from public.map_objects where id=p_object_id;if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND');end if;minx:=o.x;miny:=o.y;maxx:=o.x+o.width*o.scale_x;maxy:=o.y+o.height*o.scale_y;return jsonb_build_object('ok',true,'object_id',o.id,'min_x',minx,'min_y',miny,'max_x',maxx,'max_y',maxy,'center_x',(minx+maxx)/2,'center_y',(miny+maxy)/2,'width',maxx-minx,'height',maxy-miny);end;$function$
+AS $function$ declare o public.map_objects%rowtype;minx numeric;maxx numeric;miny numeric;maxy numeric;begin select * into o from public.map_objects where id=p_object_id;if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND');end if;minx:=o.x;miny:=o.y;maxx:=o.x+o.width*o.scale_x;maxy:=o.y+o.height*o.scale_y;return jsonb_build_object('ok',true,'object_id',o.id,'min_x',minx,'min_y',miny,'max_x',maxx,'max_y',maxy,'center_x',(minx+maxx)/2,'center_y',(miny+maxy)/2,'width',maxx-minx,'height',maxy-miny);end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.place_map_object_unified(p_map_id uuid, p_asset_id uuid, p_object_type text, p_x numeric, p_y numeric, p_rotation numeric DEFAULT 0, p_layer_id uuid DEFAULT NULL::uuid, p_snap_mode text DEFAULT 'all'::text, p_snap_tolerance numeric DEFAULT 0.35, p_blocks_movement boolean DEFAULT false, p_blocks_los boolean DEFAULT false, p_footprint jsonb DEFAULT '[{"x": 0, "y": 0}]'::jsonb, p_properties jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_place_object_leaf_v2(p_map_id,p_asset_id,p_object_type,p_x,p_y,p_rotation,p_layer_id,1,1,p_blocks_movement,p_blocks_los,p_footprint,p_properties); end; $function$
+AS $function$ begin return public.editor_place_object_leaf_v2(p_map_id,p_asset_id,p_object_type,p_x,p_y,p_rotation,p_layer_id,1,1,p_blocks_movement,p_blocks_los,p_footprint,p_properties); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.move_map_object_unified(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_snap_mode text DEFAULT 'all'::text, p_snap_tolerance numeric DEFAULT 0.35)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare r jsonb; o public.map_objects%rowtype;begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; r:=public.resolve_map_object_snap_v2(o.map_id,p_x,p_y,p_snap_mode,p_snap_tolerance,o.id); if coalesce((r->>'ok')::boolean,false)=false then return r; end if; return public.set_map_object_transform_safe(o.id,(r->>'x')::numeric,(r->>'y')::numeric,p_rotation,null);end;$function$
+declare r jsonb; o public.map_objects%rowtype;begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; r:=public.resolve_map_object_snap_v2(o.map_id,p_x,p_y,p_snap_mode,p_snap_tolerance,o.id); if coalesce((r->>'ok')::boolean,false)=false then return r; end if; return public.set_map_object_transform_safe(o.id,(r->>'x')::numeric,(r->>'y')::numeric,p_rotation,null);end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.duplicate_map_object_unified(p_object_id uuid, p_dx numeric DEFAULT 1, p_dy numeric DEFAULT 0, p_snap_mode text DEFAULT 'all'::text, p_snap_tolerance numeric DEFAULT 0.35)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_duplicate_object_leaf_v2(p_object_id,p_dx,p_dy,p_snap_mode,p_snap_tolerance); end; $function$
+AS $function$ begin return public.editor_duplicate_object_leaf_v2(p_object_id,p_dx,p_dy,p_snap_mode,p_snap_tolerance); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.copy_selected_map_objects(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_clipboard_key text DEFAULT 'default'::text)
@@ -3288,7 +3289,7 @@ AS $function$
 declare payload jsonb; n integer; begin
  select coalesce(jsonb_agg(jsonb_build_object('source_object_id',o.id,'asset_id',o.asset_id,'entity_type',o.entity_type,'entity_id',o.entity_id,'x',o.x,'y',o.y,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'z_index',o.z_index,'collision_enabled',o.collision_enabled,'interactable',o.interactable,'footprint',o.footprint,'properties',o.properties,'object_type',o.object_type,'width',o.width,'height',o.height,'blocks_los',o.blocks_los) order by s.selected_at),'[]'::jsonb),count(*) into payload,n from public.map_editor_selections s join public.map_objects o on o.id=s.entity_id and o.map_id=p_map_id where s.map_id=p_map_id and s.selection_key=p_selection_key and s.entity_type='map_object';
  insert into public.map_editor_clipboards(map_id,clipboard_key,payload,object_count,updated_at) values(p_map_id,p_clipboard_key,payload,n,now()) on conflict(map_id,user_id,clipboard_key) do update set payload=excluded.payload,object_count=excluded.object_count,updated_at=now();
- return jsonb_build_object('ok',true,'object_count',n,'clipboard_key',p_clipboard_key); end; $function$
+ return jsonb_build_object('ok',true,'object_count',n,'clipboard_key',p_clipboard_key); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.paste_map_editor_clipboard_preview(p_map_id uuid, p_clipboard_key text DEFAULT 'default'::text, p_x numeric DEFAULT 0, p_y numeric DEFAULT 0)
@@ -3299,33 +3300,33 @@ declare cb public.map_editor_clipboards%rowtype; item jsonb; sx numeric; sy nume
  select * into cb from public.map_editor_clipboards where map_id=p_map_id and clipboard_key=p_clipboard_key order by updated_at desc limit 1; if not found then return jsonb_build_object('ok',false,'code','CLIPBOARD_EMPTY'); end if;
  sx:=coalesce((cb.payload->0->>'x')::numeric,0); sy:=coalesce((cb.payload->0->>'y')::numeric,0); dx:=p_x-sx; dy:=p_y-sy;
  for item in select value from jsonb_array_elements(cb.payload) loop preview:=preview||jsonb_build_array(jsonb_build_object('source_object_id',item->>'source_object_id','x',((item->>'x')::numeric+dx),'y',((item->>'y')::numeric+dy),'rotation',(item->>'rotation')::numeric,'asset_id',item->>'asset_id','footprint',item->'footprint')); end loop;
- return jsonb_build_object('ok',true,'object_count',cb.object_count,'preview',preview); end; $function$
+ return jsonb_build_object('ok',true,'object_count',cb.object_count,'preview',preview); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.paste_map_editor_clipboard_atomic(p_map_id uuid, p_clipboard_key text DEFAULT 'default'::text, p_x numeric DEFAULT 0, p_y numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_paste_leaf_v2(p_map_id,p_clipboard_key,p_x,p_y); end; $function$
+AS $function$ begin return public.editor_paste_leaf_v2(p_map_id,p_clipboard_key,p_x,p_y); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.begin_map_editor_gizmo(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_operation text DEFAULT 'move'::text, p_axis text DEFAULT 'xy'::text, p_start_x numeric DEFAULT 0, p_start_y numeric DEFAULT 0, p_snap_mode text DEFAULT 'all'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare gid uuid; n integer; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if p_operation not in ('move','rotate','scale') then return jsonb_build_object('ok',false,'code','INVALID_OPERATION'); end if; if p_axis not in ('x','y','xy','uniform') then return jsonb_build_object('ok',false,'code','INVALID_AXIS'); end if; if p_snap_mode not in ('none','grid','object','edge','center','all') then return jsonb_build_object('ok',false,'code','INVALID_SNAP_MODE'); end if; select count(*) into n from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key; if n=0 then return jsonb_build_object('ok',false,'code','EMPTY_SELECTION'); end if; insert into public.map_editor_gizmo_sessions(map_id,selection_key,operation,axis,start_x,start_y,current_x,current_y,snap_mode,user_id) values(p_map_id,p_selection_key,p_operation,p_axis,p_start_x,p_start_y,p_start_x,p_start_y,p_snap_mode,uid) returning id into gid; return jsonb_build_object('ok',true,'gizmo_session_id',gid,'selection_count',n,'status','active'); end;$function$
+AS $function$ declare gid uuid; n integer; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if p_operation not in ('move','rotate','scale') then return jsonb_build_object('ok',false,'code','INVALID_OPERATION'); end if; if p_axis not in ('x','y','xy','uniform') then return jsonb_build_object('ok',false,'code','INVALID_AXIS'); end if; if p_snap_mode not in ('none','grid','object','edge','center','all') then return jsonb_build_object('ok',false,'code','INVALID_SNAP_MODE'); end if; select count(*) into n from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key; if n=0 then return jsonb_build_object('ok',false,'code','EMPTY_SELECTION'); end if; insert into public.map_editor_gizmo_sessions(map_id,selection_key,operation,axis,start_x,start_y,current_x,current_y,snap_mode,user_id) values(p_map_id,p_selection_key,p_operation,p_axis,p_start_x,p_start_y,p_start_x,p_start_y,p_snap_mode,uid) returning id into gid; return jsonb_build_object('ok',true,'gizmo_session_id',gid,'selection_count',n,'status','active'); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.update_map_editor_gizmo_preview(p_session_id uuid, p_current_x numeric, p_current_y numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$ declare s public.map_editor_gizmo_sessions%rowtype; snapped jsonb; begin select * into s from public.map_editor_gizmo_sessions where id=p_session_id and status='active' for update; if not found then return jsonb_build_object('ok',false,'code','GIZMO_SESSION_NOT_ACTIVE'); end if;
- snapped:=public.resolve_map_object_snap_v2(s.map_id,p_current_x,p_current_y,s.snap_mode,null); update public.map_editor_gizmo_sessions set current_x=p_current_x,current_y=p_current_y,metadata=metadata||jsonb_build_object('preview',snapped),updated_at=now() where id=s.id; return jsonb_build_object('ok',true,'gizmo_session_id',s.id,'preview',snapped); end; $function$
+ snapped:=public.resolve_map_object_snap_v2(s.map_id,p_current_x,p_current_y,s.snap_mode,null); update public.map_editor_gizmo_sessions set current_x=p_current_x,current_y=p_current_y,metadata=metadata||jsonb_build_object('preview',snapped),updated_at=now() where id=s.id; return jsonb_build_object('ok',true,'gizmo_session_id',s.id,'preview',snapped); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.cancel_map_editor_gizmo(p_session_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin update public.map_editor_gizmo_sessions set status='cancelled',closed_at=now(),updated_at=now() where id=p_session_id and status='active'; if not found then return jsonb_build_object('ok',false,'code','GIZMO_SESSION_NOT_ACTIVE'); end if; return jsonb_build_object('ok',true,'status','cancelled'); end; $function$
+AS $function$ begin update public.map_editor_gizmo_sessions set status='cancelled',closed_at=now(),updated_at=now() where id=p_session_id and status='active'; if not found then return jsonb_build_object('ok',false,'code','GIZMO_SESSION_NOT_ACTIVE'); end if; return jsonb_build_object('ok',true,'status','cancelled'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.commit_map_editor_gizmo(p_session_id uuid)
@@ -3334,49 +3335,49 @@ CREATE OR REPLACE FUNCTION public.commit_map_editor_gizmo(p_session_id uuid)
 AS $function$ declare s public.map_editor_gizmo_sessions%rowtype; dx numeric; dy numeric; r jsonb; begin select * into s from public.map_editor_gizmo_sessions where id=p_session_id and status='active' for update; if not found then return jsonb_build_object('ok',false,'code','GIZMO_SESSION_NOT_ACTIVE'); end if;
  dx:=s.current_x-s.start_x; dy:=s.current_y-s.start_y;
  if s.operation='move' then r:=public.transform_selected_map_objects_atomic(s.map_id,s.selection_key,dx,dy,0); else r:=jsonb_build_object('ok',false,'code','OPERATION_NOT_IMPLEMENTED','operation',s.operation); end if;
- if coalesce((r->>'ok')::boolean,false) then update public.map_editor_gizmo_sessions set status='committed',closed_at=now(),updated_at=now() where id=s.id; else return r||jsonb_build_object('gizmo_session_id',s.id); end if; return r||jsonb_build_object('gizmo_session_id',s.id,'status','committed'); end; $function$
+ if coalesce((r->>'ok')::boolean,false) then update public.map_editor_gizmo_sessions set status='committed',closed_at=now(),updated_at=now() where id=s.id; else return r||jsonb_build_object('gizmo_session_id',s.id); end if; return r||jsonb_build_object('gizmo_session_id',s.id,'status','committed'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_editor_layer_rule(p_map_id uuid, p_layer_id uuid, p_selectable boolean DEFAULT true, p_editable boolean DEFAULT true, p_snap_enabled boolean DEFAULT true, p_collision_enabled boolean DEFAULT true, p_visible boolean DEFAULT true, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if not exists(select 1 from public.map_layers where id=p_layer_id and map_id=p_map_id) then return jsonb_build_object('ok',false,'code','LAYER_ACCESS_DENIED'); end if; insert into public.map_editor_layer_rules(map_id,layer_id,selectable,editable,snap_enabled,collision_enabled,visible,metadata,updated_at) values(p_map_id,p_layer_id,p_selectable,p_editable,p_snap_enabled,p_collision_enabled,p_visible,coalesce(p_metadata,'{}'),now()) on conflict(map_id,layer_id) do update set selectable=excluded.selectable,editable=excluded.editable,snap_enabled=excluded.snap_enabled,collision_enabled=excluded.collision_enabled,visible=excluded.visible,metadata=excluded.metadata,updated_at=now(); return jsonb_build_object('ok',true,'map_id',p_map_id,'layer_id',p_layer_id); end;$function$
+AS $function$ declare uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; if not exists(select 1 from public.map_layers where id=p_layer_id and map_id=p_map_id) then return jsonb_build_object('ok',false,'code','LAYER_ACCESS_DENIED'); end if; insert into public.map_editor_layer_rules(map_id,layer_id,selectable,editable,snap_enabled,collision_enabled,visible,metadata,updated_at) values(p_map_id,p_layer_id,p_selectable,p_editable,p_snap_enabled,p_collision_enabled,p_visible,coalesce(p_metadata,'{}'),now()) on conflict(map_id,layer_id) do update set selectable=excluded.selectable,editable=excluded.editable,snap_enabled=excluded.snap_enabled,collision_enabled=excluded.collision_enabled,visible=excluded.visible,metadata=excluded.metadata,updated_at=now(); return jsonb_build_object('ok',true,'map_id',p_map_id,'layer_id',p_layer_id); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_editor_object_layer(p_object_id uuid, p_target_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare o public.map_objects%rowtype; r public.map_editor_layer_rules%rowtype; target uuid; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; target:=coalesce(p_target_layer_id,o.layer_id); select * into r from public.map_editor_layer_rules where map_id=o.map_id and layer_id=target; if found and (not r.editable or not r.visible) then return jsonb_build_object('ok',false,'code','LAYER_NOT_EDITABLE','layer_id',target); end if; return jsonb_build_object('ok',true,'layer_id',target,'selectable',coalesce(r.selectable,true),'snap_enabled',coalesce(r.snap_enabled,true),'collision_enabled',coalesce(r.collision_enabled,true)); end; $function$
+declare o public.map_objects%rowtype; r public.map_editor_layer_rules%rowtype; target uuid; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; target:=coalesce(p_target_layer_id,o.layer_id); select * into r from public.map_editor_layer_rules where map_id=o.map_id and layer_id=target; if found and (not r.editable or not r.visible) then return jsonb_build_object('ok',false,'code','LAYER_NOT_EDITABLE','layer_id',target); end if; return jsonb_build_object('ok',true,'layer_id',target,'selectable',coalesce(r.selectable,true),'snap_enabled',coalesce(r.snap_enabled,true),'collision_enabled',coalesce(r.collision_enabled,true)); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_editor_layer_context(p_map_id uuid, p_layer_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare r public.map_editor_layer_rules%rowtype;begin select * into r from public.map_editor_layer_rules where map_id=p_map_id and layer_id=p_layer_id; if not found then return jsonb_build_object('ok',true,'map_id',p_map_id,'layer_id',p_layer_id,'selectable',true,'editable',true,'snap_enabled',true,'collision_enabled',true,'visible',true,'source','default'); end if; return jsonb_build_object('ok',true,'map_id',p_map_id,'layer_id',p_layer_id,'selectable',r.selectable,'editable',r.editable,'snap_enabled',r.snap_enabled,'collision_enabled',r.collision_enabled,'visible',r.visible,'source','configured');end;$function$
+declare r public.map_editor_layer_rules%rowtype;begin select * into r from public.map_editor_layer_rules where map_id=p_map_id and layer_id=p_layer_id; if not found then return jsonb_build_object('ok',true,'map_id',p_map_id,'layer_id',p_layer_id,'selectable',true,'editable',true,'snap_enabled',true,'collision_enabled',true,'visible',true,'source','default'); end if; return jsonb_build_object('ok',true,'map_id',p_map_id,'layer_id',p_layer_id,'selectable',r.selectable,'editable',r.editable,'snap_enabled',r.snap_enabled,'collision_enabled',r.collision_enabled,'visible',r.visible,'source','configured');end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_editor_object_layer_context(p_object_id uuid, p_target_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare o public.map_objects%rowtype; r public.map_editor_layer_rules%rowtype; lid uuid; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; lid:=coalesce(p_target_layer_id,o.layer_id); select * into r from public.map_editor_layer_rules where map_id=o.map_id and layer_id=lid; return jsonb_build_object('ok',true,'map_id',o.map_id,'object_id',o.id,'layer_id',lid,'selectable',coalesce(r.selectable,true),'editable',coalesce(r.editable,true),'snap_enabled',coalesce(r.snap_enabled,true),'collision_enabled',coalesce(r.collision_enabled,true),'visible',coalesce(r.visible,true)); end; $function$
+declare o public.map_objects%rowtype; r public.map_editor_layer_rules%rowtype; lid uuid; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; lid:=coalesce(p_target_layer_id,o.layer_id); select * into r from public.map_editor_layer_rules where map_id=o.map_id and layer_id=lid; return jsonb_build_object('ok',true,'map_id',o.map_id,'object_id',o.id,'layer_id',lid,'selectable',coalesce(r.selectable,true),'editable',coalesce(r.editable,true),'snap_enabled',coalesce(r.snap_enabled,true),'collision_enabled',coalesce(r.collision_enabled,true),'visible',coalesce(r.visible,true)); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.move_map_object_layer_aware(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_target_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare v jsonb; o public.map_objects%rowtype; begin v:=public.validate_layer_aware_object_transform(p_object_id,p_x,p_y,p_rotation,p_target_layer_id); if not (v->>'ok')::boolean then return v; end if; select * into o from public.map_objects where id=p_object_id for update; perform public.remove_map_object_footprint(o.id); update public.map_objects set x=(v->>'x')::numeric,y=(v->>'y')::numeric,rotation=(v->>'rotation')::numeric,layer_id=(v->>'layer_id')::uuid,updated_at=now() where id=o.id; perform public.sync_map_object_footprint(o.id); return v||jsonb_build_object('object_id',o.id,'committed',true); end; $function$
+declare v jsonb; o public.map_objects%rowtype; begin v:=public.validate_layer_aware_object_transform(p_object_id,p_x,p_y,p_rotation,p_target_layer_id); if not (v->>'ok')::boolean then return v; end if; select * into o from public.map_objects where id=p_object_id for update; perform public.remove_map_object_footprint(o.id); update public.map_objects set x=(v->>'x')::numeric,y=(v->>'y')::numeric,rotation=(v->>'rotation')::numeric,layer_id=(v->>'layer_id')::uuid,updated_at=now() where id=o.id; perform public.sync_map_object_footprint(o.id); return v||jsonb_build_object('object_id',o.id,'committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.can_select_map_object_layer_aware(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare ctx jsonb; begin ctx:=public.get_editor_object_layer_context(p_object_id,null); if not (ctx->>'ok')::boolean then return ctx; end if; return ctx||jsonb_build_object('can_select',(ctx->>'selectable')::boolean and (ctx->>'visible')::boolean); end; $function$
+declare ctx jsonb; begin ctx:=public.get_editor_object_layer_context(p_object_id,null); if not (ctx->>'ok')::boolean then return ctx; end if; return ctx||jsonb_build_object('can_select',(ctx->>'selectable')::boolean and (ctx->>'visible')::boolean); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.transform_map_object_gizmo_safe(p_object_id uuid, p_operation text, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric)
@@ -3396,7 +3397,7 @@ declare o public.map_objects%rowtype; ctx jsonb; nr numeric; nsx numeric; nsy nu
  perform public.remove_map_object_footprint(o.id);
  update public.map_objects set rotation=nr,scale_x=nsx,scale_y=nsy,updated_at=now() where id=o.id;
  perform public.sync_map_object_footprint(o.id);
- return jsonb_build_object('ok',true,'object_id',o.id,'operation',p_operation,'rotation',nr,'scale_x',nsx,'scale_y',nsy,'committed',true); end; $function$
+ return jsonb_build_object('ok',true,'object_id',o.id,'operation',p_operation,'rotation',nr,'scale_x',nsx,'scale_y',nsy,'committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.sync_map_object_obb_v1(p_object_id uuid)
@@ -3408,14 +3409,14 @@ declare o public.map_objects%rowtype; angle numeric; hw numeric; hh numeric; beg
  select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if;
  hw:=greatest(0,coalesce(o.width,1)*coalesce(o.scale_x,1)/2); hh:=greatest(0,coalesce(o.height,1)*coalesce(o.scale_y,1)/2); angle=mod(coalesce(o.rotation,0)+360,360);
  insert into public.map_object_geometry(object_id,geometry_type,center_x,center_y,half_width,half_height,rotation,updated_at) values(o.id,'obb',o.x,o.y,hw,hh,angle,now()) on conflict(object_id) do update set center_x=excluded.center_x,center_y=excluded.center_y,half_width=excluded.half_width,half_height=excluded.half_height,rotation=excluded.rotation,updated_at=now();
- return jsonb_build_object('ok',true,'object_id',o.id,'geometry_type','obb','center_x',o.x,'center_y',o.y,'half_width',hw,'half_height',hh,'rotation',angle); end; $function$
+ return jsonb_build_object('ok',true,'object_id',o.id,'geometry_type','obb','center_x',o.x,'center_y',o.y,'half_width',hw,'half_height',hh,'rotation',angle); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_map_object_obb_v1(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-declare g public.map_object_geometry%rowtype;begin select * into g from public.map_object_geometry where object_id=p_object_id; if not found then return public.sync_map_object_obb_v1(p_object_id); end if; return jsonb_build_object('ok',true,'object_id',g.object_id,'geometry_type',g.geometry_type,'center_x',g.center_x,'center_y',g.center_y,'half_width',g.half_width,'half_height',g.half_height,'rotation',g.rotation);end;$function$
+declare g public.map_object_geometry%rowtype;begin select * into g from public.map_object_geometry where object_id=p_object_id; if not found then return public.sync_map_object_obb_v1(p_object_id); end if; return jsonb_build_object('ok',true,'object_id',g.object_id,'geometry_type',g.geometry_type,'center_x',g.center_x,'center_y',g.center_y,'half_width',g.half_width,'half_height',g.half_height,'rotation',g.rotation);end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.obb_aabb_v1(p_center_x numeric, p_center_y numeric, p_half_width numeric, p_half_height numeric, p_rotation numeric)
@@ -3423,7 +3424,7 @@ CREATE OR REPLACE FUNCTION public.obb_aabb_v1(p_center_x numeric, p_center_y num
  LANGUAGE plpgsql
  IMMUTABLE
 AS $function$
-declare r numeric; c numeric; s numeric; ex numeric; ey numeric;begin r=radians(p_rotation); c=abs(cos(r)); s=abs(sin(r)); ex=p_half_width*c+p_half_height*s; ey=p_half_width*s+p_half_height*c; return jsonb_build_object('min_x',p_center_x-ex,'max_x',p_center_x+ex,'min_y',p_center_y-ey,'max_y',p_center_y+ey);end;$function$
+declare r numeric; c numeric; s numeric; ex numeric; ey numeric;begin r=radians(p_rotation); c=abs(cos(r)); s=abs(sin(r)); ex=p_half_width*c+p_half_height*s; ey=p_half_width*s+p_half_height*c; return jsonb_build_object('min_x',p_center_x-ex,'max_x',p_center_x+ex,'min_y',p_center_y-ey,'max_y',p_center_y+ey);end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.obb_sat_overlap_v1(a_center_x numeric, a_center_y numeric, a_half_w numeric, a_half_h numeric, a_rotation numeric, b_center_x numeric, b_center_y numeric, b_half_w numeric, b_half_h numeric, b_rotation numeric)
@@ -3439,7 +3440,7 @@ declare ar double precision:=radians(a_rotation::double precision); br double pr
   rx:=abs(axes[i][1]*axx+axes[i][2]*axy)*a_half_w::double precision+abs(axes[i][1]*(-axy)+axes[i][2]*axx)*a_half_h::double precision;
   ry:=abs(axes[i][1]*bxx+axes[i][2]*bxy)*b_half_w::double precision+abs(axes[i][1]*(-bxy)+axes[i][2]*bxx)*b_half_h::double precision;
   if abs(proj)>rx+ry then return false; end if;
- end loop; return true; end; $function$
+ end loop; return true; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_objects_obb_collision_v1(p_object_id uuid, p_other_object_id uuid)
@@ -3449,14 +3450,14 @@ AS $function$
 declare a jsonb; b jsonb; hit boolean; begin
  a:=public.get_map_object_obb_v1(p_object_id); b:=public.get_map_object_obb_v1(p_other_object_id); if a is null or b is null then return jsonb_build_object('ok',false,'code','OBB_NOT_FOUND'); end if;
  hit:=public.obb_sat_overlap_v1((a->>'center_x')::numeric,(a->>'center_y')::numeric,(a->>'half_width')::numeric,(a->>'half_height')::numeric,(a->>'rotation')::numeric,(b->>'center_x')::numeric,(b->>'center_y')::numeric,(b->>'half_width')::numeric,(b->>'half_height')::numeric,(b->>'rotation')::numeric);
- return jsonb_build_object('ok',true,'collision',hit,'object_id',p_object_id,'other_object_id',p_other_object_id,'algorithm','SAT'); end; $function$
+ return jsonb_build_object('ok',true,'collision',hit,'object_id',p_object_id,'other_object_id',p_other_object_id,'algorithm','SAT'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.find_map_object_obb_collisions_v1(p_object_id uuid)
  RETURNS TABLE(other_object_id uuid, collision boolean)
  LANGUAGE sql
 AS $function$
- select o.id,public.obb_sat_overlap_v1((a->>'center_x')::numeric,(a->>'center_y')::numeric,(a->>'half_width')::numeric,(a->>'half_height')::numeric,(a->>'rotation')::numeric,(b->>'center_x')::numeric,(b->>'center_y')::numeric,(b->>'half_width')::numeric,(b->>'half_height')::numeric,(b->>'rotation')::numeric) from public.map_objects o cross join lateral public.get_map_object_obb_v1(p_object_id) a cross join lateral public.get_map_object_obb_v1(o.id) b where o.id<>p_object_id and o.map_id=(select map_id from public.map_objects where id=p_object_id) and o.layer_id=(select layer_id from public.map_objects where id=p_object_id); $function$
+ select o.id,public.obb_sat_overlap_v1((a->>'center_x')::numeric,(a->>'center_y')::numeric,(a->>'half_width')::numeric,(a->>'half_height')::numeric,(a->>'rotation')::numeric,(b->>'center_x')::numeric,(b->>'center_y')::numeric,(b->>'half_width')::numeric,(b->>'half_height')::numeric,(b->>'rotation')::numeric) from public.map_objects o cross join lateral public.get_map_object_obb_v1(p_object_id) a cross join lateral public.get_map_object_obb_v1(o.id) b where o.id<>p_object_id and o.map_id=(select map_id from public.map_objects where id=p_object_id) and o.layer_id=(select layer_id from public.map_objects where id=p_object_id); $function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_map_object_geometry_pipeline_v1(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric, p_target_layer_id uuid DEFAULT NULL::uuid)
@@ -3473,7 +3474,7 @@ declare o public.map_objects%rowtype; ctx jsonb; c jsonb; nr numeric; nsx numeri
    select coalesce(jsonb_agg(jsonb_build_object('object_id',x.object_id,'collision',x.collision)), '[]'::jsonb) into c from public.find_map_object_obb_collisions_v1(o.map_id,o.id,nr,nsx,nsy,p_x,p_y) x where x.collision=true;
    if jsonb_array_length(c)>0 then return jsonb_build_object('ok',false,'code','SAT_COLLISION','collisions',c); end if;
  end if;
- return jsonb_build_object('ok',true,'x',p_x,'y',p_y,'rotation',nr,'scale_x',nsx,'scale_y',nsy,'layer_id',ctx->>'layer_id','snap_enabled',(ctx->>'snap_enabled')::boolean,'collision_enabled',(ctx->>'collision_enabled')::boolean,'geometry_engine','OBB_SAT_V1'); end; $function$
+ return jsonb_build_object('ok',true,'x',p_x,'y',p_y,'rotation',nr,'scale_x',nsx,'scale_y',nsy,'layer_id',ctx->>'layer_id','snap_enabled',(ctx->>'snap_enabled')::boolean,'collision_enabled',(ctx->>'collision_enabled')::boolean,'geometry_engine','OBB_SAT_V1'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.commit_map_object_geometry_pipeline_v1(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric, p_target_layer_id uuid DEFAULT NULL::uuid)
@@ -3481,7 +3482,7 @@ CREATE OR REPLACE FUNCTION public.commit_map_object_geometry_pipeline_v1(p_objec
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v jsonb; o public.map_objects%rowtype; begin v:=public.validate_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y,p_target_layer_id); if not (v->>'ok')::boolean then return v; end if; select * into o from public.map_objects where id=p_object_id for update; perform public.remove_map_object_footprint(o.id); update public.map_objects set x=(v->>'x')::numeric,y=(v->>'y')::numeric,rotation=(v->>'rotation')::numeric,scale_x=(v->>'scale_x')::numeric,scale_y=(v->>'scale_y')::numeric,layer_id=(v->>'layer_id')::uuid,updated_at=now() where id=o.id; perform public.sync_map_object_obb_v1(o.id); perform public.sync_map_object_footprint(o.id); return v||jsonb_build_object('object_id',o.id,'committed',true); end; $function$
+declare v jsonb; o public.map_objects%rowtype; begin v:=public.validate_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y,p_target_layer_id); if not (v->>'ok')::boolean then return v; end if; select * into o from public.map_objects where id=p_object_id for update; perform public.remove_map_object_footprint(o.id); update public.map_objects set x=(v->>'x')::numeric,y=(v->>'y')::numeric,rotation=(v->>'rotation')::numeric,scale_x=(v->>'scale_x')::numeric,scale_y=(v->>'scale_y')::numeric,layer_id=(v->>'layer_id')::uuid,updated_at=now() where id=o.id; perform public.sync_map_object_obb_v1(o.id); perform public.sync_map_object_footprint(o.id); return v||jsonb_build_object('object_id',o.id,'committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_duplicate_geometry_pipeline_v1(p_map_id uuid, p_source_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric)
@@ -3489,7 +3490,7 @@ CREATE OR REPLACE FUNCTION public.validate_duplicate_geometry_pipeline_v1(p_map_
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare src public.map_objects%rowtype; ctx jsonb; c jsonb; begin select * into src from public.map_objects where id=p_source_object_id and map_id=p_map_id; if not found then return jsonb_build_object('ok',false,'code','SOURCE_OBJECT_NOT_FOUND'); end if; ctx:=public.get_editor_object_layer_context(src.id,null); if not (ctx->>'editable')::boolean then return jsonb_build_object('ok',false,'code','LAYER_NOT_EDITABLE'); end if; if (ctx->>'collision_enabled')::boolean then select coalesce(jsonb_agg(jsonb_build_object('object_id',x.object_id,'collision',x.collision)),'[]'::jsonb) into c from public.find_map_object_obb_collisions_v1(p_map_id,null,coalesce(p_rotation,src.rotation),coalesce(p_scale_x,src.scale_x),coalesce(p_scale_y,src.scale_y),p_x,p_y) x where x.collision=true; if jsonb_array_length(c)>0 then return jsonb_build_object('ok',false,'code','SAT_COLLISION','collisions',c); end if; end if; return jsonb_build_object('ok',true,'geometry_engine','OBB_SAT_V1'); end; $function$
+declare src public.map_objects%rowtype; ctx jsonb; c jsonb; begin select * into src from public.map_objects where id=p_source_object_id and map_id=p_map_id; if not found then return jsonb_build_object('ok',false,'code','SOURCE_OBJECT_NOT_FOUND'); end if; ctx:=public.get_editor_object_layer_context(src.id,null); if not (ctx->>'editable')::boolean then return jsonb_build_object('ok',false,'code','LAYER_NOT_EDITABLE'); end if; if (ctx->>'collision_enabled')::boolean then select coalesce(jsonb_agg(jsonb_build_object('object_id',x.object_id,'collision',x.collision)),'[]'::jsonb) into c from public.find_map_object_obb_collisions_v1(p_map_id,null,coalesce(p_rotation,src.rotation),coalesce(p_scale_x,src.scale_x),coalesce(p_scale_y,src.scale_y),p_x,p_y) x where x.collision=true; if jsonb_array_length(c)>0 then return jsonb_build_object('ok',false,'code','SAT_COLLISION','collisions',c); end if; end if; return jsonb_build_object('ok',true,'geometry_engine','OBB_SAT_V1'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_mutation_gateway_v1(p_operation text, p_object_id uuid DEFAULT NULL::uuid, p_map_id uuid DEFAULT NULL::uuid, p_x numeric DEFAULT NULL::numeric, p_y numeric DEFAULT NULL::numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric, p_target_layer_id uuid DEFAULT NULL::uuid, p_asset_id uuid DEFAULT NULL::uuid, p_object_type text DEFAULT NULL::text, p_footprint jsonb DEFAULT NULL::jsonb, p_properties jsonb DEFAULT NULL::jsonb)
@@ -3510,21 +3511,21 @@ declare o public.map_objects%rowtype; v jsonb; nid uuid; begin
  if p_operation='scale' then return public.commit_map_object_geometry_pipeline_v1(p_object_id,null,null,null,p_scale_x,p_scale_y,p_target_layer_id); end if;
  select * into o from public.map_objects where id=p_object_id for update; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if;
  perform public.remove_map_object_footprint(o.id); delete from public.map_object_geometry where object_id=o.id; delete from public.map_objects where id=o.id;
- return jsonb_build_object('ok',true,'operation','delete','object_id',o.id,'committed',true); end; $function$
+ return jsonb_build_object('ok',true,'operation','delete','object_id',o.id,'committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_delete_object_v1(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_mutation_gateway_v1('delete',p_object_id); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('delete',p_object_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_create_object_v1(p_map_id uuid, p_asset_id uuid, p_object_type text, p_x numeric, p_y numeric, p_rotation numeric DEFAULT 0, p_layer_id uuid DEFAULT NULL::uuid, p_footprint jsonb DEFAULT NULL::jsonb, p_properties jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_mutation_gateway_v1('create',null,p_map_id,p_x,p_y,p_rotation,null,null,p_layer_id,p_asset_id,p_object_type,p_footprint,p_properties); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('create',null,p_map_id,p_x,p_y,p_rotation,null,null,p_layer_id,p_asset_id,p_object_type,p_footprint,p_properties); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_mutation_gateway_v1(p_operation text, p_object_id uuid DEFAULT NULL::uuid, p_map_id uuid DEFAULT NULL::uuid, p_x numeric DEFAULT NULL::numeric, p_y numeric DEFAULT NULL::numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric, p_target_layer_id uuid DEFAULT NULL::uuid, p_asset_id uuid DEFAULT NULL::uuid, p_object_type text DEFAULT NULL::text, p_footprint jsonb DEFAULT NULL::jsonb, p_properties jsonb DEFAULT NULL::jsonb, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 0, p_dy numeric DEFAULT 0, p_clipboard_key text DEFAULT 'default'::text, p_snap_mode text DEFAULT 'all'::text, p_snap_tolerance numeric DEFAULT 0.35, p_rotation_delta numeric DEFAULT 0, p_scale_x_multiplier numeric DEFAULT 1, p_scale_y_multiplier numeric DEFAULT 1)
@@ -3541,31 +3542,31 @@ AS $function$ begin
  if p_operation='transform_selection' then return public.transform_selected_map_objects_atomic(p_map_id,coalesce(p_selection_key,'default'),round(coalesce(p_dx,0))::integer,round(coalesce(p_dy,0))::integer,round(coalesce(p_rotation_delta,0))::integer); end if;
  if p_operation='gizmo_selection_rotate' then return public.transform_selected_gizmo_atomic(p_map_id,coalesce(p_selection_key,'default'),'rotate',coalesce(p_rotation_delta,0),1,1); end if;
  if p_operation='gizmo_selection_scale' then return public.transform_selected_gizmo_atomic(p_map_id,coalesce(p_selection_key,'default'),'scale',0,coalesce(p_scale_x_multiplier,1),coalesce(p_scale_y_multiplier,1)); end if;
- return jsonb_build_object('ok',false,'code','INVALID_MUTATION_OPERATION'); end; $function$
+ return jsonb_build_object('ok',false,'code','INVALID_MUTATION_OPERATION'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_duplicate_v1(p_object_id uuid, p_dx numeric DEFAULT 1, p_dy numeric DEFAULT 0, p_snap_mode text DEFAULT 'all'::text, p_snap_tolerance numeric DEFAULT 0.35)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_mutation_gateway_v1('duplicate',p_object_id,null,null,null,null,null,null,null,null,null,null,null,null,'default',p_dx,p_dy,'default',p_snap_mode,p_snap_tolerance); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('duplicate',p_object_id,null,null,null,null,null,null,null,null,null,null,null,null,'default',p_dx,p_dy,'default',p_snap_mode,p_snap_tolerance); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_duplicate_selection_v1(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 1, p_dy numeric DEFAULT 1)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_mutation_gateway_v1('duplicate_selection',null,p_map_id,null,null,null,null,null,null,null,null,null,null,null,p_selection_key,p_dx,p_dy); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('duplicate_selection',null,p_map_id,null,null,null,null,null,null,null,null,null,null,null,p_selection_key,p_dx,p_dy); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_paste_v1(p_map_id uuid, p_clipboard_key text DEFAULT 'default'::text, p_x numeric DEFAULT 0, p_y numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_mutation_gateway_v1('paste',null,p_map_id,p_x,p_y,null,null,null,null,null,null,null,null,null,p_clipboard_key=>p_clipboard_key); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('paste',null,p_map_id,p_x,p_y,null,null,null,null,null,null,null,null,null,p_clipboard_key=>p_clipboard_key); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_transform_selection_v1(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 0, p_dy numeric DEFAULT 0, p_rotation_delta numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ begin return public.editor_mutation_gateway_v1('transform_selection',null,p_map_id,null,null,null,null,null,null,null,null,null,null,null,p_selection_key,p_dx,p_dy,'default','all',0.35,p_rotation_delta); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('transform_selection',null,p_map_id,null,null,null,null,null,null,null,null,null,null,null,p_selection_key,p_dx,p_dy,'default','all',0.35,p_rotation_delta); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_create_object_leaf_v1(p_map_id uuid, p_asset_id uuid, p_object_type text, p_x numeric, p_y numeric, p_width integer DEFAULT 1, p_height integer DEFAULT 1, p_rotation numeric DEFAULT 0, p_layer_id uuid DEFAULT NULL::uuid, p_z_index integer DEFAULT 0, p_blocks_movement boolean DEFAULT false, p_blocks_los boolean DEFAULT false, p_footprint jsonb DEFAULT '[{"x": 0, "y": 0}]'::jsonb, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -3580,21 +3581,21 @@ declare oid uuid; begin
  if p_asset_id is not null and not exists(select 1 from public.asset_registry where id=p_asset_id and status='approved') then return jsonb_build_object('ok',false,'code','ASSET_NOT_APPROVED'); end if;
  insert into public.map_objects(map_id,asset_id,object_type,x,y,width,height,rotation,layer_id,z_index,blocks_movement,blocks_los,footprint,properties) values(p_map_id,p_asset_id,p_object_type,p_x,p_y,p_width,p_height,p_rotation,p_layer_id,p_z_index,p_blocks_movement,p_blocks_los,coalesce(p_footprint,'[{"x":0,"y":0}]'::jsonb),coalesce(p_metadata,'{}'::jsonb)) returning id into oid;
  perform public.sync_map_object_obb_v1(oid); perform public.sync_map_object_footprint(oid);
- return jsonb_build_object('ok',true,'operation','create','object_id',oid,'committed',true); end; $function$
+ return jsonb_build_object('ok',true,'operation','create','object_id',oid,'committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_delete_object_leaf_v1(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare o public.map_objects%rowtype; begin select * into o from public.map_objects where id=p_object_id for update; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; perform public.remove_map_object_footprint(o.id); delete from public.map_object_geometry where object_id=o.id; delete from public.map_objects where id=o.id; return jsonb_build_object('ok',true,'operation','delete','object_id',o.id,'committed',true); end; $function$
+AS $function$ declare o public.map_objects%rowtype; begin select * into o from public.map_objects where id=p_object_id for update; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; perform public.remove_map_object_footprint(o.id); delete from public.map_object_geometry where object_id=o.id; delete from public.map_objects where id=o.id; return jsonb_build_object('ok',true,'operation','delete','object_id',o.id,'committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_transform_object_leaf_v1(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric, p_scale_x numeric, p_scale_y numeric, p_target_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y,p_target_layer_id); end; $function$
+AS $function$ begin return public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y,p_target_layer_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_batch_duplicate_leaf_v1(p_map_id uuid, p_source_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric)
@@ -3605,49 +3606,49 @@ AS $function$
 declare src public.map_objects%rowtype; v jsonb; nid uuid; begin
  select * into src from public.map_objects where id=p_source_object_id and map_id=p_map_id; if not found then return jsonb_build_object('ok',false,'code','SOURCE_OBJECT_NOT_FOUND'); end if;
  v:=public.validate_map_object_geometry_pipeline_v1(src.id,p_x,p_y,coalesce(p_rotation,src.rotation),coalesce(p_scale_x,src.scale_x),coalesce(p_scale_y,src.scale_y),src.layer_id); if not (v->>'ok')::boolean then return v; end if;
- nid:=gen_random_uuid(); insert into public.map_objects(id,map_id,asset_id,object_type,x,y,width,height,rotation,scale_x,scale_y,layer_id,z_index,blocks_movement,blocks_los,footprint,metadata) values(nid,src.map_id,src.asset_id,src.object_type,p_x,p_y,src.width,src.height,coalesce(p_rotation,src.rotation),coalesce(p_scale_x,src.scale_x),coalesce(p_scale_y,src.scale_y),src.layer_id,src.z_index,src.blocks_movement,src.blocks_los,src.footprint,src.metadata); perform public.sync_map_object_obb_v1(nid); perform public.sync_map_object_footprint(nid); return jsonb_build_object('ok',true,'object_id',nid,'source_object_id',src.id,'operation','duplicate','geometry_engine','OBB_SAT_V1','committed',true); end; $function$
+ nid:=gen_random_uuid(); insert into public.map_objects(id,map_id,asset_id,object_type,x,y,width,height,rotation,scale_x,scale_y,layer_id,z_index,blocks_movement,blocks_los,footprint,metadata) values(nid,src.map_id,src.asset_id,src.object_type,p_x,p_y,src.width,src.height,coalesce(p_rotation,src.rotation),coalesce(p_scale_x,src.scale_x),coalesce(p_scale_y,src.scale_y),src.layer_id,src.z_index,src.blocks_movement,src.blocks_los,src.footprint,src.metadata); perform public.sync_map_object_obb_v1(nid); perform public.sync_map_object_footprint(nid); return jsonb_build_object('ok',true,'object_id',nid,'source_object_id',src.id,'operation','duplicate','geometry_engine','OBB_SAT_V1','committed',true); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_batch_transform_leaf_v1(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric, p_scale_x numeric, p_scale_y numeric, p_target_layer_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y,p_target_layer_id); end; $function$
+AS $function$ begin return public.commit_map_object_geometry_pipeline_v1(p_object_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y,p_target_layer_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_batch_delete_leaf_v1(p_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_delete_object_leaf_v1(p_object_id); end; $function$
+AS $function$ begin return public.editor_delete_object_leaf_v1(p_object_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_place_object_legacy_bridge_v1(p_map_id uuid, p_asset_id uuid, p_object_type text, p_x numeric, p_y numeric, p_rotation numeric DEFAULT 0, p_layer_id uuid DEFAULT NULL::uuid, p_footprint jsonb DEFAULT NULL::jsonb, p_properties jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_mutation_gateway_v1('create',null,p_map_id,p_x,p_y,p_rotation,null,null,p_layer_id,p_asset_id,p_object_type,p_footprint,p_properties); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('create',null,p_map_id,p_x,p_y,p_rotation,null,null,p_layer_id,p_asset_id,p_object_type,p_footprint,p_properties); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_duplicate_legacy_bridge_v1(p_map_id uuid, p_source_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric DEFAULT NULL::numeric, p_scale_x numeric DEFAULT NULL::numeric, p_scale_y numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_mutation_gateway_v1('duplicate',p_source_object_id,p_map_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('duplicate',p_source_object_id,p_map_id,p_x,p_y,p_rotation,p_scale_x,p_scale_y); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_duplicate_selection_legacy_bridge_v1(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 0, p_dy numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_mutation_gateway_v1('duplicate_selection',null,p_map_id,p_dx,p_dy,null,null,null,null,null,null,null,jsonb_build_object('selection_key',p_selection_key)); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('duplicate_selection',null,p_map_id,p_dx,p_dy,null,null,null,null,null,null,null,jsonb_build_object('selection_key',p_selection_key)); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_paste_legacy_bridge_v1(p_map_id uuid, p_x numeric, p_y numeric, p_clipboard_key text DEFAULT 'default'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin return public.editor_mutation_gateway_v1('paste',null,p_map_id,p_x,p_y,null,null,null,null,null,null,null,jsonb_build_object('clipboard_key',p_clipboard_key)); end; $function$
+AS $function$ begin return public.editor_mutation_gateway_v1('paste',null,p_map_id,p_x,p_y,null,null,null,null,null,null,null,jsonb_build_object('clipboard_key',p_clipboard_key)); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_duplicate_object_leaf_v2(p_object_id uuid, p_dx numeric DEFAULT 1, p_dy numeric DEFAULT 0, p_snap_mode text DEFAULT 'all'::text, p_snap_tolerance numeric DEFAULT 0.35)
@@ -3661,27 +3662,27 @@ declare o public.map_objects%rowtype; r jsonb; v jsonb; nx numeric; ny numeric; 
  v:=public.validate_duplicate_geometry_pipeline_v1(o.map_id,o.id,nx,ny,o.rotation,o.scale_x,o.scale_y); if not coalesce((v->>'ok')::boolean,false) then return v; end if;
  insert into public.map_objects(map_id,layer_id,asset_id,entity_type,entity_id,x,y,rotation,scale_x,scale_y,z_index,collision_enabled,interactable,footprint,properties,object_type,width,height,blocks_los) values(o.map_id,o.layer_id,o.asset_id,o.entity_type,o.entity_id,nx,ny,o.rotation,o.scale_x,o.scale_y,o.z_index,o.collision_enabled,o.interactable,o.footprint,o.properties,o.object_type,o.width,o.height,o.blocks_los) returning id into nid;
  perform public.sync_map_object_obb_v1(nid); perform public.sync_map_object_footprint(nid);
- return jsonb_build_object('ok',true,'source_object_id',o.id,'object_id',nid,'x',nx,'y',ny,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'geometry_engine','OBB_SAT_V1'); end; $function$
+ return jsonb_build_object('ok',true,'source_object_id',o.id,'object_id',nid,'x',nx,'y',ny,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'geometry_engine','OBB_SAT_V1'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_place_object_leaf_v2(p_map_id uuid, p_asset_id uuid, p_object_type text, p_x numeric, p_y numeric, p_rotation numeric DEFAULT 0, p_layer_id uuid DEFAULT NULL::uuid, p_width integer DEFAULT 1, p_height integer DEFAULT 1, p_blocks_movement boolean DEFAULT false, p_blocks_los boolean DEFAULT false, p_footprint jsonb DEFAULT NULL::jsonb, p_properties jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare r jsonb; oid uuid; fp jsonb; begin if p_asset_id is not null and not exists(select 1 from public.asset_registry where id=p_asset_id and status='approved') then return jsonb_build_object('ok',false,'code','ASSET_NOT_APPROVED'); end if; fp:=coalesce(p_footprint,'[{"x":0,"y":0}]'::jsonb); r:=public.resolve_map_object_snap_v2(p_map_id,p_x,p_y,'all',0.35,null); if not coalesce((r->>'ok')::boolean,false) then return r; end if; if p_rotation not in (0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION'); end if; if exists(select 1 from public.map_objects o where o.map_id=p_map_id and o.layer_id is not distinct from p_layer_id and o.collision_enabled=true and public.obb_sat_overlap_v1(public.get_map_object_obb_v1(o.id),jsonb_build_object('center_x',(r->>'x')::numeric,'center_y',(r->>'y')::numeric,'half_width',greatest(0.5,p_width/2.0),'half_height',greatest(0.5,p_height/2.0),'rotation',p_rotation))) then return jsonb_build_object('ok',false,'code','SAT_COLLISION'); end if; insert into public.map_objects(map_id,layer_id,asset_id,entity_type,x,y,rotation,scale_x,scale_y,z_index,collision_enabled,interactable,footprint,properties,object_type,width,height,blocks_los) values(p_map_id,p_layer_id,p_asset_id,p_object_type,(r->>'x')::numeric,(r->>'y')::numeric,p_rotation,1,1,0,p_blocks_movement,false,fp,coalesce(p_properties,'{}'::jsonb),p_object_type,p_width,p_height,p_blocks_los) returning id into oid; perform public.sync_map_object_obb_v1(oid); perform public.sync_map_object_footprint(oid); return jsonb_build_object('ok',true,'object_id',oid,'geometry_engine','OBB_SAT_V1'); end; $function$
+AS $function$ declare r jsonb; oid uuid; fp jsonb; begin if p_asset_id is not null and not exists(select 1 from public.asset_registry where id=p_asset_id and status='approved') then return jsonb_build_object('ok',false,'code','ASSET_NOT_APPROVED'); end if; fp:=coalesce(p_footprint,'[{"x":0,"y":0}]'::jsonb); r:=public.resolve_map_object_snap_v2(p_map_id,p_x,p_y,'all',0.35,null); if not coalesce((r->>'ok')::boolean,false) then return r; end if; if p_rotation not in (0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION'); end if; if exists(select 1 from public.map_objects o where o.map_id=p_map_id and o.layer_id is not distinct from p_layer_id and o.collision_enabled=true and public.obb_sat_overlap_v1(public.get_map_object_obb_v1(o.id),jsonb_build_object('center_x',(r->>'x')::numeric,'center_y',(r->>'y')::numeric,'half_width',greatest(0.5,p_width/2.0),'half_height',greatest(0.5,p_height/2.0),'rotation',p_rotation))) then return jsonb_build_object('ok',false,'code','SAT_COLLISION'); end if; insert into public.map_objects(map_id,layer_id,asset_id,entity_type,x,y,rotation,scale_x,scale_y,z_index,collision_enabled,interactable,footprint,properties,object_type,width,height,blocks_los) values(p_map_id,p_layer_id,p_asset_id,p_object_type,(r->>'x')::numeric,(r->>'y')::numeric,p_rotation,1,1,0,p_blocks_movement,false,fp,coalesce(p_properties,'{}'::jsonb),p_object_type,p_width,p_height,p_blocks_los) returning id into oid; perform public.sync_map_object_obb_v1(oid); perform public.sync_map_object_footprint(oid); return jsonb_build_object('ok',true,'object_id',oid,'geometry_engine','OBB_SAT_V1'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_batch_selection_duplicate_leaf_v2(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 0, p_dy numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare s record; o public.map_objects%rowtype; v jsonb; created integer:=0; begin for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id; if not found then continue; end if; v:=public.editor_duplicate_legacy_bridge_v1(p_map_id,o.id,o.x+p_dx,o.y+p_dy,o.rotation,o.scale_x,o.scale_y); if not coalesce((v->>'ok')::boolean,false) then return v||jsonb_build_object('created_before_failure',created); end if; created:=created+1; end loop; return jsonb_build_object('ok',true,'operation','duplicate_selection','objects_created',created,'selection_key',p_selection_key); end; $function$
+AS $function$ declare s record; o public.map_objects%rowtype; v jsonb; created integer:=0; begin for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id; if not found then continue; end if; v:=public.editor_duplicate_legacy_bridge_v1(p_map_id,o.id,o.x+p_dx,o.y+p_dy,o.rotation,o.scale_x,o.scale_y); if not coalesce((v->>'ok')::boolean,false) then return v||jsonb_build_object('created_before_failure',created); end if; created:=created+1; end loop; return jsonb_build_object('ok',true,'operation','duplicate_selection','objects_created',created,'selection_key',p_selection_key); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_batch_selection_transform_leaf_v2(p_map_id uuid, p_selection_key text DEFAULT 'default'::text, p_dx numeric DEFAULT 0, p_dy numeric DEFAULT 0, p_rotation_delta numeric DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare s record; o public.map_objects%rowtype; v jsonb; nr numeric; gid uuid; cmd jsonb; r jsonb; changed int:=0; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor:'||p_map_id::text||':'||coalesce(p_selection_key,'default'),0)); if p_rotation_delta not in (-270,-180,-90,0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION_DELTA'); end if; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id; if not found then continue; end if; nr:=mod(o.rotation+p_rotation_delta+360,360); v:=public.validate_map_object_geometry_pipeline_v1(o.id,o.x+p_dx,o.y+p_dy,nr,o.scale_x,o.scale_y,o.layer_id); if not coalesce((v->>'ok')::boolean,false) then return v||jsonb_build_object('atomic_rejected',true,'objects_changed',0); end if; end loop; select (public.begin_map_editor_command_group(p_map_id,case when p_rotation_delta<>0 and (p_dx<>0 or p_dy<>0) then 'Gizmo move+rotate' when p_rotation_delta<>0 then 'Gizmo rotate' else 'Gizmo move' end,p_selection_key)::jsonb->>'group_id')::uuid into gid; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id for update; if not found then continue; end if; nr:=mod(o.rotation+p_rotation_delta+360,360); v:=public.editor_batch_transform_leaf_v1(o.id,o.x+p_dx,o.y+p_dy,nr,o.scale_x,o.scale_y,o.layer_id); if not coalesce((v->>'ok')::boolean,false) then raise exception 'ATOMIC_TRANSFORM_FAILED:%',v; end if; cmd:=jsonb_build_object('before',jsonb_build_object('x',o.x,'y',o.y,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'layer_id',o.layer_id),'after',jsonb_build_object('x',o.x+p_dx,'y',o.y+p_dy,'rotation',nr,'scale_x',o.scale_x,'scale_y',o.scale_y,'layer_id',o.layer_id)); r:=public.record_map_editor_command(p_map_id,'transform_object','map_object',o.id,cmd->'after',cmd->'before'); if not coalesce((r->>'ok')::boolean,false) then raise exception 'COMMAND_RECORD_FAILED:%',r; end if; update public.map_editor_commands set metadata=coalesce(metadata,'{}')||jsonb_build_object('group_id',gid) where id=(r->>'command_id')::uuid; changed:=changed+1; end loop; update public.map_editor_command_groups set command_count=changed,metadata=coalesce(metadata,'{}')||jsonb_build_object('commands',jsonb_build_object('dx',p_dx,'dy',p_dy,'rotation_delta',p_rotation_delta),'atomic',true) where id=gid; perform public.close_map_editor_command_group(gid); return jsonb_build_object('ok',true,'operation','transform_selection','objects_transformed',changed,'selection_key',p_selection_key,'group_id',gid,'atomic',true); exception when others then return jsonb_build_object('ok',false,'code','SELECTION_TRANSFORM_FAILED','error',sqlerrm,'atomic_rejected',true,'objects_changed',0); end; $function$
+AS $function$ declare s record; o public.map_objects%rowtype; v jsonb; nr numeric; gid uuid; cmd jsonb; r jsonb; changed int:=0; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor:'||p_map_id::text||':'||coalesce(p_selection_key,'default'),0)); if p_rotation_delta not in (-270,-180,-90,0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION_DELTA'); end if; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id; if not found then continue; end if; nr:=mod(o.rotation+p_rotation_delta+360,360); v:=public.validate_map_object_geometry_pipeline_v1(o.id,o.x+p_dx,o.y+p_dy,nr,o.scale_x,o.scale_y,o.layer_id); if not coalesce((v->>'ok')::boolean,false) then return v||jsonb_build_object('atomic_rejected',true,'objects_changed',0); end if; end loop; select (public.begin_map_editor_command_group(p_map_id,case when p_rotation_delta<>0 and (p_dx<>0 or p_dy<>0) then 'Gizmo move+rotate' when p_rotation_delta<>0 then 'Gizmo rotate' else 'Gizmo move' end,p_selection_key)::jsonb->>'group_id')::uuid into gid; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id for update; if not found then continue; end if; nr:=mod(o.rotation+p_rotation_delta+360,360); v:=public.editor_batch_transform_leaf_v1(o.id,o.x+p_dx,o.y+p_dy,nr,o.scale_x,o.scale_y,o.layer_id); if not coalesce((v->>'ok')::boolean,false) then raise exception 'ATOMIC_TRANSFORM_FAILED:%',v; end if; cmd:=jsonb_build_object('before',jsonb_build_object('x',o.x,'y',o.y,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'layer_id',o.layer_id),'after',jsonb_build_object('x',o.x+p_dx,'y',o.y+p_dy,'rotation',nr,'scale_x',o.scale_x,'scale_y',o.scale_y,'layer_id',o.layer_id)); r:=public.record_map_editor_command(p_map_id,'transform_object','map_object',o.id,cmd->'after',cmd->'before'); if not coalesce((r->>'ok')::boolean,false) then raise exception 'COMMAND_RECORD_FAILED:%',r; end if; update public.map_editor_commands set metadata=coalesce(metadata,'{}')||jsonb_build_object('group_id',gid) where id=(r->>'command_id')::uuid; changed:=changed+1; end loop; update public.map_editor_command_groups set command_count=changed,metadata=coalesce(metadata,'{}')||jsonb_build_object('commands',jsonb_build_object('dx',p_dx,'dy',p_dy,'rotation_delta',p_rotation_delta),'atomic',true) where id=gid; perform public.close_map_editor_command_group(gid); return jsonb_build_object('ok',true,'operation','transform_selection','objects_transformed',changed,'selection_key',p_selection_key,'group_id',gid,'atomic',true); exception when others then return jsonb_build_object('ok',false,'code','SELECTION_TRANSFORM_FAILED','error',sqlerrm,'atomic_rejected',true,'objects_changed',0); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.create_dungeon_opening(p_map_id uuid, p_x integer, p_y integer, p_direction text, p_opening_type text, p_room_id uuid, p_corridor_id uuid, p_width integer, p_asset_id uuid)
@@ -3701,7 +3702,7 @@ begin
  insert into public.dungeon_openings(map_id,room_id,corridor_id,x,y,opening_type,direction,width,asset_id,metadata)
  values(p_map_id,p_room_id,p_corridor_id,p_x,p_y,p_opening_type,p_direction,p_width,p_asset_id,jsonb_build_object('created_by','dungeon_opening_engine_v1')) returning * into o;
  return jsonb_build_object('ok',true,'opening_id',o.id,'x',o.x,'y',o.y,'direction',o.direction,'type',o.opening_type,'state',o.state);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.generate_dungeon_room(p_map_id uuid, p_origin_x integer, p_origin_y integer, p_width integer, p_height integer, p_openings jsonb, p_replace boolean)
@@ -3732,7 +3733,7 @@ begin
    end loop;
  end loop;
  return jsonb_build_object('ok',true,'room_id',room_id,'cells_written',inserted_count,'origin',jsonb_build_array(p_origin_x,p_origin_y),'size',jsonb_build_array(p_width,p_height));
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.plan_dungeon_room_connection(p_from_room_id uuid, p_to_room_id uuid, p_opening_width integer)
@@ -3751,7 +3752,7 @@ begin
  else fs:='west'; ts:='east'; fx:=a.origin_x; tx:=b.origin_x+b.width-1; fy:=great(a.origin_y,least(b.origin_y+b.height-1,a.origin_y+a.height/2)); ty:=great(b.origin_y,least(a.origin_y+a.height-1,b.origin_y+b.height/2)); end if;
  insert into public.dungeon_connections(map_id,from_room_id,to_room_id,from_side,to_side,from_x,from_y,to_x,to_y,opening_width,status,metadata) values(a.map_id,a.id,b.id,fs,ts,fx,fy,tx,ty,p_opening_width,'planned',jsonb_build_object('algorithm','relative-center-v1')) returning id into c_id;
  return jsonb_build_object('ok',true,'connection_id',c_id,'from_side',fs,'to_side',ts,'from_x',fx,'from_y',fy,'to_x',tx,'to_y',ty);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_dungeon_opening_state(p_opening_id uuid, p_state text)
@@ -3767,27 +3768,27 @@ begin
  if not exists(select 1 from public.maps where id=o.map_id and created_by=auth.uid()) then return jsonb_build_object('ok',false,'code','MAP_NOT_OWNED'); end if;
  update public.dungeon_openings set state=p_state,is_walkable=(p_state='open'),updated_at=now() where id=p_opening_id;
  return jsonb_build_object('ok',true,'opening_id',p_opening_id,'state',p_state,'is_walkable',(p_state='open'));
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_cell(p_map_id uuid, p_grid_x integer, p_grid_y integer, p_terrain_asset_id uuid DEFAULT NULL::uuid, p_structural_asset_id uuid DEFAULT NULL::uuid, p_decoration_asset_id uuid DEFAULT NULL::uuid, p_elevation integer DEFAULT 0, p_biome text DEFAULT NULL::text, p_season_variant text DEFAULT NULL::text, p_collision boolean DEFAULT false, p_walkable boolean DEFAULT true, p_metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS uuid
  LANGUAGE plpgsql
  SET search_path TO 'public'
-AS $function$ declare v_id uuid; begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then raise exception 'MAP_NOT_OWNED'; end if; insert into public.map_cells(map_id,grid_x,grid_y,terrain_asset_id,structural_asset_id,decoration_asset_id,elevation,biome,season_variant,collision,walkable,metadata) values(p_map_id,p_grid_x,p_grid_y,p_terrain_asset_id,p_structural_asset_id,p_decoration_asset_id,p_elevation,p_biome,p_season_variant,p_collision,p_walkable,coalesce(p_metadata,'{}'::jsonb)) on conflict(map_id,grid_x,grid_y) do update set terrain_asset_id=excluded.terrain_asset_id,structural_asset_id=excluded.structural_asset_id,decoration_asset_id=excluded.decoration_asset_id,elevation=excluded.elevation,biome=excluded.biome,season_variant=excluded.season_variant,collision=excluded.collision,walkable=excluded.walkable,metadata=excluded.metadata,updated_at=now() returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin if not exists(select 1 from public.maps where id=p_map_id and created_by=auth.uid()) then raise exception 'MAP_NOT_OWNED'; end if; insert into public.map_cells(map_id,grid_x,grid_y,terrain_asset_id,structural_asset_id,decoration_asset_id,elevation,biome,season_variant,collision,walkable,metadata) values(p_map_id,p_grid_x,p_grid_y,p_terrain_asset_id,p_structural_asset_id,p_decoration_asset_id,p_elevation,p_biome,p_season_variant,p_collision,p_walkable,coalesce(p_metadata,'{}'::jsonb)) on conflict(map_id,grid_x,grid_y) do update set terrain_asset_id=excluded.terrain_asset_id,structural_asset_id=excluded.structural_asset_id,decoration_asset_id=excluded.decoration_asset_id,elevation=excluded.elevation,biome=excluded.biome,season_variant=excluded.season_variant,collision=excluded.collision,walkable=excluded.walkable,metadata=excluded.metadata,updated_at=now() returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_paste_leaf_v2(p_map_id uuid, p_clipboard_key text, p_x numeric, p_y numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare cb public.map_editor_clipboards%rowtype; item jsonb; sx numeric; sy numeric; dx numeric; dy numeric; nx numeric; ny numeric; rot numeric; sw numeric; sh numeric; oid uuid; ids uuid[]:='{}'; created integer:=0; group_id uuid; begin select * into cb from public.map_editor_clipboards where map_id=p_map_id and clipboard_key=p_clipboard_key order by updated_at desc limit 1; if not found or cb.object_count=0 then return jsonb_build_object('ok',false,'code','CLIPBOARD_EMPTY'); end if; for item in select value from jsonb_array_elements(cb.payload) loop if (item->>'asset_id') is not null and not exists(select 1 from public.asset_registry where id=(item->>'asset_id')::uuid and status='approved') then return jsonb_build_object('ok',false,'code','ASSET_NOT_APPROVED'); end if; end loop; sx:=coalesce((cb.payload->0->>'x')::numeric,0); sy:=coalesce((cb.payload->0->>'y')::numeric,0); dx:=p_x-sx; dy:=p_y-sy; for item in select value from jsonb_array_elements(cb.payload) loop nx:=round(coalesce((item->>'x')::numeric,0)+dx); ny:=round(coalesce((item->>'y')::numeric,0)+dy); rot:=coalesce((item->>'rotation')::numeric,0); sw:=greatest(0.5,coalesce((item->>'width')::numeric,1)*coalesce((item->>'scale_x')::numeric,1)/2.0); sh:=greatest(0.5,coalesce((item->>'height')::numeric,1)*coalesce((item->>'scale_y')::numeric,1)/2.0); if exists(select 1 from public.map_objects o where o.map_id=p_map_id and o.layer_id is not distinct from (item->>'layer_id')::uuid and o.collision_enabled=true and public.obb_sat_overlap_v1(public.get_map_object_obb_v1(o.id),jsonb_build_object('center_x',nx,'center_y',ny,'half_width',sw,'half_height',sh,'rotation',rot))) then return jsonb_build_object('ok',false,'code','SAT_COLLISION','x',nx,'y',ny); end if; end loop; select (public.begin_map_editor_command_group(p_map_id,'Paste clipboard','default')::jsonb->>'group_id')::uuid into group_id; for item in select value from jsonb_array_elements(cb.payload) loop nx:=round(coalesce((item->>'x')::numeric,0)+dx); ny:=round(coalesce((item->>'y')::numeric,0)+dy); insert into public.map_objects(map_id,layer_id,asset_id,entity_type,entity_id,x,y,rotation,scale_x,scale_y,z_index,collision_enabled,interactable,footprint,properties,object_type,width,height,blocks_los) values(p_map_id,(item->>'layer_id')::uuid,(item->>'asset_id')::uuid,item->>'entity_type',(item->>'entity_id')::uuid,nx,ny,coalesce((item->>'rotation')::numeric,0),coalesce((item->>'scale_x')::numeric,1),coalesce((item->>'scale_y')::numeric,1),coalesce((item->>'z_index')::integer,0),coalesce((item->>'collision_enabled')::boolean,false),coalesce((item->>'interactable')::boolean,false),item->'footprint',coalesce(item->'properties','{}'::jsonb),item->>'object_type',coalesce((item->>'width')::integer,1),coalesce((item->>'height')::integer,1),coalesce((item->>'blocks_los')::boolean,false)) returning id into oid; ids:=ids||oid; perform public.sync_map_object_obb_v1(oid); perform public.sync_map_object_footprint(oid); created:=created+1; end loop; update public.map_editor_command_groups set command_count=created,metadata=metadata||jsonb_build_object('new_object_ids',to_jsonb(ids),'geometry_engine','OBB_SAT_V1') where id=group_id; perform public.close_map_editor_command_group(group_id); return jsonb_build_object('ok',true,'group_id',group_id,'objects_created',created,'object_ids',to_jsonb(ids),'geometry_engine','OBB_SAT_V1'); end; $function$
+AS $function$ declare cb public.map_editor_clipboards%rowtype; item jsonb; sx numeric; sy numeric; dx numeric; dy numeric; nx numeric; ny numeric; rot numeric; sw numeric; sh numeric; oid uuid; ids uuid[]:='{}'; created integer:=0; group_id uuid; begin select * into cb from public.map_editor_clipboards where map_id=p_map_id and clipboard_key=p_clipboard_key order by updated_at desc limit 1; if not found or cb.object_count=0 then return jsonb_build_object('ok',false,'code','CLIPBOARD_EMPTY'); end if; for item in select value from jsonb_array_elements(cb.payload) loop if (item->>'asset_id') is not null and not exists(select 1 from public.asset_registry where id=(item->>'asset_id')::uuid and status='approved') then return jsonb_build_object('ok',false,'code','ASSET_NOT_APPROVED'); end if; end loop; sx:=coalesce((cb.payload->0->>'x')::numeric,0); sy:=coalesce((cb.payload->0->>'y')::numeric,0); dx:=p_x-sx; dy:=p_y-sy; for item in select value from jsonb_array_elements(cb.payload) loop nx:=round(coalesce((item->>'x')::numeric,0)+dx); ny:=round(coalesce((item->>'y')::numeric,0)+dy); rot:=coalesce((item->>'rotation')::numeric,0); sw:=greatest(0.5,coalesce((item->>'width')::numeric,1)*coalesce((item->>'scale_x')::numeric,1)/2.0); sh:=greatest(0.5,coalesce((item->>'height')::numeric,1)*coalesce((item->>'scale_y')::numeric,1)/2.0); if exists(select 1 from public.map_objects o where o.map_id=p_map_id and o.layer_id is not distinct from (item->>'layer_id')::uuid and o.collision_enabled=true and public.obb_sat_overlap_v1(public.get_map_object_obb_v1(o.id),jsonb_build_object('center_x',nx,'center_y',ny,'half_width',sw,'half_height',sh,'rotation',rot))) then return jsonb_build_object('ok',false,'code','SAT_COLLISION','x',nx,'y',ny); end if; end loop; select (public.begin_map_editor_command_group(p_map_id,'Paste clipboard','default')::jsonb->>'group_id')::uuid into group_id; for item in select value from jsonb_array_elements(cb.payload) loop nx:=round(coalesce((item->>'x')::numeric,0)+dx); ny:=round(coalesce((item->>'y')::numeric,0)+dy); insert into public.map_objects(map_id,layer_id,asset_id,entity_type,entity_id,x,y,rotation,scale_x,scale_y,z_index,collision_enabled,interactable,footprint,properties,object_type,width,height,blocks_los) values(p_map_id,(item->>'layer_id')::uuid,(item->>'asset_id')::uuid,item->>'entity_type',(item->>'entity_id')::uuid,nx,ny,coalesce((item->>'rotation')::numeric,0),coalesce((item->>'scale_x')::numeric,1),coalesce((item->>'scale_y')::numeric,1),coalesce((item->>'z_index')::integer,0),coalesce((item->>'collision_enabled')::boolean,false),coalesce((item->>'interactable')::boolean,false),item->'footprint',coalesce(item->'properties','{}'::jsonb),item->>'object_type',coalesce((item->>'width')::integer,1),coalesce((item->>'height')::integer,1),coalesce((item->>'blocks_los')::boolean,false)) returning id into oid; ids:=ids||oid; perform public.sync_map_object_obb_v1(oid); perform public.sync_map_object_footprint(oid); created:=created+1; end loop; update public.map_editor_command_groups set command_count=created,metadata=metadata||jsonb_build_object('new_object_ids',to_jsonb(ids),'geometry_engine','OBB_SAT_V1') where id=group_id; perform public.close_map_editor_command_group(group_id); return jsonb_build_object('ok',true,'group_id',group_id,'objects_created',created,'object_ids',to_jsonb(ids),'geometry_engine','OBB_SAT_V1'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.transform_selected_gizmo_atomic(p_map_id uuid, p_selection_key text, p_operation text, p_rotation_delta numeric, p_scale_x_multiplier numeric, p_scale_y_multiplier numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare s record; o public.map_objects%rowtype; v jsonb; nr numeric; nsx numeric; nsy numeric; group_id uuid; commands jsonb:='[]'::jsonb; affected integer:=0; rec jsonb; r jsonb; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor:'||p_map_id::text||':'||coalesce(p_selection_key,'default'),0)); if p_operation not in ('rotate','scale') then return jsonb_build_object('ok',false,'code','INVALID_GIZMO_OPERATION'); end if; if p_rotation_delta not in (-270,-180,-90,0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION_DELTA'); end if; if p_scale_x_multiplier<=0 or p_scale_y_multiplier<=0 or p_scale_x_multiplier>64 or p_scale_y_multiplier>64 then return jsonb_build_object('ok',false,'code','INVALID_SCALE_MULTIPLIER'); end if; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id; if not found then continue; end if; nr:=case when p_operation='rotate' then mod(o.rotation+p_rotation_delta+360,360) else o.rotation end; nsx:=case when p_operation='scale' then o.scale_x*p_scale_x_multiplier else o.scale_x end; nsy:=case when p_operation='scale' then o.scale_y*p_scale_y_multiplier else o.scale_y end; v:=public.validate_map_object_geometry_pipeline_v1(o.id,o.x,o.y,nr,nsx,nsy,o.layer_id); if not coalesce((v->>'ok')::boolean,false) then return v||jsonb_build_object('atomic_rejected',true,'objects_changed',0); end if; end loop; select (public.begin_map_editor_command_group(p_map_id,case when p_operation='rotate' then 'Gizmo rotate' else 'Gizmo scale' end,p_selection_key)::jsonb->>'group_id')::uuid into group_id; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id for update; if not found then continue; end if; nr:=case when p_operation='rotate' then mod(o.rotation+p_rotation_delta+360,360) else o.rotation end; nsx:=case when p_operation='scale' then o.scale_x*p_scale_x_multiplier else o.scale_x end; nsy:=case when p_operation='scale' then o.scale_y*p_scale_y_multiplier else o.scale_y end; perform public.remove_map_object_footprint(o.id); update public.map_objects set rotation=nr,scale_x=nsx,scale_y=nsy,updated_at=now() where id=o.id; perform public.sync_map_object_obb_v1(o.id); perform public.sync_map_object_footprint(o.id); rec:=jsonb_build_object('object_id',o.id,'before',jsonb_build_object('x',o.x,'y',o.y,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'layer_id',o.layer_id),'after',jsonb_build_object('x',o.x,'y',o.y,'rotation',nr,'scale_x',nsx,'scale_y',nsy,'layer_id',o.layer_id)); commands:=commands||jsonb_build_array(rec); r:=public.record_map_editor_command(p_map_id,'transform_object','map_object',o.id,rec->'after',rec->'before'); if not coalesce((r->>'ok')::boolean,false) then raise exception 'COMMAND_RECORD_FAILED %',r; end if; update public.map_editor_commands set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('group_id',group_id) where id=(r->>'command_id')::uuid; affected:=affected+1; end loop; update public.map_editor_command_groups set command_count=affected,metadata=coalesce(metadata,'{}')||jsonb_build_object('commands',commands,'atomic',true) where id=group_id; perform public.close_map_editor_command_group(group_id); return jsonb_build_object('ok',true,'group_id',group_id,'objects_transformed',affected,'operation',p_operation,'atomic',true); exception when others then return jsonb_build_object('ok',false,'code','GIZMO_ATOMIC_FAILED','error',sqlerrm,'atomic_rejected',true,'objects_changed',0); end; $function$
+AS $function$ declare s record; o public.map_objects%rowtype; v jsonb; nr numeric; nsx numeric; nsy numeric; group_id uuid; commands jsonb:='[]'::jsonb; affected integer:=0; rec jsonb; r jsonb; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; if not exists(select 1 from public.maps where id=p_map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED'); end if; perform pg_advisory_xact_lock(hashtextextended('map-editor:'||p_map_id::text||':'||coalesce(p_selection_key,'default'),0)); if p_operation not in ('rotate','scale') then return jsonb_build_object('ok',false,'code','INVALID_GIZMO_OPERATION'); end if; if p_rotation_delta not in (-270,-180,-90,0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION_DELTA'); end if; if p_scale_x_multiplier<=0 or p_scale_y_multiplier<=0 or p_scale_x_multiplier>64 or p_scale_y_multiplier>64 then return jsonb_build_object('ok',false,'code','INVALID_SCALE_MULTIPLIER'); end if; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id; if not found then continue; end if; nr:=case when p_operation='rotate' then mod(o.rotation+p_rotation_delta+360,360) else o.rotation end; nsx:=case when p_operation='scale' then o.scale_x*p_scale_x_multiplier else o.scale_x end; nsy:=case when p_operation='scale' then o.scale_y*p_scale_y_multiplier else o.scale_y end; v:=public.validate_map_object_geometry_pipeline_v1(o.id,o.x,o.y,nr,nsx,nsy,o.layer_id); if not coalesce((v->>'ok')::boolean,false) then return v||jsonb_build_object('atomic_rejected',true,'objects_changed',0); end if; end loop; select (public.begin_map_editor_command_group(p_map_id,case when p_operation='rotate' then 'Gizmo rotate' else 'Gizmo scale' end,p_selection_key)::jsonb->>'group_id')::uuid into group_id; for s in select entity_id from public.map_editor_selections where map_id=p_map_id and selection_key=p_selection_key and entity_type='map_object' order by selected_at loop select * into o from public.map_objects where id=s.entity_id and map_id=p_map_id for update; if not found then continue; end if; nr:=case when p_operation='rotate' then mod(o.rotation+p_rotation_delta+360,360) else o.rotation end; nsx:=case when p_operation='scale' then o.scale_x*p_scale_x_multiplier else o.scale_x end; nsy:=case when p_operation='scale' then o.scale_y*p_scale_y_multiplier else o.scale_y end; perform public.remove_map_object_footprint(o.id); update public.map_objects set rotation=nr,scale_x=nsx,scale_y=nsy,updated_at=now() where id=o.id; perform public.sync_map_object_obb_v1(o.id); perform public.sync_map_object_footprint(o.id); rec:=jsonb_build_object('object_id',o.id,'before',jsonb_build_object('x',o.x,'y',o.y,'rotation',o.rotation,'scale_x',o.scale_x,'scale_y',o.scale_y,'layer_id',o.layer_id),'after',jsonb_build_object('x',o.x,'y',o.y,'rotation',nr,'scale_x',nsx,'scale_y',nsy,'layer_id',o.layer_id)); commands:=commands||jsonb_build_array(rec); r:=public.record_map_editor_command(p_map_id,'transform_object','map_object',o.id,rec->'after',rec->'before'); if not coalesce((r->>'ok')::boolean,false) then raise exception 'COMMAND_RECORD_FAILED %',r; end if; update public.map_editor_commands set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('group_id',group_id) where id=(r->>'command_id')::uuid; affected:=affected+1; end loop; update public.map_editor_command_groups set command_count=affected,metadata=coalesce(metadata,'{}')||jsonb_build_object('commands',commands,'atomic',true) where id=group_id; perform public.close_map_editor_command_group(group_id); return jsonb_build_object('ok',true,'group_id',group_id,'objects_transformed',affected,'operation',p_operation,'atomic',true); exception when others then return jsonb_build_object('ok',false,'code','GIZMO_ATOMIC_FAILED','error',sqlerrm,'atomic_rejected',true,'objects_changed',0); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_map_editor_command(p_command_id uuid, p_direction text)
@@ -3861,31 +3862,31 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('ok',false,'code','COMMAND_EXECUTION_FAILED','error',SQLERRM);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_layer_aware_object_transform(p_object_id uuid, p_x numeric, p_y numeric, p_rotation numeric, p_target_layer_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare o public.map_objects%rowtype; ctx jsonb; lid uuid; nav_layer integer; nx integer; ny integer; nr numeric; f jsonb; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; ctx:=public.get_editor_object_layer_context(o.id,p_target_layer_id); if not (ctx->>'editable')::boolean then return jsonb_build_object('ok',false,'code','LAYER_NOT_EDITABLE','layer_id',ctx->>'layer_id'); end if; if not (ctx->>'visible')::boolean then return jsonb_build_object('ok',false,'code','LAYER_HIDDEN','layer_id',ctx->>'layer_id'); end if; if p_rotation is not null and p_rotation not in (0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION'); end if; lid:=(ctx->>'layer_id')::uuid; select ml.z_index into nav_layer from public.map_layers ml where ml.id=lid and ml.map_id=o.map_id; if nav_layer is null then return jsonb_build_object('ok',false,'code','LAYER_NOT_FOUND','layer_id',lid); end if; nx:=round(p_x)::integer; ny:=round(p_y)::integer; nr:=coalesce(p_rotation,o.rotation); for f in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop if (ctx->>'collision_enabled')::boolean and exists(select 1 from public.map_navigation_cells n where n.map_id=o.map_id and n.x=nx+coalesce((f->>'x')::integer,0) and n.y=ny+coalesce((f->>'y')::integer,0) and n.layer=nav_layer and n.collision=true and coalesce(n.metadata->>'object_id','')<>o.id::text) then return jsonb_build_object('ok',false,'code','LAYER_COLLISION','x',nx,'y',ny,'layer_id',lid,'navigation_layer',nav_layer); end if; end loop; return jsonb_build_object('ok',true,'layer_id',lid,'navigation_layer',nav_layer,'x',nx,'y',ny,'rotation',nr,'snap_enabled',(ctx->>'snap_enabled')::boolean,'collision_enabled',(ctx->>'collision_enabled')::boolean); end; $function$
+AS $function$ declare o public.map_objects%rowtype; ctx jsonb; lid uuid; nav_layer integer; nx integer; ny integer; nr numeric; f jsonb; begin select * into o from public.map_objects where id=p_object_id; if not found then return jsonb_build_object('ok',false,'code','OBJECT_NOT_FOUND'); end if; ctx:=public.get_editor_object_layer_context(o.id,p_target_layer_id); if not (ctx->>'editable')::boolean then return jsonb_build_object('ok',false,'code','LAYER_NOT_EDITABLE','layer_id',ctx->>'layer_id'); end if; if not (ctx->>'visible')::boolean then return jsonb_build_object('ok',false,'code','LAYER_HIDDEN','layer_id',ctx->>'layer_id'); end if; if p_rotation is not null and p_rotation not in (0,90,180,270) then return jsonb_build_object('ok',false,'code','INVALID_ROTATION'); end if; lid:=(ctx->>'layer_id')::uuid; select ml.z_index into nav_layer from public.map_layers ml where ml.id=lid and ml.map_id=o.map_id; if nav_layer is null then return jsonb_build_object('ok',false,'code','LAYER_NOT_FOUND','layer_id',lid); end if; nx:=round(p_x)::integer; ny:=round(p_y)::integer; nr:=coalesce(p_rotation,o.rotation); for f in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop if (ctx->>'collision_enabled')::boolean and exists(select 1 from public.map_navigation_cells n where n.map_id=o.map_id and n.x=nx+coalesce((f->>'x')::integer,0) and n.y=ny+coalesce((f->>'y')::integer,0) and n.layer=nav_layer and n.collision=true and coalesce(n.metadata->>'object_id','')<>o.id::text) then return jsonb_build_object('ok',false,'code','LAYER_COLLISION','x',nx,'y',ny,'layer_id',lid,'navigation_layer',nav_layer); end if; end loop; return jsonb_build_object('ok',true,'layer_id',lid,'navigation_layer',nav_layer,'x',nx,'y',ny,'rotation',nr,'snap_enabled',(ctx->>'snap_enabled')::boolean,'collision_enabled',(ctx->>'collision_enabled')::boolean); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.rebuild_map_navigation_projection_v1(p_map_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare c record; o record; n record; rebuilt integer:=0; begin if not exists(select 1 from public.maps where id=p_map_id) then return jsonb_build_object('ok',false,'code','MAP_NOT_FOUND'); end if; delete from public.map_navigation_cells where map_id=p_map_id; for c in select mc.map_id,mc.grid_x x,mc.grid_y y,mc.collision,mc.walkable,mc.metadata from public.map_cells mc where mc.map_id=p_map_id loop insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(c.map_id,c.x,c.y,case when c.collision then 'wall' when c.walkable then 'floor' else 'empty' end,c.walkable,c.collision,0,jsonb_build_object('sync_source','navigation_projection_cell_v1')||coalesce(c.metadata,'{}'::jsonb)) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,layer=excluded.layer,metadata=excluded.metadata,updated_at=now(); end loop; for n in select mno.* from public.map_navigation_obstacles mno where mno.map_id=p_map_id loop insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(n.map_id,n.x,n.y,'obstacle',not n.blocks_movement,n.blocks_movement,n.layer,jsonb_build_object('obstacle_id',n.id,'sync_source','navigation_projection_cell_v1')) on conflict(map_id,x,y) do update set collision=(public.map_navigation_cells.collision or excluded.collision),walkable=(public.map_navigation_cells.walkable and excluded.walkable),cell_type=case when excluded.collision then 'obstacle' else public.map_navigation_cells.cell_type end,layer=excluded.layer,metadata=public.map_navigation_cells.metadata||jsonb_build_object('obstacle_id',n.id,'sync_source','navigation_projection_cell_v1'),updated_at=now(); end loop; for o in select mo.*,ml.z_index nav_layer from public.map_objects mo join public.map_layers ml on ml.id=mo.layer_id and ml.map_id=mo.map_id where mo.map_id=p_map_id and mo.collision_enabled=true loop for c in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(o.map_id,round(o.x)::integer+coalesce((c.value->>'x')::integer,0),round(o.y)::integer+coalesce((c.value->>'y')::integer,0),'obstacle',false,true,o.nav_layer,jsonb_build_object('object_id',o.id,'sync_source','navigation_projection_cell_v1')) on conflict(map_id,x,y) do update set collision=true,walkable=false,cell_type='obstacle',layer=coalesce(o.nav_layer,public.map_navigation_cells.layer),metadata=public.map_navigation_cells.metadata||jsonb_build_object('object_id',o.id,'sync_source','navigation_projection_cell_v1'),updated_at=now(); rebuilt:=rebuilt+1; end loop; end loop; return jsonb_build_object('ok',true,'map_id',p_map_id,'object_cells_projected',rebuilt,'source','map_cells+map_navigation_obstacles+map_objects'); end; $function$
+AS $function$ declare c record; o record; n record; rebuilt integer:=0; begin if not exists(select 1 from public.maps where id=p_map_id) then return jsonb_build_object('ok',false,'code','MAP_NOT_FOUND'); end if; delete from public.map_navigation_cells where map_id=p_map_id; for c in select mc.map_id,mc.grid_x x,mc.grid_y y,mc.collision,mc.walkable,mc.metadata from public.map_cells mc where mc.map_id=p_map_id loop insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(c.map_id,c.x,c.y,case when c.collision then 'wall' when c.walkable then 'floor' else 'empty' end,c.walkable,c.collision,0,jsonb_build_object('sync_source','navigation_projection_cell_v1')||coalesce(c.metadata,'{}'::jsonb)) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,layer=excluded.layer,metadata=excluded.metadata,updated_at=now(); end loop; for n in select mno.* from public.map_navigation_obstacles mno where mno.map_id=p_map_id loop insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(n.map_id,n.x,n.y,'obstacle',not n.blocks_movement,n.blocks_movement,n.layer,jsonb_build_object('obstacle_id',n.id,'sync_source','navigation_projection_cell_v1')) on conflict(map_id,x,y) do update set collision=(public.map_navigation_cells.collision or excluded.collision),walkable=(public.map_navigation_cells.walkable and excluded.walkable),cell_type=case when excluded.collision then 'obstacle' else public.map_navigation_cells.cell_type end,layer=excluded.layer,metadata=public.map_navigation_cells.metadata||jsonb_build_object('obstacle_id',n.id,'sync_source','navigation_projection_cell_v1'),updated_at=now(); end loop; for o in select mo.*,ml.z_index nav_layer from public.map_objects mo join public.map_layers ml on ml.id=mo.layer_id and ml.map_id=mo.map_id where mo.map_id=p_map_id and mo.collision_enabled=true loop for c in select value from jsonb_array_elements(coalesce(o.footprint,'[{"x":0,"y":0}]'::jsonb)) loop insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(o.map_id,round(o.x)::integer+coalesce((c.value->>'x')::integer,0),round(o.y)::integer+coalesce((c.value->>'y')::integer,0),'obstacle',false,true,o.nav_layer,jsonb_build_object('object_id',o.id,'sync_source','navigation_projection_cell_v1')) on conflict(map_id,x,y) do update set collision=true,walkable=false,cell_type='obstacle',layer=coalesce(o.nav_layer,public.map_navigation_cells.layer),metadata=public.map_navigation_cells.metadata||jsonb_build_object('object_id',o.id,'sync_source','navigation_projection_cell_v1'),updated_at=now(); rebuilt:=rebuilt+1; end loop; end loop; return jsonb_build_object('ok',true,'map_id',p_map_id,'object_cells_projected',rebuilt,'source','map_cells+map_navigation_obstacles+map_objects'); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.refresh_map_navigation_cell_v1(p_map_id uuid, p_x integer, p_y integer)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare base_collision boolean:=false; base_walkable boolean:=true; base_exists boolean:=false; final_collision boolean:=false; final_walkable boolean:=true; obstacle_id uuid; obstacle_layer integer; object_id uuid; object_layer integer; meta jsonb:='{}'::jsonb; begin select coalesce(mc.collision,false),coalesce(mc.walkable,true),true into base_collision,base_walkable,base_exists from public.map_cells mc where mc.map_id=p_map_id and mc.grid_x=p_x and mc.grid_y=p_y limit 1; if not found then base_collision:=false;base_walkable:=true;base_exists:=false; end if; select o.id,o.layer into obstacle_id,obstacle_layer from public.map_navigation_obstacles o where o.map_id=p_map_id and o.x=p_x and o.y=p_y and o.blocks_movement=true order by o.updated_at desc limit 1; if not found then obstacle_id:=null;obstacle_layer:=null;end if; select mo.id,ml.z_index into object_id,object_layer from public.map_objects mo join public.map_layers ml on ml.id=mo.layer_id and ml.map_id=mo.map_id join lateral jsonb_array_elements(coalesce(mo.footprint,'[{"x":0,"y":0}]'::jsonb)) fp on true where mo.map_id=p_map_id and mo.collision_enabled=true and round(mo.x)::integer+coalesce((fp->>'x')::integer,0)=p_x and round(mo.y)::integer+coalesce((fp->>'y')::integer,0)=p_y order by mo.updated_at desc limit 1; if not found then object_id:=null;object_layer:=null;end if; final_collision:=base_collision or obstacle_id is not null or object_id is not null; final_walkable:=base_walkable and obstacle_id is null and object_id is null; if obstacle_id is not null then meta:=meta||jsonb_build_object('obstacle_id',obstacle_id); end if; if object_id is not null then meta:=meta||jsonb_build_object('object_id',object_id); end if; meta:=meta||jsonb_build_object('sync_source','navigation_projection_cell_v1'); if not base_exists and obstacle_id is null and object_id is null then delete from public.map_navigation_cells where map_id=p_map_id and x=p_x and y=p_y; return jsonb_build_object('ok',true,'action','deleted','x',p_x,'y',p_y); end if; insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(p_map_id,p_x,p_y,case when final_collision then 'obstacle' when base_walkable then 'floor' else 'empty' end,final_walkable,final_collision,coalesce(object_layer,obstacle_layer,0),meta) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,layer=excluded.layer,metadata=excluded.metadata,updated_at=now(); return jsonb_build_object('ok',true,'action','upserted','x',p_x,'y',p_y,'collision',final_collision,'walkable',final_walkable); end; $function$
+AS $function$ declare base_collision boolean:=false; base_walkable boolean:=true; base_exists boolean:=false; final_collision boolean:=false; final_walkable boolean:=true; obstacle_id uuid; obstacle_layer integer; object_id uuid; object_layer integer; meta jsonb:='{}'::jsonb; begin select coalesce(mc.collision,false),coalesce(mc.walkable,true),true into base_collision,base_walkable,base_exists from public.map_cells mc where mc.map_id=p_map_id and mc.grid_x=p_x and mc.grid_y=p_y limit 1; if not found then base_collision:=false;base_walkable:=true;base_exists:=false; end if; select o.id,o.layer into obstacle_id,obstacle_layer from public.map_navigation_obstacles o where o.map_id=p_map_id and o.x=p_x and o.y=p_y and o.blocks_movement=true order by o.updated_at desc limit 1; if not found then obstacle_id:=null;obstacle_layer:=null;end if; select mo.id,ml.z_index into object_id,object_layer from public.map_objects mo join public.map_layers ml on ml.id=mo.layer_id and ml.map_id=mo.map_id join lateral jsonb_array_elements(coalesce(mo.footprint,'[{"x":0,"y":0}]'::jsonb)) fp on true where mo.map_id=p_map_id and mo.collision_enabled=true and round(mo.x)::integer+coalesce((fp->>'x')::integer,0)=p_x and round(mo.y)::integer+coalesce((fp->>'y')::integer,0)=p_y order by mo.updated_at desc limit 1; if not found then object_id:=null;object_layer:=null;end if; final_collision:=base_collision or obstacle_id is not null or object_id is not null; final_walkable:=base_walkable and obstacle_id is null and object_id is null; if obstacle_id is not null then meta:=meta||jsonb_build_object('obstacle_id',obstacle_id); end if; if object_id is not null then meta:=meta||jsonb_build_object('object_id',object_id); end if; meta:=meta||jsonb_build_object('sync_source','navigation_projection_cell_v1'); if not base_exists and obstacle_id is null and object_id is null then delete from public.map_navigation_cells where map_id=p_map_id and x=p_x and y=p_y; return jsonb_build_object('ok',true,'action','deleted','x',p_x,'y',p_y); end if; insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(p_map_id,p_x,p_y,case when final_collision then 'obstacle' when base_walkable then 'floor' else 'empty' end,final_walkable,final_collision,coalesce(object_layer,obstacle_layer,0),meta) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,layer=excluded.layer,metadata=excluded.metadata,updated_at=now(); return jsonb_build_object('ok',true,'action','upserted','x',p_x,'y',p_y,'collision',final_collision,'walkable',final_walkable); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.refresh_map_navigation_cell_v1(p_map_id uuid, p_x integer, p_y integer, p_exclude_object_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
-AS $function$ declare base_collision boolean:=false; base_walkable boolean:=true; base_exists boolean:=false; final_collision boolean:=false; final_walkable boolean:=true; obstacle_id uuid; obstacle_layer integer; object_id uuid; object_layer integer; meta jsonb:='{}'::jsonb; begin select coalesce(mc.collision,false),coalesce(mc.walkable,true),true into base_collision,base_walkable,base_exists from public.map_cells mc where mc.map_id=p_map_id and mc.grid_x=p_x and mc.grid_y=p_y limit 1; if not found then base_collision:=false;base_walkable:=true;base_exists:=false; end if; select o.id,o.layer into obstacle_id,obstacle_layer from public.map_navigation_obstacles o where o.map_id=p_map_id and o.x=p_x and o.y=p_y and o.blocks_movement=true order by o.updated_at desc limit 1; if not found then obstacle_id:=null;obstacle_layer:=null;end if; select mo.id,ml.z_index into object_id,object_layer from public.map_objects mo join public.map_layers ml on ml.id=mo.layer_id and ml.map_id=mo.map_id join lateral jsonb_array_elements(coalesce(mo.footprint,'[{"x":0,"y":0}]'::jsonb)) fp on true where mo.map_id=p_map_id and mo.collision_enabled=true and mo.id is distinct from p_exclude_object_id and round(mo.x)::integer+coalesce((fp->>'x')::integer,0)=p_x and round(mo.y)::integer+coalesce((fp->>'y')::integer,0)=p_y order by mo.updated_at desc limit 1; if not found then object_id:=null;object_layer:=null;end if; final_collision:=base_collision or obstacle_id is not null or object_id is not null; final_walkable:=base_walkable and obstacle_id is null and object_id is null; if obstacle_id is not null then meta:=meta||jsonb_build_object('obstacle_id',obstacle_id); end if; if object_id is not null then meta:=meta||jsonb_build_object('object_id',object_id); end if; meta:=meta||jsonb_build_object('sync_source','navigation_projection_cell_v1'); if not base_exists and obstacle_id is null and object_id is null then delete from public.map_navigation_cells where map_id=p_map_id and x=p_x and y=p_y; return jsonb_build_object('ok',true,'action','deleted','x',p_x,'y',p_y); end if; insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(p_map_id,p_x,p_y,case when final_collision then 'obstacle' when base_walkable then 'floor' else 'empty' end,final_walkable,final_collision,coalesce(object_layer,obstacle_layer,0),meta) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,layer=excluded.layer,metadata=excluded.metadata,updated_at=now(); return jsonb_build_object('ok',true,'action','upserted','x',p_x,'y',p_y,'collision',final_collision,'walkable',final_walkable); end; $function$
+AS $function$ declare base_collision boolean:=false; base_walkable boolean:=true; base_exists boolean:=false; final_collision boolean:=false; final_walkable boolean:=true; obstacle_id uuid; obstacle_layer integer; object_id uuid; object_layer integer; meta jsonb:='{}'::jsonb; begin select coalesce(mc.collision,false),coalesce(mc.walkable,true),true into base_collision,base_walkable,base_exists from public.map_cells mc where mc.map_id=p_map_id and mc.grid_x=p_x and mc.grid_y=p_y limit 1; if not found then base_collision:=false;base_walkable:=true;base_exists:=false; end if; select o.id,o.layer into obstacle_id,obstacle_layer from public.map_navigation_obstacles o where o.map_id=p_map_id and o.x=p_x and o.y=p_y and o.blocks_movement=true order by o.updated_at desc limit 1; if not found then obstacle_id:=null;obstacle_layer:=null;end if; select mo.id,ml.z_index into object_id,object_layer from public.map_objects mo join public.map_layers ml on ml.id=mo.layer_id and ml.map_id=mo.map_id join lateral jsonb_array_elements(coalesce(mo.footprint,'[{"x":0,"y":0}]'::jsonb)) fp on true where mo.map_id=p_map_id and mo.collision_enabled=true and mo.id is distinct from p_exclude_object_id and round(mo.x)::integer+coalesce((fp->>'x')::integer,0)=p_x and round(mo.y)::integer+coalesce((fp->>'y')::integer,0)=p_y order by mo.updated_at desc limit 1; if not found then object_id:=null;object_layer:=null;end if; final_collision:=base_collision or obstacle_id is not null or object_id is not null; final_walkable:=base_walkable and obstacle_id is null and object_id is null; if obstacle_id is not null then meta:=meta||jsonb_build_object('obstacle_id',obstacle_id); end if; if object_id is not null then meta:=meta||jsonb_build_object('object_id',object_id); end if; meta:=meta||jsonb_build_object('sync_source','navigation_projection_cell_v1'); if not base_exists and obstacle_id is null and object_id is null then delete from public.map_navigation_cells where map_id=p_map_id and x=p_x and y=p_y; return jsonb_build_object('ok',true,'action','deleted','x',p_x,'y',p_y); end if; insert into public.map_navigation_cells(map_id,x,y,cell_type,walkable,collision,layer,metadata) values(p_map_id,p_x,p_y,case when final_collision then 'obstacle' when base_walkable then 'floor' else 'empty' end,final_walkable,final_collision,coalesce(object_layer,obstacle_layer,0),meta) on conflict(map_id,x,y) do update set cell_type=excluded.cell_type,walkable=excluded.walkable,collision=excluded.collision,layer=excluded.layer,metadata=excluded.metadata,updated_at=now(); return jsonb_build_object('ok',true,'action','upserted','x',p_x,'y',p_y,'collision',final_collision,'walkable',final_walkable); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.find_map_object_obb_collisions_v1(p_map_id uuid, p_object_id uuid, p_rotation numeric, p_scale_x numeric, p_scale_y numeric, p_x numeric, p_y numeric)
@@ -3893,21 +3894,21 @@ CREATE OR REPLACE FUNCTION public.find_map_object_obb_collisions_v1(p_map_id uui
  LANGUAGE sql
  STABLE
  SET search_path TO 'public', 'pg_temp'
-AS $function$ select o.id, public.obb_sat_overlap_v1(p_x,p_y,greatest(0,coalesce(src.width,1)*p_scale_x/2),greatest(0,coalesce(src.height,1)*p_scale_y/2),mod(p_rotation+360,360),(b->>'center_x')::numeric,(b->>'center_y')::numeric,(b->>'half_width')::numeric,(b->>'half_height')::numeric,(b->>'rotation')::numeric) from public.map_objects src join public.map_objects o on o.id<>p_object_id and o.map_id=p_map_id and o.layer_id=src.layer_id cross join lateral public.get_map_object_obb_v1(o.id) b where src.id=p_object_id and o.collision_enabled=true; $function$
+AS $function$ select o.id, public.obb_sat_overlap_v1(p_x,p_y,greatest(0,coalesce(src.width,1)*p_scale_x/2),greatest(0,coalesce(src.height,1)*p_scale_y/2),mod(p_rotation+360,360),(b->>'center_x')::numeric,(b->>'center_y')::numeric,(b->>'half_width')::numeric,(b->>'half_height')::numeric,(b->>'rotation')::numeric) from public.map_objects src join public.map_objects o on o.id<>p_object_id and o.map_id=p_map_id and o.layer_id=src.layer_id cross join lateral public.get_map_object_obb_v1(o.id) b where src.id=p_object_id and o.collision_enabled=true; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.undo_map_editor_command_group(p_group_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare r jsonb; c record; n int:=0; gid uuid; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; select map_id into gid from public.map_editor_command_groups where id=p_group_id and user_id=uid; if gid is null then return jsonb_build_object('ok',false,'code','GROUP_ACCESS_DENIED'); end if; for c in select id from public.map_editor_commands where metadata->>'group_id'=p_group_id::text and status in ('applied','redone') order by created_at desc,id desc loop r:=public.undo_map_editor_command(c.id); if not coalesce((r->>'ok')::boolean,false) then raise exception 'GROUP_UNDO_FAILED:%',r; end if; n:=n+1; end loop; update public.map_editor_command_groups set status='undone',metadata=coalesce(metadata,'{}')||jsonb_build_object('last_action','undo') where id=p_group_id; return jsonb_build_object('ok',true,'group_id',p_group_id,'action','undo','commands_undone',n); exception when others then return jsonb_build_object('ok',false,'code','GROUP_UNDO_FAILED','error',sqlerrm,'group_id',p_group_id); end; $function$
+AS $function$ declare r jsonb; c record; n int:=0; gid uuid; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; select map_id into gid from public.map_editor_command_groups where id=p_group_id and user_id=uid; if gid is null then return jsonb_build_object('ok',false,'code','GROUP_ACCESS_DENIED'); end if; for c in select id from public.map_editor_commands where metadata->>'group_id'=p_group_id::text and status in ('applied','redone') order by created_at desc,id desc loop r:=public.undo_map_editor_command(c.id); if not coalesce((r->>'ok')::boolean,false) then raise exception 'GROUP_UNDO_FAILED:%',r; end if; n:=n+1; end loop; update public.map_editor_command_groups set status='undone',metadata=coalesce(metadata,'{}')||jsonb_build_object('last_action','undo') where id=p_group_id; return jsonb_build_object('ok',true,'group_id',p_group_id,'action','undo','commands_undone',n); exception when others then return jsonb_build_object('ok',false,'code','GROUP_UNDO_FAILED','error',sqlerrm,'group_id',p_group_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.redo_map_editor_command_group(p_group_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare r jsonb; c record; n int:=0; g public.map_editor_command_groups%rowtype; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; select * into g from public.map_editor_command_groups where id=p_group_id for update; if not found then return jsonb_build_object('ok',false,'code','GROUP_NOT_FOUND'); end if; if g.user_id<>uid or not exists(select 1 from public.maps where id=g.map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','GROUP_ACCESS_DENIED'); end if; if coalesce(g.metadata->>'branch_abandoned','false')='true' then return jsonb_build_object('ok',false,'code','REDO_BRANCH_ABANDONED','group_id',p_group_id); end if; for c in select id from public.map_editor_commands where metadata->>'group_id'=p_group_id::text and status='undone' order by created_at,id loop r:=public.redo_map_editor_command(c.id); if not coalesce((r->>'ok')::boolean,false) then raise exception 'GROUP_REDO_FAILED:%',r; end if; n:=n+1; end loop; if n=0 then return jsonb_build_object('ok',false,'code','REDO_NOT_AVAILABLE','group_id',p_group_id); end if; update public.map_editor_command_groups set status='closed',metadata=coalesce(metadata,'{}')||jsonb_build_object('last_action','redo') where id=p_group_id; return jsonb_build_object('ok',true,'group_id',p_group_id,'action','redo','commands_redone',n); exception when others then return jsonb_build_object('ok',false,'code','GROUP_REDO_FAILED','error',sqlerrm,'group_id',p_group_id); end; $function$
+AS $function$ declare r jsonb; c record; n int:=0; g public.map_editor_command_groups%rowtype; uid uuid:=auth.uid(); begin if uid is null then return jsonb_build_object('ok',false,'code','AUTH_REQUIRED'); end if; select * into g from public.map_editor_command_groups where id=p_group_id for update; if not found then return jsonb_build_object('ok',false,'code','GROUP_NOT_FOUND'); end if; if g.user_id<>uid or not exists(select 1 from public.maps where id=g.map_id and created_by=uid) then return jsonb_build_object('ok',false,'code','GROUP_ACCESS_DENIED'); end if; if coalesce(g.metadata->>'branch_abandoned','false')='true' then return jsonb_build_object('ok',false,'code','REDO_BRANCH_ABANDONED','group_id',p_group_id); end if; for c in select id from public.map_editor_commands where metadata->>'group_id'=p_group_id::text and status='undone' order by created_at,id loop r:=public.redo_map_editor_command(c.id); if not coalesce((r->>'ok')::boolean,false) then raise exception 'GROUP_REDO_FAILED:%',r; end if; n:=n+1; end loop; if n=0 then return jsonb_build_object('ok',false,'code','REDO_NOT_AVAILABLE','group_id',p_group_id); end if; update public.map_editor_command_groups set status='closed',metadata=coalesce(metadata,'{}')||jsonb_build_object('last_action','redo') where id=p_group_id; return jsonb_build_object('ok',true,'group_id',p_group_id,'action','redo','commands_redone',n); exception when others then return jsonb_build_object('ok',false,'code','GROUP_REDO_FAILED','error',sqlerrm,'group_id',p_group_id); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.consume_inventory_item_authorized(p_container_id uuid, p_item_id uuid, p_quantity numeric DEFAULT 1, p_item_instance_id uuid DEFAULT NULL::uuid, p_actor_life_id uuid DEFAULT NULL::uuid, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -3915,7 +3916,7 @@ CREATE OR REPLACE FUNCTION public.consume_inventory_item_authorized(p_container_
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin if auth.uid() is null then raise exception 'inventory_consume_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_consume_actor_required'; end if; if not exists(select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_actor_life_id) then raise exception 'inventory_consume_actor_not_owned'; end if; if not public.can_mutate_container(p_container_id,p_actor_life_id,'use') then raise exception 'inventory_consume_not_authorized'; end if; return public.consume_inventory_item(p_container_id,p_item_id,p_quantity,p_item_instance_id,p_actor_life_id,p_reason,p_metadata); end;$function$
+AS $function$ begin if auth.uid() is null then raise exception 'inventory_consume_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_consume_actor_required'; end if; if not exists(select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_actor_life_id) then raise exception 'inventory_consume_actor_not_owned'; end if; if not public.can_mutate_container(p_container_id,p_actor_life_id,'use') then raise exception 'inventory_consume_not_authorized'; end if; return public.consume_inventory_item(p_container_id,p_item_id,p_quantity,p_item_instance_id,p_actor_life_id,p_reason,p_metadata); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.transfer_inventory_instance_authorized(p_source_container_id uuid, p_destination_container_id uuid, p_item_instance_id uuid, p_actor_life_id uuid DEFAULT NULL::uuid, p_transfer_type text DEFAULT 'move'::text, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -3923,7 +3924,7 @@ CREATE OR REPLACE FUNCTION public.transfer_inventory_instance_authorized(p_sourc
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
-AS $function$ begin if auth.uid() is null then raise exception 'inventory_instance_transfer_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_instance_transfer_actor_required'; end if; if not exists(select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_actor_life_id) then raise exception 'inventory_instance_transfer_actor_not_owned'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_destination_not_authorized'; end if; return public.transfer_inventory_instance(p_source_container_id,p_destination_container_id,p_item_instance_id,p_actor_life_id,p_transfer_type,p_reason,p_metadata); end;$function$
+AS $function$ begin if auth.uid() is null then raise exception 'inventory_instance_transfer_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_instance_transfer_actor_required'; end if; if not exists(select 1 from public.user_lives ul where ul.user_id=auth.uid() and ul.life_id=p_actor_life_id) then raise exception 'inventory_instance_transfer_actor_not_owned'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_instance_transfer_destination_not_authorized'; end if; return public.transfer_inventory_instance(p_source_container_id,p_destination_container_id,p_item_instance_id,p_actor_life_id,p_transfer_type,p_reason,p_metadata); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.transfer_inventory_authorized(p_source_container_id uuid, p_destination_container_id uuid, p_item_id uuid, p_quantity numeric, p_actor_life_id uuid DEFAULT NULL::uuid, p_transfer_type text DEFAULT 'move'::text, p_reason text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -3931,7 +3932,7 @@ CREATE OR REPLACE FUNCTION public.transfer_inventory_authorized(p_source_contain
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
-AS $function$ declare uid uuid:=auth.uid(); v_item public.items%rowtype; v_src public.containers%rowtype; v_dst public.containers%rowtype; v_src_qty numeric; v_dst_qty numeric; begin if uid is null then raise exception 'inventory_transfer_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_transfer_actor_required'; end if; if not exists(select 1 from public.user_lives where user_id=uid and life_id=p_actor_life_id) then raise exception 'inventory_transfer_actor_not_owned'; end if; if p_source_container_id=p_destination_container_id then raise exception 'inventory_transfer_same_container'; end if; if p_quantity is null or p_quantity<=0 then raise exception 'inventory_transfer_invalid_quantity'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_destination_not_authorized'; end if; select * into v_item from public.items where id=p_item_id for share; if not found or v_item.status<>'active' then raise exception 'inventory_transfer_item_invalid'; end if; if not v_item.stackable then raise exception 'inventory_transfer_use_instance_path'; end if; select * into v_src from public.containers where id=least(p_source_container_id,p_destination_container_id) for update; select * into v_dst from public.containers where id=greatest(p_source_container_id,p_destination_container_id) for update; if v_src.id is null or v_dst.id is null then raise exception 'inventory_transfer_container_missing'; end if; select quantity into v_src_qty from public.inventory_entries where container_id=p_source_container_id and item_id=p_item_id and item_instance_id is null for update; if v_src_qty is null then raise exception 'inventory_transfer_source_item_missing'; end if; if v_src_qty<p_quantity then raise exception 'inventory_transfer_insufficient_quantity'; end if; select coalesce(quantity,0) into v_dst_qty from public.inventory_entries where container_id=p_destination_container_id and item_id=p_item_id and item_instance_id is null for update; if v_dst_qty+p_quantity>v_item.max_stack_size then raise exception 'inventory_transfer_stack_limit_exceeded'; end if; if v_dst.capacity is not null then if (select coalesce(sum(quantity),0) from public.inventory_entries where container_id=p_destination_container_id)+p_quantity>v_dst.capacity then raise exception 'inventory_transfer_capacity_exceeded'; end if; end if; return public.transfer_inventory(p_source_container_id,p_destination_container_id,p_item_id,p_quantity,p_actor_life_id,p_transfer_type,p_reason,p_metadata); end;$function$
+AS $function$ declare uid uuid:=auth.uid(); v_item public.items%rowtype; v_src public.containers%rowtype; v_dst public.containers%rowtype; v_src_qty numeric; v_dst_qty numeric; begin if uid is null then raise exception 'inventory_transfer_auth_required'; end if; if p_actor_life_id is null then raise exception 'inventory_transfer_actor_required'; end if; if not exists(select 1 from public.user_lives where user_id=uid and life_id=p_actor_life_id) then raise exception 'inventory_transfer_actor_not_owned'; end if; if p_source_container_id=p_destination_container_id then raise exception 'inventory_transfer_same_container'; end if; if p_quantity is null or p_quantity<=0 then raise exception 'inventory_transfer_invalid_quantity'; end if; if not public.can_mutate_container(p_source_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_source_not_authorized'; end if; if not public.can_mutate_container(p_destination_container_id,p_actor_life_id,'use') then raise exception 'inventory_transfer_destination_not_authorized'; end if; select * into v_item from public.items where id=p_item_id for share; if not found or v_item.status<>'active' then raise exception 'inventory_transfer_item_invalid'; end if; if not v_item.stackable then raise exception 'inventory_transfer_use_instance_path'; end if; select * into v_src from public.containers where id=least(p_source_container_id,p_destination_container_id) for update; select * into v_dst from public.containers where id=greatest(p_source_container_id,p_destination_container_id) for update; if v_src.id is null or v_dst.id is null then raise exception 'inventory_transfer_container_missing'; end if; select quantity into v_src_qty from public.inventory_entries where container_id=p_source_container_id and item_id=p_item_id and item_instance_id is null for update; if v_src_qty is null then raise exception 'inventory_transfer_source_item_missing'; end if; if v_src_qty<p_quantity then raise exception 'inventory_transfer_insufficient_quantity'; end if; select coalesce(quantity,0) into v_dst_qty from public.inventory_entries where container_id=p_destination_container_id and item_id=p_item_id and item_instance_id is null for update; if v_dst_qty+p_quantity>v_item.max_stack_size then raise exception 'inventory_transfer_stack_limit_exceeded'; end if; if v_dst.capacity is not null then if (select coalesce(sum(quantity),0) from public.inventory_entries where container_id=p_destination_container_id)+p_quantity>v_dst.capacity then raise exception 'inventory_transfer_capacity_exceeded'; end if; end if; return public.transfer_inventory(p_source_container_id,p_destination_container_id,p_item_id,p_quantity,p_actor_life_id,p_transfer_type,p_reason,p_metadata); end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weather_candidate_v1(p_season_id uuid, p_roll numeric DEFAULT NULL::numeric)
@@ -3989,7 +3990,7 @@ begin
   order by o.cumulative_weight
   limit 1;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.start_world_weather_state_v1(p_world_id uuid, p_season_id uuid, p_weather_id uuid, p_intensity smallint DEFAULT NULL::smallint, p_duration_minutes integer DEFAULT 60, p_seed bigint DEFAULT NULL::bigint, p_conditions jsonb DEFAULT '{}'::jsonb)
@@ -4041,7 +4042,7 @@ begin
 
   return v_state;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_effective_map_weather_v1(p_map_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -4100,7 +4101,7 @@ AS $function$
   left join world_choice wc on oc.source_id is null
   left join public.weather_definitions wd
     on wd.id = coalesce(oc.weather_id, wc.weather_id);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_effective_map_weather_v2(p_map_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -4167,7 +4168,7 @@ AS $function$
   left join world_choice wc on oc.source_id is null and p.receives_world_weather
   left join public.weather_definitions wd
     on wd.id=coalesce(oc.weather_id,wc.weather_id);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_region_weather_weights_v1(p_season_id uuid, p_region_id uuid)
@@ -4199,7 +4200,7 @@ AS $function$
    greatest(0,w.base_weight*w.climate_modifier) as effective_weight
  from weighted w
  order by greatest(0,w.base_weight*w.climate_modifier) desc,w.weather_key;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weather_pipeline_v1(p_season_id uuid, p_region_id uuid, p_roll numeric DEFAULT 0.5)
@@ -4228,7 +4229,7 @@ AS $function$
     and cumulative_weight / total_weight > p_roll
   order by cumulative_weight
   limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weather_environment_effects_v1(p_weather_id uuid, p_intensity smallint DEFAULT NULL::smallint, p_precipitation_allowed boolean DEFAULT true, p_temperature_passthrough boolean DEFAULT true, p_visibility_passthrough boolean DEFAULT true)
@@ -4250,7 +4251,7 @@ AS $function$
     wd.visual_effects
   from public.weather_definitions wd
   where wd.id=p_weather_id;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_effective_map_weather_v3(p_map_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -4272,7 +4273,7 @@ AS $function$
     b.weather_id,b.intensity,b.precipitation_allowed,
     b.temperature_passthrough,b.visibility_passthrough
   ) e on true;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_seasonal_environment_effects_v1(p_season_id uuid, p_weather_id uuid DEFAULT NULL::uuid)
@@ -4317,7 +4318,7 @@ AS $function$
     )
   from season s
   left join weather w on true;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_seasonal_asset_variant_v1(p_asset_license_id uuid, p_season_id uuid)
@@ -4340,7 +4341,7 @@ AS $function$
     and al.verification_status = 'verified'
   order by av.id
   limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_terrain_seasonal_state_v1(p_terrain_type_id uuid, p_season_id uuid)
@@ -4382,7 +4383,7 @@ AS $function$
     limit 1
   ) av on tt.season_capable
   where tt.id=p_terrain_type_id;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_terrain_seasonal_state_v2(p_terrain_type_id uuid, p_season_id uuid)
@@ -4409,7 +4410,7 @@ AS $function$
   left join public.asset_seasonal_variants av
     on av.id=b.seasonal_variant_id
   where tt.id=p_terrain_type_id;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_map_environment_snapshot_v1(p_map_id uuid, p_season_id uuid, p_terrain_type_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -4451,7 +4452,7 @@ AS $function$
   left join w on true
   left join t on true
   left join p on true;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_world_environment_state_v1(p_world_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -4474,7 +4475,7 @@ AS $function$
     on wws.id=wes.weather_state_id
   where wes.world_id=p_world_id
     and (wws.id is null or (wws.started_at <= p_at and (wws.ends_at is null or wws.ends_at > p_at)));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.advance_world_environment_clock_v1(p_world_id uuid, p_to timestamp with time zone)
@@ -4524,7 +4525,7 @@ begin
   left join public.season_definitions sd on sd.id=c.current_season_id
   where c.world_id=p_world_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_season_cycle_configuration_v1()
@@ -4547,7 +4548,7 @@ AS $function$
   left join public.season_cycle_rules scr on scr.season_id=sd.id
   left join public.season_definitions ns on ns.id=scr.next_season_id
   order by sd.season_key;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_weather_transition_policies_v1()
@@ -4567,7 +4568,7 @@ AS $function$
   from public.weather_definitions wd
   left join public.weather_transition_policies wp on wp.weather_id=wd.id
   order by wd.weather_key;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_tick_v1(p_world_id uuid, p_to timestamp with time zone)
@@ -4625,7 +4626,7 @@ begin
     select p_world_id,p_to,v_clock.current_season_id,v_state.weather_state_id,
            'none','environment state still valid';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_weather_transition_v1(p_world_id uuid, p_season_id uuid, p_started_at timestamp with time zone, p_seed bigint DEFAULT NULL::bigint)
@@ -4679,7 +4680,7 @@ begin
       p_started_at + make_interval(mins => v_duration),0::smallint,v_seed,
       'create_weather_state','created';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weighted_weather_v1(p_season_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT 0)
@@ -4734,7 +4735,7 @@ AS $function$
     ) > roll_value,
     weather_key
   limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weighted_weather_v2(p_season_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_current_weather_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT 0)
@@ -4789,7 +4790,7 @@ AS $function$
   where cumulative_weight > roll_value
   order by weather_key
   limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_weather_transition_v2(p_world_id uuid, p_season_id uuid, p_started_at timestamp with time zone, p_region_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT NULL::bigint)
@@ -4863,7 +4864,7 @@ begin
     select p_world_id,v_state_id,v_weather_id,p_season_id,p_started_at,v_ends_at,
       0::smallint,v_seed,'create_weather_state','created';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_tick_v2(p_world_id uuid, p_to timestamp with time zone, p_region_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT NULL::bigint)
@@ -4923,7 +4924,7 @@ begin
   return query select p_world_id,p_to,v_clock.current_season_id,v_state.weather_state_id,
     'none','environment state still valid';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.initialize_world_environment_v1(p_world_id uuid, p_season_id uuid, p_at timestamp with time zone DEFAULT now(), p_region_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT NULL::bigint)
@@ -5009,7 +5010,7 @@ begin
   return query select p_world_id,p_season_id,v_weather_result.weather_state_id,
     p_at,'initialized','world_environment_ready';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.execute_season_transition_v1(p_world_id uuid, p_to timestamp with time zone, p_region_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT NULL::bigint)
@@ -5061,7 +5062,7 @@ begin
   return query select p_world_id,v_clock.current_season_id,v_next_season_id,p_to,
     p_to + make_interval(days=>v_duration),v_weather.weather_state_id,'season_transition','created';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_tick_v3(p_world_id uuid, p_to timestamp with time zone, p_region_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT NULL::bigint)
@@ -5105,7 +5106,7 @@ begin
 
   return query select p_world_id,p_to,v_clock.current_season_id,v_state.weather_state_id,'none','environment_state_valid';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weather_policy_v1(p_season_id uuid, p_weather_id uuid)
@@ -5139,7 +5140,7 @@ AS $function$
       else 'season_rules.weather_policy'
     end
   from policy cross join wd;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weighted_weather_v3(p_season_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_current_weather_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT 0)
@@ -5187,7 +5188,7 @@ AS $function$
   from selected
   where cumulative_weight>roll_value
   order by weather_key limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_configuration_audit_v1()
@@ -5216,7 +5217,7 @@ AS $function$
     union all select 'map','weather_overrides',false,o.n>0,case when o.n>0 then 'configured' else 'optional_not_configured' end,jsonb_build_object('rows',o.n) from o
     union all select 'map','environment_policies',false,m.n>0,case when m.n>0 then 'configured' else 'optional_not_configured' end,jsonb_build_object('rows',m.n) from m
   ) q;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_environment_configuration_v1()
@@ -5256,7 +5257,7 @@ select * from (
    case when (select count(*) from p where enabled and min_duration_minutes is not null and max_duration_minutes is not null)=(select count(*) from w) then 'ready' else 'not_ready' end,
    jsonb_build_object('expected',(select count(*) from w),'valid_enabled',(select count(*) from p where enabled and min_duration_minutes is not null and max_duration_minutes is not null))
 ) q;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_region_environment_contract_v1()
@@ -5283,7 +5284,7 @@ select * from (
    case when not exists(select 1 from m where map_id is null) then 'valid' else 'invalid' end,
    jsonb_build_object('rows',(select count(*) from m))
 ) q;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_runtime_readiness_gate_v1()
@@ -5317,7 +5318,7 @@ select
  count(*)::integer,
  coalesce(jsonb_agg(jsonb_build_object('domain',domain,'item',item,'status',status,'details',details) order by domain,item),'[]'::jsonb)
 from blocks;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_configuration_template_v1()
@@ -5333,7 +5334,7 @@ AS $function$
  select 'weather_transition'::text, wd.weather_key, wd.id, null::uuid,
    array['min_duration_minutes','max_duration_minutes']::text[], 'template_only'::text
  from public.weather_definitions wd
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.climate_taxonomy_v1()
@@ -5348,7 +5349,7 @@ AS $function$
  ('arid', array['base_temperature','precipitation_bias','weather_modifiers']::text[], 'dry baseline; numeric weather multipliers'),
  ('cold', array['base_temperature','precipitation_bias','weather_modifiers']::text[], 'cold baseline; numeric weather multipliers'),
  ('alpine', array['base_temperature','precipitation_bias','weather_modifiers']::text[], 'mountain/cold baseline; numeric weather multipliers');
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_climate_profile_v1(p_climate_key text, p_base_temperature numeric, p_precipitation_bias numeric, p_weather_modifiers jsonb)
@@ -5367,7 +5368,7 @@ AS $function$
         when exists(select 1 from jsonb_each(p_weather_modifiers) e where jsonb_typeof(e.value)<>'number' or (e.value)::numeric < 0) then 'invalid_modifier'
         else 'valid' end,
    jsonb_build_object('climate_key',p_climate_key,'base_temperature',p_base_temperature,'precipitation_bias',p_precipitation_bias);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weather_climate_context_v1(p_season_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_weather_id uuid DEFAULT NULL::uuid)
@@ -5395,7 +5396,7 @@ AS $function$
    select 1 from public.region_weather_profiles x
    where p_region_id is not null and x.region_id=p_region_id
  );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_weighted_weather_v4(p_season_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_current_weather_id uuid DEFAULT NULL::uuid, p_seed bigint DEFAULT 0)
@@ -5442,7 +5443,7 @@ AS $function$
  where cumulative_weight>roll_value
  order by weather_key
  limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_map_environment_context_v1(p_map_id uuid, p_weather_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -5473,7 +5474,7 @@ select coalesce(policy.receives_world_weather,true),
 from (select 1) x
 left join policy on true
 left join ov on true;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_map_weather_v1(p_map_id uuid, p_world_weather_id uuid, p_world_intensity smallint DEFAULT NULL::smallint, p_at timestamp with time zone DEFAULT now())
@@ -5494,7 +5495,7 @@ select
  case when ctx.receives_world_weather then ctx.visibility_passthrough else false end,
  ctx.source
 from public.resolve_map_environment_context_v1(p_map_id,p_world_weather_id,p_at) ctx;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_runtime_readiness_gate_v2()
@@ -5528,7 +5529,7 @@ select case when count(*)=0 then 'READY' else 'BLOCKED' end,
        count(*)=0,count(*)::integer,
        coalesce(jsonb_agg(jsonb_build_object('domain',domain,'item',item,'status',status,'details',details) order by domain,item),'[]'::jsonb)
 from blocks;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_environment_runtime_context_v1(p_world_id uuid, p_map_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -5550,7 +5551,7 @@ select gate.ready,sd.id,sd.season_key,ws.id,ws.weather_id,wd.weather_key,ws.inte
  coalesce(md.precipitation_type,wd.precipitation_type,'none'),coalesce(md.gameplay_tags,wd.gameplay_tags,'[]'::jsonb),coalesce(md.visual_effects,wd.visual_effects,'{}'::jsonb),mw.source,
  case when not gate.ready then 'runtime_blocked' when p_map_id is not null and mw.weather_id is null then 'map_no_weather' when ws.id is null then 'no_active_world_weather' else 'resolved' end
 from gate cross join clock left join es on true left join ws on true left join sd on true left join wd on true left join mw on true left join md on true;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_environment_runtime_context_v2(p_world_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_map_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -5573,7 +5574,7 @@ ctx.climate_key,coalesce(md.temperature_modifier,wd.temperature_modifier,0),coal
 coalesce(md.precipitation_type,wd.precipitation_type,'none'),coalesce(md.gameplay_tags,wd.gameplay_tags,'[]'::jsonb),coalesce(md.visual_effects,wd.visual_effects,'{}'::jsonb),mw.source,
 case when not gate.ready then 'runtime_blocked' when p_map_id is not null and mw.weather_id is null then 'map_no_weather' when ws.id is null then 'no_active_world_weather' else 'resolved' end
 from gate cross join clock left join es on true left join ws on true left join sd on true left join wd on true left join mw on true left join md on true left join ctx on true;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_simulation_test_harness_v1(p_world_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_map_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -5607,7 +5608,7 @@ select 'map_resolution_is_deterministic',
             else 'failed' end,
        jsonb_build_object('map_id',p_map_id,'map_source',ctx.map_source)
 from ctx;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_simulation_scenario_matrix_v1()
@@ -5628,7 +5629,7 @@ select jsonb_build_array(
  jsonb_build_object('scenario_id','S09','category','transition','expected','current weather and transition policy influence next weather'),
  jsonb_build_object('scenario_id','S10','category','end_to_end','expected','world to season to weather to region to map to runtime context')
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_simulation_scenario_runner_v1(p_world_id uuid, p_region_id uuid DEFAULT NULL::uuid, p_map_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -5652,7 +5653,7 @@ select s.scenario_id,
  case when ctx.ready=false then 'deferred_runtime_blocked' else 'ready_for_runtime_test' end,
  jsonb_build_object('category',s.category,'season_key',s.season_key,'weather_key',s.weather_key,'context_status',ctx.status,'note','Scenario execution is deferred while readiness gate is blocked')
 from s cross join ctx;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_simulation_scenario_runner_v2(p_world_id uuid DEFAULT NULL::uuid, p_region_id uuid DEFAULT NULL::uuid, p_map_id uuid DEFAULT NULL::uuid, p_at timestamp with time zone DEFAULT now())
@@ -5685,7 +5686,7 @@ select s.scenario_id,
    'context_status',(select status from ctx limit 1)
  )
 from s cross join gate;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_season_environment_bridge_v1()
@@ -5693,7 +5694,7 @@ CREATE OR REPLACE FUNCTION public.validate_season_environment_bridge_v1()
  LANGUAGE sql
  STABLE
  SET search_path TO 'public', 'pg_catalog'
-AS $function$ select sd.season_key, count(sr.id) filter (where sr.rule_key='environment'), count(sr.id) filter (where sr.rule_key='weather_policy'), count(distinct swr.id), (count(sr.id) filter (where sr.rule_key='environment') > 0 and count(sr.id) filter (where sr.rule_key='weather_policy') > 0 and count(distinct swr.id) > 0), case when count(sr.id) filter (where sr.rule_key='environment') > 0 and count(sr.id) filter (where sr.rule_key='weather_policy') > 0 and count(distinct swr.id) > 0 then 'valid' else 'incomplete' end from public.season_definitions sd left join public.season_rules sr on sr.season_id=sd.id left join public.season_weather_rules swr on swr.season_id=sd.id group by sd.id,sd.season_key order by sd.season_key; $function$
+AS $function$ select sd.season_key, count(sr.id) filter (where sr.rule_key='environment'), count(sr.id) filter (where sr.rule_key='weather_policy'), count(distinct swr.id), (count(sr.id) filter (where sr.rule_key='environment') > 0 and count(sr.id) filter (where sr.rule_key='weather_policy') > 0 and count(distinct swr.id) > 0), case when count(sr.id) filter (where sr.rule_key='environment') > 0 and count(sr.id) filter (where sr.rule_key='weather_policy') > 0 and count(distinct swr.id) > 0 then 'valid' else 'incomplete' end from public.season_definitions sd left join public.season_rules sr on sr.season_id=sd.id left join public.season_weather_rules swr on swr.season_id=sd.id group by sd.id,sd.season_key order by sd.season_key; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_weather_transition_bridge_v1()
@@ -5719,7 +5720,7 @@ AS $function$
   left join public.weather_transition_policies wtp on wtp.weather_id = wd.id
   group by wd.id, wd.weather_key
   order by wd.weather_key;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_season_cycle_bridge_v1()
@@ -5753,7 +5754,7 @@ AS $function$
   left join public.season_cycle_rules scr on scr.season_id = sd.id
   left join public.season_definitions nsd on nsd.id = scr.next_season_id
   order by sd.ordinal;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_environment_configuration_contract_v1()
@@ -5819,7 +5820,7 @@ SELECT jsonb_build_object(
   'gaps',jsonb_build_object('season_cycle',season_cycle,'weather_transition',weather_transition)
 )
 FROM coverage, gaps;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_configuration_guard_v1()
@@ -5832,7 +5833,7 @@ SELECT (c->>'status')='READY', c->>'status',
        (jsonb_array_length(c->'gaps'->'season_cycle') + jsonb_array_length(c->'gaps'->'weather_transition'))::int,
        c
 FROM public.validate_environment_configuration_contract_v1() v(c);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_design_canon_audit_v1()
@@ -5901,7 +5902,7 @@ select 'runtime'::text, 'weather_transition_consumers', 'dependency'::text,
        'execute_weather_transition_v2 / environment_tick_v3 / initialize_world_environment_v1'::text,
        jsonb_build_object('required_fields',jsonb_build_array('weather_transition_policies.min_duration_minutes','weather_transition_policies.max_duration_minutes','weather_transition_policies.transition_tags'),'fail_closed',true)
 order by 1,2;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_design_canon_audit_v2()
@@ -5951,7 +5952,7 @@ select * from (
          jsonb_build_object('rows',wt.rows,'object_rows',wt.tag_objects,'expected',7,'invent_values',false,'runtime_consumer','resolve_weighted_weather_v2 / v3 / v4') from weather_transition wt
 ) q(domain,item,status,source,details)
 order by domain,item;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_design_canon_registry_v1()
@@ -5984,7 +5985,7 @@ select jsonb_build_object(
   'audit',coalesce((select jsonb_agg(to_jsonb(a) order by a.domain,a.item) from public.environment_design_canon_audit_v2() a),'[]'::jsonb),
   'runtime_status',(select row_to_json(g)::jsonb from public.environment_configuration_guard_v1() g)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.resolve_authoritative_season_v1(p_world_id uuid, p_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -6038,7 +6039,7 @@ begin
 
   return jsonb_build_object('ready',false,'status','BLOCKED','reason','season_mapping_shape_unverified','calendar_definition_id',v_calendar_id,'simulation_at',v_at,'mapping_contract',v_contract);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_authoritative_season_environment_bridge_v1()
@@ -6067,7 +6068,7 @@ begin
     'authoritative_season',v_season,'season_mapping_contract',v_mapping,'configuration_guard',v_config,
     'policy',jsonb_build_object('season_source','time_calendar','season_cycle_rules_authoritative',false,'fail_closed_until_season_mapping',true,'invent_values',false));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.environment_runtime_readiness_gate_v3()
@@ -6095,7 +6096,7 @@ begin
     'configuration_guard',v_config
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_calendar_season_mapping_v1(p_world_id uuid)
@@ -6131,7 +6132,7 @@ begin
 
   return jsonb_build_object('ready',false,'status','BLOCKED','reason','season_mapping_shape_unverified','calendar_definition_id',v_calendar_id,'contract',public.time_calendar_season_mapping_contract_v1());
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_calendar_season_mapping_v1()
@@ -6177,7 +6178,7 @@ begin
     'contract',public.time_calendar_season_mapping_contract_v1()
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.time_calendar_season_mapping_contract_v1()
@@ -6207,7 +6208,7 @@ select jsonb_build_object(
   ),
   'status','PENDING_CANON'
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_inventory_item_lifecycle_contract_v1()
@@ -6236,7 +6237,7 @@ AS $function$
     (invalid_max_durability + invalid_condition + condition_over_max),
     (invalid_lifecycle + broken_non_active + invalid_max_durability + invalid_condition + condition_over_max)
   from checks;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_equipment_inventory_bridge_v1()
@@ -6282,7 +6283,7 @@ AS $function$
     (missing_instance + missing_inventory + item_mismatch + life_mismatch + broken_equipped + inactive_equipped) as issue_count,
     'PENDING_CANON'::text as canon_status
   from audit;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.time_engine_season_mapping_bridge_v1()
@@ -6324,7 +6325,7 @@ BEGIN
 
   RETURN jsonb_build_object('status','ready','calendar_id',calendar_row.id,'seasonMapping',mapping,'source','calendar_definitions.rules.seasonMapping');
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_environment_resolver_v1(p_map_id uuid, p_at timestamp with time zone DEFAULT now())
@@ -6359,7 +6360,7 @@ BEGIN
 
   RETURN result;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_terrain_resolver_v1(p_map_id uuid, p_grid_x integer, p_grid_y integer, p_season_id uuid DEFAULT NULL::uuid)
@@ -6407,7 +6408,7 @@ BEGIN
     'seasonal_variant',variant_result
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_refresh_navigation_projection_v1(p_map_id uuid, p_grid_x integer, p_grid_y integer)
@@ -6442,7 +6443,7 @@ BEGIN
     'navigation',nav_result
   );
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_set_cell_v1(p_map_id uuid, p_grid_x integer, p_grid_y integer, p_terrain_asset_id uuid DEFAULT NULL::uuid, p_structural_asset_id uuid DEFAULT NULL::uuid, p_decoration_asset_id uuid DEFAULT NULL::uuid, p_elevation integer DEFAULT 0, p_biome text DEFAULT NULL::text, p_season_variant text DEFAULT NULL::text, p_collision boolean DEFAULT false, p_walkable boolean DEFAULT true, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -6472,7 +6473,7 @@ BEGIN
   );
   RETURN result;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_save_document_snapshot_v1(p_map_id uuid, p_document jsonb, p_label text DEFAULT NULL::text)
@@ -6502,7 +6503,7 @@ BEGIN
   RETURNING id INTO version_id;
   RETURN jsonb_build_object('ok',true,'map_id',p_map_id,'version_id',version_id,'version_number',next_version);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_load_document_snapshot_v1(p_map_id uuid)
@@ -6540,7 +6541,7 @@ begin
     'snapshot',v_snapshot
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_upsert_runtime_snapshot_v1(p_map_id uuid, p_snapshot jsonb, p_version_id uuid DEFAULT NULL::uuid)
@@ -6557,7 +6558,7 @@ AS $function$
     if p_version_id is not null and not exists(select 1 from public.map_versions mv where mv.id=p_version_id and mv.map_id=p_map_id) then return jsonb_build_object('ok',false,'code','VERSION_ACCESS_DENIED'); end if;
     insert into public.map_editor_runtime_snapshots(map_id,version_id,snapshot,created_by) values(p_map_id,p_version_id,p_snapshot,auth.uid()) on conflict(map_id) do update set version_id=excluded.version_id,snapshot=excluded.snapshot,updated_at=now() returning * into r;
     return jsonb_build_object('ok',true,'id',r.id,'map_id',r.map_id,'version_id',r.version_id,'updated_at',r.updated_at);
-  end; $function$
+  end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_get_runtime_snapshot_v1(p_map_id uuid)
@@ -6580,7 +6581,7 @@ AS $function$
     end if;
     if v_latest.id is null then return jsonb_build_object('ok',true,'found',false,'map_id',p_map_id,'version_number',0,'code','NO_SNAPSHOT'); end if;
     return jsonb_build_object('ok',true,'found',true,'id',v_latest.id,'map_id',p_map_id,'version_id',v_latest.id,'version_number',v_latest.version_number,'snapshot',v_latest.snapshot,'updated_at',v_latest.created_at,'code','durable-version-fallback');
-  end; $function$
+  end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_reconcile_after_merge_v1(p_map_id uuid, p_version_id uuid, p_snapshot jsonb)
@@ -6611,7 +6612,7 @@ AS $function$
     select count(*)::integer into geometry_count from public.map_object_geometry g join public.map_objects o on o.id=g.object_id where o.map_id=p_map_id;
     nav_result:=public.rebuild_map_navigation_projection_v1(p_map_id); perform public.map_editor_upsert_runtime_snapshot_v1(p_map_id,p_snapshot,p_version_id);
     return jsonb_build_object('ok',true,'map_id',p_map_id,'version_id',p_version_id,'projected_map_cells',v_projected_cells,'geometry_rows',geometry_count,'orphan_geometry_rows_removed',stale_geometry_count,'navigation',nav_result,'runtime_snapshot_version_id',p_version_id);
-  end; $function$
+  end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_map_created_by_from_auth()
@@ -6625,7 +6626,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_save_slot_v1(p_map_id uuid, p_slot_number smallint, p_label text, p_version_id uuid, p_version_number integer, p_snapshot jsonb)
@@ -6644,7 +6645,7 @@ AS $function$
     if not exists(select 1 from public.map_versions where id=p_version_id and map_id=p_map_id and version_number=p_version_number) then return jsonb_build_object('ok',false,'code','VERSION_ACCESS_DENIED'); end if;
     insert into public.map_editor_save_slots(map_id,slot_number,label,version_id,version_number,snapshot,created_by) values(p_map_id,p_slot_number,coalesce(nullif(btrim(p_label),''),format('Save Slot %s',p_slot_number)),p_version_id,p_version_number,p_snapshot,v_uid) on conflict(map_id,slot_number) do update set label=excluded.label,version_id=excluded.version_id,version_number=excluded.version_number,snapshot=excluded.snapshot,updated_at=now() returning * into v_slot;
     return jsonb_build_object('ok',true,'map_id',v_slot.map_id,'slot_number',v_slot.slot_number,'label',v_slot.label,'version_id',v_slot.version_id,'version_number',v_slot.version_number,'updated_at',v_slot.updated_at);
-  end; $function$
+  end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_load_save_slot_v1(p_map_id uuid, p_slot_number smallint)
@@ -6660,7 +6661,7 @@ AS $function$
     select * into v_slot from public.map_editor_save_slots where map_id=p_map_id and slot_number=p_slot_number;
     if not found then return jsonb_build_object('ok',false,'code','SLOT_EMPTY','slot_number',p_slot_number); end if;
     return jsonb_build_object('ok',true,'map_id',v_slot.map_id,'slot_number',v_slot.slot_number,'label',v_slot.label,'version_id',v_slot.version_id,'version_number',v_slot.version_number,'snapshot',v_slot.snapshot,'updated_at',v_slot.updated_at);
-  end; $function$
+  end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_commit_merge_v1(p_map_id uuid, p_expected_version integer, p_snapshot jsonb, p_label text DEFAULT 'merge'::text)
@@ -6700,7 +6701,7 @@ AS $function$
     begin perform public.map_editor_reconcile_after_merge_v1(p_map_id,v_version_id,p_snapshot); v_projection_status := 'committed'; exception when others then v_projection_status := 'failed'; v_projection_error := sqlerrm; end;
     return query select 'committed'::text,v_version_id,v_next,v_next,v_projection_status,v_projection_error;
   exception when unique_violation then return query select 'conflict'::text,null::uuid,null::integer,(select coalesce(max(mv.version_number),0) from public.map_versions mv where mv.map_id=p_map_id),'not_run'::text,null::text;
-  end; $function$
+  end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_can_access_v1(p_map_id uuid)
@@ -6718,7 +6719,7 @@ AS $function$
         or (m.map_type = 'world' and m.world_id = '3695d0b0-788e-42fa-9345-cc3197d0c94d'::uuid)
       )
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_map_identity_validate_v1()
@@ -6760,7 +6761,7 @@ begin
    end if;
  end if;
  return new;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.editor_map_interior_validate_v1()
@@ -6805,7 +6806,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_bootstrap_world_identity_v1(p_legacy_map_id uuid)
@@ -6833,7 +6834,7 @@ begin
  values(m.id,m.id,m.world_id,'world',null,auth.uid());
  return query select e.editor_map_id,e.legacy_map_id,e.world_id,e.map_type,e.parent_editor_map_id,e.created_by
  from public.editor_map_identity e where e.editor_map_id=m.id;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_resolve_identity_v1(p_editor_map_id uuid)
@@ -6858,7 +6859,7 @@ begin
     raise exception using errcode='42501', message='EDITOR_IDENTITY_NOT_ACCESSIBLE';
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_create_child_v1(p_parent_editor_map_id uuid, p_map_type text, p_legacy_map_id uuid DEFAULT NULL::uuid)
@@ -6897,7 +6898,7 @@ begin
  returning public.editor_map_identity.editor_map_id into v_id;
  return query select e.editor_map_id,e.legacy_map_id,e.world_id,e.map_type,e.parent_editor_map_id,e.created_by
  from public.editor_map_identity e where e.editor_map_id=v_id;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_create_interior_v1(p_playable_editor_map_id uuid, p_legacy_map_id uuid DEFAULT NULL::uuid, p_building_id uuid DEFAULT NULL::uuid)
@@ -6968,7 +6969,7 @@ begin
     join public.editor_map_identity e on e.editor_map_id = i.editor_map_id
     where i.editor_map_id = v_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_load_identity_snapshot_v1(p_editor_map_id uuid)
@@ -7007,7 +7008,7 @@ begin
   return query
     select true, 'OK'::text, version_row.editor_map_id, version_row.id, version_row.version_number, version_row.snapshot, version_row.created_at;
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.map_editor_commit_identity_v1(p_editor_map_id uuid, p_expected_version integer, p_snapshot jsonb, p_label text DEFAULT 'map-editor-save'::text)
@@ -7033,7 +7034,7 @@ begin
 exception when unique_violation then
  select coalesce(max(v.version_number),0) into cur from public.editor_map_versions v where v.editor_map_id=p_editor_map_id;
  return query select 'conflict',null::uuid,null::integer,cur,'not_run',null::text;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.claim_vandrith_legacy_save_slots_v1()
@@ -7111,7 +7112,8 @@ begin
     'identity_count',identity_count
   );
 end
-$function$
+$function$;
+SET check_function_bodies = true;
 
 
 CREATE OR REPLACE FUNCTION public.apply_runtime_environment_consequence_v1(p_world_id uuid, p_season_key text DEFAULT NULL::text, p_weather_key text DEFAULT NULL::text, p_weather_intensity smallint DEFAULT NULL::smallint, p_conditions jsonb DEFAULT NULL::jsonb)
@@ -7141,7 +7143,7 @@ insert into public.world_environment_states(world_id,season_id,weather_state_id,
 on conflict(world_id) do update set season_id=excluded.season_id,weather_state_id=excluded.weather_state_id,state_started_at=excluded.state_started_at,state_ends_at=excluded.state_ends_at,conditions=excluded.conditions,updated_at=excluded.updated_at;
 if current_clock.world_id is not null then update public.world_environment_clocks set current_season_id=coalesce(season_id,current_season_id),updated_at=now_at where world_id=p_world_id; end if;
 return jsonb_build_object('seasonKey',p_season_key,'weatherKey',p_weather_key,'weatherIntensity',p_weather_intensity,'conditions',next_conditions);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE VIEW "public"."asset_library_inventory_v1" AS
@@ -8357,11 +8359,9 @@ CREATE POLICY "activities_select_own" ON "public"."activities" AS PERMISSIVE FOR
   WHERE ((ul.user_id = ( SELECT auth.uid() AS uid)) AND (ul.life_id = activities.actor_life_id)))));
 ALTER TABLE "public"."ai_improvement_evaluations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ai_improvement_evaluations_insert_own" ON "public"."ai_improvement_evaluations" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((owner_id = auth.uid()));
-ALTER TABLE "public"."ai_improvement_evaluations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ai_improvement_evaluations_select_own" ON "public"."ai_improvement_evaluations" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((owner_id = auth.uid()));
 ALTER TABLE "public"."ai_improvement_proposals" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ai_improvement_proposals_insert_own" ON "public"."ai_improvement_proposals" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((owner_id = auth.uid()));
-ALTER TABLE "public"."ai_improvement_proposals" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ai_improvement_proposals_select_own" ON "public"."ai_improvement_proposals" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((owner_id = auth.uid()));
 ALTER TABLE "public"."asset_binding_candidates" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public can read approved asset bindings" ON "public"."asset_binding_candidates" AS PERMISSIVE FOR SELECT TO public USING ((candidate_status = 'approved'::text));
@@ -8379,13 +8379,9 @@ ALTER TABLE "public"."asset_library_lock" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset_library_lock_select_authenticated" ON "public"."asset_library_lock" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);
 ALTER TABLE "public"."asset_license_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset license registry owned rows insertable" ON "public"."asset_license_registry" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((( SELECT auth.uid() AS uid) = created_by));
-ALTER TABLE "public"."asset_license_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset license registry owned rows readable" ON "public"."asset_license_registry" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((( SELECT auth.uid() AS uid) = created_by));
-ALTER TABLE "public"."asset_license_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset license registry owned rows updatable" ON "public"."asset_license_registry" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = created_by)) WITH CHECK ((( SELECT auth.uid() AS uid) = created_by));
-ALTER TABLE "public"."asset_license_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset license registry runtime verified read" ON "public"."asset_license_registry" AS PERMISSIVE FOR SELECT TO "authenticated" USING (((verification_status = 'verified'::text) AND (usage_status = ANY (ARRAY['allowed'::text, 'credit_required'::text]))));
-ALTER TABLE "public"."asset_license_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset license registry runtime verified read anon" ON "public"."asset_license_registry" AS PERMISSIVE FOR SELECT TO "anon" USING (((verification_status = 'verified'::text) AND (usage_status = ANY (ARRAY['allowed'::text, 'credit_required'::text]))));
 ALTER TABLE "public"."asset_manifest" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset_manifest_client_read" ON "public"."asset_manifest" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
@@ -8404,7 +8400,6 @@ ALTER TABLE "public"."asset_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset_registry_client_read" ON "public"."asset_registry" AS PERMISSIVE FOR SELECT TO "authenticated" USING (((status = 'approved'::text) AND (EXISTS ( SELECT 1
    FROM asset_license_registry l
   WHERE ((l.id = asset_registry.license_registry_id) AND (l.verification_status = 'verified'::text) AND (l.usage_status = ANY (ARRAY['allowed'::text, 'credit_required'::text])))))));
-ALTER TABLE "public"."asset_registry" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "asset_registry_client_read anon" ON "public"."asset_registry" AS PERMISSIVE FOR SELECT TO "anon" USING (((status = 'approved'::text) AND (EXISTS ( SELECT 1
    FROM asset_license_registry l
   WHERE ((l.id = asset_registry.license_registry_id) AND (l.verification_status = 'verified'::text) AND (l.usage_status = ANY (ARRAY['allowed'::text, 'credit_required'::text])))))));
@@ -8412,11 +8407,9 @@ ALTER TABLE "public"."asset_seasonal_variants" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "seasonal variants insertable through owned license" ON "public"."asset_seasonal_variants" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM asset_license_registry a
   WHERE ((a.id = asset_seasonal_variants.asset_license_id) AND (a.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."asset_seasonal_variants" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "seasonal variants readable through owned license" ON "public"."asset_seasonal_variants" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM asset_license_registry a
   WHERE ((a.id = asset_seasonal_variants.asset_license_id) AND (a.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."asset_seasonal_variants" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "seasonal variants updatable through owned license" ON "public"."asset_seasonal_variants" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM asset_license_registry a
   WHERE ((a.id = asset_seasonal_variants.asset_license_id) AND (a.created_by = ( SELECT auth.uid() AS uid)))))) WITH CHECK ((EXISTS ( SELECT 1
@@ -8604,15 +8597,12 @@ ALTER TABLE "public"."map_annotations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_annotations_owner_delete" ON "public"."map_annotations" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_annotations.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_annotations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_annotations_owner_insert" ON "public"."map_annotations" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_annotations.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_annotations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_annotations_owner_select" ON "public"."map_annotations" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_annotations.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_annotations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_annotations_owner_update" ON "public"."map_annotations" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_annotations.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid)))))) WITH CHECK ((EXISTS ( SELECT 1
@@ -8628,19 +8618,16 @@ CREATE POLICY "map_connections_owner_delete" ON "public"."map_connections" AS PE
   WHERE ((m.id = map_connections.source_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))) AND (EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_connections.target_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid)))))));
-ALTER TABLE "public"."map_connections" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_connections_owner_insert" ON "public"."map_connections" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_connections.source_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))) AND (EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_connections.target_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid)))))));
-ALTER TABLE "public"."map_connections" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_connections_owner_select" ON "public"."map_connections" AS PERMISSIVE FOR SELECT TO "authenticated" USING (((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_connections.source_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))) AND (EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_connections.target_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid)))))));
-ALTER TABLE "public"."map_connections" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_connections_owner_update" ON "public"."map_connections" AS PERMISSIVE FOR UPDATE TO "authenticated" USING (((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_connections.source_map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))) AND (EXISTS ( SELECT 1
@@ -8679,15 +8666,12 @@ ALTER TABLE "public"."map_editor_runtime_snapshots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_runtime_snapshots_delete_owner" ON "public"."map_editor_runtime_snapshots" AS PERMISSIVE FOR DELETE TO public USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_runtime_snapshots.map_id) AND (m.created_by = auth.uid())))));
-ALTER TABLE "public"."map_editor_runtime_snapshots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_runtime_snapshots_insert_owner" ON "public"."map_editor_runtime_snapshots" AS PERMISSIVE FOR INSERT TO public WITH CHECK (((created_by = auth.uid()) AND (EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_runtime_snapshots.map_id) AND (m.created_by = auth.uid()))))));
-ALTER TABLE "public"."map_editor_runtime_snapshots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_runtime_snapshots_select_owner" ON "public"."map_editor_runtime_snapshots" AS PERMISSIVE FOR SELECT TO public USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_runtime_snapshots.map_id) AND (m.created_by = auth.uid())))));
-ALTER TABLE "public"."map_editor_runtime_snapshots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_runtime_snapshots_update_owner" ON "public"."map_editor_runtime_snapshots" AS PERMISSIVE FOR UPDATE TO public USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_runtime_snapshots.map_id) AND (m.created_by = auth.uid()))))) WITH CHECK (((created_by = auth.uid()) AND (EXISTS ( SELECT 1
@@ -8697,19 +8681,15 @@ ALTER TABLE "public"."map_editor_save_slots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_save_slots_canonical_world_select" ON "public"."map_editor_save_slots" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_save_slots.map_id) AND (m.map_type = 'world'::text) AND (m.world_id = '3695d0b0-788e-42fa-9345-cc3197d0c94d'::uuid)))));
-ALTER TABLE "public"."map_editor_save_slots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_save_slots_delete_owner" ON "public"."map_editor_save_slots" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_save_slots.map_id) AND (m.created_by = auth.uid())))));
-ALTER TABLE "public"."map_editor_save_slots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_save_slots_insert_owner" ON "public"."map_editor_save_slots" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_save_slots.map_id) AND (m.created_by = auth.uid())))) AND (created_by = auth.uid())));
-ALTER TABLE "public"."map_editor_save_slots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_save_slots_select_owner" ON "public"."map_editor_save_slots" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_save_slots.map_id) AND (m.created_by = auth.uid())))));
-ALTER TABLE "public"."map_editor_save_slots" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_editor_save_slots_update_owner" ON "public"."map_editor_save_slots" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_editor_save_slots.map_id) AND (m.created_by = auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
@@ -8727,21 +8707,17 @@ ALTER TABLE "public"."map_layers" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_layers_owner_delete" ON "public"."map_layers" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_layers.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_layers" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_layers_owner_insert" ON "public"."map_layers" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_layers.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_layers" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_layers_owner_select" ON "public"."map_layers" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_layers.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_layers" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_layers_owner_update" ON "public"."map_layers" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_layers.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid)))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_layers.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_layers" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public can read map layers" ON "public"."map_layers" AS PERMISSIVE FOR SELECT TO public USING (true);
 ALTER TABLE "public"."map_navigation_cells" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public can read map navigation cells" ON "public"."map_navigation_cells" AS PERMISSIVE FOR SELECT TO public USING (true);
@@ -8753,15 +8729,12 @@ ALTER TABLE "public"."map_objects" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_objects_owner_delete" ON "public"."map_objects" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_objects.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_objects" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_objects_owner_insert" ON "public"."map_objects" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_objects.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_objects" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_objects_owner_select" ON "public"."map_objects" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_objects.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_objects" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_objects_owner_update" ON "public"."map_objects" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_objects.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid)))))) WITH CHECK ((EXISTS ( SELECT 1
@@ -8781,33 +8754,24 @@ ALTER TABLE "public"."map_versions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_versions_canonical_world_select" ON "public"."map_versions" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_versions.map_id) AND (m.map_type = 'world'::text) AND (m.world_id = '3695d0b0-788e-42fa-9345-cc3197d0c94d'::uuid)))));
-ALTER TABLE "public"."map_versions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_versions_owner_delete" ON "public"."map_versions" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_versions.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
-ALTER TABLE "public"."map_versions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_versions_owner_insert" ON "public"."map_versions" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_versions.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))) AND ((created_by = ( SELECT auth.uid() AS uid)) OR (created_by IS NULL))));
-ALTER TABLE "public"."map_versions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "map_versions_owner_select" ON "public"."map_versions" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM maps m
   WHERE ((m.id = map_versions.map_id) AND (m.created_by = ( SELECT auth.uid() AS uid))))));
 ALTER TABLE "public"."maps" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_canonical_world_select" ON "public"."maps" AS PERMISSIVE FOR SELECT TO "authenticated" USING (((map_type = 'world'::text) AND (world_id = '3695d0b0-788e-42fa-9345-cc3197d0c94d'::uuid)));
-ALTER TABLE "public"."maps" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_canonical_world_update" ON "public"."maps" AS PERMISSIVE FOR UPDATE TO "authenticated" USING (((map_type = 'world'::text) AND (world_id = '3695d0b0-788e-42fa-9345-cc3197d0c94d'::uuid))) WITH CHECK (((map_type = 'world'::text) AND (world_id = '3695d0b0-788e-42fa-9345-cc3197d0c94d'::uuid)));
-ALTER TABLE "public"."maps" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_owner_delete" ON "public"."maps" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((created_by = ( SELECT auth.uid() AS uid)));
-ALTER TABLE "public"."maps" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_owner_insert" ON "public"."maps" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((created_by = ( SELECT auth.uid() AS uid)));
-ALTER TABLE "public"."maps" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_owner_select" ON "public"."maps" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((created_by = ( SELECT auth.uid() AS uid)));
-ALTER TABLE "public"."maps" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_owner_update" ON "public"."maps" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((created_by = ( SELECT auth.uid() AS uid))) WITH CHECK ((created_by = ( SELECT auth.uid() AS uid)));
 ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notifications_select_own" ON "public"."notifications" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notifications_update_own" ON "public"."notifications" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 ALTER TABLE "public"."occupations" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "occupations_public_read" ON "public"."occupations" AS PERMISSIVE FOR SELECT TO "authenticated", "anon" USING (true);
@@ -8819,11 +8783,8 @@ ALTER TABLE "public"."polities" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "polities_public_read" ON "public"."polities" AS PERMISSIVE FOR SELECT TO "authenticated", "anon" USING (true);
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_delete_own" ON "public"."profiles" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_insert_own" ON "public"."profiles" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select_own" ON "public"."profiles" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_update_own" ON "public"."profiles" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 ALTER TABLE "public"."quest_definitions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "quest_definitions_read_available" ON "public"."quest_definitions" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((state = 'AVAILABLE'::text));
@@ -8871,19 +8832,13 @@ ALTER TABLE "public"."services" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "services_public_read" ON "public"."services" AS PERMISSIVE FOR SELECT TO "authenticated", "anon" USING (true);
 ALTER TABLE "public"."sessions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sessions_delete_own" ON "public"."sessions" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."sessions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sessions_insert_own" ON "public"."sessions" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."sessions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sessions_select_own" ON "public"."sessions" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."sessions" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sessions_update_own" ON "public"."sessions" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 ALTER TABLE "public"."settings" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "settings_delete_own" ON "public"."settings" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."settings" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "settings_insert_own" ON "public"."settings" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."settings" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "settings_select_own" ON "public"."settings" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id));
-ALTER TABLE "public"."settings" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "settings_update_own" ON "public"."settings" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 ALTER TABLE "public"."settlements" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "settlements_public_read" ON "public"."settlements" AS PERMISSIVE FOR SELECT TO "authenticated", "anon" USING (true);
@@ -10818,3 +10773,79 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin" IN SCHEMA public GRANT DELETE
 ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin" IN SCHEMA public GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin" IN SCHEMA public GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin" IN SCHEMA public GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLES TO "service_role";
+
+-- RLS parity completion for 74 production-enabled tables missing from the reconstructed baseline.
+ALTER TABLE "public"."activity_attribute_affinities" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_completion_transitions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_definitions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_food_consumptions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_interruptions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_inventory_requirements" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_skill_affinities" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_skill_xp_awards" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."activity_xp_policies" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ai_activity_need_rules" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ai_archetype_activity_policies" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ai_goal_activity_rules" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."asset_binary_verifications" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."audit_logs" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."calendar_definitions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."civilization_influences" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."day_records" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."dialogue_history" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."dialogue_memories" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."dialogue_reputations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."dialogue_sessions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."dialogue_states" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."energy_history" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."energy_recovery_rules" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."event_definitions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."event_executions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."family_groups" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."family_memberships" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."history_causes" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."history_consequences" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."history_events" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."history_locations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."history_participants" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."households" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."item_durability_history" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."item_instances" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."legacies" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."legacy_links" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."legacy_modifications" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."legacy_versions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."life_emotion_history" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."lives" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."map_environment_policies" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."map_weather_overrides" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."npc_seed_catalog" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."npc_seed_entries" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."npc_seed_runs" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."occupation_skill_affinities" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."organization_memberships" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."permissions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."polity_memberships" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."region_weather_profiles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."relationships" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."role_permissions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."roles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."schedule_entries" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."season_cycle_rules" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."season_weather_rules" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."security_table_boundaries" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."settlement_history" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."simulation_clock" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."terrain_seasonal_bindings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."time_events" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_roles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."weather_transition_policies" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_biome_compatibility" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_environment_clocks" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_environment_states" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_landform_bindings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_transition_bindings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_vegetation_bindings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_water_bindings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."world_weather_states" ENABLE ROW LEVEL SECURITY;

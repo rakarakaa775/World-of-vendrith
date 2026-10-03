@@ -58,11 +58,11 @@ export function createNpcWorldAwareness(observation: RuntimeObservation): NpcWor
   if (conditionFlag(conditions, "flood_active") && !hazards.includes("flood")) hazards.push("flood");
   if (conditionFlag(conditions, "danger_zone") && !hazards.includes("danger-zone")) hazards.push("danger-zone");
 
-  const resourceKinds = NPC_WORLD_RESOURCE_KEYS;
+  const resourceKinds = new Set<string>(NPC_WORLD_RESOURCE_KEYS);
   const resources = conditionList(conditions, "available_resources")
-    .filter(item => resourceKinds.includes(item)) as NpcWorldResource[];
+    .filter(item => resourceKinds.has(item)) as NpcWorldResource[];
   const resourceNeeds = conditionList(conditions, "required_resources")
-    .filter(item => resourceKinds.includes(item)) as NpcWorldResource[];
+    .filter(item => resourceKinds.has(item)) as NpcWorldResource[];
 
   const hour = observation.state.clock.hour;
   const timeOfDay = hour < 6 ? "night" : hour < 12 ? "morning" : hour < 18 ? "day" : hour < 22 ? "evening" : "night";
