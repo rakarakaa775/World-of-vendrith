@@ -6,6 +6,7 @@ import {
   applyEnvironmentNpcNeeds,
   applyNpcPersonalityGoalPriority,
 } from "./environment-npc-effects";
+import { enforceNpcDecisionProfileGoals } from "./npc-decision-enforcement";
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, value));
@@ -106,11 +107,14 @@ export function decideNpcGoal(
   }
 
   const effectiveNeeds = applyEnvironmentNpcNeeds(observation, needs);
-  const goals = applyNpcPersonalityGoalPriority(
+  const goals = enforceNpcDecisionProfileGoals(
     observation,
-    applyEnvironmentNpcGoalPriority(
+    applyNpcPersonalityGoalPriority(
       observation,
-      createNpcGoalCandidates(observation, effectiveNeeds),
+      applyEnvironmentNpcGoalPriority(
+        observation,
+        createNpcGoalCandidates(observation, effectiveNeeds),
+      ),
     ),
   );
   const selected = policy.choose(observation, effectiveNeeds, goals);
