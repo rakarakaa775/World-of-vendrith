@@ -76,6 +76,9 @@ export async function runNpcRuntimeTick(
   const action = navigationDecision.actions[0];
   const execution = await ports.action.execute(action, observation);
   const verification = await ports.verification.verify(action, execution);
+  if (behavior.kind === "investigate" && memoryStore && execution.ok && verification.ok && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.x === goal.x && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.y === goal.y) {
+    memoryStore.clear(self.id);
+  }
   return {
     observation,
     behavior,
