@@ -79,7 +79,11 @@ describe("NPC behavior memory", () => {
     expect(first.actions[0].type).toBe("npc.investigate");
     expect(store.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 7, y: 2 });
 
-    store.clear("npc-1");
+    store.set({
+      ...store.get("npc-1")!,
+      lastFailure: "navigation",
+      failureCount: 3,
+    });
     const redetected: RuntimeObservation = {
       ...hearingObservation,
       id: "obs-reobserve-2",
@@ -95,6 +99,8 @@ describe("NPC behavior memory", () => {
     expect(second.actions[0].payload.targetEntityId).toBe("player-1");
     expect(store.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 5, y: 2 });
     expect(store.get("npc-1")?.updatedAtTick).toBe(12);
+    expect(store.get("npc-1")?.lastFailure).toBeUndefined();
+    expect(store.get("npc-1")?.failureCount).toBeUndefined();
   });
 
   it("does not create investigation memory from hearing without an explicit reaction rule", () => {

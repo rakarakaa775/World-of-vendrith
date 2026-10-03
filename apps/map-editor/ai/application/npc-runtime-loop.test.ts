@@ -167,6 +167,8 @@ describe("npc runtime loop", () => {
 
     expect(result.status).toBe("replan-required");
     expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 2, y: 0 });
+    expect(memory.get("npc-1")?.lastFailure).toBe("navigation");
+    expect(memory.get("npc-1")?.failureCount).toBe(1);
   });
 
   it("preserves investigation memory when action execution fails", async () => {
@@ -194,6 +196,8 @@ describe("npc runtime loop", () => {
     expect(result.status).toBe("rejected");
     expect(result.execution?.ok).toBe(false);
     expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 2, y: 0 });
+    expect(memory.get("npc-1")?.lastFailure).toBe("execution");
+    expect(memory.get("npc-1")?.failureCount).toBe(1);
   });
 
   it("preserves investigation memory when verification fails, then clears it after later successful arrival", async () => {
@@ -222,6 +226,8 @@ describe("npc runtime loop", () => {
     expect(failed.execution?.ok).toBe(true);
     expect(failed.verification?.ok).toBe(false);
     expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 1, y: 0 });
+    expect(memory.get("npc-1")?.lastFailure).toBe("verification");
+    expect(memory.get("npc-1")?.failureCount).toBe(1);
 
     const successfulStore = makeStore();
     let successfulSnapshot = successfulStore.snapshot();

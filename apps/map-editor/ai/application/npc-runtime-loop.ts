@@ -69,15 +69,50 @@ export async function runNpcRuntimeTick(
   if (!grid) return { observation, behavior, status: "rejected" };
 
   const navigationDecision = decideNpcNavigation(request, observation, grid, goal);
-  if (!navigationDecision) return { observation, behavior, status: "replan-required" };
+  if (!navigationDecision) {
+    if (behavior.kind === "investigate" && memoryStore) {
+      const previous = memoryStore.get(self.id);
+      if (previous) {
+        memoryStore.set({
+          ...previous,
+          lastFailure: "navigation",
+          failureCount: (previous.failureCount ?? 0) + 1,
+          updatedAtTick: observation.state.clock.tick,
+          stateVersion: observation.state.stateVersion,
+        });
+      }
+    }
+    return { observation, behavior, status: "replan-required" };
+  }
   const validation = validateRuntimeDecision(navigationDecision, observation);
   if (!validation.ok) return { observation, behavior, decision: navigationDecision, status: "invalid" };
 
   const action = navigationDecision.actions[0];
   const execution = await ports.action.execute(action, observation);
   const verification = await ports.verification.verify(action, execution);
-  if (behavior.kind === "investigate" && memoryStore && execution.ok && verification.ok && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.x === goal.x && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.y === goal.y) {
-    memoryStore.clear(self.id);
+  if (behavior.kind === "investigate" && memoryStore) {
+    const previous = memoryStore.get(self.id);
+    if (previous) {
+      if (!execution.ok) {
+        memoryStore.set({
+          ...previous,
+          lastFailure: "execution",
+          failureCount: (previous.failureCount ?? 0) + 1,
+          updatedAtTick: observation.state.clock.tick,
+          stateVersion: observation.state.stateVersion,
+        });
+      } else if (!verification.ok) {
+        memoryStore.set({
+          ...previous,
+          lastFailure: "verification",
+          failureCount: (previous.failureCount ?? 0) + 1,
+          updatedAtTick: observation.state.clock.tick,
+          stateVersion: observation.state.stateVersion,
+        });
+      } else if (world.snapshot().entities.find(entity => entity.id === self.id)?.position?.x === goal.x && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.y === goal.y) {
+        memoryStore.clear(self.id);
+      }
+    }
   }
   return {
     observation,

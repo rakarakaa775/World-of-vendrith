@@ -26,6 +26,8 @@ export interface NpcBehaviorMemory {
   targetEntityId?: string;
   lastKnownTargetPosition?: { x: number; y: number };
   lastSeenTick?: number;
+  lastFailure?: "navigation" | "execution" | "verification";
+  failureCount?: number;
   updatedAtTick: number;
 }
 

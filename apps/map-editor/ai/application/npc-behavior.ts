@@ -74,6 +74,8 @@ export function decideNpcBehavior(
       targetEntityId: target?.id ?? memory?.targetEntityId,
       lastKnownTargetPosition: target?.position ?? memory?.lastKnownTargetPosition,
       lastSeenTick: target ? observation.state.clock.tick : memory?.lastSeenTick,
+      lastFailure: selected.behavior === "investigate" && !target ? memory?.lastFailure : undefined,
+      failureCount: selected.behavior === "investigate" && !target ? memory?.failureCount : undefined,
       updatedAtTick: observation.state.clock.tick,
     };
     memoryStore.set(nextMemory);
