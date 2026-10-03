@@ -1,5 +1,7 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
+import type { RuntimeGoalKind } from "../domain/runtime-goal";
+import { createNpcDailyLifeStateStore, resolveNpcDailyLifeState, type NpcDailyLifeStateStore } from "../domain/runtime-daily-life";
 import type { NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeAiPorts } from "../ports/runtime";
 import { validateRuntimeDecision } from "../policies/runtime-policy";
@@ -23,10 +25,13 @@ export interface NpcRuntimeSocialDiagnostics {
   };
 }
 
+const defaultNpcDailyLifeStateStore = createNpcDailyLifeStateStore();
+
 export interface NpcRuntimeTickResult {
   observation: RuntimeObservation;
   behavior: ReturnType<typeof createNpcBehaviorDecisionCandidates>[number] | undefined;
   socialDiagnostics: NpcRuntimeSocialDiagnostics;
+  dailyLife?: import("../domain/runtime-daily-life").NpcDailyLifeState;
   decision?: RuntimeDecision;
   execution?: Awaited<ReturnType<RuntimeAiPorts["action"]["execute"]>>;
   verification?: Awaited<ReturnType<RuntimeAiPorts["verification"]["verify"]>>;
@@ -82,6 +87,7 @@ export async function runNpcRuntimeTick(
   world: RuntimeWorldStore,
   memoryStore?: NpcBehaviorMemoryStore,
   relationshipStore: NpcRelationshipRuntimeStore = createNpcRelationshipRuntimeStore(),
+  dailyLifeStore: NpcDailyLifeStateStore = defaultNpcDailyLifeStateStore,
 ): Promise<NpcRuntimeTickResult> {
   const observed = await ports.observation.observe(request);
   const observedSelf = observed.perception?.self;
@@ -104,17 +110,23 @@ export async function runNpcRuntimeTick(
   const relationshipPolicyValidation = validateNpcRelationshipPolicy(profileRecord?.relationshipPolicy);
   const emptySocialDiagnostics: NpcRuntimeSocialDiagnostics = { relationships, relationshipPolicyValidation };
   if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
-  let activeGoal: { kind: import("../domain/runtime-behavior").RuntimeBehaviorKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string } | undefined;
+  let activeGoal: { kind: RuntimeGoalKind; priority: number; reason: string; targetLocation?: { mapId: string; x: number; y: number }; targetEventId?: string } | undefined;
   try {
     const goalDecision = decideNpcGoal(request, observation, { hunger: 0, energy: 0, social: 0, safety: 100 });
     const goalAction = goalDecision.actions[0];
     const goalKind = typeof goalAction?.payload.goal === "string" ? goalAction.payload.goal : undefined;
-    activeGoal = goalKind ? { kind: goalKind as import("../domain/runtime-behavior").RuntimeBehaviorKind, priority: Number(goalAction.payload.priority) || 0, reason: goalAction.reason, targetLocation: goalAction.payload.targetLocation as { mapId: string; x: number; y: number } | undefined, targetEventId: typeof goalAction.payload.targetEventId === "string" ? goalAction.payload.targetEventId : undefined } : undefined;
+    activeGoal = goalKind ? { kind: goalKind as RuntimeGoalKind, priority: Number(goalAction.payload.priority) || 0, reason: goalAction.reason, targetLocation: goalAction.payload.targetLocation as { mapId: string; x: number; y: number } | undefined, targetEventId: typeof goalAction.payload.targetEventId === "string" ? goalAction.payload.targetEventId : undefined } : undefined;
   } catch {
     activeGoal = undefined;
   }
+  const dailyLife = resolveNpcDailyLifeState(
+    observation,
+    activeGoal ? { kind: activeGoal.kind, targetLocation: activeGoal.targetLocation } : undefined,
+    dailyLifeStore.get(observation.perception.self.id),
+  );
+  if (dailyLife) dailyLifeStore.set(dailyLife);
   const candidates = createNpcBehaviorDecisionCandidates(observation, memoryStore?.get(observation.perception.self.id), activeGoal);
-  if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
+  if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, dailyLife, status: "invalid" };
 
   const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore, activeGoal);
   const behavior = candidates.find(candidate => candidate.action.id === behaviorDecision.actions[0]?.id)
@@ -144,7 +156,7 @@ export async function runNpcRuntimeTick(
       expiresAtTick: observation.state.clock.tick + 1,
     });
     const validation = validateRuntimeDecision(decision, observation);
-    return { observation, behavior, socialDiagnostics, decision, status: validation.ok ? "idle" : "invalid" };
+    return { observation, behavior, socialDiagnostics, dailyLife, decision, status: validation.ok ? "idle" : "invalid" };
   }
 
   const self = observation.perception?.self;
@@ -174,10 +186,22 @@ export async function runNpcRuntimeTick(
       memoryStore.clear(self.id);
     }
   }
+  const finalPosition = world.snapshot().entities.find(entity => entity.id === self.id)?.position;
+  const arrivedAtDailyLifeTarget = Boolean(
+    dailyLife?.targetLocation &&
+    finalPosition &&
+    finalPosition.x === dailyLife.targetLocation.x &&
+    finalPosition.y === dailyLife.targetLocation.y,
+  );
+  const finalDailyLife = dailyLife && execution.ok && verification.ok && arrivedAtDailyLifeTarget
+    ? { ...dailyLife, phase: "active" as const, updatedAtTick: observation.state.clock.tick }
+    : dailyLife;
+  if (finalDailyLife) dailyLifeStore.set(finalDailyLife);
   return {
     observation,
     behavior,
     socialDiagnostics,
+    dailyLife: finalDailyLife,
     decision: navigationDecision,
     execution,
     verification,

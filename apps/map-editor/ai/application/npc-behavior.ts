@@ -1,5 +1,5 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
-import type { RuntimeBehaviorCandidate, RuntimeBehaviorDecision, RuntimeBehaviorPolicy, NpcBehaviorMemory, NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
+import type { RuntimeBehaviorCandidate, RuntimeBehaviorDecision, RuntimeBehaviorPolicy, NpcBehaviorMemory, NpcBehaviorMemoryStore, RuntimeBehaviorKind } from "../domain/runtime-behavior";
 import { createRuntimeDecision } from "./runtime-decision";
 import { applyEnvironmentNpcBehavior, applyEnvironmentNpcDetectionBehavior, applyNpcPersonalityBehavior, applyNpcRelationshipBehavior } from "./environment-npc-effects";
 import { enforceNpcDecisionProfileBehaviors } from "./npc-decision-enforcement";

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RuntimeEntity, RuntimeObservation } from "../domain/runtime";
 import type { NavigationGrid } from "../domain/runtime-navigation";
 import { createNpcBehaviorMemoryStore } from "../domain/runtime-behavior";
+import { createNpcDailyLifeStateStore } from "../domain/runtime-daily-life";
 import { createRuntimeObservationPort } from "./runtime-observation";
 import { runNpcRuntimeTick } from "./npc-runtime-loop";
 import {
@@ -92,7 +93,23 @@ describe("npc runtime loop", () => {
     }, ports, store);
     expect(result.status).toBe("moved");
     expect(result.behavior?.kind).toBe("work");
+    expect(result.dailyLife).toMatchObject({ goal: "work", phase: "traveling", targetLocation: { mapId: "region-1", x: 3, y: 0 } });
     expect(result.decision?.actions[0]?.payload).toMatchObject({ targetLocation: { mapId: "region-1", x: 3, y: 0 } });
+  });
+
+  it("marks a scheduled activity active only after arriving at its target", async () => {
+    const store = makeStore();
+    const base = store.snapshot();
+    store.snapshot = () => ({ ...base, entities: base.entities.map(entity => entity.id === "npc-1" ? {
+      ...entity,
+      state: { decisionProfile: { archetype: "civilian", capabilities: { goals: ["work"], behaviors: ["work"] }, schedule: { npcId: "npc-1", entries: [{ goal: "work", startHour: 8, endHour: 12, priority: 40, location: { mapId: "region-1", x: 0, y: 0 } }] } } },
+    } : entity) });
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = { observation, decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } }, action: createRuntimeWorldActionPort(store), verification: createRuntimeWorldVerificationPort(store) };
+    const dailyLife = createNpcDailyLifeStateStore();
+    const result = await runNpcRuntimeTick({ id: "npc-daily-life-1", surface: "game", intelligence: "npc", goal: "Work", observation: {} as RuntimeObservation }, ports, store, undefined, undefined, dailyLife);
+    expect(result.status).toBe("moved");
+    expect(result.dailyLife).toMatchObject({ goal: "work", phase: "active", startedAtTick: 1 });
   });
 
   it("navigates from explicit investigation memory after the detected target disappears", async () => {
