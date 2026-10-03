@@ -15,6 +15,7 @@ export interface RuntimeGoal {
   reason: string;
   targetLocation?: { mapId: string; x: number; y: number };
   targetEventId?: string;
+  targetNpcId?: string;
   expiresAtTick?: number;
 }
 

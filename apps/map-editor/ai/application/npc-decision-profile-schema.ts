@@ -9,6 +9,7 @@ import { validateNpcCapabilities, npcArchetypeCapabilities } from "./npc-archety
 import { validateNpcPersonality } from "./npc-personality-schema";
 import { validateNpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { validateNpcRelationships, type NpcRelationship } from "./npc-relationship-schema";
+import { validateNpcRelationshipPolicy, type NpcRelationshipPolicy } from "./npc-relationship-policy-schema";
 
 export interface NpcDecisionProfile {
   archetype?: NpcArchetype;
@@ -17,11 +18,12 @@ export interface NpcDecisionProfile {
   personality?: NpcPersonalityRequest;
   personalityPolicy?: NpcPersonalityPolicy;
   relationships?: readonly NpcRelationship[];
+  relationshipPolicy?: NpcRelationshipPolicy;
 }
 export interface NpcDecisionProfileValidation { ok: boolean; errors: string[]; }
 
 export const NPC_DECISION_PROFILE_SCHEMA = {
-  fields: ["archetype", "role", "capabilities", "personality", "personalityPolicy", "relationships"],
+  fields: ["archetype", "role", "capabilities", "personality", "personalityPolicy", "relationships", "relationshipPolicy"],
   semantics: "A validated composition contract. Descriptive fields do not activate runtime effects; explicit personality policy may affect only capabilities already allowed by the archetype.",
 } as const;
 
@@ -38,12 +40,20 @@ export function validateNpcDecisionProfile(value: unknown): NpcDecisionProfileVa
   const personality = validateNpcPersonality(profile.personality);
   const policy = validateNpcPersonalityPolicy(profile.personalityPolicy);
   const relationships = validateNpcRelationships(profile.relationships);
-  errors.push(...archetype.errors, ...role.errors, ...capabilities.errors, ...personality.errors, ...policy.errors, ...relationships.errors);
+  const relationshipPolicy = validateNpcRelationshipPolicy(profile.relationshipPolicy);
+  errors.push(...archetype.errors, ...role.errors, ...capabilities.errors, ...personality.errors, ...policy.errors, ...relationships.errors, ...relationshipPolicy.errors);
   if (profile.archetype && policy.ok && profile.personalityPolicy?.rules) {
     const allowed = npcArchetypeCapabilities(profile.archetype);
     for (const rule of profile.personalityPolicy.rules) {
       for (const kind of Object.keys(rule.behaviors ?? {})) if (!allowed.behaviors.includes(kind as never)) errors.push(`Personality policy behavior is outside archetype capabilities: ${kind}.`);
       for (const kind of Object.keys(rule.goals ?? {})) if (!allowed.goals.includes(kind as never)) errors.push(`Personality policy goal is outside archetype capabilities: ${kind}.`);
+    }
+  }
+  if (profile.archetype && relationshipPolicy.ok && profile.relationshipPolicy?.rules) {
+    const allowed = npcArchetypeCapabilities(profile.archetype);
+    for (const rule of profile.relationshipPolicy.rules) {
+      for (const kind of Object.keys(rule.behaviors ?? {})) if (!allowed.behaviors.includes(kind as never)) errors.push(`Relationship policy behavior is outside archetype capabilities: ${kind}.`);
+      for (const kind of Object.keys(rule.goals ?? {})) if (!allowed.goals.includes(kind as never)) errors.push(`Relationship policy goal is outside archetype capabilities: ${kind}.`);
     }
   }
   return { ok: errors.length === 0, errors };

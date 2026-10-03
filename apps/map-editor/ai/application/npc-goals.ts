@@ -5,6 +5,7 @@ import {
   applyEnvironmentNpcGoalPriority,
   applyEnvironmentNpcNeeds,
   applyNpcPersonalityGoalPriority,
+  applyNpcRelationshipGoalPriority,
 } from "./environment-npc-effects";
 import { enforceNpcDecisionProfileGoals } from "./npc-decision-enforcement";
 
@@ -109,11 +110,14 @@ export function decideNpcGoal(
   const effectiveNeeds = applyEnvironmentNpcNeeds(observation, needs);
   const goals = enforceNpcDecisionProfileGoals(
     observation,
-    applyNpcPersonalityGoalPriority(
+    applyNpcRelationshipGoalPriority(
       observation,
-      applyEnvironmentNpcGoalPriority(
+      applyNpcPersonalityGoalPriority(
         observation,
-        createNpcGoalCandidates(observation, effectiveNeeds),
+        applyEnvironmentNpcGoalPriority(
+          observation,
+          createNpcGoalCandidates(observation, effectiveNeeds),
+        ),
       ),
     ),
   );

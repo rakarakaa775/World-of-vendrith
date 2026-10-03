@@ -44,6 +44,8 @@ describe("project tool definitions", () => {
       "npc.decision_profile.validate",
       "npc.personality_policy.schema",
       "npc.personality_policy.validate",
+      "npc.relationship_policy.schema",
+      "npc.relationship_policy.validate",
       "npc.environment_policy.schema",
       "npc.environment_policy.propose",
       "npc.creator_package.propose",

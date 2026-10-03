@@ -14,7 +14,8 @@ export type SchemaNodeKind =
   | "npc-archetype"
   | "npc-role"
   | "npc-personality"
-  | "npc-personality-policy";
+  | "npc-personality-policy"
+  | "npc-relationship-policy";
 
 export interface SchemaNode {
   id: string;
@@ -100,6 +101,11 @@ const NPC_PERSONALITY_EVIDENCE = [
 
 const NPC_PERSONALITY_POLICY_EVIDENCE = [
   { source: "repository:apps/map-editor/ai/application/npc-personality-policy-schema.ts", fact: "Personality policy is an explicit allow-listed runtime contract for existing behavior and goal priority deltas; traits alone have no runtime effect." },
+];
+
+const NPC_RELATIONSHIP_POLICY_EVIDENCE = [
+  { source: "repository:apps/map-editor/ai/application/npc-relationship-schema.ts", fact: "NPC relationships are explicit descriptive links containing target, type, affinity, and trust; relationship data alone has no runtime effect." },
+  { source: "repository:apps/map-editor/ai/application/npc-relationship-policy-schema.ts", fact: "Relationship policy is an explicit allow-listed runtime contract for priority deltas on existing behavior and goal kinds, filtered by relationship type and optional affinity/trust ranges." },
 ];
 
 const NPC_ROLE_EVIDENCE = [
@@ -233,6 +239,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       label: "NPC Personality Policy",
       evidence: evidence("schema-graph-npc-personality-policy", NPC_PERSONALITY_POLICY_EVIDENCE),
     },
+    {
+      id: "npc-relationship-policy",
+      kind: "npc-relationship-policy",
+      label: "NPC Relationship Policy",
+      evidence: evidence("schema-graph-npc-relationship-policy", NPC_RELATIONSHIP_POLICY_EVIDENCE),
+    },
   );
 
   const edges: SchemaEdge[] = [
@@ -307,6 +319,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       relation: "supports",
       to: "npc-personality-policy",
       evidence: evidence("schema-graph-npc-personality-policy-edge", NPC_PERSONALITY_POLICY_EVIDENCE),
+    },
+    {
+      from: "npc",
+      relation: "supports",
+      to: "npc-relationship-policy",
+      evidence: evidence("schema-graph-npc-relationship-policy-edge", NPC_RELATIONSHIP_POLICY_EVIDENCE),
     },
   ];
 

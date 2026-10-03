@@ -3,6 +3,8 @@ import type { NpcNeedState, RuntimeGoal } from "../domain/runtime-goal";
 import type { RuntimeBehaviorCandidate } from "../domain/runtime-behavior";
 import type { NpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { validateNpcPersonalityPolicy } from "./npc-personality-policy-schema";
+import type { NpcRelationshipPolicy } from "./npc-relationship-policy-schema";
+import { validateNpcRelationshipPolicy } from "./npc-relationship-policy-schema";
 import { effectiveNpcEnvironmentConditions } from "./npc-environment-policy-runtime";
 
 const NEED_KEYS: Array<keyof NpcNeedState> = ["hunger", "energy", "social", "safety"];
@@ -147,6 +149,64 @@ export function applyNpcPersonalityGoalPriority(observation: RuntimeObservation,
   });
 }
 
+export function applyNpcRelationshipBehavior(observation: RuntimeObservation, candidates: RuntimeBehaviorCandidate[]): RuntimeBehaviorCandidate[] {
+  const state = observation.perception?.self?.state;
+  const profile = state?.decisionProfile;
+  const record = profile && typeof profile === "object" && !Array.isArray(profile) ? profile as Record<string, unknown> : undefined;
+  const relationships = record?.relationships;
+  const policy = record?.relationshipPolicy;
+  if (!Array.isArray(relationships) || !policy || !validateNpcRelationshipPolicy(policy).ok) return candidates.map(candidate => ({ ...candidate }));
+  const rules = (policy as NpcRelationshipPolicy).rules ?? [];
+  return candidates.map(candidate => {
+    const targetId = candidate.action.payload.targetEntityId;
+    if (typeof targetId !== "string") return { ...candidate };
+    let priority = candidate.priority;
+    for (const relationship of relationships) {
+      if (!relationship || typeof relationship !== "object" || Array.isArray(relationship)) continue;
+      const rel = relationship as Record<string, unknown>;
+      if (rel.targetNpcId !== targetId) continue;
+      for (const rule of rules) {
+        const matches = rule.type === rel.type &&
+          (rule.minAffinity === undefined || (typeof rel.affinity === "number" ? rel.affinity : 0) >= rule.minAffinity) &&
+          (rule.maxAffinity === undefined || (typeof rel.affinity === "number" ? rel.affinity : 0) <= rule.maxAffinity) &&
+          (rule.minTrust === undefined || (typeof rel.trust === "number" ? rel.trust : 0) >= rule.minTrust) &&
+          (rule.maxTrust === undefined || (typeof rel.trust === "number" ? rel.trust : 0) <= rule.maxTrust);
+        const delta = matches ? rule.behaviors?.[candidate.kind] : undefined;
+        if (finiteNumber(delta)) priority += delta;
+      }
+    }
+    return { ...candidate, priority };
+  });
+}
+
+export function applyNpcRelationshipGoalPriority(observation: RuntimeObservation, goals: RuntimeGoal[]): RuntimeGoal[] {
+  const state = observation.perception?.self?.state;
+  const profile = state?.decisionProfile;
+  const record = profile && typeof profile === "object" && !Array.isArray(profile) ? profile as Record<string, unknown> : undefined;
+  const relationships = record?.relationships;
+  const policy = record?.relationshipPolicy;
+  if (!Array.isArray(relationships) || !policy || !validateNpcRelationshipPolicy(policy).ok) return goals.map(goal => ({ ...goal }));
+  const rules = (policy as NpcRelationshipPolicy).rules ?? [];
+  return goals.map(goal => {
+    if (typeof goal.targetNpcId !== "string") return { ...goal };
+    let priority = goal.priority;
+    for (const relationship of relationships) {
+      if (!relationship || typeof relationship !== "object" || Array.isArray(relationship)) continue;
+      const rel = relationship as Record<string, unknown>;
+      if (rel.targetNpcId !== goal.targetNpcId) continue;
+      for (const rule of rules) {
+        const matches = rule.type === rel.type &&
+          (rule.minAffinity === undefined || (typeof rel.affinity === "number" ? rel.affinity : 0) >= rule.minAffinity) &&
+          (rule.maxAffinity === undefined || (typeof rel.affinity === "number" ? rel.affinity : 0) <= rule.maxAffinity) &&
+          (rule.minTrust === undefined || (typeof rel.trust === "number" ? rel.trust : 0) >= rule.minTrust) &&
+          (rule.maxTrust === undefined || (typeof rel.trust === "number" ? rel.trust : 0) <= rule.maxTrust);
+        const delta = matches ? rule.goals?.[goal.kind] : undefined;
+        if (finiteNumber(delta)) priority += delta;
+      }
+    }
+    return { ...goal, priority };
+  });
+}
 export function applyEnvironmentNpcGoalPriority(
   observation: RuntimeObservation,
   goals: RuntimeGoal[],

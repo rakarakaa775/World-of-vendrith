@@ -1,7 +1,7 @@
 import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { RuntimeBehaviorCandidate, RuntimeBehaviorDecision, RuntimeBehaviorPolicy, NpcBehaviorMemory, NpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import { createRuntimeDecision } from "./runtime-decision";
-import { applyEnvironmentNpcBehavior, applyEnvironmentNpcDetectionBehavior, applyNpcPersonalityBehavior } from "./environment-npc-effects";
+import { applyEnvironmentNpcBehavior, applyEnvironmentNpcDetectionBehavior, applyNpcPersonalityBehavior, applyNpcRelationshipBehavior } from "./environment-npc-effects";
 import { enforceNpcDecisionProfileBehaviors } from "./npc-decision-enforcement";
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
@@ -59,13 +59,16 @@ export function decideNpcBehavior(
   const memory = npcId ? memoryStore?.get(npcId) : undefined;
   const candidates = enforceNpcDecisionProfileBehaviors(
     observation,
-    applyNpcPersonalityBehavior(
+    applyNpcRelationshipBehavior(
       observation,
-      applyEnvironmentNpcBehavior(
+      applyNpcPersonalityBehavior(
         observation,
-        applyEnvironmentNpcDetectionBehavior(
+        applyEnvironmentNpcBehavior(
           observation,
-          createNpcBehaviorCandidates(observation, memory),
+          applyEnvironmentNpcDetectionBehavior(
+            observation,
+            createNpcBehaviorCandidates(observation, memory),
+          ),
         ),
       ),
     ),

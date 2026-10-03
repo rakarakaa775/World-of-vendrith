@@ -13,6 +13,7 @@ import { NPC_ROLE_SCHEMA, npcRoleArchetypes, validateNpcRole, type NpcRole } fro
 import { NPC_PERSONALITY_SCHEMA, validateNpcPersonality, type NpcPersonalityRequest } from "./npc-personality-schema";
 import { NPC_PERSONALITY_POLICY_SCHEMA, validateNpcPersonalityPolicy, type NpcPersonalityPolicy } from "./npc-personality-policy-schema";
 import { NPC_DECISION_PROFILE_SCHEMA, validateNpcDecisionProfile } from "./npc-decision-profile-schema";
+import { NPC_RELATIONSHIP_POLICY_SCHEMA, validateNpcRelationshipPolicy, type NpcRelationshipPolicy } from "./npc-relationship-policy-schema";
 import { inspectMap } from "./map-inspector";
 import { previewCreatorNpcPackage } from "./npc-creator-package";
 import type { MapDocument } from "../../editor/map-document";
@@ -154,6 +155,17 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       async execute(args) { return validateNpcPersonalityPolicy((args as { policy?: unknown }).policy); },
     },
     {
+      name: "npc.relationship_policy.schema", description: "Return the verified explicit NPC relationship runtime policy contract.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_RELATIONSHIP_POLICY_SCHEMA; },
+    },
+    {
+      name: "npc.relationship_policy.validate", description: "Validate an explicit NPC relationship runtime policy and its supported behavior/goal effects.", access: "read-only",
+      parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
+      validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null,
+      async execute(args) { return validateNpcRelationshipPolicy((args as { policy?: unknown }).policy); },
+    },
+    {
       name: "npc.environment_policy.schema", description: "Return the verified NPC environment policy contract for Creator AI generation.", access: "read-only",
       parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
       async execute() { return NPC_ENVIRONMENT_POLICY_SCHEMA; },
@@ -175,10 +187,11 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
           (npc.role === undefined || typeof npc.role === "string") &&
           (npc.personality === undefined || (typeof npc.personality === "object" && npc.personality !== null && !Array.isArray(npc.personality))) &&
           (npc.personalityPolicy === undefined || (typeof npc.personalityPolicy === "object" && npc.personalityPolicy !== null && !Array.isArray(npc.personalityPolicy))) &&
+          (npc.relationshipPolicy === undefined || (typeof npc.relationshipPolicy === "object" && npc.relationshipPolicy !== null && !Array.isArray(npc.relationshipPolicy))) &&
           (npc.capabilities === undefined || (typeof npc.capabilities === "object" && npc.capabilities !== null && !Array.isArray(npc.capabilities))) &&
           typeof npc.environmentPolicy === "object" && npc.environmentPolicy !== null && !Array.isArray(npc.environmentPolicy);
       },
-      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } }).npc); },
+      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; relationshipPolicy?: NpcRelationshipPolicy; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } }).npc); },
     },
     {
       name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", access: "read-only",
