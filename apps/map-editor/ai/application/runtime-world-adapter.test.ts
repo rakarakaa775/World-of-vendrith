@@ -38,6 +38,55 @@ function makeStore(): RuntimeWorldStore {
 }
 
 describe("runtime world adapter", () => {
+  it("detects an explicitly visible entity within visibility radius", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        entities: base.snapshot().entities.map(entity =>
+          entity.id === "player-1" ? { ...entity, state: { sensory_stimuli: { visibility: true } } } : entity,
+        ),
+      }),
+    };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-visible-detection", surface: "game", intelligence: "npc", goal: "Observe", observation: {} as RuntimeObservation });
+    expect(observation.perception?.nearbyEntities.map(entity => entity.id)).toEqual(["player-1"]);
+  });
+
+  it("detects explicit hearing and smell stimuli using environment sensing", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        state: { ...base.snapshot().state, environmentConditions: { npc_sensing: { hearing_radius: 4, smell_radius: 3, detection_modifier: 2 } } },
+        entities: base.snapshot().entities.map(entity =>
+          entity.id === "player-1" ? { ...entity, position: { x: 7, y: 0 }, state: { sensory_stimuli: { hearing_radius: 1, smell_radius: 1 } } } : entity,
+        ),
+      }),
+    };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-sound-detection", surface: "game", intelligence: "npc", goal: "Sense", observation: {} as RuntimeObservation });
+    expect(observation.perception?.nearbyEntities.map(entity => entity.id)).toEqual(["player-1"]);
+  });
+
+  it("does not detect entities without explicit stimuli outside visibility", async () => {
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        entities: base.snapshot().entities.map(entity =>
+          entity.id === "player-1" ? { ...entity, position: { x: 9, y: 0 } } : entity,
+        ),
+      }),
+    };
+    const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const observation = await port.observe({ id: "runtime-undetected", surface: "game", intelligence: "npc", goal: "Sense", observation: {} as RuntimeObservation });
+    expect(observation.perception?.nearbyEntities).toHaveLength(0);
+  });
+
   it("uses environment visibility_radius for nearby perception", async () => {
     const base = makeStore();
     const store: RuntimeWorldStore = {
@@ -83,7 +132,16 @@ describe("runtime world adapter", () => {
   });
 
   it("turns the authoritative world store into a perception snapshot", async () => {
-    const store = makeStore();
+    const base = makeStore();
+    const store: RuntimeWorldStore = {
+      ...base,
+      snapshot: () => ({
+        ...base.snapshot(),
+        entities: base.snapshot().entities.map(entity =>
+          entity.id === "player-1" ? { ...entity, state: { sensory_stimuli: { visibility: true } } } : entity,
+        ),
+      }),
+    };
     const port = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
     const request = {
       id: "runtime-1",

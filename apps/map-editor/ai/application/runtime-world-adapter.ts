@@ -45,12 +45,41 @@ function detectionModifier(snapshot: RuntimeWorldSnapshot): number {
     : 1;
 }
 
+function entityStimuli(entity: RuntimeEntity): Record<string, unknown> {
+  const configured = entity.state?.sensory_stimuli;
+  return configured && typeof configured === "object" && !Array.isArray(configured)
+    ? configured as Record<string, unknown>
+    : {};
+}
+
+function explicitStimulusRadius(entity: RuntimeEntity, key: "hearing_radius" | "smell_radius"): number {
+  const configured = entityStimuli(entity)[key];
+  return typeof configured === "number" && Number.isFinite(configured)
+    ? Math.max(0, Math.min(64, configured))
+    : 0;
+}
+
+function isVisible(entity: RuntimeEntity): boolean {
+  return entityStimuli(entity).visibility !== false;
+}
+
+function canDetectEntity(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity, entity: RuntimeEntity): boolean {
+  const distance = Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y);
+  const sensing = sensingRule(snapshot);
+  const modifier = detectionModifier(snapshot);
+  const visible = isVisible(entity) && distance <= visibilityRadius(snapshot);
+  const hearing = explicitStimulusRadius(entity, "hearing_radius") > 0
+    && distance <= sensingRadius(snapshot, "hearing_radius", 8) * modifier;
+  const smell = explicitStimulusRadius(entity, "smell_radius") > 0
+    && distance <= sensingRadius(snapshot, "smell_radius", 8) * modifier;
+  return visible || hearing || smell;
+}
+
 function nearbyEntities(snapshot: RuntimeWorldSnapshot, self: RuntimeEntity): RuntimeEntity[] {
-  const radius = visibilityRadius(snapshot);
   return snapshot.entities.filter(entity =>
     entity.id !== self.id &&
     entity.mapId === self.mapId &&
-    Math.abs(entity.position.x - self.position.x) + Math.abs(entity.position.y - self.position.y) <= radius,
+    canDetectEntity(snapshot, self, entity),
   );
 }
 
