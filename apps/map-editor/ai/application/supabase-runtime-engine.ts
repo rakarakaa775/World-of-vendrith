@@ -4,6 +4,9 @@ import { createNpcBehaviorMemoryStore, type NpcBehaviorMemoryStore } from "../do
 import { runNpcRuntimeTick, type NpcRuntimeTickResult } from "./npc-runtime-loop";
 import { createSupabaseRuntimeWorldBridge, type SupabaseRuntimeWorldBridge } from "./supabase-runtime-world-bridge";
 import type { SupabaseRuntimeWorldAdapter } from "./supabase-runtime-world-adapter";
+import type { RuntimeEventExecutionResult } from "../domain/runtime-event";
+import { executeRuntimeEvent } from "./runtime-event-executor";
+import type { SupabaseRuntimeEventAdapter } from "./supabase-runtime-event-adapter";
 
 export interface SupabaseRuntimeEngine {
   readonly mapId: string;
@@ -16,18 +19,19 @@ export interface SupabaseRuntimeEngineTickResult {
   tick: number;
   stateVersion: string;
   results: NpcRuntimeTickResult[];
+  eventResults: RuntimeEventExecutionResult[];
 }
 
 export async function createSupabaseRuntimeEngine(
   adapter: SupabaseRuntimeWorldAdapter,
   mapId: string,
+  eventAdapter?: SupabaseRuntimeEventAdapter,
 ): Promise<SupabaseRuntimeEngine | undefined> {
   const loaded = await adapter.load(mapId);
   if (!loaded) return undefined;
   const bridge = await createSupabaseRuntimeWorldBridge({ async load() { return loaded; } }, mapId);
   if (!bridge) return undefined;
   const memory = createNpcBehaviorMemoryStore();
-
   return {
     mapId,
     bridge,
@@ -36,6 +40,28 @@ export async function createSupabaseRuntimeEngine(
       const effectiveEvents = events.length > 0 ? events : loaded.scheduledEvents;
       bridge.advanceClock(minutesPerTick, effectiveEvents);
       const initial = bridge.snapshot();
+      const eventResults: RuntimeEventExecutionResult[] = [];
+      if (eventAdapter) {
+        const worldStatus = await eventAdapter.loadWorldStatus(initial.state.worldId);
+        if (worldStatus !== undefined) {
+          for (const eventId of initial.state.activeEventIds) {
+            const candidate = await eventAdapter.loadCandidateById(
+              initial.state.worldId,
+              eventId,
+              initial.state.clock.tick,
+            );
+            if (!candidate) continue;
+            const definition = await eventAdapter.loadDefinition(candidate.eventType);
+            eventResults.push(await executeRuntimeEvent(
+              candidate,
+              definition,
+              initial.state,
+              worldStatus,
+              eventAdapter,
+            ));
+          }
+        }
+      }
       const npcs = initial.entities.filter(entity => entity.kind === "npc" && entity.mapId === mapId);
       const results: NpcRuntimeTickResult[] = [];
 
@@ -70,7 +96,7 @@ export async function createSupabaseRuntimeEngine(
       }
 
       const after = bridge.snapshot();
-      return { tick: after.state.clock.tick, stateVersion: after.state.stateVersion, results };
+      return { tick: after.state.clock.tick, stateVersion: after.state.stateVersion, results, eventResults };
     },
   };
 }

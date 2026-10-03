@@ -27,6 +27,7 @@ interface ExecutionRow {
 
 export interface SupabaseRuntimeEventAdapter extends RuntimeEventExecutionStore {
   loadCandidates(worldId: string, currentDate: Date, currentTick: number, speed: number): Promise<RuntimeEventCandidate[] | undefined>;
+  loadCandidateById(worldId: string, eventId: string, currentTick: number): Promise<RuntimeEventCandidate | undefined>;
   loadDefinition(eventType: string): Promise<RuntimeEventDefinition | undefined>;
   loadWorldStatus(worldId: string): Promise<string | undefined>;
 }
@@ -61,6 +62,26 @@ export function createSupabaseRuntimeEventAdapter(
           };
         })
         .filter((event): event is RuntimeEventCandidate => Boolean(event));
+    },
+
+    async loadCandidateById(worldId, eventId, currentTick) {
+      const result = await client
+        .from("time_events")
+        .select("id,world_id,event_type,scheduled_time,payload")
+        .eq("world_id", worldId)
+        .eq("id", eventId)
+        .maybeSingle();
+      if (result.error || !result.data) return undefined;
+      const event = result.data as TimeEventRow;
+      return {
+        id: event.id,
+        worldId: event.world_id,
+        eventType: event.event_type,
+        scheduledAt: event.scheduled_time,
+        payload: event.payload ?? undefined,
+        startTick: currentTick,
+        endTick: currentTick + 1,
+      };
     },
 
     async loadDefinition(eventType) {
