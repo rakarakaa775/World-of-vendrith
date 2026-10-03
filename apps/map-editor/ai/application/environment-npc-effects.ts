@@ -56,6 +56,41 @@ export function applyEnvironmentNpcBehavior(
   });
 }
 
+export function applyEnvironmentNpcDetectionBehavior(
+  observation: RuntimeObservation,
+  candidates: RuntimeBehaviorCandidate[],
+): RuntimeBehaviorCandidate[] {
+  const rules = environmentObject(observation, "npc_detection_behavior");
+  if (!rules) return candidates.map(candidate => ({ ...candidate }));
+  const detections = observation.perception?.detections ?? [];
+  const next = candidates.map(candidate => ({ ...candidate }));
+  for (const detection of detections) {
+    for (const channel of detection.channels) {
+      const channelRules = rules[channel];
+      if (!channelRules || typeof channelRules !== "object" || Array.isArray(channelRules)) continue;
+      const behaviorRule = (channelRules as Record<string, unknown>).investigate;
+      if (!behaviorRule || typeof behaviorRule !== "object" || Array.isArray(behaviorRule)) continue;
+      const config = behaviorRule as Record<string, unknown>;
+      const priorityDelta = finiteNumber(config.priority_delta) ? config.priority_delta : 0;
+      const reason = typeof config.reason === "string" ? config.reason : "Explicit detection rule requests investigation.";
+      next.push({
+        kind: "investigate",
+        priority: 10 + priorityDelta,
+        reason,
+        action: {
+          id: observation.id + ":investigate:" + detection.entityId,
+          intelligence: "npc",
+          type: "npc.investigate",
+          payload: { targetEntityId: detection.entityId },
+          risk: "safe",
+          reason,
+        },
+      });
+    }
+  }
+  return next;
+}
+
 export function applyEnvironmentNpcGoalPriority(
   observation: RuntimeObservation,
   goals: RuntimeGoal[],

@@ -37,6 +37,28 @@ describe("NPC behavior", () => {
     expect(candidates.some(candidate => candidate.kind === "follow-player")).toBe(false);
   });
 
+  it("uses hearing evidence only when an explicit detection reaction rule exists", () => {
+    const detectedBySound = {
+      ...observation,
+      id: "obs-hearing-rule",
+      state: {
+        ...observation.state,
+        environmentConditions: {
+          npc_detection_behavior: {
+            hearing: { investigate: { priority_delta: 40, reason: "Investigate explicit sound evidence." } },
+          },
+        },
+      },
+      perception: {
+        ...observation.perception!,
+        detections: [{ entityId: "player-1", channels: ["hearing"], distance: 2 }],
+      },
+    };
+    const decision = decideNpcBehavior({ ...request, observation: detectedBySound }, detectedBySound);
+    expect(decision.actions[0].type).toBe("npc.investigate");
+    expect(decision.actions[0].payload.targetEntityId).toBe("player-1");
+  });
+
   it("falls back to idle when no player is visible", () => {
     const quiet = { ...observation, id: "obs-quiet", perception: { ...observation.perception!, nearbyEntities: [], detections: [] } };
     const decision = decideNpcBehavior({ ...request, observation: quiet }, quiet);
