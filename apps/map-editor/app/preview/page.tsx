@@ -11,6 +11,7 @@ import type { TerrainAssetBindingMap } from "../../editor/terrain-asset-binding"
 import { PixiMapCanvas } from "../../components/pixi-map-canvas";
 import type { RuntimeEntity } from "../../ai/domain/runtime";
 import { PreviewRuntimeSimulation, type PreviewNpcSeed } from "../../ai/application/preview-runtime-simulation";
+import { resolvePreviewNpcSpawnAnchors } from "../../ai/application/preview-npc-spawn-anchor-resolver";
 
 const previewLayers = ["World Terrain", "Region Boundaries", "Playable", "Life", "Events"];
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -73,9 +74,7 @@ export default function PreviewPage() {
       const locationBySeedKey = new Map(
         (npcLocationResult.data ?? []).map((row) => [row.seed_key, row.location_id]),
       );
-      setDocument(loaded.document);
-      setTerrainBindings(terrain.bindings);
-      setNpcSeeds((npcResult.data ?? []).map((row) => ({
+      const seeds = (npcResult.data ?? []).map((row) => ({
         seedKey: row.seed_key,
         name: row.name,
         race: row.race,
@@ -83,6 +82,23 @@ export default function PreviewPage() {
         settlementName: row.settlement_name,
         locationName: row.location_name,
         locationId: locationBySeedKey.get(row.seed_key) ?? null,
+      }));
+      const locationIds = [...new Set(seeds.map((seed) => seed.locationId).filter((id): id is string => Boolean(id)))];
+      const mapResult = locationIds.length
+        ? await client.from("maps").select("id,location_id").in("location_id", locationIds)
+        : { data: [], error: null };
+      if (mapResult.error) throw mapResult.error;
+      const mapIds = (mapResult.data ?? []).map((row) => row.id);
+      const placementResult = mapIds.length
+        ? await client.from("vandrith_unified_object_placement").select("map_id,entity_type,entity_id,x,y,properties").in("map_id", mapIds)
+        : { data: [], error: null };
+      if (placementResult.error) throw placementResult.error;
+      const anchors = resolvePreviewNpcSpawnAnchors(seeds, mapResult.data ?? [], placementResult.data ?? []);
+      setDocument(loaded.document);
+      setTerrainBindings(terrain.bindings);
+      setNpcSeeds(seeds.map((seed) => ({
+        ...seed,
+        spawnAnchor: anchors.get(seed.seedKey) ?? null,
       })));
       setLoadState("ready");
       setLoadStatus(
