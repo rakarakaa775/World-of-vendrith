@@ -4,6 +4,7 @@ import type { RuntimeScheduledEvent } from "../domain/runtime-clock";
 import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
 import { decisionProfileFromMetadata } from "./npc-runtime-profile";
+import { validatedNpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
 
 type RuntimeSupabaseClient = SupabaseClient;
 
@@ -121,6 +122,8 @@ function entityFromPlacement(
       locationName: seed.location_name ?? undefined,
       blocksMovement: true,
       ...(() => {
+        const contract = validatedNpcRuntimeSpawnContract(seed.metadata?.npcRuntimeContract);
+        if (contract) return { decisionProfile: contract.decisionProfile, environmentPolicy: contract.environmentPolicy };
         const decisionProfile = decisionProfileFromMetadata(seed.metadata);
         return decisionProfile ? { decisionProfile } : {};
       })(),

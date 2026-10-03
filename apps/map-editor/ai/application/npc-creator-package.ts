@@ -5,6 +5,7 @@ import { validateNpcRole, type NpcRole, type NpcRoleValidation } from "./npc-rol
 import { validateNpcPersonality, type NpcPersonalityRequest, type NpcPersonalityValidation } from "./npc-personality-schema";
 import { validateNpcPersonalityPolicy, type NpcPersonalityPolicy, type NpcPersonalityPolicyValidation } from "./npc-personality-policy-schema";
 import { validateNpcDecisionProfile, type NpcDecisionProfile } from "./npc-decision-profile-schema";
+import { buildNpcRuntimeSpawnContract, type NpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
 
 export interface CreatorNpcEnvironmentPackage {
   npc: {
@@ -40,6 +41,10 @@ export function creatorNpcDecisionProfile(npc: CreatorNpcPackage["npc"]): NpcDec
     ...(npc.personality ? { personality: npc.personality } : {}),
     ...(npc.personalityPolicy ? { personalityPolicy: npc.personalityPolicy } : {}),
   };
+}
+
+export function creatorNpcRuntimeSpawnContract(npc: CreatorNpcPackage["npc"]): NpcRuntimeSpawnContract {
+  return buildNpcRuntimeSpawnContract(creatorNpcDecisionProfile(npc), npc.environmentPolicy);
 }
 
 export function proposeCreatorNpcPackage(
