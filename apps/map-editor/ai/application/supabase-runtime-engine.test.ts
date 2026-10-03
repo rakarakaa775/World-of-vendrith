@@ -103,6 +103,11 @@ describe("supabase runtime engine", () => {
       priority: 30,
       action: { type: "npc.investigate" },
     });
+    expect(npcResult?.socialDiagnostics).toMatchObject({
+      relationshipPolicyValidation: { ok: true },
+      relationships: [{ targetNpcId: "npc-2", type: "friend", affinity: 45, trust: 45 }],
+      selectedBehavior: { kind: "investigate", targetNpcId: "npc-2", priority: 30 },
+    });
   });
 
   it("fails closed when the engine cannot load the map", async () => {
