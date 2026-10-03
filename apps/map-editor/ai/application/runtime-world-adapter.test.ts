@@ -209,4 +209,42 @@ describe("runtime world adapter", () => {
       .toEqual({ x: 1, y: 0 });
     expect(store.snapshot().state.stateVersion).toBe("state-2");
   });
+
+  it("executes and verifies a supported NPC activity", async () => {
+    const store = makeStore();
+    const action = {
+      id: "activity-eat-1",
+      intelligence: "npc" as const,
+      type: "npc.activity",
+      payload: { entityId: "npc-1", goal: "eat" },
+      risk: "game-rule" as const,
+      reason: "Eat.",
+    };
+
+    const result = await createRuntimeWorldActionPort(store).execute(action, {} as RuntimeObservation);
+    const verification = await createRuntimeWorldVerificationPort(store).verify(action, result);
+
+    expect(result.ok).toBe(true);
+    expect(verification.ok).toBe(true);
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ actionId: "activity-eat-1", goal: "eat", completedAtTick: 1 });
+  });
+
+  it("rejects an activity when its configured target has not been reached", async () => {
+    const store = makeStore();
+    const action = {
+      id: "activity-work-1",
+      intelligence: "npc" as const,
+      type: "npc.activity",
+      payload: { entityId: "npc-1", goal: "work", targetLocation: { mapId: "region-1", x: 3, y: 0 } },
+      risk: "game-rule" as const,
+      reason: "Work.",
+    };
+
+    const result = await createRuntimeWorldActionPort(store).execute(action, {} as RuntimeObservation);
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("not arrived");
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity).toBeUndefined();
+  });
 });

@@ -100,10 +100,21 @@ describe("npc runtime loop", () => {
   it("marks a scheduled activity active only after arriving at its target", async () => {
     const store = makeStore();
     const base = store.snapshot();
-    store.snapshot = () => ({ ...base, entities: base.entities.map(entity => entity.id === "npc-1" ? {
-      ...entity,
-      state: { decisionProfile: { archetype: "civilian", capabilities: { goals: ["work"], behaviors: ["work"] }, schedule: { npcId: "npc-1", entries: [{ goal: "work", startHour: 8, endHour: 12, priority: 40, location: { mapId: "region-1", x: 0, y: 0 } }] } } },
-    } : entity) });
+    let scheduleSnapshot = {
+      ...base,
+      entities: base.entities.map(entity => entity.id === "npc-1" ? {
+        ...entity,
+        state: { decisionProfile: { archetype: "civilian", capabilities: { goals: ["work"], behaviors: ["work"] }, schedule: { npcId: "npc-1", entries: [{ goal: "work", startHour: 8, endHour: 12, priority: 40, location: { mapId: "region-1", x: 0, y: 0 } }] } } },
+      } : entity),
+    };
+    store.snapshot = () => scheduleSnapshot;
+    store.updateEntity = (entity: RuntimeEntity) => {
+      scheduleSnapshot = {
+        ...scheduleSnapshot,
+        entities: scheduleSnapshot.entities.map(candidate => candidate.id === entity.id ? entity : candidate),
+        state: { ...scheduleSnapshot.state, stateVersion: "state-2" },
+      };
+    };
     const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
     const ports = { observation, decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } }, action: createRuntimeWorldActionPort(store), verification: createRuntimeWorldVerificationPort(store) };
     const dailyLife = createNpcDailyLifeStateStore();
@@ -313,13 +324,28 @@ describe("npc runtime loop", () => {
   it("uses explicit persistent NPC needs instead of temporary neutral values", async () => {
     const store = makeStore();
     const base = store.snapshot();
-    store.snapshot = () => ({ ...base, entities: base.entities.map(entity => entity.id === "npc-1" ? {
-      ...entity,
+    let needsSnapshot = {
+      ...base,
       state: {
-        npcNeeds: { hunger: 95, energy: 20, social: 20, safety: 90 },
-        decisionProfile: { archetype: "civilian", capabilities: { goals: ["eat"], behaviors: ["eat"] } },
+        ...base.state,
+        environmentConditions: { npc_activity_effects: { eat: { hunger: -30 } } },
       },
-    } : entity) });
+      entities: base.entities.map(entity => entity.id === "npc-1" ? {
+        ...entity,
+        state: {
+          npcNeeds: { hunger: 95, energy: 20, social: 20, safety: 90 },
+          decisionProfile: { archetype: "civilian", capabilities: { goals: ["eat"], behaviors: ["eat"] } },
+        },
+      } : entity),
+    };
+    store.snapshot = () => needsSnapshot;
+    store.updateEntity = (entity: RuntimeEntity) => {
+      needsSnapshot = {
+        ...needsSnapshot,
+        entities: needsSnapshot.entities.map(candidate => candidate.id === entity.id ? entity : candidate),
+        state: { ...needsSnapshot.state, stateVersion: "state-2" },
+      };
+    };
     const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
     const ports = {
       observation,
@@ -331,5 +357,10 @@ describe("npc runtime loop", () => {
       id: "npc-needs-1", surface: "game", intelligence: "npc", goal: "Respond to hunger", observation: {} as RuntimeObservation,
     }, ports, store);
     expect(result.behavior?.kind).toBe("eat");
-    expect(result.needs).toEqual({ hunger: 95, energy: 20, social: 20, safety: 90 });
+    expect(result.execution?.ok).toBe(true);
+    expect(result.verification?.ok).toBe(true);
+    expect(result.activityEffect?.applied).toBe(true);
+    expect(result.needs).toEqual({ hunger: 65, energy: 20, social: 20, safety: 90 });
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
+      .toMatchObject({ goal: "eat" });
   });

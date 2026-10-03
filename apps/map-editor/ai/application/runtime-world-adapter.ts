@@ -136,8 +136,37 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
 export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeActionPort {
   return {
     async execute(action) {
+      if (action.type === "npc.activity" && action.intelligence === "npc" && action.risk === "game-rule") {
+        const snapshot = store.snapshot();
+        const entityId = String(action.payload.entityId ?? "");
+        const goal = action.payload.goal;
+        const entity = snapshot.entities.find(candidate => candidate.id === entityId);
+        if (!entity || entity.kind !== "npc" || (goal !== "work" && goal !== "eat" && goal !== "sleep")) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Supported NPC activity or NPC entity was not found." };
+        }
+
+        const target = action.payload.targetLocation;
+        if (target && typeof target === "object" && !Array.isArray(target)) {
+          const targetRecord = target as Record<string, unknown>;
+          if (String(targetRecord.mapId) !== entity.mapId
+            || Number(targetRecord.x) !== entity.position.x
+            || Number(targetRecord.y) !== entity.position.y) {
+            return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "NPC has not arrived at the activity location." };
+          }
+        }
+
+        store.updateEntity({
+          ...entity,
+          state: {
+            ...(entity.state ?? {}),
+            npcActivity: { actionId: action.id, goal, completedAtTick: snapshot.state.clock.tick },
+          },
+        });
+        return { ok: true, actionId: action.id, stateVersion: store.snapshot().state.stateVersion, detail: "NPC activity completed." };
+      }
+
       if (action.type !== "npc.navigate" || action.intelligence !== "npc" || action.risk !== "safe") {
-        return { ok: false, actionId: action.id, detail: "Only safe npc.navigate actions are executable by this adapter." };
+        return { ok: false, actionId: action.id, detail: "Only safe npc.navigate or verified npc.activity actions are executable by this adapter." };
       }
 
       const snapshot = store.snapshot();
@@ -184,6 +213,21 @@ export function createRuntimeWorldVerificationPort(store: RuntimeWorldStore): Ru
           ? path.some(point => point && point.x === entity.position.x && point.y === entity.position.y)
           : false;
         checks.push({ name: "npc-position-on-path", ok: atPathPoint });
+      }
+
+      if (action.type === "npc.activity" && action.intelligence === "npc") {
+        const entity = store.snapshot().entities.find(candidate => candidate.id === String(action.payload.entityId ?? ""));
+        const activity = entity?.state?.npcActivity;
+        checks.push({
+          name: "npc-activity-completed",
+          ok: Boolean(
+            activity &&
+            typeof activity === "object" &&
+            !Array.isArray(activity) &&
+            (activity as Record<string, unknown>).actionId === action.id &&
+            (activity as Record<string, unknown>).goal === action.payload.goal,
+          ),
+        });
       }
 
       return { ok: checks.every(check => check.ok), checks };

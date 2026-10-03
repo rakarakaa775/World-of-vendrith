@@ -160,7 +160,8 @@ export async function runNpcRuntimeTick(
     },
   };
   const goal = targetFromBehavior(behavior, observation);
-  if (!goal) {
+  const isActivityBehavior = behavior.kind === "work" || behavior.kind === "eat" || behavior.kind === "sleep";
+  if (!goal && !isActivityBehavior) {
     const decision = createRuntimeDecision(request, observation, {
       actions: [behavior.action],
       evidence: observation.facts,
@@ -172,6 +173,66 @@ export async function runNpcRuntimeTick(
 
   const self = observation.perception?.self;
   if (!self) return { observation, behavior, socialDiagnostics, needs, status: "invalid" };
+
+  const isActivity = behavior.kind === "work" || behavior.kind === "eat" || behavior.kind === "sleep";
+  const atActivityTarget = goal
+    ? self.position.x === goal.x && self.position.y === goal.y
+    : true;
+
+  if (isActivity && atActivityTarget) {
+    const activityAction = {
+      ...behavior.action,
+      id: behavior.action.id + ":activity",
+      type: "npc.activity",
+      payload: {
+        ...behavior.action.payload,
+        entityId: self.id,
+        goal: behavior.kind,
+      },
+      risk: "game-rule" as const,
+    };
+    const activityDecision = createRuntimeDecision(request, observation, {
+      actions: [activityAction],
+      evidence: observation.facts,
+      expiresAtTick: observation.state.clock.tick + 1,
+    });
+    const activityValidation = validateRuntimeDecision(activityDecision, observation);
+    if (!activityValidation.ok) {
+      return { observation, behavior, socialDiagnostics, dailyLife, needs, decision: activityDecision, status: "invalid" };
+    }
+
+    const execution = await ports.action.execute(activityAction, observation);
+    const verification = await ports.verification.verify(activityAction, execution);
+    const activityEffect = applyVerifiedNpcActivityEffect(
+      activityAction,
+      observation,
+      execution.ok,
+      verification.ok,
+      needsStore,
+      activityEffectStore,
+    );
+    const finalNeeds = activityEffect.needs ?? needs;
+    const finalDailyLife = dailyLife && execution.ok && verification.ok && atActivityTarget
+      ? { ...dailyLife, phase: "active" as const, updatedAtTick: observation.state.clock.tick }
+      : dailyLife;
+    if (finalDailyLife) dailyLifeStore.set(finalDailyLife);
+
+    return {
+      observation,
+      behavior,
+      socialDiagnostics,
+      dailyLife: finalDailyLife,
+      decision: activityDecision,
+      execution,
+      verification,
+      activityEffect,
+      needs: finalNeeds,
+      status: !execution.ok || !verification.ok ? "rejected" : "moved",
+    };
+  }
+
+  if (!goal) return { observation, behavior, socialDiagnostics, needs, status: "invalid" };
+
   const grid = world.grid(self.mapId);
   if (!grid) return { observation, behavior, socialDiagnostics, needs, status: "rejected" };
 
