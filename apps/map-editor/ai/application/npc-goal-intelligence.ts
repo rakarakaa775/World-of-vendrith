@@ -24,14 +24,19 @@ const GOAL_TIE_ORDER: Record<RuntimeGoal["kind"], number> = {
   eat: 2,
   "go-to-location": 3,
   work: 4,
+  socialize: 5,
 };
 
 function scoreGoal(goal: RuntimeGoal, memory: NpcGoalMemory | undefined, continuityBonus: number): number {
   return goal.priority + (memory?.lastGoal === goal.kind ? continuityBonus : 0);
 }
 
-function compareGoals(a: RuntimeGoal, b: RuntimeGoal, scores: Readonly<Record<string, number>>): number {
-  const scoreDelta = (scores[b.kind] ?? b.priority) - (scores[a.kind] ?? a.priority);
+function compareGoals(
+  a: RuntimeGoal,
+  b: RuntimeGoal,
+  scoreFor: (goal: RuntimeGoal) => number,
+): number {
+  const scoreDelta = scoreFor(b) - scoreFor(a);
   if (scoreDelta !== 0) return scoreDelta;
   const priorityDelta = b.priority - a.priority;
   if (priorityDelta !== 0) return priorityDelta;
@@ -53,17 +58,29 @@ export function arbitrateNpcGoal(
   if (candidates.length === 0) return { selected: undefined, candidates, scores: {}, switched: false };
 
   const scores: Record<string, number> = {};
-  for (const goal of candidates) scores[goal.kind] = scoreGoal(goal, memory, continuityBonus);
-  const ranked = [...candidates].sort((a, b) => compareGoals(a, b, scores));
+  const scoreFor = (goal: RuntimeGoal): number => scoreGoal(goal, memory, continuityBonus);
+  for (const goal of candidates) {
+    if (scores[goal.kind] === undefined) scores[goal.kind] = scoreFor(goal);
+  }
+  const ranked = [...candidates].sort((a, b) => compareGoals(a, b, scoreFor));
   const best = ranked[0];
-  const previous = memory?.lastGoal ? candidates.find(goal => goal.kind === memory.lastGoal) : undefined;
+  const previousCandidates = memory?.lastGoal
+    ? candidates.filter(goal => goal.kind === memory.lastGoal)
+    : [];
+  const previous = previousCandidates.length
+    ? [...previousCandidates].sort((a, b) =>
+        Math.abs(a.priority - (memory?.lastGoalPriority ?? a.priority))
+        - Math.abs(b.priority - (memory?.lastGoalPriority ?? b.priority))
+        || compareGoals(a, b, scoreFor),
+      )[0]
+    : undefined;
 
   if (!previous || previous.kind === best.kind) {
     return { selected: best, candidates, scores, switched: Boolean(previous && previous.kind !== best.kind) };
   }
 
-  const previousScore = scores[previous.kind] ?? previous.priority;
-  const bestScore = scores[best.kind] ?? best.priority;
+  const previousScore = scoreFor(previous);
+  const bestScore = scoreFor(best);
   if (bestScore < previousScore + switchMargin) {
     return { selected: previous, candidates, scores, switched: false };
   }

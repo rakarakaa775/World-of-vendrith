@@ -1,6 +1,7 @@
 import type { RuntimeBehaviorKind } from "../domain/runtime-behavior";
 import type { RuntimeGoalKind } from "../domain/runtime-goal";
 import { NPC_PERSONALITY_TRAITS } from "./npc-personality-schema";
+import { NPC_ARCHETYPE_CAPABILITY_SCHEMA } from "./npc-archetype-capabilities";
 
 export interface NpcPersonalityPolicyRule {
   trait: string;
@@ -9,7 +10,7 @@ export interface NpcPersonalityPolicyRule {
 }
 export interface NpcPersonalityPolicy { rules?: readonly NpcPersonalityPolicyRule[]; }
 export interface NpcPersonalityPolicyValidation { ok: boolean; errors: string[]; }
-export const NPC_PERSONALITY_POLICY_SCHEMA = { traits: NPC_PERSONALITY_TRAITS, behaviorKinds: ["idle", "follow-player", "wander", "investigate", "flee"], goalKinds: ["work", "eat", "sleep", "go-to-location", "respond-to-event"], minPriorityDelta: -100, maxPriorityDelta: 100, semantics: "Personality policy is an explicit runtime effect. Traits alone never change NPC behavior or goals." } as const;
+export const NPC_PERSONALITY_POLICY_SCHEMA = { traits: NPC_PERSONALITY_TRAITS, behaviorKinds: NPC_ARCHETYPE_CAPABILITY_SCHEMA.behaviorKinds, goalKinds: NPC_ARCHETYPE_CAPABILITY_SCHEMA.goalKinds, minPriorityDelta: -100, maxPriorityDelta: 100, semantics: "Personality policy is an explicit runtime effect. Traits alone never change NPC behavior or goals." } as const;
 function validDelta(value: unknown): boolean { return typeof value === "number" && Number.isFinite(value) && value >= -100 && value <= 100; }
 export function validateNpcPersonalityPolicy(value: unknown): NpcPersonalityPolicyValidation {
   if (value === undefined) return { ok: true, errors: [] };

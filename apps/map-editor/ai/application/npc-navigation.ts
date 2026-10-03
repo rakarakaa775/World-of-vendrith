@@ -39,10 +39,12 @@ export function applyDynamicNavigationObstacles(
   obstacles: DynamicNavigationObstacle[],
   selfEntityId?: string,
   mapId?: string,
+  ignoredEntityIds: readonly string[] = [],
 ): NavigationGrid {
   const blocked = [...grid.blocked];
+  const ignored = new Set(ignoredEntityIds);
   for (const obstacle of obstacles) {
-    if (!obstacle.blocksMovement || obstacle.entityId === selfEntityId || (mapId && obstacle.mapId !== mapId)) continue;
+    if (!obstacle.blocksMovement || obstacle.entityId === selfEntityId || ignored.has(obstacle.entityId) || (mapId && obstacle.mapId !== mapId)) continue;
     if (!inBounds(grid, obstacle.position)) continue;
     blocked[index(grid, obstacle.position)] = true;
   }
@@ -139,13 +141,14 @@ export function createNavigationPlan(
   grid: NavigationGrid,
   goal: NavigationPoint,
   dynamicObstacles: DynamicNavigationObstacle[] = dynamicNavigationObstaclesFromObservation(observation),
+  ignoredEntityIds: readonly string[] = [],
 ): NavigationPlan {
   const self = observation.perception?.self;
   const start = self?.position;
   if (!self || self.kind !== "npc" || !start) {
     return { found: false, start: start ?? goal, goal, path: [], reason: "Navigation requires an NPC self entity with a position." };
   }
-  const navigationGrid = applyDynamicNavigationObstacles(grid, dynamicObstacles, self.id, self.mapId);
+  const navigationGrid = applyDynamicNavigationObstacles(grid, dynamicObstacles, self.id, self.mapId, ignoredEntityIds);
   const result = findNavigationPath(navigationGrid, start, goal);
   if (!result) return { found: false, start, goal, path: [], reason: "No walkable path exists between the NPC and the target." };
   const multiplier = movementCostMultiplier(observation);
@@ -174,8 +177,9 @@ export function decideNpcNavigation(
   observation: RuntimeObservation,
   grid: NavigationGrid,
   goal: NavigationPoint,
+  ignoredEntityIds: readonly string[] = [],
 ): RuntimeDecision | undefined {
-  const plan = createNavigationPlan(observation, grid, goal);
+  const plan = createNavigationPlan(observation, grid, goal, undefined, ignoredEntityIds);
   const action = createNpcNavigationAction(observation, plan);
   if (!action) return undefined;
   return createRuntimeDecision(request, observation, {

@@ -7,8 +7,10 @@ export type NpcEnvironmentPolicyKey = typeof NPC_ENVIRONMENT_POLICY_KEYS[number]
 const FAILURE_KEYS = ["navigation", "execution", "verification"] as const;
 const DETECTION_CHANNELS = ["visibility", "hearing", "smell"] as const;
 const NEED_KEYS = ["hunger", "energy", "social", "safety"] as const;
-const BEHAVIOR_KINDS = ["idle", "follow-player", "wander", "investigate", "flee"] as const;
-const GOAL_KINDS = ["work", "eat", "sleep", "go-to-location", "respond-to-event"] as const;
+import { NPC_ARCHETYPE_CAPABILITY_SCHEMA } from "./npc-archetype-capabilities";
+
+const BEHAVIOR_KINDS = NPC_ARCHETYPE_CAPABILITY_SCHEMA.behaviorKinds;
+const GOAL_KINDS = NPC_ARCHETYPE_CAPABILITY_SCHEMA.goalKinds;
 const ACTIVITY_RECOVERY_STRATEGIES = ["resume", "restart", "abandon", "switch"] as const;
 
 export type NpcEnvironmentPolicy = Record<string, unknown>;

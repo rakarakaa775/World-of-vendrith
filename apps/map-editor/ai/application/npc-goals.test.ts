@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RuntimeAiRequest, RuntimeObservation } from "../domain/runtime";
 import { createNpcGoalCandidates, decideNpcGoal } from "./npc-goals";
 import { createNpcGoalMemoryStore } from "../domain/runtime-goal";
+import { createNpcRelationshipMemoryStore } from "./npc-social-interaction-schema";
 
 const observation: RuntimeObservation = {
   id: "obs-goal",
@@ -57,6 +58,134 @@ describe("NPC goals", () => {
       kind: "work",
       priority: 58,
       targetLocation: { mapId: "town", x: 10, y: 4 },
+    });
+  });
+
+  it("creates a deterministic social goal for an elevated social need", () => {
+    const socialObservation = {
+      ...observation,
+      id: "obs-social-goal",
+      perception: {
+        ...observation.perception!,
+        nearbyEntities: [
+          { id: "npc-friend", kind: "npc" as const, mapId: "region-1", position: { x: 3, y: 2 } },
+          { id: "npc-neutral", kind: "npc" as const, mapId: "region-1", position: { x: 4, y: 2 } },
+        ],
+        self: {
+          ...observation.perception!.self,
+          state: {
+            decisionProfile: {
+              relationships: [
+                { targetNpcId: "npc-neutral", type: "neutral" as const, affinity: 10, trust: 10 },
+                { targetNpcId: "npc-friend", type: "friend" as const, affinity: 80, trust: 70 },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const goals = createNpcGoalCandidates(socialObservation, { hunger: 10, energy: 10, social: 90, safety: 90 });
+    expect(goals.find(goal => goal.kind === "socialize")).toMatchObject({ targetNpcId: "npc-friend", socialInteractionType: "help" });
+  });
+
+  it("uses persistent relationship memory when selecting a social target", () => {
+    const socialObservation = {
+      ...observation,
+      state: { ...observation.state, activeEventIds: [] },
+      perception: {
+        ...observation.perception!,
+        nearbyEntities: [
+          { id: "npc-a", kind: "npc" as const, mapId: "region-1", position: { x: 3, y: 2 } },
+          { id: "npc-b", kind: "npc" as const, mapId: "region-1", position: { x: 4, y: 2 } },
+        ],
+        self: {
+          ...observation.perception!.self,
+          state: {
+            decisionProfile: {
+              relationships: [
+                { targetNpcId: "npc-a", type: "friend" as const, affinity: 40, trust: 40 },
+                { targetNpcId: "npc-b", type: "friend" as const, affinity: 40, trust: 40 },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const memory = createNpcRelationshipMemoryStore();
+    memory.set({ sourceNpcId: "npc-1", targetNpcId: "npc-a", interactionCount: 20, affinityDeltaTotal: 0, trustDeltaTotal: 0 });
+    const goals = createNpcGoalCandidates(socialObservation, { hunger: 10, energy: 10, social: 90, safety: 90 }, memory);
+    expect(goals.find(goal => goal.kind === "socialize")?.targetNpcId).toBe("npc-a");
+  });
+
+  it("creates an evacuation goal for an explicitly tagged nearby shelter", () => {
+    const hazardous = {
+      ...observation,
+      state: {
+        ...observation.state,
+        activeEventIds: [],
+        weather: "storm",
+        environmentConditions: {
+          hazards: ["storm"],
+          available_resources: ["shelter"],
+        },
+      },
+      perception: {
+        ...observation.perception!,
+        nearbyEntities: [
+          {
+            id: "shelter-1",
+            kind: "object" as const,
+            mapId: "region-1",
+            position: { x: 4, y: 2 },
+            state: { worldResource: "shelter", regionId: "region-1" },
+          },
+        ],
+        environment: {
+          ...observation.perception!.environment!,
+          weather: "storm",
+          activeRegionId: "region-1",
+          conditions: { hazards: ["storm"], available_resources: ["shelter"] },
+        },
+      },
+    };
+    const goals = createNpcGoalCandidates(hazardous, { hunger: 10, energy: 10, social: 10, safety: 90 });
+    expect(goals.find(goal => goal.kind === "go-to-location")).toMatchObject({
+      targetLocation: { mapId: "region-1", x: 4, y: 2 },
+    });
+  });
+
+  it("creates a resource navigation goal for a required water location", () => {
+    const resourceObservation = {
+      ...observation,
+      state: {
+        ...observation.state,
+        activeEventIds: [],
+        environmentConditions: {
+          available_resources: ["water"],
+          required_resources: ["water"],
+        },
+      },
+      perception: {
+        ...observation.perception!,
+        nearbyEntities: [
+          {
+            id: "well-1",
+            kind: "object" as const,
+            mapId: "region-1",
+            position: { x: 4, y: 2 },
+            state: { worldResource: "water", regionId: "region-1" },
+          },
+        ],
+        environment: {
+          ...observation.perception!.environment!,
+          activeRegionId: "region-1",
+          conditions: { available_resources: ["water"], required_resources: ["water"] },
+        },
+      },
+    };
+    const goals = createNpcGoalCandidates(resourceObservation, { hunger: 10, energy: 10, social: 10, safety: 90 });
+    expect(goals.find(goal => goal.kind === "go-to-location")).toMatchObject({
+      targetLocation: { mapId: "region-1", x: 4, y: 2 },
     });
   });
 

@@ -47,6 +47,16 @@ describe("NPC goal intelligence", () => {
     expect(result.switched).toBe(true);
   });
 
+  it("scores duplicate goal kinds independently during arbitration", () => {
+    const result = arbitrateNpcGoal(
+      observation,
+      [goal("work", 70), goal("work", 10), goal("eat", 72)],
+      memory,
+    );
+    expect(result.selected?.kind).toBe("work");
+    expect(result.selected?.priority).toBe(70);
+  });
+
   it("filters expired goals before arbitration", () => {
     const result = arbitrateNpcGoal(observation, [goal("work", 100, 19), goal("eat", 50, 20)], memory);
     expect(result.candidates.map(candidate => candidate.kind)).toEqual(["eat"]);

@@ -1,6 +1,7 @@
 import type { RuntimeBehaviorKind } from "../domain/runtime-behavior";
 import type { RuntimeGoalKind } from "../domain/runtime-goal";
 import type { NpcRelationshipType } from "./npc-relationship-schema";
+import { NPC_ARCHETYPE_CAPABILITY_SCHEMA } from "./npc-archetype-capabilities";
 
 export interface NpcRelationshipPolicyRule {
   type: NpcRelationshipType;
@@ -16,8 +17,8 @@ export interface NpcRelationshipPolicyValidation { ok: boolean; errors: string[]
 
 export const NPC_RELATIONSHIP_POLICY_SCHEMA = {
   relationshipTypes: ["friend", "family", "ally", "rival", "enemy", "neutral", "custom"],
-  behaviorKinds: ["idle", "follow-player", "wander", "investigate", "flee"],
-  goalKinds: ["work", "eat", "sleep", "go-to-location", "respond-to-event"],
+  behaviorKinds: NPC_ARCHETYPE_CAPABILITY_SCHEMA.behaviorKinds,
+  goalKinds: NPC_ARCHETYPE_CAPABILITY_SCHEMA.goalKinds,
   minScore: -100, maxScore: 100, minTrust: 0, maxTrust: 100,
   minPriorityDelta: -100, maxPriorityDelta: 100,
   semantics: "Relationship data is descriptive by default. Only an explicit relationship policy may adjust priority for existing behavior and goal kinds, and only when a matching relationship is present.",
