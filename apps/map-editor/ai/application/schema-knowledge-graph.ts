@@ -10,7 +10,8 @@ export type SchemaNodeKind =
   | "terrain-cell"
   | "map-object"
   | "asset"
-  | "npc-environment-policy";
+  | "npc-environment-policy"
+  | "npc-archetype";
 
 export interface SchemaNode {
   id: string;
@@ -69,6 +70,17 @@ const TERRAIN_EVIDENCE = [
   {
     source: "repository:apps/map-editor/editor/terrain-engine.ts",
     fact: "Water depth is represented by water, brackish, deepwater2, and deepwater bands.",
+  },
+];
+
+const NPC_ARCHETYPE_EVIDENCE = [
+  {
+    source: "repository:apps/map-editor/ai/application/npc-archetype-schema.ts",
+    fact: "NPC archetypes are descriptive classifications: production, military, civilian, merchant, worker, companion, enemy, animal, special, and custom.",
+  },
+  {
+    source: "repository:apps/map-editor/ai/application/npc-archetype-schema.ts",
+    fact: "An NPC archetype does not inject behavior, goals, needs, combat, or permissions; runtime behavior remains explicitly configured.",
   },
 ];
 
@@ -172,6 +184,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       label: "NPC Environment Policy",
       evidence: evidence("schema-graph-npc-environment-policy", NPC_ENVIRONMENT_POLICY_EVIDENCE),
     },
+    {
+      id: "npc-archetype",
+      kind: "npc-archetype",
+      label: "NPC Archetype",
+      evidence: evidence("schema-graph-npc-archetype", NPC_ARCHETYPE_EVIDENCE),
+    },
   );
 
   const edges: SchemaEdge[] = [
@@ -222,6 +240,12 @@ export async function buildProjectSchemaKnowledgeGraph(
       relation: "supports",
       to: "npc-environment-policy",
       evidence: evidence("schema-graph-npc-environment-policy-edge", NPC_ENVIRONMENT_POLICY_EVIDENCE),
+    },
+    {
+      from: "npc",
+      relation: "classified-by",
+      to: "npc-archetype",
+      evidence: evidence("schema-graph-npc-archetype-edge", NPC_ARCHETYPE_EVIDENCE),
     },
   ];
 

@@ -35,6 +35,7 @@ export * from "./application/project-intelligence";
 export * from "./application/schema-intelligence";
 export * from "./application/schema-knowledge-graph";
 export * from "./application/npc-environment-policy-schema";
+export * from "./application/npc-archetype-schema";
 export * from "./application/npc-creator-package";
 
 export * from "./ports/map-tools";

@@ -30,6 +30,8 @@ describe("project tool definitions", () => {
     expect(names).toEqual([
       "schema.graph",
       "schema.inspect",
+      "npc.archetype.schema",
+      "npc.archetype.validate",
       "npc.environment_policy.schema",
       "npc.environment_policy.propose",
       "npc.creator_package.propose",
@@ -52,6 +54,17 @@ describe("project tool definitions", () => {
     expect(propose).toBeDefined();
     expect(validate).toBeDefined();
 
+    const archetypeSchema = tools.find(tool => tool.name === "npc.archetype.schema");
+    const archetypeValidate = tools.find(tool => tool.name === "npc.archetype.validate");
+    expect(archetypeSchema).toBeDefined();
+    expect(archetypeValidate).toBeDefined();
+    await expect(archetypeSchema!.execute({}, { mode: "explain", requestId: "req-1" })).resolves.toMatchObject({
+      field: "archetype",
+      values: expect.arrayContaining(["production", "military", "special", "custom"]),
+    });
+    await expect(archetypeValidate!.execute({ archetype: "military" }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({ ok: true, errors: [] });
+    await expect(archetypeValidate!.execute({ archetype: "commander" }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({ ok: false, errors: ["Unsupported NPC archetype: commander."] });
+
     const policy = {
       npc_sensing: { hearing_radius: 8 },
       npc_detection_behavior: { hearing: { investigate: { priority_delta: 20, reason: "Investigate sound." } } },
@@ -63,10 +76,16 @@ describe("project tool definitions", () => {
     const packageTool = tools.find(tool => tool.name === "npc.creator_package.propose");
     expect(packageTool).toBeDefined();
     await expect(packageTool!.execute({
-      npc: { id: "npc-1", name: "Scout", environmentPolicy: policy },
+      npc: { id: "npc-1", name: "Scout", archetype: "military", environmentPolicy: policy },
     }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({
-      npc: { id: "npc-1", name: "Scout", environmentPolicy: policy },
+      npc: { id: "npc-1", name: "Scout", archetype: "military", environmentPolicy: policy },
       validation: { ok: true, errors: [] },
+    });
+
+    await expect(packageTool!.execute({
+      npc: { id: "npc-2", archetype: "commander", environmentPolicy: policy },
+    }, { mode: "explain", requestId: "req-1" })).resolves.toMatchObject({
+      validation: { ok: false, errors: ["Unsupported NPC archetype: commander."] },
     });
 
     const invalid = await validate!.execute({
