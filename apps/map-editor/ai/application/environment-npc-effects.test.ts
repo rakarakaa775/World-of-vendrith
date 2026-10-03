@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeObservation } from "../domain/runtime";
-import { applyEnvironmentNpcBehavior, applyEnvironmentNpcGoalPriority, applyEnvironmentNpcNeeds } from "./environment-npc-effects";
+import { applyEnvironmentNpcBehavior, applyEnvironmentNpcGoalPriority, applyEnvironmentNpcNeeds, investigationRecoveryAction } from "./environment-npc-effects";
 
 const observation = (conditions: Record<string, unknown>): RuntimeObservation => ({
   id: "environment-npc",
@@ -68,5 +68,45 @@ describe("environment -> NPC effects", () => {
       [{ kind: "eat", priority: 80, reason: "Hungry." }],
     );
     expect(result[0].priority).toBe(95);
+  });
+
+  it("reads only supported explicit investigation recovery actions", () => {
+    expect(investigationRecoveryAction(
+      observation({
+        npc_investigation_recovery: {
+          navigation: { action: "retry" },
+          execution: { action: "clear" },
+          verification: { action: "unsupported" },
+        },
+      }),
+      "navigation",
+    )).toBe("retry");
+    expect(investigationRecoveryAction(
+      observation({
+        npc_investigation_recovery: {
+          navigation: { action: "retry" },
+          execution: { action: "clear" },
+          verification: { action: "unsupported" },
+        },
+      }),
+      "execution",
+    )).toBe("clear");
+    expect(investigationRecoveryAction(
+      observation({
+        npc_investigation_recovery: {
+          navigation: { action: "retry" },
+          execution: { action: "clear" },
+          verification: { action: "unsupported" },
+        },
+      }),
+      "verification",
+    )).toBeUndefined();
+  });
+
+  it("ignores malformed investigation recovery rules", () => {
+    expect(investigationRecoveryAction(
+      observation({ npc_investigation_recovery: { navigation: "clear", execution: { action: 7 } } }),
+      "navigation",
+    )).toBeUndefined();
   });
 });

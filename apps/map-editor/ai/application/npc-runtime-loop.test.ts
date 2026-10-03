@@ -142,10 +142,10 @@ describe("npc runtime loop", () => {
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 2, y: 0 });
   });
 
-  it("preserves investigation memory when navigation has no path", async () => {
+  it("clears investigation memory when navigation recovery explicitly requests clear", async () => {
     const store = makeStore();
     const snapshot = store.snapshot();
-    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1") });
+    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1"), state: { ...snapshot.state, environmentConditions: { npc_investigation_recovery: { navigation: { action: "clear" } } } } });
     store.grid = () => ({ width: 4, height: 4, blocked: Array(16).fill(true) });
     const memory = createNpcBehaviorMemoryStore();
     memory.set({
@@ -166,15 +166,13 @@ describe("npc runtime loop", () => {
     }, ports, store, memory);
 
     expect(result.status).toBe("replan-required");
-    expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 2, y: 0 });
-    expect(memory.get("npc-1")?.lastFailure).toBe("navigation");
-    expect(memory.get("npc-1")?.failureCount).toBe(1);
+    expect(memory.get("npc-1")).toBeUndefined();
   });
 
-  it("preserves investigation memory when action execution fails", async () => {
+  it("clears investigation memory when execution recovery explicitly requests clear", async () => {
     const store = makeStore();
     const snapshot = store.snapshot();
-    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1") });
+    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1"), state: { ...snapshot.state, environmentConditions: { npc_investigation_recovery: { execution: { action: "clear" } } } } });
     const memory = createNpcBehaviorMemoryStore();
     memory.set({
       npcId: "npc-1", stateVersion: "state-1", lastBehavior: "investigate",
@@ -195,9 +193,7 @@ describe("npc runtime loop", () => {
 
     expect(result.status).toBe("rejected");
     expect(result.execution?.ok).toBe(false);
-    expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 2, y: 0 });
-    expect(memory.get("npc-1")?.lastFailure).toBe("execution");
-    expect(memory.get("npc-1")?.failureCount).toBe(1);
+    expect(memory.get("npc-1")).toBeUndefined();
   });
 
   it("preserves investigation memory when verification fails, then clears it after later successful arrival", async () => {

@@ -6,6 +6,7 @@ import { validateRuntimeDecision } from "../policies/runtime-policy";
 import { createNpcBehaviorCandidates, decideNpcBehavior } from "./npc-behavior";
 import { createRuntimeDecision } from "./runtime-decision";
 import { decideNpcNavigation } from "./npc-navigation";
+import { investigationRecoveryAction, type InvestigationFailure } from "./environment-npc-effects";
 import type { RuntimeWorldStore } from "./runtime-world-adapter";
 
 export interface NpcRuntimeTickResult {
@@ -31,6 +32,28 @@ function targetFromBehavior(behavior: ReturnType<typeof createNpcBehaviorCandida
   }
   return undefined;
 }
+
+function recoverInvestigationFailure(
+  observation: RuntimeObservation,
+  npcId: string,
+  memoryStore: NpcBehaviorMemoryStore,
+  failure: InvestigationFailure,
+): void {
+  const previous = memoryStore.get(npcId);
+  if (!previous) return;
+  if (investigationRecoveryAction(observation, failure) === "clear") {
+    memoryStore.clear(npcId);
+    return;
+  }
+  memoryStore.set({
+    ...previous,
+    lastFailure: failure,
+    failureCount: (previous.failureCount ?? 0) + 1,
+    updatedAtTick: observation.state.clock.tick,
+    stateVersion: observation.state.stateVersion,
+  });
+}
+
 export async function runNpcRuntimeTick(
   request: RuntimeAiRequest,
   ports: RuntimeAiPorts,
@@ -71,16 +94,7 @@ export async function runNpcRuntimeTick(
   const navigationDecision = decideNpcNavigation(request, observation, grid, goal);
   if (!navigationDecision) {
     if (behavior.kind === "investigate" && memoryStore) {
-      const previous = memoryStore.get(self.id);
-      if (previous) {
-        memoryStore.set({
-          ...previous,
-          lastFailure: "navigation",
-          failureCount: (previous.failureCount ?? 0) + 1,
-          updatedAtTick: observation.state.clock.tick,
-          stateVersion: observation.state.stateVersion,
-        });
-      }
+      recoverInvestigationFailure(observation, self.id, memoryStore, "navigation");
     }
     return { observation, behavior, status: "replan-required" };
   }
@@ -91,27 +105,12 @@ export async function runNpcRuntimeTick(
   const execution = await ports.action.execute(action, observation);
   const verification = await ports.verification.verify(action, execution);
   if (behavior.kind === "investigate" && memoryStore) {
-    const previous = memoryStore.get(self.id);
-    if (previous) {
-      if (!execution.ok) {
-        memoryStore.set({
-          ...previous,
-          lastFailure: "execution",
-          failureCount: (previous.failureCount ?? 0) + 1,
-          updatedAtTick: observation.state.clock.tick,
-          stateVersion: observation.state.stateVersion,
-        });
-      } else if (!verification.ok) {
-        memoryStore.set({
-          ...previous,
-          lastFailure: "verification",
-          failureCount: (previous.failureCount ?? 0) + 1,
-          updatedAtTick: observation.state.clock.tick,
-          stateVersion: observation.state.stateVersion,
-        });
-      } else if (world.snapshot().entities.find(entity => entity.id === self.id)?.position?.x === goal.x && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.y === goal.y) {
-        memoryStore.clear(self.id);
-      }
+    if (!execution.ok) {
+      recoverInvestigationFailure(observation, self.id, memoryStore, "execution");
+    } else if (!verification.ok) {
+      recoverInvestigationFailure(observation, self.id, memoryStore, "verification");
+    } else if (world.snapshot().entities.find(entity => entity.id === self.id)?.position?.x === goal.x && world.snapshot().entities.find(entity => entity.id === self.id)?.position?.y === goal.y) {
+      memoryStore.clear(self.id);
     }
   }
   return {

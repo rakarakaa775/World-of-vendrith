@@ -91,6 +91,21 @@ export function applyEnvironmentNpcDetectionBehavior(
   return next;
 }
 
+export type InvestigationFailure = "navigation" | "execution" | "verification";
+export type InvestigationRecoveryAction = "retry" | "clear";
+
+export function investigationRecoveryAction(
+  observation: RuntimeObservation,
+  failure: InvestigationFailure,
+): InvestigationRecoveryAction | undefined {
+  const rules = environmentObject(observation, "npc_investigation_recovery");
+  if (!rules) return undefined;
+  const rule = rules[failure];
+  if (!rule || typeof rule !== "object" || Array.isArray(rule)) return undefined;
+  const action = (rule as Record<string, unknown>).action;
+  return action === "retry" || action === "clear" ? action : undefined;
+}
+
 export function applyEnvironmentNpcGoalPriority(
   observation: RuntimeObservation,
   goals: RuntimeGoal[],
