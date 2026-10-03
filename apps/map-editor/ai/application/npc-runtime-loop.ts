@@ -47,7 +47,7 @@ export async function runNpcRuntimeTick(
       ? {
           kind: "investigate" as const,
           priority: 0,
-          reason: behaviorDecision.reason,
+          reason: behaviorDecision.actions[0]?.reason ?? "Investigate the last known target position.",
           action: behaviorDecision.actions[0],
         }
       : undefined);

@@ -141,4 +141,117 @@ describe("npc runtime loop", () => {
     expect(second.observation.state.stateVersion).toBe("state-2");
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 2, y: 0 });
   });
+
+  it("preserves investigation memory when navigation has no path", async () => {
+    const store = makeStore();
+    const snapshot = store.snapshot();
+    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1") });
+    store.grid = () => ({ width: 4, height: 4, blocked: Array(16).fill(true) });
+    const memory = createNpcBehaviorMemoryStore();
+    memory.set({
+      npcId: "npc-1", stateVersion: "state-1", lastBehavior: "investigate",
+      targetEntityId: "player-1", lastKnownTargetPosition: { x: 2, y: 0 }, updatedAtTick: 1,
+    });
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(store),
+      verification: createRuntimeWorldVerificationPort(store),
+    };
+
+    const result = await runNpcRuntimeTick({
+      id: "npc-recovery-nav-failure", surface: "game", intelligence: "npc",
+      goal: "Investigate the last known position", observation: {} as RuntimeObservation,
+    }, ports, store, memory);
+
+    expect(result.status).toBe("replan-required");
+    expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 2, y: 0 });
+  });
+
+  it("preserves investigation memory when action execution fails", async () => {
+    const store = makeStore();
+    const snapshot = store.snapshot();
+    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1") });
+    const memory = createNpcBehaviorMemoryStore();
+    memory.set({
+      npcId: "npc-1", stateVersion: "state-1", lastBehavior: "investigate",
+      targetEntityId: "player-1", lastKnownTargetPosition: { x: 2, y: 0 }, updatedAtTick: 1,
+    });
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: { execute: async action => ({ ok: false, actionId: action.id, stateVersion: "state-1", detail: "movement rejected" }) },
+      verification: { verify: async () => ({ ok: false, checks: [] }) },
+    };
+
+    const result = await runNpcRuntimeTick({
+      id: "npc-recovery-execution-failure", surface: "game", intelligence: "npc",
+      goal: "Investigate the last known position", observation: {} as RuntimeObservation,
+    }, ports, store, memory);
+
+    expect(result.status).toBe("rejected");
+    expect(result.execution?.ok).toBe(false);
+    expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 2, y: 0 });
+  });
+
+  it("preserves investigation memory when verification fails, then clears it after later successful arrival", async () => {
+    const store = makeStore();
+    const snapshot = store.snapshot();
+    store.snapshot = () => ({ ...snapshot, entities: snapshot.entities.filter(entity => entity.id === "npc-1") });
+    const memory = createNpcBehaviorMemoryStore();
+    memory.set({
+      npcId: "npc-1", stateVersion: "state-1", lastBehavior: "investigate",
+      targetEntityId: "player-1", lastKnownTargetPosition: { x: 1, y: 0 }, updatedAtTick: 1,
+    });
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const failingPorts = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(store),
+      verification: { verify: async () => ({ ok: false, checks: [] }) },
+    };
+
+    const failed = await runNpcRuntimeTick({
+      id: "npc-recovery-verification-failure", surface: "game", intelligence: "npc",
+      goal: "Investigate the last known position", observation: {} as RuntimeObservation,
+    }, failingPorts, store, memory);
+
+    expect(failed.status).toBe("rejected");
+    expect(failed.execution?.ok).toBe(true);
+    expect(failed.verification?.ok).toBe(false);
+    expect(memory.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 1, y: 0 });
+
+    const successfulStore = makeStore();
+    let successfulSnapshot = successfulStore.snapshot();
+    successfulSnapshot = {
+      ...successfulSnapshot,
+      entities: successfulSnapshot.entities.filter(entity => entity.id === "npc-1"),
+    };
+    successfulStore.snapshot = () => successfulSnapshot;
+    successfulStore.updateEntity = (entity: RuntimeEntity) => {
+      successfulSnapshot = {
+        ...successfulSnapshot,
+        entities: successfulSnapshot.entities.map(candidate => candidate.id === entity.id ? entity : candidate),
+        state: { ...successfulSnapshot.state, stateVersion: "state-2" },
+      };
+    };
+    const successfulObservation = createRuntimeObservationPort(createRuntimeWorldObservationSource(successfulStore));
+    const successfulPorts = {
+      observation: successfulObservation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(successfulStore),
+      verification: createRuntimeWorldVerificationPort(successfulStore),
+    };
+
+    const recovered = await runNpcRuntimeTick({
+      id: "npc-recovery-success", surface: "game", intelligence: "npc",
+      goal: "Investigate the last known position", observation: {} as RuntimeObservation,
+    }, successfulPorts, successfulStore, memory);
+
+    expect(recovered.status).toBe("moved");
+    expect(recovered.verification?.ok).toBe(true);
+    expect(memory.get("npc-1")).toBeUndefined();
+  });
 });
