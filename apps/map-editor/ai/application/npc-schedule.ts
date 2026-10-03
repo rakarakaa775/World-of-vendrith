@@ -54,6 +54,8 @@ export function createNpcScheduleAction(
       goal: entry.goal,
       targetLocation: entry.location,
       scheduleWindow: { startHour: entry.startHour, endHour: entry.endHour },
+      ...(entry.locationRole ? { locationRole: entry.locationRole } : {}),
+      ...(entry.dailyLifeActivity ? { dailyLifeActivity: entry.dailyLifeActivity } : {}),
     },
     risk: "safe",
     reason: `Follow the NPC schedule for ${entry.goal} during the current game hour.`,

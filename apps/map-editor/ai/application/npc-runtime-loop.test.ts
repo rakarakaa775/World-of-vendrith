@@ -5,6 +5,9 @@ import { createNpcBehaviorMemoryStore } from "../domain/runtime-behavior";
 import { createNpcDailyLifeStateStore } from "../domain/runtime-daily-life";
 import { createRuntimeObservationPort } from "./runtime-observation";
 import { runNpcRuntimeTick } from "./npc-runtime-loop";
+import { createNpcRelationshipRuntimeStore } from "./npc-relationship-runtime-store";
+import { createNpcRelationshipMemoryStore } from "./npc-social-interaction-schema";
+import { createNpcSocialMemoryStore, createNpcReputationStore } from "./npc-social-intelligence";
 import {
   createRuntimeWorldActionPort,
   createRuntimeWorldObservationSource,
@@ -58,7 +61,7 @@ describe("npc runtime loop", () => {
     expect(result.behavior?.kind).toBe("follow-player");
     expect(result.execution?.ok).toBe(true);
     expect(result.verification?.ok).toBe(true);
-    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 0, y: 0 });
   });
 
   it("turns an active daily schedule into a runtime movement goal", async () => {
@@ -121,6 +124,59 @@ describe("npc runtime loop", () => {
     const result = await runNpcRuntimeTick({ id: "npc-daily-life-1", surface: "game", intelligence: "npc", goal: "Work", observation: {} as RuntimeObservation }, ports, store, undefined, undefined, dailyLife);
     expect(result.status).toBe("moved");
     expect(result.dailyLife).toMatchObject({ goal: "work", phase: "active", startedAtTick: 1 });
+  });
+
+  it("executes a scheduled recreation activity after arrival", async () => {
+    const store = makeStore();
+    let recreationSnapshot = {
+      ...store.snapshot(),
+      entities: store.snapshot().entities.filter(entity => entity.id !== "player-1").map(entity => entity.id === "npc-1" ? {
+        ...entity,
+        state: {
+          decisionProfile: {
+            schedule: {
+              npcId: "npc-1",
+              entries: [{
+                goal: "go-to-location",
+                startHour: 8,
+                endHour: 12,
+                priority: 40,
+                location: { mapId: "region-1", x: 0, y: 0 },
+                locationRole: "recreation",
+                dailyLifeActivity: "recreation",
+              }],
+            },
+          },
+        },
+      } : entity),
+    };
+    store.snapshot = () => recreationSnapshot;
+    store.updateEntity = (entity: RuntimeEntity) => {
+      recreationSnapshot = {
+        ...recreationSnapshot,
+        entities: recreationSnapshot.entities.map(candidate => candidate.id === entity.id ? entity : candidate),
+        state: { ...recreationSnapshot.state, stateVersion: "state-2" },
+      };
+    };
+    const observation = createRuntimeObservationPort(createRuntimeWorldObservationSource(store));
+    const ports = {
+      observation,
+      decision: { decide: async () => { throw new Error("decision port should not be used by the specialized NPC loop"); } },
+      action: createRuntimeWorldActionPort(store),
+      verification: createRuntimeWorldVerificationPort(store),
+    };
+    const dailyLife = createNpcDailyLifeStateStore();
+    const result = await runNpcRuntimeTick({
+      id: "npc-recreation-1", surface: "game", intelligence: "npc",
+      goal: "Follow the daily recreation schedule", observation: {} as RuntimeObservation,
+    }, ports, store, undefined, undefined, dailyLife);
+    expect(result.status).toBe("moved");
+    expect(result.behavior?.kind).toBe("recreation");
+    expect(result.decision?.actions[0]).toMatchObject({
+      type: "npc.activity",
+      payload: { goal: "go-to-location", dailyLifeActivity: "recreation", locationRole: "recreation" },
+    });
+    expect(result.dailyLife).toMatchObject({ goal: "go-to-location", phase: "active", activity: "recreation", locationRole: "recreation" });
   });
 
   it("navigates from explicit investigation memory after the detected target disappears", async () => {
@@ -202,7 +258,7 @@ describe("npc runtime loop", () => {
     const second = await runNpcRuntimeTick({ ...request, id: "npc-tick-3" }, ports, store);
 
     expect(second.observation.state.stateVersion).toBe("state-2");
-    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 2, y: 0 });
+    expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 0, y: 0 });
   });
 
   it("clears investigation memory when navigation recovery explicitly requests clear", async () => {
