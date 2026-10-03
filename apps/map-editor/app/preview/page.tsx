@@ -65,6 +65,14 @@ export default function PreviewPage() {
         .order("seed_key")
         .limit(8);
       if (npcResult.error) throw npcResult.error;
+      const npcLocationResult = await client
+        .from("npc_seed_entries")
+        .select("seed_key,location_id")
+        .in("seed_key", (npcResult.data ?? []).map((row) => row.seed_key));
+      if (npcLocationResult.error) throw npcLocationResult.error;
+      const locationBySeedKey = new Map(
+        (npcLocationResult.data ?? []).map((row) => [row.seed_key, row.location_id]),
+      );
       setDocument(loaded.document);
       setTerrainBindings(terrain.bindings);
       setNpcSeeds((npcResult.data ?? []).map((row) => ({
@@ -74,6 +82,7 @@ export default function PreviewPage() {
         occupationName: row.occupation_name,
         settlementName: row.settlement_name,
         locationName: row.location_name,
+        locationId: locationBySeedKey.get(row.seed_key) ?? null,
       })));
       setLoadState("ready");
       setLoadStatus(
