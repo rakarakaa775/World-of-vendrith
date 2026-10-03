@@ -5,6 +5,7 @@ import { validateNpcRole, type NpcRole, type NpcRoleValidation } from "./npc-rol
 import { validateNpcPersonality, type NpcPersonalityRequest, type NpcPersonalityValidation } from "./npc-personality-schema";
 import { validateNpcPersonalityPolicy, type NpcPersonalityPolicy, type NpcPersonalityPolicyValidation } from "./npc-personality-policy-schema";
 import { validateNpcDecisionProfile, type NpcDecisionProfile } from "./npc-decision-profile-schema";
+import { validateNpcRelationships, type NpcRelationship, type NpcRelationshipValidation } from "./npc-relationship-schema";
 import { buildNpcRuntimeSpawnContract, type NpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
 import type { MapDocument } from "../../editor/map-document";
 import { PreviewRuntimeSimulation, type PreviewNpcDiagnostics } from "./preview-runtime-simulation";
@@ -20,8 +21,8 @@ export interface CreatorNpcEnvironmentPackage {
 }
 
 export interface CreatorNpcPackage {
-  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy };
-  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation & NpcRoleValidation & NpcPersonalityValidation & NpcPersonalityPolicyValidation;
+  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; relationships?: readonly NpcRelationship[] };
+  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation & NpcRoleValidation & NpcPersonalityValidation & NpcPersonalityPolicyValidation & NpcRelationshipValidation;
 }
 
 export function proposeCreatorNpcEnvironmentPackage(
@@ -42,6 +43,7 @@ export function creatorNpcDecisionProfile(npc: CreatorNpcPackage["npc"]): NpcDec
     ...(npc.capabilities ? { capabilities: npc.capabilities } : {}),
     ...(npc.personality ? { personality: npc.personality } : {}),
     ...(npc.personalityPolicy ? { personalityPolicy: npc.personalityPolicy } : {}),
+    ...(npc.relationships ? { relationships: npc.relationships } : {}),
   };
 }
 
@@ -88,14 +90,15 @@ export function proposeCreatorNpcPackage(
   const roleValidation = validateNpcRole(npc.role, npc.archetype);
   const personalityValidation = validateNpcPersonality(npc.personality);
   const personalityPolicyValidation = validateNpcPersonalityPolicy(npc.personalityPolicy);
+  const relationshipValidation = validateNpcRelationships(npc.relationships);
   const capabilityValidation = archetypeValidation.ok
     ? validateNpcCapabilities(npc.archetype, npc.capabilities ?? {})
     : { ok: true, errors: [] };
   return {
     npc: { ...npc },
     validation: {
-      ok: profileCrossFieldErrors.length === 0 && environmentValidation.ok && archetypeValidation.ok && roleValidation.ok && personalityValidation.ok && personalityPolicyValidation.ok && capabilityValidation.ok,
-      errors: [...profileCrossFieldErrors, ...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...personalityValidation.errors, ...personalityPolicyValidation.errors, ...capabilityValidation.errors],
+      ok: profileCrossFieldErrors.length === 0 && environmentValidation.ok && archetypeValidation.ok && roleValidation.ok && personalityValidation.ok && personalityPolicyValidation.ok && relationshipValidation.ok && capabilityValidation.ok,
+      errors: [...profileCrossFieldErrors, ...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...personalityValidation.errors, ...personalityPolicyValidation.errors, ...relationshipValidation.errors, ...capabilityValidation.errors],
     },
   };
 }

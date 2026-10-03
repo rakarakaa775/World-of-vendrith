@@ -193,7 +193,8 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
   ];
 
   if (dependencies.mapInspector) {
-    const contentDeps = { map: dependencies.mapInspector, assetRegistry: dependencies.assetRegistry };
+    const mapInspector = dependencies.mapInspector;
+    const contentDeps = { map: mapInspector, assetRegistry: dependencies.assetRegistry };
     tools.push({
       name: "npc.creator_package.preview",
       description: "Preview a validated Creator NPC package on an authoritative map without persisting changes. Returns runtime diagnostics after a bounded number of simulation ticks.",
@@ -207,7 +208,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       },
       async execute(args) {
         const input = args as { mapId: string; npc: Record<string, unknown>; ticks?: number };
-        const resolved = await dependencies.mapInspector.resolveMap(input.mapId);
+        const resolved = await mapInspector.resolveMap(input.mapId);
         if (!resolved) return { found: false, mapId: input.mapId, error: "Map was not found." };
         const result = await previewCreatorNpcPackage(previewDocumentFromInspection(resolved), input.npc as never, input.ticks ?? 1);
         return { found: true, mapId: input.mapId, ...result };

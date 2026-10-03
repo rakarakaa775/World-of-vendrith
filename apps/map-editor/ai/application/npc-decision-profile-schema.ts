@@ -8,6 +8,7 @@ import { validateNpcRole } from "./npc-role-schema";
 import { validateNpcCapabilities, npcArchetypeCapabilities } from "./npc-archetype-capabilities";
 import { validateNpcPersonality } from "./npc-personality-schema";
 import { validateNpcPersonalityPolicy } from "./npc-personality-policy-schema";
+import { validateNpcRelationships, type NpcRelationship } from "./npc-relationship-schema";
 
 export interface NpcDecisionProfile {
   archetype?: NpcArchetype;
@@ -15,11 +16,12 @@ export interface NpcDecisionProfile {
   capabilities?: NpcCapabilityRequest;
   personality?: NpcPersonalityRequest;
   personalityPolicy?: NpcPersonalityPolicy;
+  relationships?: readonly NpcRelationship[];
 }
 export interface NpcDecisionProfileValidation { ok: boolean; errors: string[]; }
 
 export const NPC_DECISION_PROFILE_SCHEMA = {
-  fields: ["archetype", "role", "capabilities", "personality", "personalityPolicy"],
+  fields: ["archetype", "role", "capabilities", "personality", "personalityPolicy", "relationships"],
   semantics: "A validated composition contract. Descriptive fields do not activate runtime effects; explicit personality policy may affect only capabilities already allowed by the archetype.",
 } as const;
 
@@ -35,7 +37,8 @@ export function validateNpcDecisionProfile(value: unknown): NpcDecisionProfileVa
     : validateNpcCapabilities(profile.archetype, profile.capabilities ?? {});
   const personality = validateNpcPersonality(profile.personality);
   const policy = validateNpcPersonalityPolicy(profile.personalityPolicy);
-  errors.push(...archetype.errors, ...role.errors, ...capabilities.errors, ...personality.errors, ...policy.errors);
+  const relationships = validateNpcRelationships(profile.relationships);
+  errors.push(...archetype.errors, ...role.errors, ...capabilities.errors, ...personality.errors, ...policy.errors, ...relationships.errors);
   if (profile.archetype && policy.ok && profile.personalityPolicy?.rules) {
     const allowed = npcArchetypeCapabilities(profile.archetype);
     for (const rule of profile.personalityPolicy.rules) {
