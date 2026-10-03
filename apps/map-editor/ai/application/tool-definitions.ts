@@ -9,6 +9,7 @@ import { NPC_ENVIRONMENT_POLICY_SCHEMA, validateNpcEnvironmentPolicy } from "./n
 import { NPC_ARCHETYPE_SCHEMA, validateNpcArchetype, type NpcArchetype } from "./npc-archetype-schema";
 import { NPC_ARCHETYPE_CAPABILITY_SCHEMA, npcArchetypeCapabilities, validateNpcCapabilities } from "./npc-archetype-capabilities";
 import { proposeCreatorNpcPackage } from "./npc-creator-package";
+import { NPC_ROLE_SCHEMA, npcRoleArchetypes, validateNpcRole, type NpcRole } from "./npc-role-schema";
 import { inspectMap } from "./map-inspector";
 import { inspectAsset, inspectContent, inspectPlayable, inspectRegion, inspectWorld, traceContentHierarchy } from "./content-inspectors";
 
@@ -64,6 +65,23 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       async execute(args) { const value = args as { archetype: unknown; capabilities: Record<string, unknown> }; return validateNpcCapabilities(value.archetype, value.capabilities); },
     },
     {
+      name: "npc.role.schema", description: "Return the verified descriptive NPC role/job contract. Roles never auto-activate runtime behavior.", access: "read-only",
+      parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
+      async execute() { return NPC_ROLE_SCHEMA; },
+    },
+    {
+      name: "npc.role.validate", description: "Validate an NPC role and its compatibility with an optional archetype.", access: "read-only",
+      parameters: { type: "object", properties: { role: {}, archetype: { type: "string" } }, required: [] },
+      validate: (args): args is { role?: unknown; archetype?: unknown } => typeof args === "object" && args !== null,
+      async execute(args) { const value = args as { role?: unknown; archetype?: unknown }; return validateNpcRole(value.role, value.archetype); },
+    },
+    {
+      name: "npc.role.archetypes", description: "Return the supported archetypes for a verified NPC role.", access: "read-only",
+      parameters: { type: "object", properties: { role: { type: "string" } }, required: ["role"] },
+      validate: (args): args is { role: NpcRole } => typeof args === "object" && args !== null && validateNpcRole((args as { role?: unknown }).role).ok,
+      async execute(args) { return npcRoleArchetypes((args as { role: NpcRole }).role); },
+    },
+    {
       name: "npc.environment_policy.schema", description: "Return the verified NPC environment policy contract for Creator AI generation.", access: "read-only",
       parameters: { type: "object", properties: {} }, validate: (args): args is Record<string, never> => typeof args === "object" && args !== null,
       async execute() { return NPC_ENVIRONMENT_POLICY_SCHEMA; },
@@ -75,17 +93,18 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
       async execute(args) { const policy = (args as { policy: Record<string, unknown> }).policy; return { policy, validation: validateNpcEnvironmentPolicy(policy) }; },
     },
     {
-      name: "npc.creator_package.propose", description: "Build a Creator AI NPC package containing identity, optional descriptive archetype, and validated environment policy. This remains read-only and does not mutate the project.", access: "read-only",
+      name: "npc.creator_package.propose", description: "Build a Creator AI NPC package containing identity, optional descriptive archetype/role, capabilities, and validated environment policy. This remains read-only and does not mutate the project.", access: "read-only",
       parameters: { type: "object", properties: { npc: { type: "object" } }, required: ["npc"] },
       validate: (args): args is { npc: { id: string; name?: string; archetype?: string; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } } => {
         if (typeof args !== "object" || args === null || typeof (args as { npc?: unknown }).npc !== "object" || (args as { npc?: unknown }).npc === null) return false;
         const npc = (args as { npc: Record<string, unknown> }).npc;
         return typeof npc.id === "string" && (npc.name === undefined || typeof npc.name === "string") &&
           (npc.archetype === undefined || typeof npc.archetype === "string") &&
+          (npc.role === undefined || typeof npc.role === "string") &&
           (npc.capabilities === undefined || (typeof npc.capabilities === "object" && npc.capabilities !== null && !Array.isArray(npc.capabilities))) &&
           typeof npc.environmentPolicy === "object" && npc.environmentPolicy !== null && !Array.isArray(npc.environmentPolicy);
       },
-      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; environmentPolicy: Record<string, unknown> } }).npc); },
+      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } }).npc); },
     },
     {
       name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", access: "read-only",

@@ -19,9 +19,18 @@ describe("schema knowledge graph", () => {
       ["map-object", "references", "asset"],
       ["npc", "supports", "npc-environment-policy"],
       ["npc", "classified-by", "npc-archetype"],
+      ["npc", "described-by", "npc-role"],
     ]);
     expect(graph.edges.every((edge) => edge.evidence.every((item) => item.confidence === "high"))).toBe(true);
     expect(graph.edges.some((edge) => edge.from === "npc" && edge.to === "npc-environment-policy")).toBe(true);
+  });
+
+  it("exposes verified NPC role classification", async () => {
+    const repository = { readFile: vi.fn(async () => null), search: vi.fn(async () => []) };
+    const graph = await buildProjectSchemaKnowledgeGraph(repository);
+    const role = graph.nodes.find((node) => node.id === "npc-role");
+    expect(role?.kind).toBe("npc-role");
+    expect(role?.evidence.some((item) => item.fact.includes("descriptive job/classification"))).toBe(true);
   });
 
   it("exposes verified NPC environment policy capabilities", async () => {

@@ -1,6 +1,7 @@
 import { validateNpcEnvironmentPolicy, type NpcEnvironmentPolicyValidation } from "./npc-environment-policy-schema";
 import { validateNpcArchetype, type NpcArchetype, type NpcArchetypeValidation } from "./npc-archetype-schema";
 import { validateNpcCapabilities, type NpcCapabilityRequest, type NpcCapabilityValidation } from "./npc-archetype-capabilities";
+import { validateNpcRole, type NpcRole, type NpcRoleValidation } from "./npc-role-schema";
 
 export interface CreatorNpcEnvironmentPackage {
   npc: {
@@ -13,8 +14,8 @@ export interface CreatorNpcEnvironmentPackage {
 }
 
 export interface CreatorNpcPackage {
-  npc: CreatorNpcEnvironmentPackage["npc"] & { capabilities?: NpcCapabilityRequest };
-  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation;
+  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest };
+  validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation & NpcRoleValidation;
 }
 
 export function proposeCreatorNpcEnvironmentPackage(
@@ -29,14 +30,15 @@ export function proposeCreatorNpcPackage(
 ): CreatorNpcPackage {
   const archetypeValidation = validateNpcArchetype(npc.archetype);
   const environmentValidation = validateNpcEnvironmentPolicy(npc.environmentPolicy);
+  const roleValidation = validateNpcRole(npc.role, npc.archetype);
   const capabilityValidation = archetypeValidation.ok
     ? validateNpcCapabilities(npc.archetype, npc.capabilities ?? {})
     : { ok: true, errors: [] };
   return {
     npc: { ...npc },
     validation: {
-      ok: archetypeValidation.ok && environmentValidation.ok && capabilityValidation.ok,
-      errors: [...archetypeValidation.errors, ...environmentValidation.errors, ...capabilityValidation.errors],
+      ok: archetypeValidation.ok && environmentValidation.ok && roleValidation.ok && capabilityValidation.ok,
+      errors: [...archetypeValidation.errors, ...environmentValidation.errors, ...roleValidation.errors, ...capabilityValidation.errors],
     },
   };
 }

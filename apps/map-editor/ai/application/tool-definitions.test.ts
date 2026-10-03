@@ -35,6 +35,9 @@ describe("project tool definitions", () => {
       "npc.archetype.capabilities.schema",
       "npc.archetype.capabilities.get",
       "npc.archetype.capabilities.validate",
+      "npc.role.schema",
+      "npc.role.validate",
+      "npc.role.archetypes",
       "npc.environment_policy.schema",
       "npc.environment_policy.propose",
       "npc.creator_package.propose",
@@ -88,9 +91,9 @@ describe("project tool definitions", () => {
     const packageTool = tools.find(tool => tool.name === "npc.creator_package.propose");
     expect(packageTool).toBeDefined();
     await expect(packageTool!.execute({
-      npc: { id: "npc-1", name: "Scout", archetype: "military", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
+      npc: { id: "npc-1", name: "Scout", archetype: "military", role: "scout", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
     }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({
-      npc: { id: "npc-1", name: "Scout", archetype: "military", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
+      npc: { id: "npc-1", name: "Scout", archetype: "military", role: "scout", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
       validation: { ok: true, errors: [] },
     });
 
