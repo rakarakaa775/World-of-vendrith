@@ -32,6 +32,16 @@ export function proposeCreatorNpcDecisionProfile(profile: NpcDecisionProfile) {
   return { profile: { ...profile }, validation: validateNpcDecisionProfile(profile) };
 }
 
+export function creatorNpcDecisionProfile(npc: CreatorNpcPackage["npc"]): NpcDecisionProfile {
+  return {
+    ...(npc.archetype ? { archetype: npc.archetype } : {}),
+    ...(npc.role ? { role: npc.role } : {}),
+    ...(npc.capabilities ? { capabilities: npc.capabilities } : {}),
+    ...(npc.personality ? { personality: npc.personality } : {}),
+    ...(npc.personalityPolicy ? { personalityPolicy: npc.personalityPolicy } : {}),
+  };
+}
+
 export function proposeCreatorNpcPackage(
   npc: CreatorNpcPackage["npc"],
 ): CreatorNpcPackage {

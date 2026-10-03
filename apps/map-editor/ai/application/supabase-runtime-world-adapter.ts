@@ -3,6 +3,7 @@ import type { RuntimeEntity } from "../domain/runtime";
 import type { RuntimeScheduledEvent } from "../domain/runtime-clock";
 import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
+import { decisionProfileFromMetadata } from "./npc-runtime-profile";
 
 type RuntimeSupabaseClient = SupabaseClient;
 
@@ -72,6 +73,7 @@ interface SeedRow {
   occupation_name: string | null;
   settlement_name: string | null;
   location_name: string | null;
+  metadata: Record<string, unknown> | null;
 }
 
 interface SeedEntryRow {
@@ -118,6 +120,10 @@ function entityFromPlacement(
       settlementName: seed.settlement_name ?? undefined,
       locationName: seed.location_name ?? undefined,
       blocksMovement: true,
+      ...(() => {
+        const decisionProfile = decisionProfileFromMetadata(seed.metadata);
+        return decisionProfile ? { decisionProfile } : {};
+      })(),
     },
   };
 }
@@ -234,7 +240,7 @@ export function createSupabaseRuntimeWorldAdapter(
 
       const seedsResult = await client
         .from("npc_seed_catalog")
-        .select("seed_key,name,race,occupation_name,settlement_name,location_name")
+        .select("seed_key,name,race,occupation_name,settlement_name,location_name,metadata")
         .eq("active", true);
       const entriesResult = await client
         .from("npc_seed_entries")

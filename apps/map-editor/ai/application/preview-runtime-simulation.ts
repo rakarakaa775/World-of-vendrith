@@ -6,6 +6,8 @@ import { createRuntimeObservationPort } from "./runtime-observation";
 import { createRuntimeWorldActionPort, createRuntimeWorldObservationSource, createRuntimeWorldVerificationPort, type RuntimeWorldStore } from "./runtime-world-adapter";
 import { runNpcRuntimeTick, type NpcRuntimeTickResult } from "./npc-runtime-loop";
 import type { RuntimeAiPorts } from "../ports/runtime";
+import type { NpcDecisionProfile } from "./npc-decision-profile-schema";
+import { validatedNpcDecisionProfile } from "./npc-runtime-profile";
 
 export interface PreviewRuntimeSnapshot {
   entities: RuntimeEntity[];
@@ -27,6 +29,7 @@ export interface PreviewNpcSeed {
   locationName?: string | null;
   locationId?: string | null;
   spawnAnchor?: PreviewNpcSpawnAnchor | null;
+  decisionProfile?: NpcDecisionProfile;
 }
 
 class MemoryStore implements NpcBehaviorMemoryStore {
@@ -81,6 +84,7 @@ export class PreviewRuntimeSimulation {
         settlementName: seed.settlementName ?? undefined,
         locationName: seed.locationName ?? undefined,
         locationId: seed.locationId ?? undefined,
+        ...(validatedNpcDecisionProfile(seed.decisionProfile) ? { decisionProfile: validatedNpcDecisionProfile(seed.decisionProfile) } : {}),
       },
     }));
     this.entities = [

@@ -27,6 +27,7 @@ function makeClient() {
       seed_key: "NPC-1", name: "Aldren", race: "human",
       occupation_name: "guard", settlement_name: "Village",
       location_name: "Gate", active: true,
+      metadata: { decisionProfile: { archetype: "military", role: "guard", capabilities: { behaviors: ["idle", "investigate"], goals: ["go-to-location"] }, personality: { traits: ["disciplined"] } } },
     }],
     npc_seed_entries: [{ seed_key: "NPC-1", location_id: "loc-1" }],
     vandrith_unified_object_placement: [{
@@ -74,6 +75,7 @@ describe("supabase runtime world adapter", () => {
       kind: "npc",
       mapId: "map-1",
       position: { x: 2, y: 1 },
+      state: { decisionProfile: { archetype: "military", role: "guard", capabilities: { behaviors: ["idle", "investigate"], goals: ["go-to-location"] } } },
     });
     expect(result?.grid).toEqual({
       width: 3,
