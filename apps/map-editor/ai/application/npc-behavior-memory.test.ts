@@ -56,6 +56,47 @@ describe("NPC behavior memory", () => {
     expect(decision.actions[0].payload.position).toEqual({ x: 7, y: 2 });
   });
 
+  it("creates a fresh investigation after resolved memory is cleared and the target is detected again", () => {
+    const store = createNpcBehaviorMemoryStore();
+    const hearingObservation: RuntimeObservation = {
+      ...base,
+      id: "obs-reobserve-1",
+      perception: {
+        ...base.perception!,
+        nearbyEntities: [{ id: "player-1", kind: "player", mapId: "r", position: { x: 7, y: 2 } }],
+        detections: [{ entityId: "player-1", channels: ["hearing"], distance: 5 }],
+      },
+      state: {
+        ...base.state,
+        environmentConditions: {
+          npc_detection_behavior: {
+            hearing: { investigate: { priority_delta: 40, reason: "Investigate explicit sound evidence." } },
+          },
+        },
+      },
+    };
+    const first = decideNpcBehavior(request(hearingObservation), hearingObservation, undefined, store);
+    expect(first.actions[0].type).toBe("npc.investigate");
+    expect(store.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 7, y: 2 });
+
+    store.clear("npc-1");
+    const redetected: RuntimeObservation = {
+      ...hearingObservation,
+      id: "obs-reobserve-2",
+      state: { ...hearingObservation.state, clock: { ...hearingObservation.state.clock, tick: 12 }, stateVersion: "v12" },
+      perception: {
+        ...hearingObservation.perception!,
+        nearbyEntities: [{ id: "player-1", kind: "player", mapId: "r", position: { x: 5, y: 2 } }],
+        detections: [{ entityId: "player-1", channels: ["hearing"], distance: 3 }],
+      },
+    };
+    const second = decideNpcBehavior(request(redetected), redetected, undefined, store);
+    expect(second.actions[0].type).toBe("npc.investigate");
+    expect(second.actions[0].payload.targetEntityId).toBe("player-1");
+    expect(store.get("npc-1")?.lastKnownTargetPosition).toEqual({ x: 5, y: 2 });
+    expect(store.get("npc-1")?.updatedAtTick).toBe(12);
+  });
+
   it("does not create investigation memory from hearing without an explicit reaction rule", () => {
     const store = createNpcBehaviorMemoryStore();
     const hearingObservation: RuntimeObservation = {
