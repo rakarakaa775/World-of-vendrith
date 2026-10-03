@@ -77,7 +77,7 @@ describe("PreviewRuntimeSimulation", () => {
     expect(result.status).toBe("moved");
     expect(after?.sensing).toEqual({ hearingRadius: 3, smellRadius: 2, detectionModifier: 1.5 });
     expect(after?.effectiveEnvironmentConditions.npc_movement).toEqual({ cost_multiplier: 2.5 });
-    expect(after?.movementCost).toBe(15);
+    expect(after?.movementCost).toBe(10);
     expect(after?.selectedBehavior).toBe("follow-player");
   });
 

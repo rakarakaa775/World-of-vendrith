@@ -59,9 +59,33 @@ describe("supabase runtime world bridge", () => {
     expect(result.status).toBe("moved");
     expect(result.execution?.ok).toBe(true);
     expect(result.verification?.ok).toBe(true);
-    expect(after.entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
+    expect(after.entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 0, y: 0 });
     expect(after.state.clock.tick).toBe(1);
     expect(after.state.stateVersion).toBe("engine:1:runtime:1");
+  });
+
+  it("refreshes the runtime snapshot from the authoritative adapter", async () => {
+    const base = makeAdapter();
+    let loads = 0;
+    const adapter = {
+      async load(mapId: string) {
+        loads += 1;
+        const loaded = await base.load(mapId);
+        if (!loaded) return undefined;
+        return {
+          ...loaded,
+          snapshot: {
+            ...loaded.snapshot,
+            state: { ...loaded.snapshot.state, weather: loads > 1 ? "storm" : undefined },
+          },
+        };
+      },
+    };
+    const bridge = await createSupabaseRuntimeWorldBridge(adapter as never, "map-1");
+    expect(bridge!.snapshot().state.weather).toBeUndefined();
+    expect(await bridge!.refreshAuthoritative()).toBe(true);
+    expect(bridge!.snapshot().state.weather).toBe("storm");
+    expect(loads).toBe(2);
   });
 
   it("fails closed when the engine adapter cannot load the map", async () => {

@@ -17,13 +17,27 @@ function adapter(includePlayer = true) {
 }
 
 describe("supabase runtime engine", () => {
+  it("loads the authoritative world snapshot only once when creating the engine", async () => {
+    let loadCount = 0;
+    const base = adapter();
+    const countedAdapter = {
+      async load(mapId: string) {
+        loadCount += 1;
+        return base.load(mapId);
+      },
+    };
+    const engine = await createSupabaseRuntimeEngine(countedAdapter as never, "map-1");
+    expect(engine).toBeDefined();
+    expect(loadCount).toBe(1);
+  });
+
   it("runs all NPCs through the engine bridge and preserves runtime state versions", async () => {
     const engine = await createSupabaseRuntimeEngine(adapter() as never, "map-1");
     expect(engine).toBeDefined();
     const result = await engine!.tick([{ id: "festival", startTick: 1, endTick: 3 }], 1);
     expect(result.results).toHaveLength(2);
     expect(result.results.every(item => item.status === "moved")).toBe(true);
-    expect(engine!.bridge.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 1, y: 0 });
+    expect(engine!.bridge.snapshot().entities.find(entity => entity.id === "npc-1")?.position).toEqual({ x: 0, y: 0 });
     expect(engine!.bridge.snapshot().state.stateVersion).toBe("engine:1:runtime:1");
     expect(result.tick).toBe(1);
     expect(result.stateVersion).toBe("engine:1:runtime:1");

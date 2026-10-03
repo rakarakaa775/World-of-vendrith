@@ -13,6 +13,7 @@ export interface SupabaseRuntimeWorldBridge {
   snapshot(): RuntimeWorldSnapshot;
   grid(mapId: string): NavigationGrid | undefined;
   refreshEnvironment(environment: { season: string; weather?: string; conditions?: Record<string, unknown> }): void;
+  refreshAuthoritative(): Promise<boolean>;
   advanceClock(minutes?: number, events?: RuntimeScheduledEvent[]): void;
 }
 
@@ -51,8 +52,9 @@ function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: Navi
 export async function createSupabaseRuntimeWorldBridge(
   adapter: SupabaseRuntimeWorldAdapter,
   mapId: string,
+  initial?: Awaited<ReturnType<SupabaseRuntimeWorldAdapter["load"]>>,
 ): Promise<SupabaseRuntimeWorldBridge | undefined> {
-  const loaded = await adapter.load(mapId);
+  const loaded = initial ?? await adapter.load(mapId);
   if (!loaded) return undefined;
 
   const store = createBridgeStore(loaded, mapId);
@@ -70,6 +72,12 @@ export async function createSupabaseRuntimeWorldBridge(
     },
     snapshot: () => store.snapshot(),
     grid: (id) => store.grid(id),
+    async refreshAuthoritative() {
+      const loaded = await adapter.load(mapId);
+      if (!loaded) return false;
+      (store as MutableRuntimeWorldStore).__replaceState(loaded.snapshot.state, loaded.snapshot.entities);
+      return true;
+    },
     refreshEnvironment(environment) {
       const current = store.snapshot();
       const nextState = {

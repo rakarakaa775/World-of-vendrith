@@ -21,8 +21,14 @@ function clientMock() {
     }],
     worlds: [{ id: "world-1", status: "active" }],
     event_executions: [],
+    world_environment_states: [],
+    world_environment_clocks: [],
+    season_definitions: [],
+    weather_definitions: [],
+    world_weather_states: [],
   };
   return {
+    rpc() { return Promise.resolve({ data: { conditions: {} }, error: null }); },
     from(table: keyof typeof rows) {
       const source = rows[table];
       const state = { filters: [] as [string, string, unknown][], statusIn: [] as string[] };

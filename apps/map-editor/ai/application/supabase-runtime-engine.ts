@@ -33,7 +33,7 @@ export async function createSupabaseRuntimeEngine(
 ): Promise<SupabaseRuntimeEngine | undefined> {
   const loaded = await adapter.load(mapId);
   if (!loaded) return undefined;
-  const bridge = await createSupabaseRuntimeWorldBridge({ async load() { return loaded; } }, mapId);
+  const bridge = await createSupabaseRuntimeWorldBridge(adapter, mapId, loaded);
   if (!bridge) return undefined;
   const memory = createNpcBehaviorMemoryStore();
   const relationships = createNpcRelationshipRuntimeStore();
@@ -86,7 +86,7 @@ export async function createSupabaseRuntimeEngine(
         const environment = await eventAdapter.loadEnvironment(initial.state.worldId);
         if (environment) bridge.refreshEnvironment(environment);
       }
-      const npcs = initial.entities.filter(entity => entity.kind === "npc" && entity.mapId === mapId);
+      const npcs = bridge.snapshot().entities.filter(entity => entity.kind === "npc" && entity.mapId === mapId);
       const results: NpcRuntimeTickResult[] = [];
 
       for (const npc of npcs) {

@@ -201,93 +201,35 @@ export function createSupabaseRuntimeEventAdapter(
     },
 
     async applyEnvironment(worldId, consequence) {
-      const seasonKey = typeof consequence.season_key === "string" ? consequence.season_key : undefined;
-      const weatherKey = typeof consequence.weather_key === "string" ? consequence.weather_key : undefined;
-      const intensity = consequence.weather_intensity === undefined ? undefined : Number(consequence.weather_intensity);
-      if (intensity !== undefined && (!Number.isInteger(intensity) || intensity < 0 || intensity > 5)) {
+      const seasonKey = typeof consequence.season_key === "string" ? consequence.season_key : null;
+      const weatherKey = typeof consequence.weather_key === "string" ? consequence.weather_key : null;
+      const intensity = consequence.weather_intensity === undefined ? null : Number(consequence.weather_intensity);
+      if (intensity !== null && (!Number.isInteger(intensity) || intensity < 0 || intensity > 5)) {
         throw new Error("Environment consequence weather_intensity must be an integer from 0 to 5.");
       }
       if (!seasonKey && !weatherKey && consequence.conditions === undefined) {
         throw new Error("Environment consequence must specify season_key, weather_key, or conditions.");
       }
 
-      const current = await client
-        .from("world_environment_states")
-        .select("world_id,season_id,weather_state_id,conditions")
-        .eq("world_id", worldId)
-        .maybeSingle();
-      if (current.error) throw current.error;
-
-      let seasonId = current.data?.season_id ?? null;
-      if (seasonKey) {
-        const seasonResult = await client
-          .from("season_definitions")
-          .select("id,season_key")
-          .eq("season_key", seasonKey)
-          .maybeSingle();
-        if (seasonResult.error) throw seasonResult.error;
-        if (!seasonResult.data) throw new Error(`Unknown season_key: ${seasonKey}`);
-        seasonId = String(seasonResult.data.id);
-      }
-
-      let weatherStateId = current.data?.weather_state_id ?? null;
-      if (weatherKey) {
-        const weatherResult = await client
-          .from("weather_definitions")
-          .select("id,weather_key")
-          .eq("weather_key", weatherKey)
-          .maybeSingle();
-        if (weatherResult.error) throw weatherResult.error;
-        if (!weatherResult.data) throw new Error(`Unknown weather_key: ${weatherKey}`);
-        if (!seasonId) {
-          const seasonFromClock = await client
-            .from("world_environment_clocks")
-            .select("current_season_id")
-            .eq("world_id", worldId)
-            .maybeSingle();
-          if (seasonFromClock.error) throw seasonFromClock.error;
-          seasonId = seasonFromClock.data?.current_season_id ?? null;
-        }
-        if (!seasonId) throw new Error("Weather consequence requires a resolved season.");
-
-        const weatherState = await client
-          .from("world_weather_states")
-          .insert({
-            world_id: worldId,
-            weather_id: weatherResult.data.id,
-            season_id: seasonId,
-            started_at: new Date().toISOString(),
-            intensity: intensity ?? 0,
-            conditions: {},
-          })
-          .select("id")
-          .single();
-        if (weatherState.error || !weatherState.data) throw weatherState.error ?? new Error("Weather state could not be created.");
-        weatherStateId = String(weatherState.data.id);
-      }
-
-      const conditions = consequence.conditions && typeof consequence.conditions === "object"
-        ? consequence.conditions as Record<string, unknown>
-        : current.data?.conditions ?? {};
-      const now = new Date().toISOString();
-      const environmentState = {
-        world_id: worldId,
-        season_id: seasonId,
-        weather_state_id: weatherStateId,
-        state_started_at: now,
-        state_ends_at: null,
-        conditions,
-        updated_at: now,
+      const rpc = await client.rpc("apply_runtime_environment_consequence_v1", {
+        p_world_id: worldId,
+        p_season_key: seasonKey,
+        p_weather_key: weatherKey,
+        p_weather_intensity: intensity,
+        p_conditions: consequence.conditions && typeof consequence.conditions === "object"
+          ? consequence.conditions as Record<string, unknown>
+          : null,
+      });
+      if (rpc.error) throw rpc.error;
+      const metadata = rpc.data && typeof rpc.data === "object" && !Array.isArray(rpc.data)
+        ? rpc.data as Record<string, unknown>
+        : {};
+      return {
+        seasonKey,
+        weatherKey,
+        weatherIntensity: intensity ?? undefined,
+        conditions: metadata.conditions ?? (consequence.conditions ?? {}),
       };
-      const stateResult = await client.from("world_environment_states").upsert(environmentState, { onConflict: "world_id" });
-      if (stateResult.error) throw stateResult.error;
-
-      const clockUpdate: Record<string, unknown> = { updated_at: now };
-      if (seasonId) clockUpdate.current_season_id = seasonId;
-      const clockResult = await client.from("world_environment_clocks").update(clockUpdate).eq("world_id", worldId);
-      if (clockResult.error) throw clockResult.error;
-
-      return { seasonKey, weatherKey, weatherIntensity: intensity, conditions };
     },
 
     async complete(executionId, metadata = {}) {

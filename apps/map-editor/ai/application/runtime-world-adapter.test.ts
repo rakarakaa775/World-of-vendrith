@@ -259,7 +259,8 @@ describe("runtime world adapter", () => {
     const firstVerification = await verificationPort.verify(action, first);
     expect(first.ok).toBe(true);
     expect(first.detail).toContain("running");
-    expect(firstVerification.ok).toBe(true);
+    expect(firstVerification.ok).toBe(false);
+    expect(firstVerification.checks).toContainEqual({ name: "npc-activity-completed", ok: false });
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
       .toMatchObject({ actionId: action.id, goal: "eat", status: "started", startedAtTick: 1, updatedAtTick: 1 });
 
@@ -268,7 +269,8 @@ describe("runtime world adapter", () => {
     const secondVerification = await verificationPort.verify(action, second);
     expect(second.ok).toBe(true);
     expect(second.detail).toContain("running");
-    expect(secondVerification.ok).toBe(true);
+    expect(secondVerification.ok).toBe(false);
+    expect(secondVerification.checks).toContainEqual({ name: "npc-activity-completed", ok: false });
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
       .toMatchObject({ actionId: action.id, goal: "eat", status: "running", startedAtTick: 1, updatedAtTick: 2 });
 

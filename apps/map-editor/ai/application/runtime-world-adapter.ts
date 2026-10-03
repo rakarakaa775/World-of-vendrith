@@ -141,7 +141,7 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
         const entityId = String(action.payload.entityId ?? "");
         const goal = action.payload.goal;
         const entity = snapshot.entities.find(candidate => candidate.id === entityId);
-        if (!entity || entity.kind !== "npc" || (goal !== "work" && goal !== "eat" && goal !== "sleep")) {
+        if (!entity || entity.kind !== "npc" || (goal !== "work" && goal !== "eat" && goal !== "sleep" && goal !== "socialize" && goal !== "go-to-location" && goal !== "respond-to-event")) {
           return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Supported NPC activity or NPC entity was not found." };
         }
 
@@ -273,7 +273,8 @@ export function createRuntimeWorldVerificationPort(store: RuntimeWorldStore): Ru
             typeof activity === "object" &&
             !Array.isArray(activity) &&
             (activity as Record<string, unknown>).actionId === action.id &&
-            (activity as Record<string, unknown>).goal === action.payload.goal,
+            (activity as Record<string, unknown>).goal === action.payload.goal &&
+            (activity as Record<string, unknown>).status === "completed",
           ),
         });
       }
