@@ -50,6 +50,15 @@ export function createToolRouter(tools: ToolDefinition[]): ToolRouter {
         return { id: call.id, name: call.name, ok: false, error: "Unknown tool" };
       }
 
+      if (tool.access === "mutation" && context.mode !== "execute" && context.mode !== "high-risk") {
+        return {
+          id: call.id,
+          name: call.name,
+          ok: false,
+          error: "Mutation tools require execute or high-risk mode",
+        };
+      }
+
       if (tool.access === "mutation" && context.approvalState !== "approved") {
         return {
           id: call.id,
