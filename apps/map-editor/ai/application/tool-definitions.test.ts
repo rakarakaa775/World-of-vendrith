@@ -141,6 +141,21 @@ describe("project tool definitions", () => {
     expect(graphResult).toEqual(["dep:src/editor.ts"]);
     expect(assetResult).toMatchObject([{ source: "asset_license_registry", usageDomain: "world", licenseState: "clear" }]);
   });
+  it("keeps required tool schemas aligned with runtime validators", () => {
+    const tools = createProjectTools(dependencies());
+    for (const name of ["npc.personality.validate", "npc.decision_profile.validate", "npc.personality_policy.validate", "npc.relationship_policy.validate", "npc.social_interaction.validate", "npc.environment_policy.validate"]) {
+      const tool = tools.find(item => item.name === name)!;
+      expect(tool.validate({})).toBe(false);
+    }
+
+    const packageTool = tools.find(item => item.name === "npc.creator_package.propose")!;
+    const parameters = packageTool.parameters as { properties: Record<string, unknown> };
+    const npcProperties = (parameters.properties.npc as { properties: Record<string, unknown> }).properties;
+    expect(npcProperties.personalityPolicy).toBeDefined();
+    expect(npcProperties.relationshipPolicy).toBeDefined();
+    expect(npcProperties.environmentPolicy).toBeDefined();
+  });
+
 });
 
 
