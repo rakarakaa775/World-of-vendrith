@@ -1,3 +1,5 @@
+[Reading 271 lines from start (total: 271 lines, 0 remaining)]
+
 import type { RuntimeObservation } from "../domain/runtime";
 import type { Evidence } from "../domain/types";
 import { createNpcWorldAwareness, type NpcWorldAwareness } from "./npc-world-awareness";
@@ -78,6 +80,10 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
+function complement01(value: number): number {
+  return Number((1 - clamp01(value)).toFixed(12));
+}
+
 function nonNegativeInt(value: number, field: string): number {
   if (!Number.isInteger(value) || value < 0) throw new Error(field + " must be a non-negative integer");
   return value;
@@ -119,7 +125,7 @@ export function createIntelligenceClaim(
   return {
     ...input,
     confidence,
-    uncertainty: 1 - confidence,
+    uncertainty: complement01(confidence),
     supportingClaimIds,
     contradictingClaimIds,
   };
@@ -146,7 +152,7 @@ export function propagateIntelligenceClaim(
     id: claim.id + ":hop-" + safeHops,
     source,
     confidence: retainedConfidence,
-    uncertainty: 1 - retainedConfidence,
+    uncertainty: complement01(retainedConfidence),
     supportingClaimIds: [...claim.supportingClaimIds, claim.id],
     contradictingClaimIds: claim.contradictingClaimIds,
   };
@@ -163,7 +169,7 @@ export function decayIntelligenceClaim(
   }
   const age = Math.max(0, currentTick - claim.lastConfirmedTick);
   const confidence = clamp01(claim.confidence * Math.pow(0.5, age / halfLifeTicks));
-  return { ...claim, confidence, uncertainty: 1 - confidence };
+  return { ...claim, confidence, uncertainty: complement01(confidence) };
 }
 
 export function resolveBeliefs(
@@ -265,3 +271,5 @@ export function intelligenceClaimsToEvidence(
     confidence: claim.confidence >= 0.75 ? "high" : claim.confidence >= 0.45 ? "medium" : "low",
   }));
 }
+
+[executed on device: codespaces-229c3d (b3f2748a-aa8b-47dd-a2d6-3420a7c89088)]
