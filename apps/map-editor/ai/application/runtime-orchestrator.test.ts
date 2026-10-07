@@ -106,6 +106,23 @@ describe("Vendrith runtime orchestrator", () => {
     );
   });
 
+  it("does not verify a successful result without a resulting state version", async () => {
+    const ports = createPorts(gameRuleAction());
+    ports.action.execute = async () => ({
+      ok: true,
+      actionId: "action-1",
+    });
+    const verify = vi.spyOn(ports.verification, "verify");
+    const result = await createRuntimeOrchestrator(ports).run(request);
+    expect(result.executions[0]).toMatchObject({
+      actionId: "action-1",
+      ok: false,
+      executed: true,
+      detail: "Successful runtime action result is missing its resulting state version.",
+    });
+    expect(verify).not.toHaveBeenCalled();
+  });
+
   it("does not verify a result reported for a different action ID", async () => {
     const ports = createPorts(gameRuleAction());
     ports.action.execute = async () => ({ ok: true, actionId: "other-action" });
