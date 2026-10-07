@@ -1,4 +1,5 @@
 import type { NpcRelationship } from "./npc-relationship-schema";
+import type { VerificationResult } from "../domain/types";
 import {
   applyNpcSocialInteraction,
   createNpcRelationshipMemoryStore,
@@ -52,9 +53,10 @@ export function applyNpcSocialInteractionToRelationships(
 export function applyNpcSocialInteractionAndRelationshipMemory(
   relationships: readonly NpcRelationship[],
   interaction: NpcSocialInteraction,
+  verification: VerificationResult,
   store: NpcRelationshipMemoryStore = createNpcRelationshipMemoryStore(),
 ): NpcRelationshipUpdateResult {
-  if (!validateNpcSocialInteraction(interaction).ok) {
+  if (!verification.ok || !validateNpcSocialInteraction(interaction).ok) {
     return { changed: false, relationships };
   }
 

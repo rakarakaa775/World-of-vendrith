@@ -4,6 +4,10 @@ import {
   applyNpcSocialInteractionToRelationships,
 } from "./npc-relationship-memory-runtime";
 import { createNpcRelationshipMemoryStore } from "./npc-social-interaction-schema";
+import type { VerificationResult } from "../domain/types";
+
+const verified: VerificationResult = { ok: true } as VerificationResult;
+const rejected: VerificationResult = { ok: false } as VerificationResult;
 
 const relationships = [
   { targetNpcId: "npc-2", type: "friend" as const, affinity: 90, trust: 95 },
@@ -25,6 +29,7 @@ describe("NPC relationship memory runtime", () => {
     const result = applyNpcSocialInteractionAndRelationshipMemory(
       relationships,
       interaction,
+      verified,
     );
     expect(result.changed).toBe(true);
     expect(result.relationship).toMatchObject({ targetNpcId: "npc-2", affinity: 100, trust: 100 });
@@ -34,6 +39,7 @@ describe("NPC relationship memory runtime", () => {
     const result = applyNpcSocialInteractionAndRelationshipMemory(
       relationships,
       { ...interaction, interactionId: "i-2", targetNpcId: "npc-3", affinityDelta: -30, trustDelta: -20 },
+      verified,
     );
     expect(result.relationship).toMatchObject({ targetNpcId: "npc-3", type: "rival", affinity: -100, trust: 0 });
   });
@@ -42,6 +48,7 @@ describe("NPC relationship memory runtime", () => {
     const result = applyNpcSocialInteractionAndRelationshipMemory(
       relationships,
       { ...interaction, targetNpcId: "npc-9" },
+      verified,
     );
     expect(result.changed).toBe(false);
     expect(result.relationships).toEqual(relationships);
@@ -52,6 +59,7 @@ describe("NPC relationship memory runtime", () => {
     const result = applyNpcSocialInteractionAndRelationshipMemory(
       relationships,
       interaction,
+      verified,
     );
     expect(result.relationships.some(item => item.targetNpcId === "npc-1")).toBe(false);
   });
@@ -67,6 +75,7 @@ describe("NPC relationship memory runtime", () => {
     const result = applyNpcSocialInteractionAndRelationshipMemory(
       relationships,
       { ...interaction, interactionId: "i-no-delta", affinityDelta: undefined, trustDelta: undefined },
+      verified,
     );
     expect(result.changed).toBe(false);
     expect(result.relationships).toEqual(relationships);
@@ -78,6 +87,7 @@ describe("NPC relationship memory runtime", () => {
     const result = applyNpcSocialInteractionAndRelationshipMemory(
       relationships,
       { ...interaction, type: "attack" } as never,
+      verified,
       store,
     );
     expect(result.changed).toBe(false);
@@ -85,12 +95,27 @@ describe("NPC relationship memory runtime", () => {
     expect(store.get("npc-1", "npc-2")).toBeUndefined();
   });
 
+  it("does not persist relationship memory when verification is rejected", () => {
+    const store = createNpcRelationshipMemoryStore();
+    const result = applyNpcSocialInteractionAndRelationshipMemory(
+      relationships,
+      interaction,
+      rejected,
+      store,
+    );
+    expect(result.changed).toBe(false);
+    expect(result.relationships).toEqual(relationships);
+    expect(result.memory).toBeUndefined();
+    expect(store.get("npc-1", "npc-2")).toBeUndefined();
+  });
+
   it("accumulates repeated interaction deltas", () => {
     const store = createNpcRelationshipMemoryStore();
-    const first = applyNpcSocialInteractionAndRelationshipMemory(relationships, interaction, store);
+    const first = applyNpcSocialInteractionAndRelationshipMemory(relationships, interaction, verified, store);
     const second = applyNpcSocialInteractionAndRelationshipMemory(
       first.relationships,
       { ...interaction, interactionId: "i-2", tick: 4, affinityDelta: -5, trustDelta: -2 },
+      verified,
       store,
     );
     expect(second.relationship).toMatchObject({ affinity: 95, trust: 98 });
