@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createNpcRelationshipRuntimeStore, withNpcRuntimeRelationships } from "./npc-relationship-runtime-store";
 
+const verified = { ok: true, checks: [{ name: "execution", ok: true }] };
+const rejected = { ok: false, checks: [{ name: "execution", ok: false }] };
+
 const baseObservation = {
   id: "o",
   state: { stateVersion: "1", clock: { tick: 1 }, activeEventIds: [] },
@@ -43,10 +46,27 @@ describe("NPC relationship runtime store", () => {
       affinityDelta: 15,
       trustDelta: 10,
       tick: 2,
-    });
+    }, verified);
 
     expect(result?.relationships[0]).toMatchObject({ targetNpcId: "npc-2", affinity: 35, trust: 40 });
     expect(store.get("npc-2")).toBeUndefined();
+  });
+
+  it("does not apply an interaction when verification fails", () => {
+    const store = createNpcRelationshipRuntimeStore();
+    store.set("npc-1", [{ targetNpcId: "npc-2", type: "friend", affinity: 20, trust: 30 }]);
+
+    expect(store.applyInteraction({
+      interactionId: "i-rejected",
+      sourceNpcId: "npc-1",
+      targetNpcId: "npc-2",
+      type: "help",
+      affinityDelta: 15,
+      trustDelta: 10,
+      tick: 2,
+    }, rejected)).toBeUndefined();
+
+    expect(store.get("npc-1")?.[0]).toMatchObject({ affinity: 20, trust: 30 });
   });
 
   it("does not apply an interaction when source state is not initialized", () => {
@@ -58,6 +78,6 @@ describe("NPC relationship runtime store", () => {
       type: "conversation",
       affinityDelta: 10,
       tick: 2,
-    })).toBeUndefined();
+    }, verified)).toBeUndefined();
   });
 });
