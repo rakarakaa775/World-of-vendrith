@@ -93,6 +93,18 @@ export function createRuntimeOrchestrator(
           continue;
         }
 
+        // Successful runtime execution must expose the resulting authoritative
+        // state version so verification can reason about the post-action state.
+        if (result.ok && !result.stateVersion) {
+          executions.push({
+            actionId: action.id,
+            ok: false,
+            executed: true,
+            detail: "Successful runtime action result is missing its resulting state version.",
+          });
+          continue;
+        }
+
         const verification = await ports.verification.verify(action, result);
         executions.push({
           actionId: action.id,
