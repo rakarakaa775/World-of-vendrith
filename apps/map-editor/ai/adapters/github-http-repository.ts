@@ -5,7 +5,7 @@ interface GitHubSearchResponse { items?: Array<{ path: string; text_matches?: Ar
 interface GitHubTreeResponse { tree?: Array<{ path: string; type: string }> }
 
 async function requestJson<T>(url: string, token?: string): Promise<T> {
-  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  const response = await fetch(url, { headers: { Accept: "application/vnd.github.text-match+json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
   if (!response.ok) throw new Error(`GitHub repository request failed (${response.status})`);
   return response.json() as Promise<T>;
 }
@@ -42,7 +42,7 @@ export class GitHubHttpRepositoryAdapter implements RepositoryPort {
 
   async search(query: string): Promise<Array<{ path: string; excerpt: string }>> {
     const q = encodeURIComponent(`${query} repo:${this.config.owner}/${this.config.repository}`);
-    const result = await requestJson<GitHubSearchResponse>(`https://api.github.com/search/code?q=${q}`, this.token);
-    return (result.items ?? []).slice(0, 20).map((item) => ({ path: item.path, excerpt: item.text_matches?.map((match) => match.fragment ?? "").filter(Boolean).join("\n") ?? "" }));
+    const result = await requestJson<GitHubSearchResponse>(`https://api.github.com/search/code?q=${q}&per_page=100`, this.token);
+    return (result.items ?? []).slice(0, 100).map((item) => ({ path: item.path, excerpt: item.text_matches?.map((match) => match.fragment ?? "").filter(Boolean).join("\n") ?? "" }));
   }
 }
