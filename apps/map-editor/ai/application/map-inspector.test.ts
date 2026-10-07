@@ -8,6 +8,18 @@ const mapPort = (document: any): MapInspectorPort => ({
     if (mapId !== document?.id) return null;
     return { document, version: 7, source: "test:authoritative-map" };
   },
+  it("does not trust the first broad asset-registry match when its identity differs", async () => {
+    const result = await inspectMap("world-1", {
+      map: mapPort(document),
+      assetRegistry: registry({
+        "asset-dock": [
+          { id: "other", kind: "verified-fact", source: "asset_registry:other", fact: JSON.stringify({ id: "other", category: "dock", licenseVerificationStatus: "verified", licenseUsageStatus: "allowed", commercialUseAllowed: true }), confidence: "high" },
+        ],
+      }),
+    });
+    expect(result.assets).toEqual([]);
+    expect(result.warnings).toContain("No verified asset registry evidence found for asset asset-dock.");
+  });
 });
 
 const registry = (results: Record<string, any[]>): AssetRegistryPort => ({
