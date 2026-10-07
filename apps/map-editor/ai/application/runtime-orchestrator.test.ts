@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { RuntimeAiPorts } from "../ports/runtime";
 import type {
   RuntimeAction,
@@ -15,13 +15,7 @@ const observation: RuntimeObservation = {
   intelligence: "world",
   state: {
     worldId: "world-1",
-    clock: {
-      tick: 10,
-      day: 1,
-      hour: 8,
-      minute: 0,
-      season: "spring",
-    },
+    clock: { tick: 10, day: 1, hour: 8, minute: 0, season: "spring" },
     activeEventIds: [],
     stateVersion: "state-1",
   },
@@ -44,19 +38,13 @@ function createPorts(action: RuntimeAction): RuntimeAiPorts {
     actions: [action],
     evidence: [],
   };
-
   const verification: VerificationResult = {
     ok: true,
     checks: [{ name: "state-transition", ok: true }],
   };
-
   return {
-    observation: {
-      observe: async () => observation,
-    },
-    decision: {
-      decide: async () => decision,
-    },
+    observation: { observe: async () => observation },
+    decision: { decide: async () => decision },
     action: {
       execute: async () => ({
         ok: true,
@@ -64,31 +52,26 @@ function createPorts(action: RuntimeAction): RuntimeAiPorts {
         stateVersion: "state-2",
       }),
     },
-    verification: {
-      verify: async () => verification,
-    },
+    verification: { verify: async () => verification },
+  };
+}
+
+function gameRuleAction(): RuntimeAction {
+  return {
+    id: "action-1",
+    intelligence: "world",
+    type: "world.schedule_event",
+    payload: { eventId: "rain-start" },
+    risk: "game-rule",
+    reason: "Weather rules allow the event.",
   };
 }
 
 describe("Vendrith runtime orchestrator", () => {
   it("executes a game-rule action on the game surface and verifies it", async () => {
-    const action: RuntimeAction = {
-      id: "action-1",
-      intelligence: "world",
-      type: "world.schedule_event",
-      payload: { eventId: "rain-start" },
-      risk: "game-rule",
-      reason: "Weather rules allow the event.",
-    };
-
-    const result = await createRuntimeOrchestrator(createPorts(action)).run(request);
-
+    const result = await createRuntimeOrchestrator(createPorts(gameRuleAction())).run(request);
     expect(result.executions).toEqual([
-      expect.objectContaining({
-        actionId: "action-1",
-        ok: true,
-        executed: true,
-      }),
+      expect.objectContaining({ actionId: "action-1", ok: true, executed: true }),
     ]);
   });
 
@@ -101,13 +84,39 @@ describe("Vendrith runtime orchestrator", () => {
       risk: "high-risk",
       reason: "Override a world rule.",
     };
-
     const result = await createRuntimeOrchestrator(createPorts(action)).run(request);
-
     expect(result.executions[0]).toMatchObject({
-      actionId: "action-high-risk",
-      ok: false,
-      executed: false,
+      actionId: "action-high-risk", ok: false, executed: false,
     });
+  });
+
+  it("rejects an observation from a different runtime surface", async () => {
+    const ports = createPorts(gameRuleAction());
+    ports.observation.observe = async () => ({ ...observation, surface: "engine" });
+    await expect(createRuntimeOrchestrator(ports).run(request)).rejects.toThrow(
+      "Runtime observation does not match the requested surface and intelligence.",
+    );
+  });
+
+  it("rejects an observation for a different intelligence", async () => {
+    const ports = createPorts(gameRuleAction());
+    ports.observation.observe = async () => ({ ...observation, intelligence: "npc" });
+    await expect(createRuntimeOrchestrator(ports).run(request)).rejects.toThrow(
+      "Runtime observation does not match the requested surface and intelligence.",
+    );
+  });
+
+  it("does not verify a result reported for a different action ID", async () => {
+    const ports = createPorts(gameRuleAction());
+    ports.action.execute = async () => ({ ok: true, actionId: "other-action" });
+    const verify = vi.spyOn(ports.verification, "verify");
+    const result = await createRuntimeOrchestrator(ports).run(request);
+    expect(result.executions[0]).toMatchObject({
+      actionId: "action-1",
+      ok: false,
+      executed: true,
+      detail: "Runtime action result ID did not match the requested action.",
+    });
+    expect(verify).not.toHaveBeenCalled();
   });
 });
