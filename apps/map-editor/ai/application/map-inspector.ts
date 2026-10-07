@@ -73,11 +73,19 @@ export async function inspectMap(
 
   for (const assetId of uniqueAssetIds) {
     const matches = await dependencies.assetRegistry.search(assetId);
-    if (matches.length === 0) {
+    const exact = matches.find((item) => {
+      try {
+        const parsed = JSON.parse(item.fact) as { id?: unknown; external_key?: unknown; slug?: unknown };
+        return [parsed.id, parsed.external_key, parsed.slug].some((value) => typeof value === "string" && value.toLowerCase() === assetId.toLowerCase());
+      } catch {
+        return item.source.toLowerCase() === "asset_registry:" + assetId.toLowerCase();
+      }
+    });
+    if (!exact) {
       warnings.push(`No verified asset registry evidence found for asset ${assetId}.`);
       continue;
     }
-    const classified = classifyAssetEvidence(matches[0]);
+    const classified = classifyAssetEvidence(exact);
     assetEvidence.push({
       ...classified.evidence,
       assetId,
