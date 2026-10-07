@@ -461,7 +461,7 @@ export async function runNpcRuntimeTick(
             ),
           );
         }
-        recordNpcSocialMemory(socialMemoryStore, interaction, response);
+        recordNpcSocialMemory(socialMemoryStore, interaction, response, verification);
         reputationStore.set(applyNpcReputationInteraction(reputationStore.get(self.id), self.id, response, observation.state.clock.tick));
       }
     }
