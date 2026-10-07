@@ -15,9 +15,16 @@ export class GitHubHttpRepositoryAdapter implements RepositoryPort {
 
   async readFile(path: string): Promise<string | null> {
     const encodedPath = path.split("/").map(encodeURIComponent).join("/");
-    const result = await requestJson<GitHubContent>(`https://api.github.com/repos/${this.config.owner}/${this.config.repository}/contents/${encodedPath}?ref=${encodeURIComponent(this.config.ref)}`, this.token);
-    if (!result.content || result.encoding !== "base64") return null;
-    return Buffer.from(result.content.replace(/\n/g, ""), "base64").toString("utf8");
+    try {
+      const result = await requestJson<GitHubContent>(`https://api.github.com/repos/${this.config.owner}/${this.config.repository}/contents/${encodedPath}?ref=${encodeURIComponent(this.config.ref)}`, this.token);
+      if (!result.content || result.encoding !== "base64") return null;
+      return Buffer.from(result.content.replace(/\n/g, ""), "base64").toString("utf8");
+    } catch (error) {
+      // Missing candidate paths are expected during code-graph resolution
+      // (for example, checking "./module" before "./module.ts").
+      if (error instanceof Error && /GitHub repository request failed \(404\)/.test(error.message)) return null;
+      throw error;
+    }
   }
 
   async listFiles(prefix = ""): Promise<string[]> {
