@@ -19,8 +19,8 @@ function escapeOrValue(value: string): string {
   return value
     .replace(/[\\(),]/g, " ")
     .replace(/[\r\n\t]/g, " ")
-    .replaceAll("%", "\\\\%")
-    .replaceAll("_", "\\\\_")
+    .replaceAll("%", "\\%")
+    .replaceAll("_", "\\_")
     .trim();
 }
 
