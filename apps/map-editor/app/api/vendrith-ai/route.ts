@@ -11,10 +11,10 @@ const MAX_HISTORY_MESSAGE_LENGTH = 4000;
 function createRepository() {
   return new GitHubHttpRepositoryAdapter({ owner: process.env.VENDRITH_GITHUB_OWNER ?? "rakarakaa775", repository: process.env.VENDRITH_GITHUB_REPOSITORY ?? "World-of-vendrith", ref: process.env.VENDRITH_GITHUB_REF ?? "feat/vendrith-ecc-v1" });
 }
-function createSupabase() {
+function createSupabase(accessToken?: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://ojtmfokjcirvjvhnbnos.supabase.co";
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "sb_publishable_DIe0amy6Q4qVXV6srZTCRQ_DHe6NANN";
-  return createClient(url, key);
+  return createClient(url, key, accessToken ? { global: { headers: { Authorization: `Bearer ${accessToken}` } } } : undefined);
 }
 function createVerification(repository: GitHubHttpRepositoryAdapter) {
   return { async verify(scope: string[]) { const checks = await Promise.all(scope.map(async item => { const matches = await repository.search(item); return { name: `repository-search:${item}`, ok: matches.length > 0, detail: `${matches.length} matching files` }; })); return { ok: checks.every(check => check.ok), checks }; } };
@@ -37,22 +37,22 @@ function parseConversation(value: unknown) {
     .map(item => ({ role: item.role, content: item.content.trim().slice(0, MAX_HISTORY_MESSAGE_LENGTH) }))
     .filter(item => item.content.length > 0);
 }
-function createOrchestrator() {
+function createOrchestrator(accessToken: string) {
   const repository = createRepository();
   const documentation = new ProjectDocumentationAdapter(repository);
   const codeIntelligence = new RepositoryCodeGraphAdapter(repository);
-  const supabase = createSupabase();
+  const supabase = createSupabase(accessToken);
   const assetRegistry = createSupabaseAssetRegistryAdapter(supabase);
   const tools = createProjectTools({ repository, documentation, codeIntelligence, assetRegistry, verification: createVerification(repository), mapInspector: createMapInspector(supabase) });
   return createVendrithAgentOrchestrator({ modelProvider: new VercelAiGatewayModelProvider(), toolRouter: createToolRouter(tools) });
 }
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabase();
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!token) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    const authSupabase = createSupabase();
+    const { data: authData, error: authError } = await authSupabase.auth.getUser(token);
     if (authError || !authData.user) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
 
     const body = await request.json() as { prompt?: string; mode?: "explain" | "plan" | "execute" | "high-risk"; conversation?: unknown };
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     if (prompt.length > MAX_PROMPT_LENGTH) return NextResponse.json({ error: `Prompt is too long (maximum ${MAX_PROMPT_LENGTH} characters).` }, { status: 413 });
     const mode = body.mode ?? "explain";
     if (mode !== "explain" && mode !== "plan") return NextResponse.json({ error: "The Web/Creator AI endpoint currently exposes read/analyze modes only." }, { status: 403 });
-    const result = await createOrchestrator().run({ id: crypto.randomUUID(), mode, prompt, conversation: parseConversation(body.conversation) });
+    const result = await createOrchestrator(token).run({ id: crypto.randomUUID(), mode, prompt, conversation: parseConversation(body.conversation) });
     return NextResponse.json({ response: result.response.content, model: result.response.model, provider: result.response.provider, iterations: result.iterations, approval: result.approval, evidence: result.evidence, toolResults: result.toolResults.map(item => ({ id: item.id, name: item.name, ok: item.ok, error: item.error })) });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Vendrith AI request failed." }, { status: 500 }); }
 }
