@@ -462,7 +462,14 @@ export async function runNpcRuntimeTick(
           );
         }
         recordNpcSocialMemory(socialMemoryStore, interaction, response, verification);
-        reputationStore.set(applyNpcReputationInteraction(reputationStore.get(self.id), self.id, response, observation.state.clock.tick));
+        const updatedReputation = applyNpcReputationInteraction(
+          reputationStore.get(self.id),
+          self.id,
+          response,
+          observation.state.clock.tick,
+          verification,
+        );
+        if (updatedReputation) reputationStore.set(updatedReputation);
       }
     }
     const finalNeeds = activityEffect.needs ?? needs;
