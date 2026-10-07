@@ -60,7 +60,7 @@ export function applyNpcSocialInteractionAndRelationshipMemory(
     return { changed: false, relationships };
   }
 
-  const memory = applyNpcSocialInteraction(interaction, store);
+  const memory = applyNpcSocialInteraction(interaction, store, verification);
   const nextRelationships = applyNpcSocialInteractionToRelationships(relationships, interaction);
   const relationship = nextRelationships.find(
     item => item.targetNpcId === interaction.targetNpcId,

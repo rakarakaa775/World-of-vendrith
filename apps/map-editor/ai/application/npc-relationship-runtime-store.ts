@@ -34,7 +34,7 @@ export function createNpcRelationshipRuntimeStore(): NpcRelationshipRuntimeStore
       if (!verification.ok) return undefined;
       const current = relationshipsByNpc.get(interaction.sourceNpcId);
       if (!current) return undefined;
-      const memory = applyNpcSocialInteraction(interaction, memoryStore);
+      const memory = applyNpcSocialInteraction(interaction, memoryStore, verification);
       if (!memory) return undefined;
       const next = applyNpcSocialInteractionToRelationships(current, interaction);
       relationshipsByNpc.set(interaction.sourceNpcId, next);

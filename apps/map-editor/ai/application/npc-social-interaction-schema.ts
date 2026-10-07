@@ -1,4 +1,5 @@
 import type { NpcRelationshipType } from "./npc-relationship-schema";
+import type { VerificationResult } from "../domain/types";
 
 export const NPC_SOCIAL_INTERACTION_SCHEMA = {
   fields: ["interactionId", "sourceNpcId", "targetNpcId", "type", "affinityDelta", "trustDelta", "tick"],
@@ -59,8 +60,9 @@ export function validateNpcSocialInteraction(value: unknown): NpcSocialInteracti
 export function applyNpcSocialInteraction(
   interaction: NpcSocialInteraction,
   store: NpcRelationshipMemoryStore,
+  verification: VerificationResult,
 ): NpcRelationshipMemory | undefined {
-  if (!validateNpcSocialInteraction(interaction).ok) return undefined;
+  if (!verification.ok || !validateNpcSocialInteraction(interaction).ok) return undefined;
   const previous = store.get(interaction.sourceNpcId, interaction.targetNpcId);
 
   // Runtime events may be retried. A previously recorded interaction must not
