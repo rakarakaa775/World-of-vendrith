@@ -89,7 +89,7 @@ describe("NPC social intelligence", () => {
     const response = chooseNpcSocialResponse("conversation", {
       targetNpcId: "npc-2", type: "friend", affinity: 50, trust: 50,
     });
-    recordNpcSocialMemory(store, interaction, response);
+    recordNpcSocialMemory(store, interaction, response, { ok: true, checks: [{ name: "execution", ok: true }] });
     expect(store.list("npc-1", "npc-2")).toHaveLength(1);
     expect(store.list("npc-1", "npc-2")[0].interactionId).toBe("i-1");
   });
@@ -105,6 +105,18 @@ describe("NPC social intelligence", () => {
     }, response);
     expect(store.list("a", "b")).toHaveLength(1);
     expect(store.list("a", "c")).toHaveLength(1);
+  });
+
+
+  it("does not remember an unverified social interaction or duplicate a verified one", () => {
+    const store = createNpcSocialMemoryStore();
+    const interaction = { interactionId: "i-verified", sourceNpcId: "a", targetNpcId: "b", type: "conversation" as const, tick: 3 };
+    const response = chooseNpcSocialResponse("conversation");
+    expect(recordNpcSocialMemory(store, interaction, response, { ok: false, checks: [{ name: "execution", ok: false }] })).toBeUndefined();
+    expect(store.list("a", "b")).toHaveLength(0);
+    recordNpcSocialMemory(store, interaction, response, { ok: true, checks: [{ name: "execution", ok: true }] });
+    recordNpcSocialMemory(store, interaction, response, { ok: true, checks: [{ name: "execution", ok: true }] });
+    expect(store.list("a", "b")).toHaveLength(1);
   });
 
   it("keeps the reputation store persistent per NPC", () => {
