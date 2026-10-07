@@ -33,8 +33,7 @@ export interface RuntimeOrchestrator {
 }
 
 /**
- * Coordinates observe -> decide -> policy -> execute -> verify.
- *
+ * Coordinates observe -> decide -> validate -> policy -> execute -> verify.
  * The orchestrator does not mutate game state itself. RuntimeActionPort remains
  * the only execution boundary, while policy blocks stale or unauthorized work.
  */
@@ -44,8 +43,18 @@ export function createRuntimeOrchestrator(
   return {
     async run(request, authorization = {}) {
       const observation = await ports.observation.observe(request);
-      const decision = await ports.decision.decide(request, observation);
 
+      // Never let a port return a snapshot for a different runtime authority.
+      if (
+        observation.surface !== request.surface ||
+        observation.intelligence !== request.intelligence
+      ) {
+        throw new Error(
+          "Runtime observation does not match the requested surface and intelligence.",
+        );
+      }
+
+      const decision = await ports.decision.decide(request, observation);
       const validation = validateRuntimeDecision(decision, observation);
       if (!validation.ok) {
         throw new Error(
@@ -59,7 +68,7 @@ export function createRuntimeOrchestrator(
         const approved = authorization.approved === true;
         if (!canExecuteRuntimeActionForSurface(
           action,
-          request.surface,
+          observation.surface,
           approved,
         )) {
           executions.push({
@@ -72,8 +81,19 @@ export function createRuntimeOrchestrator(
         }
 
         const result = await ports.action.execute(action, observation);
-        const verification = await ports.verification.verify(action, result);
 
+        // A port must not report success for a different action identifier.
+        if (result.actionId !== action.id) {
+          executions.push({
+            actionId: action.id,
+            ok: false,
+            executed: true,
+            detail: "Runtime action result ID did not match the requested action.",
+          });
+          continue;
+        }
+
+        const verification = await ports.verification.verify(action, result);
         executions.push({
           actionId: action.id,
           ok: result.ok && verification.ok,
@@ -83,12 +103,7 @@ export function createRuntimeOrchestrator(
         });
       }
 
-      return {
-        request,
-        observation,
-        decision,
-        executions,
-      };
+      return { request, observation, decision, executions };
     },
   };
 }
