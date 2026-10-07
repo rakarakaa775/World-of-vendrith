@@ -62,6 +62,11 @@ export function applyNpcSocialInteraction(
 ): NpcRelationshipMemory | undefined {
   if (!validateNpcSocialInteraction(interaction).ok) return undefined;
   const previous = store.get(interaction.sourceNpcId, interaction.targetNpcId);
+
+  // Runtime events may be retried. A previously recorded interaction must not
+  // be counted twice or re-apply its deltas to durable NPC memory.
+  if (previous?.lastInteractionId === interaction.interactionId) return previous;
+
   const next: NpcRelationshipMemory = {
     sourceNpcId: interaction.sourceNpcId,
     targetNpcId: interaction.targetNpcId,
