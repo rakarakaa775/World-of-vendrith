@@ -24,7 +24,7 @@ function collectEvidence(toolResults: AgentRunResult["toolResults"]): Evidence[]
     id: `tool-${result.id}`,
     kind: result.name === "documentation.search" ? "project-rule" : result.name === "asset_registry.search" || result.name.startsWith("codegraph.") ? "verified-fact" : "inference",
     source: result.name,
-    fact: typeof result.result === "string" ? result.result : JSON.stringify(result.result),
+    fact: typeof result.result === "string" ? result.result : JSON.stringify(result.result) ?? String(result.result),
     confidence: result.name === "documentation.search" || result.name === "asset_registry.search" || result.name.startsWith("codegraph.") ? "high" : "medium",
   } : {
     id: `tool-error-${result.id}`,
