@@ -57,4 +57,30 @@ describe("tool router", () => {
       error: "Mutation tools require an approved execution path",
     });
   });
+  it("blocks mutation tools outside execution modes even if approval is present", async () => {
+    let called = false;
+    const router = createToolRouter([{
+      name: "mutate",
+      description: "mutate",
+      access: "mutation",
+      parameters: {},
+      validate: () => true,
+      async execute() {
+        called = true;
+        return "changed";
+      },
+    }]);
+
+    const result = await router.execute(
+      { id: "2", name: "mutate", arguments: {} },
+      { mode: "explain", requestId: "req-2", approvalState: "approved" },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "Mutation tools require execute or high-risk mode",
+    });
+    expect(called).toBe(false);
+  });
+
 });
