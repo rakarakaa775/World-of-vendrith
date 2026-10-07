@@ -130,7 +130,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     {
       name: "npc.personality.validate", description: "Validate an optional NPC personality trait configuration.", access: "read-only",
       parameters: { type: "object", properties: { personality: { type: "object" } }, required: ["personality"] },
-      validate: (args): args is { personality: NpcPersonalityRequest } => typeof args === "object" && args !== null,
+      validate: (args): args is { personality: NpcPersonalityRequest } => typeof args === "object" && args !== null && typeof (args as { personality?: unknown }).personality === "object" && (args as { personality?: unknown }).personality !== null && !Array.isArray((args as { personality: unknown }).personality),
       async execute(args) { return validateNpcPersonality((args as { personality: unknown }).personality); },
     },
     {
@@ -141,7 +141,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     {
       name: "npc.decision_profile.validate", description: "Validate an NPC decision profile and its cross-field capability constraints.", access: "read-only",
       parameters: { type: "object", properties: { profile: { type: "object" } }, required: ["profile"] },
-      validate: (args): args is { profile: unknown } => typeof args === "object" && args !== null,
+      validate: (args): args is { profile: unknown } => typeof args === "object" && args !== null && typeof (args as { profile?: unknown }).profile === "object" && (args as { profile?: unknown }).profile !== null && !Array.isArray((args as { profile: unknown }).profile),
       async execute(args) { return validateNpcDecisionProfile((args as { profile?: unknown }).profile); },
     },
     {
@@ -190,7 +190,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     },
     {
       name: "npc.creator_package.propose", description: "Build a Creator AI NPC package containing identity, optional descriptive archetype/role, capabilities, and validated environment policy. This remains read-only and does not mutate the project.", access: "read-only",
-      parameters: { type: "object", properties: { npc: { type: "object" } }, required: ["npc"] },
+      parameters: { type: "object", properties: { npc: { type: "object", properties: { id: { type: "string" }, name: { type: "string" }, archetype: { type: "string" }, role: { type: "string" }, personality: { type: "object" }, personalityPolicy: { type: "object" }, relationshipPolicy: { type: "object" }, capabilities: { type: "object" }, environmentPolicy: { type: "object" } } } }, required: ["npc"] },
       validate: (args): args is { npc: { id: string; name?: string; archetype?: string; role?: string; personality?: Record<string, unknown>; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } } => {
         if (typeof args !== "object" || args === null || typeof (args as { npc?: unknown }).npc !== "object" || (args as { npc?: unknown }).npc === null) return false;
         const npc = (args as { npc: Record<string, unknown> }).npc;
