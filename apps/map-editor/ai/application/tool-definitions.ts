@@ -174,7 +174,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     {
       name: "npc.relationship_policy.validate", description: "Validate an explicit NPC relationship runtime policy and its supported behavior/goal effects.", access: "read-only",
       parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
-      validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null,
+      validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null && Object.prototype.hasOwnProperty.call(args, "policy"),
       async execute(args) { return validateNpcRelationshipPolicy((args as { policy?: unknown }).policy); },
     },
     {
