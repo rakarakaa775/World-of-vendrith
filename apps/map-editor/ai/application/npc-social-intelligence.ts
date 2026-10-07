@@ -1,4 +1,5 @@
 import type { NpcRelationship, NpcRelationshipType } from "./npc-relationship-schema";
+import type { VerificationResult } from "../domain/types";
 import type { NpcSocialInteraction, NpcSocialInteractionType, NpcRelationshipMemory } from "./npc-social-interaction-schema";
 
 export interface NpcSocialResponse {
@@ -156,7 +157,9 @@ export function createNpcSocialMemoryStore(): NpcSocialMemoryStore {
     },
     add(memory) {
       const k = key(memory.sourceNpcId, memory.targetNpcId);
-      memories.set(k, [...(memories.get(k) ?? []), memory]);
+      const existing = memories.get(k) ?? [];
+      if (existing.some(candidate => candidate.interactionId === memory.interactionId)) return;
+      memories.set(k, [...existing, memory]);
     },
     clear(source, target) {
       if (target) memories.delete(key(source, target));
@@ -169,7 +172,9 @@ export function recordNpcSocialMemory(
   store: NpcSocialMemoryStore,
   interaction: NpcSocialInteraction,
   response: NpcSocialResponse,
-): NpcSocialMemory {
+  verification: VerificationResult,
+): NpcSocialMemory | undefined {
+  if (!verification.ok) return undefined;
   const memory: NpcSocialMemory = {
     memoryId: interaction.interactionId + ":memory",
     sourceNpcId: interaction.sourceNpcId,
