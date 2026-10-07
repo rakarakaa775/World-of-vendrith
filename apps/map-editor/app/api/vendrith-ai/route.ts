@@ -48,6 +48,13 @@ function createOrchestrator() {
 }
 export async function POST(request: Request) {
   try {
+    const supabase = createSupabase();
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (!token) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authData.user) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
+
     const body = await request.json() as { prompt?: string; mode?: "explain" | "plan" | "execute" | "high-risk"; conversation?: unknown };
     const prompt = body.prompt?.trim();
     if (!prompt) return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
