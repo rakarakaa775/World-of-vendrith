@@ -15,6 +15,15 @@ interface AssetInventoryRow {
 
 function safeLimit(limit = 8) { return Math.max(1, Math.min(limit, 50)); }
 
+function escapeOrValue(value: string): string {
+  return value
+    .replace(/[\\(),]/g, " ")
+    .replace(/[\\r\\n\\t]/g, " ")
+    .replaceAll("%", "\\\\%")
+    .replaceAll("_", "\\\\_")
+    .trim();
+}
+
 function toEvidence(row: AssetInventoryRow): Evidence {
   const identity = row.external_key || row.slug || row.id;
   return {
