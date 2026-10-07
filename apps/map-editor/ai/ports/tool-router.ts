@@ -1,5 +1,8 @@
 import type { AiMode, ApprovalState } from "../domain/types";
 
+export type ToolCapability = "read" | "simulate" | "game-rule" | "high-risk";
+
+/** @deprecated Use ToolCapability. Kept for compatibility with older callers. */
 export type ToolAccess = "read-only" | "mutation";
 
 export interface ToolContext {
@@ -11,7 +14,9 @@ export interface ToolContext {
 export interface ToolDefinition<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
-  access: ToolAccess;
+  capability?: ToolCapability;
+  /** @deprecated Use capability. */
+  access?: ToolAccess;
   parameters: Record<string, unknown>;
   validate(args: unknown): args is TArgs;
   execute(args: TArgs, context: ToolContext): Promise<TResult>;
@@ -50,21 +55,23 @@ export function createToolRouter(tools: ToolDefinition[]): ToolRouter {
         return { id: call.id, name: call.name, ok: false, error: "Unknown tool" };
       }
 
-      if (tool.access === "mutation" && context.mode !== "execute" && context.mode !== "high-risk") {
+      const capability = tool.capability ?? (tool.access === "mutation" ? "high-risk" : "read");
+
+      if (capability === "game-rule" && context.mode !== "execute" && context.mode !== "high-risk") {
         return {
           id: call.id,
           name: call.name,
           ok: false,
-          error: "Mutation tools require execute or high-risk mode",
+          error: "Game-rule tools require execute or high-risk mode",
         };
       }
 
-      if (tool.access === "mutation" && context.approvalState !== "approved") {
+      if (capability === "high-risk" && context.approvalState !== "approved") {
         return {
           id: call.id,
           name: call.name,
           ok: false,
-          error: "Mutation tools require an approved execution path",
+          error: "High-risk tools require an approved execution path",
         };
       }
 
