@@ -1,4 +1,5 @@
 import type { RuntimeObservation } from "../domain/runtime";
+import type { VerificationResult } from "../domain/types";
 import type { NpcRelationship } from "./npc-relationship-schema";
 import {
   applyNpcSocialInteraction,
@@ -14,6 +15,7 @@ export interface NpcRelationshipRuntimeStore {
   set(npcId: string, relationships: readonly NpcRelationship[]): void;
   applyInteraction(
     interaction: NpcSocialInteraction,
+    verification: VerificationResult,
   ): { relationships: readonly NpcRelationship[]; memory?: NpcRelationshipMemory } | undefined;
 }
 
@@ -28,7 +30,8 @@ export function createNpcRelationshipRuntimeStore(): NpcRelationshipRuntimeStore
     set(npcId, relationships) {
       relationshipsByNpc.set(npcId, relationships.map(relationship => ({ ...relationship })));
     },
-    applyInteraction(interaction) {
+    applyInteraction(interaction, verification) {
+      if (!verification.ok) return undefined;
       const current = relationshipsByNpc.get(interaction.sourceNpcId);
       if (!current) return undefined;
       const memory = applyNpcSocialInteraction(interaction, memoryStore);
