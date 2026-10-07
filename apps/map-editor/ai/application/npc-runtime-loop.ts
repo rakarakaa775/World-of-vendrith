@@ -451,7 +451,7 @@ export async function runNpcRuntimeTick(
           trustDelta: response.trustDelta,
           tick: observation.state.clock.tick,
         };
-        relationshipStore.applyInteraction(interaction);
+        relationshipStore.applyInteraction(interaction, verification);
         if (targetRelationship) {
           const evolved = updateNpcRelationshipFromResponse(targetRelationship, response);
           relationshipStore.set(
