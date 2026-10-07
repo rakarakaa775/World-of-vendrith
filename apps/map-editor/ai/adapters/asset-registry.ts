@@ -18,7 +18,7 @@ function safeLimit(limit = 8) { return Math.max(1, Math.min(limit, 50)); }
 function escapeOrValue(value: string): string {
   return value
     .replace(/[\\(),]/g, " ")
-    .replace(/[\\r\\n\\t]/g, " ")
+    .replace(/[\r\n\t]/g, " ")
     .replaceAll("%", "\\\\%")
     .replaceAll("_", "\\\\_")
     .trim();
@@ -51,7 +51,7 @@ export function createSupabaseAssetRegistryAdapter(client: SupabaseClient, optio
         "id,external_key,name,slug,category,placement_category,role,asset_path,preview_path,asset_status,source_name,source_url,repository_url,source_version,licenses,attribution_required,attribution_text,commercial_use_allowed,modification_allowed,redistribution_allowed,license_verification_status,license_usage_status",
       );
       if (normalized) {
-        const pattern = `%${normalized.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
+        const pattern = `%${escapeOrValue(normalized)}%`;
         request = request.or(`name.ilike.${pattern},slug.ilike.${pattern},category.ilike.${pattern},placement_category.ilike.${pattern},role.ilike.${pattern},asset_path.ilike.${pattern},source_name.ilike.${pattern}`);
       }
       const { data, error } = await request.limit(limit);
