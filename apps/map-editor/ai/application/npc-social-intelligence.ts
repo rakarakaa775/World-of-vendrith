@@ -122,7 +122,9 @@ export function applyNpcReputationInteraction(
   npcId: string,
   response: NpcSocialResponse,
   tick: number,
-): NpcReputation {
+  verification: VerificationResult,
+): NpcReputation | undefined {
+  if (!verification.ok) return undefined;
   const delta = response.affinityDelta + response.trustDelta * 0.5;
   return {
     npcId,
