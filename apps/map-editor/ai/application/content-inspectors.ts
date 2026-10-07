@@ -26,7 +26,14 @@ export async function inspectAsset(id: string, deps: ContentInspectorDependencie
   const requested = id.trim();
   if (!requested) throw new Error("Asset id is required.");
   const matches = await deps.assetRegistry.search(requested);
-  const exact = matches.find((item) => item.source.toLowerCase().includes(requested.toLowerCase()) || item.fact.toLowerCase().includes(`\"id\":\"${requested.toLowerCase()}\"`));
+  const exact = matches.find((item) => {
+    try {
+      const parsed = JSON.parse(item.fact) as { id?: unknown; external_key?: unknown; slug?: unknown };
+      return [parsed.id, parsed.external_key, parsed.slug].some((value) => typeof value === "string" && value.toLowerCase() === requested.toLowerCase());
+    } catch {
+      return item.source.toLowerCase() === "asset_registry:" + requested.toLowerCase();
+    }
+  });
   if (!exact) return { found: false, id: requested, type: "asset", evidence: [], warnings: ["No verified asset registry evidence was found for this asset."] };
   const intelligence = classifyAssetEvidence(exact);
   const evidence: Evidence = { ...exact, id: `asset-inspector-${exact.id}`, fact: `${exact.fact} Classification: ${intelligence.usageDomain}. License state: ${intelligence.licenseState}. ${intelligence.reason}` };
