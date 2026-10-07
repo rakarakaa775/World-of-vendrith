@@ -49,7 +49,7 @@ describe("NPC social intelligence", () => {
 
   it("71 updates reputation deterministically", () => {
     const response = chooseNpcSocialResponse("help", { targetNpcId: "npc-2", type: "friend", affinity: 50, trust: 60 });
-    const reputation = applyNpcReputationInteraction(undefined, "npc-1", response, 10);
+    const reputation = applyNpcReputationInteraction(undefined, "npc-1", response, 10, { ok: true, checks: [{ name: "execution", ok: true }] });
     expect(reputation.score).toBeGreaterThan(0);
     expect(reputation.positiveInteractions).toBe(1);
   });
@@ -117,6 +117,11 @@ describe("NPC social intelligence", () => {
     recordNpcSocialMemory(store, interaction, response, { ok: true, checks: [{ name: "execution", ok: true }] });
     recordNpcSocialMemory(store, interaction, response, { ok: true, checks: [{ name: "execution", ok: true }] });
     expect(store.list("a", "b")).toHaveLength(1);
+  });
+
+  it("does not update reputation when verification fails", () => {
+    const response = chooseNpcSocialResponse("help");
+    expect(applyNpcReputationInteraction(undefined, "npc-1", response, 10, { ok: false, checks: [{ name: "execution", ok: false }] })).toBeUndefined();
   });
 
   it("keeps the reputation store persistent per NPC", () => {
