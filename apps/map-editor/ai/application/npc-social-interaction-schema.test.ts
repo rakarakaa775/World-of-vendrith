@@ -24,6 +24,20 @@ describe("NPC social interaction", () => {
     expect(applyNpcSocialInteraction(interaction, store)).toMatchObject({ interactionCount: 1, affinityDeltaTotal: 10, trustDeltaTotal: 5 });
     expect(applyNpcSocialInteraction({ ...interaction, interactionId: "i-2", tick: 4, affinityDelta: -2 }, store)).toMatchObject({ interactionCount: 2, affinityDeltaTotal: 8, trustDeltaTotal: 10 });
   });
+  it("does not double-apply a retried interaction", () => {
+    const store = createNpcRelationshipMemoryStore();
+    const first = applyNpcSocialInteraction(interaction, store);
+    const retry = applyNpcSocialInteraction(interaction, store);
+
+    expect(retry).toEqual(first);
+    expect(store.get("npc-1", "npc-2")).toMatchObject({
+      interactionCount: 1,
+      affinityDeltaTotal: 10,
+      trustDeltaTotal: 5,
+      lastInteractionId: "i-1",
+    });
+  });
+
   it("ignores invalid interactions", () => {
     const store = createNpcRelationshipMemoryStore();
     expect(applyNpcSocialInteraction({ ...interaction, type: "attack" } as never, store)).toBeUndefined();
