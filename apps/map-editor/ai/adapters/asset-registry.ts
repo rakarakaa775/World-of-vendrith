@@ -18,7 +18,7 @@ function safeLimit(limit = 8) { return Math.max(1, Math.min(limit, 50)); }
 function escapeOrValue(value: string): string {
   return value
     .replace(/[\\(),]/g, " ")
-    .replace(/[\r\n\t]/g, " ")
+    .replace(/[\r\n\t]/g, " ")\n    .replace(/\\s+/g, " ")
     .replaceAll("%", "\\%")
     .replaceAll("_", "\\_")
     .trim();
