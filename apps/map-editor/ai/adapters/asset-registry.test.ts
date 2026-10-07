@@ -35,7 +35,7 @@ describe("Supabase asset registry adapter", () => {
     const adapter = createSupabaseAssetRegistryAdapter(client);
 
     await adapter.search("water,(test)%_");
-    expect(or).toHaveBeenCalledWith(expect.stringContaining("water test test"));
+    expect(or).toHaveBeenCalledWith(expect.stringContaining("water test \\%\\_"));
     expect(or).toHaveBeenCalledWith(expect.not.stringContaining(",(test)"));
   });
 
