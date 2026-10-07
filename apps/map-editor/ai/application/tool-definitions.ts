@@ -152,7 +152,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     {
       name: "npc.personality_policy.validate", description: "Validate an explicit NPC personality runtime policy.", access: "read-only",
       parameters: { type: "object", properties: { policy: { type: "object" } }, required: ["policy"] },
-      validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null,
+      validate: (args): args is { policy: unknown } => typeof args === "object" && args !== null && Object.prototype.hasOwnProperty.call(args, "policy"),
       async execute(args) { return validateNpcPersonalityPolicy((args as { policy?: unknown }).policy); },
     },
     {
@@ -163,7 +163,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     {
       name: "npc.social_interaction.validate", description: "Validate an explicit NPC social interaction record.", access: "read-only",
       parameters: { type: "object", properties: { interaction: { type: "object" } }, required: ["interaction"] },
-      validate: (args): args is { interaction: unknown } => typeof args === "object" && args !== null,
+      validate: (args): args is { interaction: unknown } => typeof args === "object" && args !== null && Object.prototype.hasOwnProperty.call(args, "interaction"),
       async execute(args) { return validateNpcSocialInteraction((args as { interaction?: unknown }).interaction); },
     },
     {
