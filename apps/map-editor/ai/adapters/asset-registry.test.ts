@@ -26,4 +26,17 @@ describe("Supabase asset registry adapter", () => {
     await adapter.search("");
     expect(limit).toHaveBeenCalledWith(50);
   });
+  it("sanitizes PostgREST OR grammar characters in search values", async () => {
+    const limit = vi.fn(async () => ({ data: [], error: null }));
+    const or = vi.fn(() => ({ limit }));
+    const select = vi.fn(() => ({ or, limit }));
+    const from = vi.fn(() => ({ select }));
+    const client = { from } as never;
+    const adapter = createSupabaseAssetRegistryAdapter(client);
+
+    await adapter.search("water,(test)%_");
+    expect(or).toHaveBeenCalledWith(expect.stringContaining("water test test"));
+    expect(or).toHaveBeenCalledWith(expect.not.stringContaining(",(test)"));
+  });
+
 });
