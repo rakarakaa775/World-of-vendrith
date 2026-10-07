@@ -17,11 +17,19 @@ export interface Evidence {
   confidence: "high" | "medium" | "low";
 }
 
+export type AiConversationRole = "user" | "assistant";
+
+export interface AiConversationMessage {
+  role: AiConversationRole;
+  content: string;
+}
+
 export interface AiRequest {
   id: string;
   mode: AiMode;
   prompt: string;
   projectPath?: string;
+  conversation?: readonly AiConversationMessage[];
 }
 
 export interface AiPlanStep {
