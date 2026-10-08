@@ -1,6 +1,7 @@
 import type { AiMode, ApprovalState } from "../domain/types";
 
 export type ToolCapability = "read" | "simulate" | "game-rule" | "high-risk";
+export type ToolAudience = "web-creator" | "development" | "game-runtime";
 
 /** @deprecated Use ToolCapability. Kept for compatibility with older callers. */
 export type ToolAccess = "read-only" | "mutation";
@@ -9,12 +10,14 @@ export interface ToolContext {
   mode: AiMode;
   requestId: string;
   approvalState?: ApprovalState;
+  audience?: ToolAudience;
 }
 
 export interface ToolDefinition<TArgs = unknown, TResult = unknown> {
   name: string;
   description: string;
   capability?: ToolCapability;
+  audience?: ToolAudience;
   /** @deprecated Use capability. */
   access?: ToolAccess;
   parameters: Record<string, unknown>;
@@ -37,7 +40,7 @@ export interface ToolCallResult {
 }
 
 export interface ToolRouter {
-  definitions(): ToolDefinition[];
+  definitions(context?: ToolContext): ToolDefinition[];
   execute(call: ToolCallRequest, context: ToolContext): Promise<ToolCallResult>;
 }
 
@@ -45,14 +48,22 @@ export function createToolRouter(tools: ToolDefinition[]): ToolRouter {
   const registry = new Map(tools.map((tool) => [tool.name, tool]));
 
   return {
-    definitions() {
-      return [...registry.values()];
+    definitions(context) {
+      return [...registry.values()].filter((tool) => {
+        const audience = tool.audience ?? "web-creator";
+        return !context?.audience || audience === context.audience;
+      });
     },
 
     async execute(call, context) {
       const tool = registry.get(call.name);
       if (!tool) {
         return { id: call.id, name: call.name, ok: false, error: "Unknown tool" };
+      }
+
+      const audience = tool.audience ?? "web-creator";
+      if (context.audience && audience !== context.audience) {
+        return { id: call.id, name: call.name, ok: false, error: "Tool is outside the active AI audience" };
       }
 
       const capability = tool.capability ?? (tool.access === "mutation" ? "high-risk" : "read");
