@@ -8,6 +8,9 @@ export interface RepositoryPort {
 
 export interface CodeIntelligencePort {
   findDependencies(path: string): Promise<string[]>;
+  findSymbols(query: string): Promise<Array<{ path: string; excerpt: string }>>;
+  findReferences(symbol: string): Promise<Array<{ path: string; excerpt: string }>>;
+  findCallChain(symbol: string): Promise<Array<{ path: string; excerpt: string }>>;
   findDependents(path: string): Promise<string[]>;
 }
 
