@@ -62,7 +62,9 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Asset provenance/license inspection.
 - [x] NPC schema and policy inspection.
 - [ ] Add authoritative world-history/economy/faction/quest evidence where those systems are available.
-- [ ] Add explicit world context selection to the Web AI session.
+- [x] Add explicit world context selection to the Web AI session.
+- [x] Re-resolve selected world/region/playable context through authoritative map identity before each AI run.
+- [x] Persist session context with user ownership and RLS boundary.
 
 ### 4.4 Creator AI
 - [x] NPC creator package proposal.
