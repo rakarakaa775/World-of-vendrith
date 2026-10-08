@@ -76,3 +76,4 @@ export * from "./domain/runtime-behavior";
 export * from "./application/npc-behavior-runtime";
 
 export * from "./application/development-tool-registry";
+export * from "./application/development-workflow-provider";
