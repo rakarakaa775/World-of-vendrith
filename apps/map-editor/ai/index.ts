@@ -53,11 +53,11 @@ export * from "./application/npc-social-intelligence";
 export * from "./application/npc-world-awareness";
 export * from "./application/npc-relationship-memory-runtime";
 export * from "./application/npc-relationship-runtime-store";
+export * from "./application/npc-specialized-agent";
 
 export * from "./ports/map-tools";
 export * from "./application/map-inspector";
 export * from "./ports/content-inspectors";
-export * from "./application/content-inspectors";
 export * from "./application/content-inspectors";
 
 export * from "./application/runtime-world-adapter";
@@ -72,7 +72,6 @@ export * from "./domain/runtime-clock";
 export * from "./domain/runtime-event";
 export * from "./application/runtime-event-executor";
 export * from "./application/supabase-runtime-event-adapter";
-export * from "./domain/runtime-behavior";
 export * from "./application/npc-behavior-runtime";
 
 export * from "./application/development-tool-registry";
