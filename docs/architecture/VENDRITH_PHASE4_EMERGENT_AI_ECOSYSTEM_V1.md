@@ -103,7 +103,7 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Verify repository mutation results before reporting success.
 - [x] Persist execution outcome in a separate durable execution-audit trail.
 - [x] Add focused executor regression coverage for approval state, workflow-path denial, and read-back verification.
-- [ ] Execute the full Vitest/build gate on the latest branch head.
+- [x] Execute the full Vitest/build gate on the latest branch head (CI #657 passed on the Phase 4.6 executor/runtime fixes).
 
 ### 4.7 Final audit / exit gate
 - [ ] Cross-surface audience isolation audit.
@@ -137,4 +137,4 @@ Phase 4.1 has started with a Web AI request-security boundary:
 - existing bounded prompt/history;
 - existing tool-loop budget.
 
-Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.6 Development AI**. Development AI now has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Development repository mutation now has a separate high-risk executor boundary: proposal -> explicit approval -> approval-id binding -> GitHub mutation -> read-back verification -> durable execution audit. Database, deployment, and destructive operations remain fail-closed.
+Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.7 Final Audit**. Development AI has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Repository mutation now has a separate high-risk executor boundary: proposal -> explicit approval -> approval-id binding -> GitHub mutation -> read-back verification -> durable execution audit. Database, deployment, and destructive operations remain fail-closed. Phase 4.6's latest CI gate passed; final audit remains responsible for cross-surface isolation, prompt-injection resistance, session isolation, runtime autonomy safety, memory authority, production auth/provider configuration, and production smoke validation.
