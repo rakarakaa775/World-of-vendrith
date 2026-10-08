@@ -102,6 +102,8 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Require explicit proposal approval and approval-id binding for repository mutation; database/deployment/destructive capabilities remain fail-closed.
 - [x] Verify repository mutation results before reporting success.
 - [x] Persist execution outcome in a separate durable execution-audit trail.
+- [x] Add focused executor regression coverage for approval state, workflow-path denial, and read-back verification.
+- [ ] Execute the full Vitest/build gate on the latest branch head.
 
 ### 4.7 Final audit / exit gate
 - [ ] Cross-surface audience isolation audit.
