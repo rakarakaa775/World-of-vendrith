@@ -118,7 +118,7 @@ describe("NPC autonomy agent", () => {
     const result = await agent.tick(request());
 
     expect(result.autonomous).toBe(true);
-    expect(result.request).toEqual(request);
+    expect(result.request).toEqual(request());
     expect(run).toHaveBeenCalledWith(request, { maxActions: 1 });
   });
 });
