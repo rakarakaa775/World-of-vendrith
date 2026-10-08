@@ -2,11 +2,20 @@ import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../d
 import type { RuntimeOrchestrator } from "../application/runtime-orchestrator";
 import type { ToolDefinition } from "./tool-router";
 
+export interface RuntimeSimulationResult {
+  observation: RuntimeObservation;
+  decision: RuntimeDecision;
+  /**
+   * Simulation is a proof boundary: it must never claim that authoritative
+   * state was mutated. The adapter enforces this invariant before returning.
+   */
+  executed: false;
+  stateMutated: false;
+  stateVersion: string;
+}
+
 export interface RuntimeSimulationPort {
-  simulate(request: RuntimeAiRequest): Promise<{
-    observation: RuntimeObservation;
-    decision: RuntimeDecision;
-  }>;
+  simulate(request: RuntimeAiRequest): Promise<RuntimeSimulationResult>;
 }
 
 export interface RuntimeToolAdapterOptions {
@@ -21,14 +30,33 @@ export function createRuntimeTools(options: RuntimeToolAdapterOptions): ToolDefi
     const simulation = options.simulation;
     tools.push({
       name: "runtime.simulate",
-      description: "Simulate runtime observation and decision without executing a game action or mutating authoritative state.",
+      description: "Dry-run runtime observation and decision without executing a game action or mutating authoritative state.",
       audience: "game-runtime",
       capability: "simulate",
-      parameters: { type: "object", properties: { request: { type: "object" } }, required: ["request"] },
+      parameters: {
+        type: "object",
+        properties: { request: { type: "object" } },
+        required: ["request"],
+      },
       validate: (args): args is { request: RuntimeAiRequest } =>
         isRecord(args) && isRecord(args.request) && typeof args.request.id === "string",
       async execute(args) {
-        return simulation.simulate((args as { request: RuntimeAiRequest }).request);
+        const result = await simulation.simulate((args as { request: RuntimeAiRequest }).request);
+        if (result.executed !== false || result.stateMutated !== false) {
+          throw new Error("Runtime simulation violated the no-mutation contract");
+        }
+        if (result.stateVersion !== result.observation.state.stateVersion) {
+          throw new Error("Runtime simulation state version does not match its observation");
+        }
+        return {
+          ...result,
+          verified: true,
+          execution: {
+            executed: false,
+            stateMutated: false,
+            stateVersion: result.stateVersion,
+          },
+        };
       },
     });
   }
