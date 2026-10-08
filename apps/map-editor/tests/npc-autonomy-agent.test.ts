@@ -116,11 +116,11 @@ describe("NPC autonomy agent", () => {
     const agent = createNpcAutonomyAgent({ run } as unknown as RuntimeOrchestrator);
 
     const result = await agent.tick(request(), [
-      { kind: "recover-energy", urgency: 90, importance: 80, reason: "Authoritative NPC need state reports high energy need." },
+      { kind: "eat", urgency: 90, importance: 80, reason: "Authoritative NPC need state reports high hunger need." },
       { kind: "work", urgency: 50, importance: 70, reason: "Authoritative schedule activity is due." },
     ]);
 
-    expect(result.goal.kind).toBe("recover-energy");
+    expect(result.goal?.kind).toBe("eat");
     expect(result.goal.score).toBe(90 * 0.7 + 80 * 0.3);
     expect(run).toHaveBeenCalledWith(
       expect.objectContaining({ goal: "recover-energy" }),
