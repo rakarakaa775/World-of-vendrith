@@ -16,7 +16,8 @@ export function selectNpcGoal(candidates: readonly NpcGoalCandidate[]): NpcGoalS
   if (candidates.length === 0) return { kind: "idle", score: 0, reason: "No autonomous goal candidates were available." };
   return candidates.map(candidate => ({
     kind: candidate.kind,
-    score: bounded(candidate.urgency) * 0.7 + bounded(candidate.importance) * 0.3,
+    score: bounded(candidate.urgency),
+    importance: bounded(candidate.importance),
     reason: candidate.reason,
-  })).sort((a,b) => b.score-a.score || a.kind.localeCompare(b.kind))[0];
+  })).sort((a,b) => b.score-a.score || b.importance-a.importance || a.kind.localeCompare(b.kind))[0];
 }
