@@ -37,7 +37,7 @@ describe("NPC cross-agent coordination", () => {
   it("accepts only proposals addressed to the observing NPC", () => {
     const store = new InMemoryNpcCoordinationStore();
     const request = proposeNpcCoordination(observation(), "npc-2", "guard", "respond-to-event", "Guard the area.", 90);
-    const targetObservation = { ...observation(), perception: { ...observation().perception!, self: { ...observation().perception!.self!, id: "npc-2" } } };
+    const targetObservation = { ...observation(), perception: { ...observation().perception!, self: { ...observation().perception!.self!, id: "npc-2" }, nearbyEntities: [{ id: "npc-1", kind: "npc", mapId: "region-1", position: { x: 0, y: 0 }, state: {} }] } };
     const result = evaluateNpcCoordination(targetObservation, request, store);
     expect(result.accepted).toBe(true);
     expect(store.list("npc-2")).toHaveLength(1);
