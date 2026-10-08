@@ -165,6 +165,7 @@ export async function POST(request: Request) {
       mode?: "explain" | "plan" | "execute" | "high-risk";
       sessionId?: string;
       title?: string;
+      context?: { type: "world" | "region" | "playable"; id: string };
     };
     const prompt = body.prompt?.trim();
     if (!prompt) return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
@@ -177,11 +178,27 @@ export async function POST(request: Request) {
 
     const supabase = createSupabase(auth.token);
     const store = new PersistentWebAiSessionStore(supabase, auth.user.id);
+    const requestedContext = body.context && typeof body.context === "object"
+      ? body.context
+      : undefined;
+    if (requestedContext && (!["world", "region", "playable"].includes(requestedContext.type) || typeof requestedContext.id !== "string" || requestedContext.id.length > 128)) {
+      return NextResponse.json({ error: "Invalid world context." }, { status: 400 });
+    }
+
     const session = body.sessionId
       ? await store.getSession(body.sessionId)
-      : await store.createSession(body.title);
+      : await store.createSession(body.title, requestedContext);
     if (!session) return NextResponse.json({ error: "AI session not found." }, { status: 404 });
     if (session.status !== "active") return NextResponse.json({ error: "AI session is archived." }, { status: 409 });
+
+    const context = session.contextId && session.contextType
+      ? { type: session.contextType, id: session.contextId }
+      : undefined;
+
+    if (context) {
+      const expectedType = context.type === "world" ? "world" : context.type === "region" ? "region" : "playable";
+      await resolveAuthoritativeMap(supabase, context.id, expectedType);
+    }
 
     const history = await store.loadHistory(session.id);
     await store.appendMessage(session.id, "user", prompt);
@@ -192,6 +209,7 @@ export async function POST(request: Request) {
       prompt,
       conversation: history.map(item => ({ role: item.role, content: item.content })),
       audience: "web-creator",
+      worldContext: context,
     });
 
     const assistantMessage = await store.appendMessage(session.id, "assistant", result.response.content);
