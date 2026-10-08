@@ -19,6 +19,8 @@ export type PersistentWebAiSession = {
   audience: "web-creator";
   title: string | null;
   status: "active" | "archived";
+  contextType: "world" | "region" | "playable" | null;
+  contextId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -29,6 +31,8 @@ type SessionRow = {
   audience: "web-creator";
   title: string | null;
   status: "active" | "archived";
+  context_type: "world" | "region" | "playable" | null;
+  context_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -43,12 +47,12 @@ type MessageRow = {
 export class PersistentWebAiSessionStore {
   constructor(private readonly client: SupabaseClient, private readonly userId: string) {}
 
-  async createSession(title?: string): Promise<PersistentWebAiSession> {
+  async createSession(title?: string, context?: { type: "world" | "region" | "playable"; id: string }): Promise<PersistentWebAiSession> {
     const cleanTitle = title?.trim().slice(0, WEB_AI_SESSION_POLICY.maxSessionTitleLength) || null;
     const { data, error } = await this.client
       .from("vendrith_ai_sessions")
-      .insert({ user_id: this.userId, audience: "web-creator", title: cleanTitle })
-      .select("id,user_id,audience,title,status,created_at,updated_at")
+      .insert({ user_id: this.userId, audience: "web-creator", title: cleanTitle, context_type: context?.type ?? null, context_id: context?.id ?? null })
+      .select("id,user_id,audience,title,status,context_type,context_id,created_at,updated_at")
       .single();
     if (error || !data) throw new Error(error?.message ?? "Failed to create AI session.");
     return mapSession(data as SessionRow);
@@ -107,6 +111,8 @@ function mapSession(row: SessionRow): PersistentWebAiSession {
     audience: row.audience,
     title: row.title,
     status: row.status,
+    contextType: row.context_type,
+    contextId: row.context_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
