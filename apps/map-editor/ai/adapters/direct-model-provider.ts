@@ -94,7 +94,7 @@ export class DirectModelProvider implements ModelProviderPort {
       process.env.VENDRITH_AI_MODEL ??
       "gpt-5";
 
-    const response = await fetch(`${baseUrl.replace(/\\/$/, "")}/chat/completions`, {
+    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
