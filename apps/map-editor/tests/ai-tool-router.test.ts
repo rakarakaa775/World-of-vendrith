@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createToolRouter, type ToolDefinition } from "../ai/ports/tool-router";
 import { createVendrithAgentOrchestrator } from "../ai/application/agent-orchestrator";
 import { createDevelopmentWorkflowTools, type DevelopmentWorkflowPort } from "../ai/ports/development-tools";
+import { createRepositoryDevelopmentWorkflowProvider } from "../ai/application/development-workflow-provider";
 
 function tool(name: string, audience: "web-creator" | "development"): ToolDefinition {
   return {
