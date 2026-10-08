@@ -67,7 +67,8 @@ export class RepositoryCodeGraphAdapter implements CodeIntelligencePort {
   }
 
   async findCallChain(symbol: string): Promise<Array<{ path: string; excerpt: string }>> {
-    return this.repository.search(symbol).filter((result) => /\\b(?:call|execute|invoke|run|await)\\b/i.test(result.excerpt));
+    const results = await this.repository.search(symbol);
+    return results.filter((result) => /\\b(?:call|execute|invoke|run|await)\\b/i.test(result.excerpt));
   }
 
   async findDependents(path: string): Promise<string[]> {
