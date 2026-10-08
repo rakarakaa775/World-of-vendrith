@@ -28,7 +28,7 @@ export interface RuntimeRunResult {
 export interface RuntimeOrchestrator {
   run(
     request: RuntimeAiRequest,
-    authorization?: { approved?: boolean },
+    authorization?: { approved?: boolean; maxActions?: number },
   ): Promise<RuntimeRunResult>;
 }
 
@@ -62,9 +62,15 @@ export function createRuntimeOrchestrator(
         );
       }
 
+      const maxActions = authorization.maxActions ?? decision.actions.length;
+      if (!Number.isInteger(maxActions) || maxActions < 0) {
+        throw new Error("Runtime maxActions must be a non-negative integer.");
+      }
+
+      const actions = decision.actions.slice(0, maxActions);
       const executions: RuntimeActionExecution[] = [];
 
-      for (const action of decision.actions) {
+      for (const action of actions) {
         const approved = authorization.approved === true;
         if (!canExecuteRuntimeActionForSurface(
           action,
