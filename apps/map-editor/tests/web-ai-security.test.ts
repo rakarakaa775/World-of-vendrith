@@ -3,50 +3,69 @@ import {
   consumeWebAiRequestBudget,
   requestBodyExceedsWebAiLimit,
   WEB_AI_SECURITY_POLICY,
-} from "../application/web-ai-security";
+} from "../ai/application/web-ai-security";
+
+function createRateLimitClient(response: Record<string, unknown>) {
+  return {
+    rpc: async () => ({
+      data: response,
+      error: null,
+    }),
+  };
+}
 
 describe("web AI security budget", () => {
-  it("allows requests up to the per-user window budget", () => {
-    const now = 1_000_000;
+  it("uses the distributed authenticated-user rate-limit RPC", async () => {
+    const client = createRateLimitClient({
+      allowed: true,
+      remaining: WEB_AI_SECURITY_POLICY.maxRequestsPerUser - 1,
+      retryAfterSeconds: 0,
+    });
 
-    for (let index = 0; index < WEB_AI_SECURITY_POLICY.maxRequestsPerUser; index += 1) {
-      const result = consumeWebAiRequestBudget("user-budget", now);
-      expect(result.allowed).toBe(true);
-    }
+    const result = await consumeWebAiRequestBudget(client, "user-budget");
 
-    const blocked = consumeWebAiRequestBudget("user-budget", now);
-    expect(blocked.allowed).toBe(false);
-    expect(blocked.remaining).toBe(0);
-    expect(blocked.retryAfterSeconds).toBe(60);
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(19);
+    expect(result.retryAfterSeconds).toBe(0);
   });
 
-  it("resets a user's budget after the window", () => {
-    const now = 2_000_000;
+  it("returns a distributed 429 budget decision without local process state", async () => {
+    const client = createRateLimitClient({
+      allowed: false,
+      remaining: 0,
+      retryAfterSeconds: 37,
+    });
 
-    for (let index = 0; index < WEB_AI_SECURITY_POLICY.maxRequestsPerUser; index += 1) {
-      consumeWebAiRequestBudget("user-reset", now);
-    }
+    const result = await consumeWebAiRequestBudget(client, "user-budget");
 
-    const nextWindow = consumeWebAiRequestBudget(
-      "user-reset",
-      now + WEB_AI_SECURITY_POLICY.windowMs,
-    );
-
-    expect(nextWindow.allowed).toBe(true);
-    expect(nextWindow.remaining).toBe(
-      WEB_AI_SECURITY_POLICY.maxRequestsPerUser - 1,
-    );
+    expect(result.allowed).toBe(false);
+    expect(result.remaining).toBe(0);
+    expect(result.retryAfterSeconds).toBe(37);
   });
 
-  it("keeps budgets isolated per authenticated user", () => {
-    const now = 3_000_000;
+  it("rejects an invalid distributed rate-limit response", async () => {
+    const client = createRateLimitClient({
+      allowed: "yes",
+      remaining: 0,
+      retryAfterSeconds: 0,
+    });
 
-    for (let index = 0; index < WEB_AI_SECURITY_POLICY.maxRequestsPerUser; index += 1) {
-      consumeWebAiRequestBudget("user-a", now);
-    }
+    await expect(
+      consumeWebAiRequestBudget(client, "user-budget"),
+    ).rejects.toThrow("invalid response");
+  });
 
-    expect(consumeWebAiRequestBudget("user-a", now).allowed).toBe(false);
-    expect(consumeWebAiRequestBudget("user-b", now).allowed).toBe(true);
+  it("propagates distributed rate-limit RPC failures", async () => {
+    const client = {
+      rpc: async () => ({
+        data: null,
+        error: { message: "database unavailable" },
+      }),
+    };
+
+    await expect(
+      consumeWebAiRequestBudget(client, "user-budget"),
+    ).rejects.toThrow("database unavailable");
   });
 
   it("rejects request bodies above the bounded size", () => {
