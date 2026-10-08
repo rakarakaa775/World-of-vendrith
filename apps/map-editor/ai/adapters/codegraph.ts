@@ -1,8 +1,12 @@
 import type { CodeIntelligencePort, RepositoryPort } from "../ports/project-tools";
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\const IMPORT_RE");
+}
+
 const IMPORT_RE = /(?:import|export)\s+(?:type\s+)?(?:[^"']+from\s+)?["']([^"']+)["']/g;
 
-function escapeRegExp(value: string): string {\n  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\function normalize(path: string): string {");\n}\n\nfunction normalize(path: string): string {
+function normalize(path: string): string {
   return path.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
