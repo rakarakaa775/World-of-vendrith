@@ -88,3 +88,5 @@ export * from "./application/web-ai-security";
 export * from "./application/persistent-ai-session";
 
 export * from "./application/runtime-intent-consumer";
+
+export * from "./application/supabase-runtime-intent-executor";
