@@ -94,6 +94,16 @@ export function createGitHubDevelopmentRepositoryExecutor(config: {
       }
 
       if (current && action.expectedSha !== current.sha) {
+        if (decodeContent(current) === action.content) {
+          return {
+            verified: true,
+            idempotent: true,
+            path,
+            branch: config.ref,
+            blobSha: current.sha ?? null,
+            commitSha: null,
+          };
+        }
         throw new Error("Repository file changed since proposal; expectedSha does not match");
       }
       if (!current && action.expectedSha) {
