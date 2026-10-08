@@ -1,64 +1,158 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { DirectModelProvider, GitHubHttpRepositoryAdapter, ProjectDocumentationAdapter, RepositoryCodeGraphAdapter, createSupabaseAssetRegistryAdapter, createProjectTools, createToolRouter, createVendrithAgentOrchestrator, consumeWebAiRequestBudget, requestBodyExceedsWebAiLimit } from "../../../ai";
+import {
+  DirectModelProvider,
+  GitHubHttpRepositoryAdapter,
+  ProjectDocumentationAdapter,
+  RepositoryCodeGraphAdapter,
+  PersistentWebAiSessionStore,
+  createSupabaseAssetRegistryAdapter,
+  createProjectTools,
+  createToolRouter,
+  createVendrithAgentOrchestrator,
+  consumeWebAiRequestBudget,
+  requestBodyExceedsWebAiLimit,
+} from "../../../ai";
 import { resolveAuthoritativeMap } from "../../../editor/map-authoritative-resolver";
 
 export const runtime = "nodejs";
 const MAX_PROMPT_LENGTH = 4000;
-const MAX_HISTORY_MESSAGES = 12;
-const MAX_HISTORY_MESSAGE_LENGTH = 4000;
 
 function createRepository() {
-  return new GitHubHttpRepositoryAdapter({ owner: process.env.VENDRITH_GITHUB_OWNER ?? "rakarakaa775", repository: process.env.VENDRITH_GITHUB_REPOSITORY ?? "World-of-vendrith", ref: process.env.VENDRITH_GITHUB_REF ?? "feat/vendrith-ecc-v1" });
+  return new GitHubHttpRepositoryAdapter({
+    owner: process.env.VENDRITH_GITHUB_OWNER ?? "rakarakaa775",
+    repository: process.env.VENDRITH_GITHUB_REPOSITORY ?? "World-of-vendrith",
+    ref: process.env.VENDRITH_GITHUB_REF ?? "feat/vendrith-ecc-v1",
+  });
 }
+
 function createSupabase(accessToken?: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://ojtmfokjcirvjvhnbnos.supabase.co";
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "sb_publishable_DIe0amy6Q4qVXV6srZTCRQ_DHe6NANN";
   return createClient(url, key, accessToken ? { global: { headers: { Authorization: `Bearer ${accessToken}` } } } : undefined);
 }
+
 function createVerification(repository: GitHubHttpRepositoryAdapter) {
-  return { async verify(scope: string[]) { const checks = await Promise.all(scope.map(async item => { const matches = await repository.search(item); return { name: `repository-search:${item}`, ok: matches.length > 0, detail: `${matches.length} matching files` }; })); return { ok: checks.every(check => check.ok), checks }; } };
+  return {
+    async verify(scope: string[]) {
+      const checks = await Promise.all(scope.map(async item => {
+        const matches = await repository.search(item);
+        return { name: `repository-search:${item}`, ok: matches.length > 0, detail: `${matches.length} matching files` };
+      }));
+      return { ok: checks.every(check => check.ok), checks };
+    },
+  };
 }
+
 function createMapInspector(client: ReturnType<typeof createSupabase>) {
-  return { async resolveMap(mapId: string) { try {
-    const resolved = await resolveAuthoritativeMap(client, mapId);
-    const document = resolved.document;
-    return { version: resolved.version, source: "supabase:map_editor_load_identity_snapshot_v1", document: {
-      id: document.id, name: document.name, mapType: document.mapType, parentMapId: document.parentMapId, width: document.width, height: document.height, tileSize: document.tileSize,
-      playableSpace: document.playableSpace, parentPlayableMapId: document.parentPlayableMapId,
-      layers: document.layers.map(layer => ({ id: layer.id, name: layer.name, kind: layer.kind, visible: layer.visible, cells: layer.cells.map(cell => ({ tileId: cell.tileId })), objects: layer.objects.map(object => ({ id: object.id, kind: object.kind, category: object.category, x: object.x, y: object.y, width: object.width, height: object.height, assetId: object.assetId, assetName: object.assetName, playableMapId: object.playableMapId, childMapId: object.childMapId, interiorMapId: object.interiorMapId })) }))
-    } };
-  } catch { return null; } } };
+  return {
+    async resolveMap(mapId: string) {
+      try {
+        const resolved = await resolveAuthoritativeMap(client, mapId);
+        const document = resolved.document;
+        return {
+          version: resolved.version,
+          source: "supabase:map_editor_load_identity_snapshot_v1",
+          document: {
+            id: document.id,
+            name: document.name,
+            mapType: document.mapType,
+            parentMapId: document.parentMapId,
+            width: document.width,
+            height: document.height,
+            tileSize: document.tileSize,
+            playableSpace: document.playableSpace,
+            parentPlayableMapId: document.parentPlayableMapId,
+            layers: document.layers.map(layer => ({
+              id: layer.id,
+              name: layer.name,
+              kind: layer.kind,
+              visible: layer.visible,
+              cells: layer.cells.map(cell => ({ tileId: cell.tileId })),
+              objects: layer.objects.map(object => ({
+                id: object.id,
+                kind: object.kind,
+                category: object.category,
+                x: object.x,
+                y: object.y,
+                width: object.width,
+                height: object.height,
+                assetId: object.assetId,
+                assetName: object.assetName,
+                playableMapId: object.playableMapId,
+                childMapId: object.childMapId,
+                interiorMapId: object.interiorMapId,
+              })),
+            })),
+          },
+        };
+      } catch {
+        return null;
+      }
+    },
+  };
 }
-function parseConversation(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value.slice(-MAX_HISTORY_MESSAGES)
-    .filter((item): item is { role: "user" | "assistant"; content: string } => typeof item === "object" && item !== null && (((item as any).role === "user") || ((item as any).role === "assistant")) && typeof (item as any).content === "string")
-    .map(item => ({ role: item.role, content: item.content.trim().slice(0, MAX_HISTORY_MESSAGE_LENGTH) }))
-    .filter(item => item.content.length > 0);
-}
+
 function createOrchestrator(accessToken: string) {
   const repository = createRepository();
   const documentation = new ProjectDocumentationAdapter(repository);
   const codeIntelligence = new RepositoryCodeGraphAdapter(repository);
   const supabase = createSupabase(accessToken);
   const assetRegistry = createSupabaseAssetRegistryAdapter(supabase);
-  const tools = createProjectTools({ repository, documentation, codeIntelligence, assetRegistry, verification: createVerification(repository), mapInspector: createMapInspector(supabase) });
-  return createVendrithAgentOrchestrator({ modelProvider: new DirectModelProvider(), toolRouter: createToolRouter(tools) });
+  const tools = createProjectTools({
+    repository,
+    documentation,
+    codeIntelligence,
+    assetRegistry,
+    verification: createVerification(repository),
+    mapInspector: createMapInspector(supabase),
+  });
+  return createVendrithAgentOrchestrator({
+    modelProvider: new DirectModelProvider(),
+    toolRouter: createToolRouter(tools),
+  });
 }
+
+async function authenticate(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) return null;
+
+  const authSupabase = createSupabase();
+  const { data, error } = await authSupabase.auth.getUser(token);
+  if (error || !data.user) return null;
+  return { token, user: data.user };
+}
+
+export async function GET(request: Request) {
+  try {
+    const auth = await authenticate(request);
+    if (!auth) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
+
+    const sessionId = new URL(request.url).searchParams.get("sessionId");
+    if (!sessionId) return NextResponse.json({ error: "sessionId is required." }, { status: 400 });
+
+    const store = new PersistentWebAiSessionStore(createSupabase(auth.token), auth.user.id);
+    const session = await store.getSession(sessionId);
+    if (!session) return NextResponse.json({ error: "AI session not found." }, { status: 404 });
+
+    const messages = await store.loadHistory(session.id);
+    return NextResponse.json({ session, messages });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to load Vendrith AI session." }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (!token) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    const auth = await authenticate(request);
+    if (!auth) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
+
     if (requestBodyExceedsWebAiLimit(request.headers.get("content-length"))) {
       return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
     }
-    const authSupabase = createSupabase();
-    const { data: authData, error: authError } = await authSupabase.auth.getUser(token);
-    if (authError || !authData.user) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
 
-    const rateLimit = consumeWebAiRequestBudget(authData.user.id);
+    const rateLimit = consumeWebAiRequestBudget(auth.user.id);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Web AI request rate limit exceeded.", retryAfterSeconds: rateLimit.retryAfterSeconds },
@@ -66,13 +160,53 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json() as { prompt?: string; mode?: "explain" | "plan" | "execute" | "high-risk"; conversation?: unknown };
+    const body = await request.json() as {
+      prompt?: string;
+      mode?: "explain" | "plan" | "execute" | "high-risk";
+      sessionId?: string;
+      title?: string;
+    };
     const prompt = body.prompt?.trim();
     if (!prompt) return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     if (prompt.length > MAX_PROMPT_LENGTH) return NextResponse.json({ error: `Prompt is too long (maximum ${MAX_PROMPT_LENGTH} characters).` }, { status: 413 });
+
     const mode = body.mode ?? "explain";
-    if (mode !== "explain" && mode !== "plan") return NextResponse.json({ error: "The Web/Creator AI endpoint currently exposes read/analyze modes only." }, { status: 403 });
-    const result = await createOrchestrator(token).run({ id: crypto.randomUUID(), mode, prompt, conversation: parseConversation(body.conversation), audience: "web-creator" });
-    return NextResponse.json({ response: result.response.content, model: result.response.model, provider: result.response.provider, iterations: result.iterations, approval: result.approval, evidence: result.evidence, toolResults: result.toolResults.map(item => ({ id: item.id, name: item.name, ok: item.ok, error: item.error })) });
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Vendrith AI request failed." }, { status: 500 }); }
+    if (mode !== "explain" && mode !== "plan") {
+      return NextResponse.json({ error: "The Web/Creator AI endpoint currently exposes read/analyze modes only." }, { status: 403 });
+    }
+
+    const supabase = createSupabase(auth.token);
+    const store = new PersistentWebAiSessionStore(supabase, auth.user.id);
+    const session = body.sessionId
+      ? await store.getSession(body.sessionId)
+      : await store.createSession(body.title);
+    if (!session) return NextResponse.json({ error: "AI session not found." }, { status: 404 });
+    if (session.status !== "active") return NextResponse.json({ error: "AI session is archived." }, { status: 409 });
+
+    const history = await store.loadHistory(session.id);
+    await store.appendMessage(session.id, "user", prompt);
+
+    const result = await createOrchestrator(auth.token).run({
+      id: crypto.randomUUID(),
+      mode,
+      prompt,
+      conversation: history.map(item => ({ role: item.role, content: item.content })),
+      audience: "web-creator",
+    });
+
+    const assistantMessage = await store.appendMessage(session.id, "assistant", result.response.content);
+
+    return NextResponse.json({
+      sessionId: session.id,
+      response: assistantMessage.content,
+      model: result.response.model,
+      provider: result.response.provider,
+      iterations: result.iterations,
+      approval: result.approval,
+      evidence: result.evidence,
+      toolResults: result.toolResults.map(item => ({ id: item.id, name: item.name, ok: item.ok, error: item.error })),
+    });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Vendrith AI request failed." }, { status: 500 });
+  }
 }
