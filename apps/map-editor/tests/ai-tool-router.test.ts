@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createToolRouter, type ToolDefinition } from "../ai/ports/tool-router";
+import { createVendrithAgentOrchestrator } from "../ai/application/agent-orchestrator";
 
 function tool(name: string, audience: "web-creator" | "development"): ToolDefinition {
   return {
