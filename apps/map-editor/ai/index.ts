@@ -81,4 +81,3 @@ export * from "./application/development-workflow-provider";
 export * from "./ports/runtime-tools";
 export * from "./application/runtime-tool-registry";
 export * from "./application/npc-autonomy-agent";
-export * from "./domain/npc-autonomy";
