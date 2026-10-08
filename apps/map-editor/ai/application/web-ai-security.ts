@@ -6,19 +6,14 @@ export const WEB_AI_SECURITY_POLICY = {
   maxIterationsPerRun: 4,
 } as const;
 
-interface RateBucket {
-  windowStartedAt: number;
-  count: number;
-}
-
-const buckets = new Map<string, RateBucket>();
-
-function pruneExpiredBuckets(now: number) {
-  for (const [key, bucket] of buckets) {
-    if (now - bucket.windowStartedAt >= WEB_AI_SECURITY_POLICY.windowMs) {
-      buckets.delete(key);
-    }
-  }
+interface RateLimitRpcClient {
+  rpc(
+    functionName: string,
+    args: Record<string, unknown>,
+  ): Promise<{
+    data: unknown;
+    error: { message: string } | null;
+  }>;
 }
 
 export interface WebAiRateLimitResult {
@@ -27,43 +22,30 @@ export interface WebAiRateLimitResult {
   retryAfterSeconds: number;
 }
 
-export function consumeWebAiRequestBudget(
+export async function consumeWebAiRequestBudget(
+  client: RateLimitRpcClient,
   userId: string,
-  now = Date.now(),
-): WebAiRateLimitResult {
-  pruneExpiredBuckets(now);
+): Promise<WebAiRateLimitResult> {
+  const { data, error } = await client.rpc(
+    "consume_vendrith_web_ai_rate_limit_v1",
+    { p_user_id: userId },
+  );
 
-  const current = buckets.get(userId);
-  if (!current || now - current.windowStartedAt >= WEB_AI_SECURITY_POLICY.windowMs) {
-    buckets.set(userId, { windowStartedAt: now, count: 1 });
-    return {
-      allowed: true,
-      remaining: WEB_AI_SECURITY_POLICY.maxRequestsPerUser - 1,
-      retryAfterSeconds: 0,
-    };
+  if (error) {
+    throw new Error(`Web AI distributed rate limiter failed: ${error.message}`);
   }
 
-  if (current.count >= WEB_AI_SECURITY_POLICY.maxRequestsPerUser) {
-    return {
-      allowed: false,
-      remaining: 0,
-      retryAfterSeconds: Math.max(
-        1,
-        Math.ceil(
-          (WEB_AI_SECURITY_POLICY.windowMs -
-            (now - current.windowStartedAt)) /
-            1000,
-        ),
-      ),
-    };
+  if (
+    !data ||
+    typeof data !== "object" ||
+    typeof (data as Record<string, unknown>).allowed !== "boolean" ||
+    typeof (data as Record<string, unknown>).remaining !== "number" ||
+    typeof (data as Record<string, unknown>).retryAfterSeconds !== "number"
+  ) {
+    throw new Error("Web AI distributed rate limiter returned an invalid response.");
   }
 
-  current.count += 1;
-  return {
-    allowed: true,
-    remaining: WEB_AI_SECURITY_POLICY.maxRequestsPerUser - current.count,
-    retryAfterSeconds: 0,
-  };
+  return data as WebAiRateLimitResult;
 }
 
 export function requestBodyExceedsWebAiLimit(
