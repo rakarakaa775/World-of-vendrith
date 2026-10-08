@@ -120,7 +120,7 @@ async function authenticate(request: Request) {
 
   const authSupabase = createSupabase();
   const { data, error } = await authSupabase.auth.getUser(token);
-  if (error || !data.user) return null;
+  if (error || !data.user || data.user.is_anonymous) return null;
   return { token, user: data.user };
 }
 
