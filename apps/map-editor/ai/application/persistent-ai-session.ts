@@ -41,13 +41,13 @@ type MessageRow = {
 };
 
 export class PersistentWebAiSessionStore {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly userId: string) {}
 
   async createSession(title?: string): Promise<PersistentWebAiSession> {
     const cleanTitle = title?.trim().slice(0, WEB_AI_SESSION_POLICY.maxSessionTitleLength) || null;
     const { data, error } = await this.client
       .from("vendrith_ai_sessions")
-      .insert({ audience: "web-creator", title: cleanTitle })
+      .insert({ user_id: this.userId, audience: "web-creator", title: cleanTitle })
       .select("id,user_id,audience,title,status,created_at,updated_at")
       .single();
     if (error || !data) throw new Error(error?.message ?? "Failed to create AI session.");
@@ -85,7 +85,7 @@ export class PersistentWebAiSessionStore {
     if (!cleanContent) throw new Error("AI session message cannot be empty.");
     const { data, error } = await this.client
       .from("vendrith_ai_messages")
-      .insert({ session_id: sessionId, role, content: cleanContent })
+      .insert({ session_id: sessionId, user_id: this.userId, role, content: cleanContent })
       .select("id,role,content,created_at")
       .single();
     if (error || !data) throw new Error(error?.message ?? "Failed to persist AI session message.");
