@@ -90,3 +90,5 @@ export * from "./application/persistent-ai-session";
 export * from "./application/runtime-intent-consumer";
 
 export * from "./application/supabase-runtime-intent-executor";
+
+export * from "./application/runtime-recovery";
