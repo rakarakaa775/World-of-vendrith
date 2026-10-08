@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const row = Array.isArray(data) ? data[0] : data;
     return NextResponse.json({
       approved: true,
-      execution: "not_connected",
+      execution: "ready_after_approval",
       proposal: row ?? null,
     });
   } catch (error) {
