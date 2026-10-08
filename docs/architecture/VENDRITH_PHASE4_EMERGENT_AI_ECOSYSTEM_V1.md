@@ -94,6 +94,10 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Isolate Development AI behind a dedicated `development` audience and API surface.
 - [x] Wire repository/code-graph inspection through an explicit Development Workflow provider boundary.
 - [x] Treat ECC/Agent Skills as external workflow capabilities rather than implicit permissions.
+- [x] Durable development-action proposal storage with user ownership and RLS.
+- [x] Safe approval RPC for development actions.
+- [x] Durable development approval audit trail.
+- [x] Authenticated approval API requires explicit `approve: true`.
 - [ ] Connect ECC/Agent Skills through an explicit high-risk development workflow.
 - [ ] Require approval for repository mutation, database mutation, deployment, and destructive operations.
 - [ ] Verify mutation results before reporting success.
@@ -130,4 +134,4 @@ Phase 4.1 has started with a Web AI request-security boundary:
 - existing bounded prompt/history;
 - existing tool-loop budget.
 
-Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.6 Development AI**. Development AI now has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Execute/high-risk requests fail closed until an approved ECC/Agent Skills mutation workflow is connected.
+Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.6 Development AI**. Development AI now has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Development mutations now have a durable proposal and explicit approval boundary, but actual ECC/Agent Skills mutation execution remains fail-closed until its executor is connected and verified.
