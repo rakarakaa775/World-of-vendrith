@@ -7,6 +7,14 @@ describe("PersistentWebAiSessionStore policy", () => {
     expect(WEB_AI_SESSION_POLICY.maxStoredMessageLength).toBe(4000);
   });
 
+  it("supports only authoritative world hierarchy context types", () => {
+    const allowed = ["world", "region", "playable"] as const;
+    expect(allowed).toContain("world");
+    expect(allowed).toContain("region");
+    expect(allowed).toContain("playable");
+    expect(allowed).not.toContain("runtime");
+  });
+
   it("keeps session titles bounded", () => {
     expect(WEB_AI_SESSION_POLICY.maxSessionTitleLength).toBe(120);
   });
