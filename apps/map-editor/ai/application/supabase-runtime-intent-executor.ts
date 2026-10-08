@@ -44,7 +44,7 @@ export function createSupabaseRuntimeIntentExecutor(
       const leaseResponse = await client.rpc("acquire_world_runtime_lease_v1", {
         p_world_id: worldId,
         p_lease_token: leaseToken,
-        p_duration_seconds: 15,
+        p_duration_seconds: 60,
       });
       if (leaseResponse.error) {
         return { ok: false, result: { code: "RUNTIME_LEASE_ERROR", detail: leaseResponse.error.message } };
@@ -135,6 +135,15 @@ export function createSupabaseRuntimeIntentExecutor(
       }
 
       const after = engine.bridge.snapshot();
+      const leaseRenewal = await client.rpc("renew_world_runtime_lease_v1", {
+        p_world_id: worldId,
+        p_lease_token: leaseToken,
+        p_duration_seconds: 60,
+      });
+      if (leaseRenewal.error || firstRow(leaseRenewal.data as unknown as Record<string, unknown>[] | Record<string, unknown> | null)?.renewed !== true) {
+        return { ok: false, result: { code: "RUNTIME_LEASE_RENEWAL_FAILED", detail: leaseRenewal.error?.message ?? "Runtime lease could not be renewed.", retryable: true } };
+      }
+
       const mutation = {
         mutation_id: mutationId,
         mutation_type: "ai_runtime_intent",
