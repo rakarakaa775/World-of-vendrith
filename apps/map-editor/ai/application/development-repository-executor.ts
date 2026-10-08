@@ -32,6 +32,9 @@ function requireSafePath(path: string): string {
   if (/^(?:\.env(?:\.|$)|.*\.(?:pem|key|p12|pfx))$/i.test(normalized)) {
     throw new Error("Secret or private-key files cannot be modified by Development AI");
   }
+  if (normalized === ".github/workflows" || normalized.startsWith(".github/workflows/")) {
+    throw new Error("GitHub Actions workflow files require a dedicated deployment workflow and cannot be modified here");
+  }
   return normalized;
 }
 
