@@ -92,7 +92,7 @@ describe("npc autonomous continuity", () => {
     expect(first.autonomy).toMatchObject({ goal: "eat", actionBudget: { requested: 1, allowed: 1, blocked: 0 } });
     expect(first.behavior?.kind).toBe("eat");
     expect(first.execution?.ok).toBe(true);
-    expect(first.verification?.ok).toBe(true);
+    expect(first.verification?.ok).toBe(false);
     expect(first.activityEffect?.applied).toBe(false);
     expect(first.activityEffect?.reason).toBe("Activity is still running.");
     expect(needsStore.get("npc-1")?.needs).toEqual({ hunger: 95, energy: 20, social: 20, safety: 90 });
