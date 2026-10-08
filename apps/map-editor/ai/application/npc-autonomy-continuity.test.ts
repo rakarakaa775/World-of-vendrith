@@ -102,17 +102,18 @@ describe("npc autonomous continuity", () => {
       elapsedTicks: 1,
     });
 
-    store.snapshot = (() => {
-      const base = store.snapshot();
-      return () => ({
-        ...base,
+    const snapshotBeforeTickTwo = store.snapshot.bind(store);
+    store.snapshot = () => {
+      const current = snapshotBeforeTickTwo();
+      return {
+        ...current,
         state: {
-          ...base.state,
-          clock: { ...base.state.clock, tick: 2 },
+          ...current.state,
+          clock: { ...current.state.clock, tick: 2 },
           stateVersion: "state-2",
         },
-      });
-    })();
+      };
+    };
 
     const second = await runNpcRuntimeTick(
       { ...request, id: "npc-continuity-2" },
@@ -137,17 +138,18 @@ describe("npc autonomous continuity", () => {
       elapsedTicks: 2,
     });
 
-    store.snapshot = (() => {
-      const base = store.snapshot();
-      return () => ({
-        ...base,
+    const snapshotBeforeTickThree = store.snapshot.bind(store);
+    store.snapshot = () => {
+      const current = snapshotBeforeTickThree();
+      return {
+        ...current,
         state: {
-          ...base.state,
-          clock: { ...base.state.clock, tick: 3 },
+          ...current.state,
+          clock: { ...current.state.clock, tick: 3 },
           stateVersion: "state-3",
         },
-      });
-    })();
+      };
+    };
 
     const third = await runNpcRuntimeTick(
       { ...request, id: "npc-continuity-3" },
