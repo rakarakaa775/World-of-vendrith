@@ -101,4 +101,50 @@ describe("NPC autonomy agent", () => {
     expect(() => createNpcAutonomyAgent(orchestrator, { maxActionsPerTick: -1 })).toThrow();
     expect(() => createNpcAutonomyAgent(orchestrator, { maxActionsPerTick: 1.5 })).toThrow();
   });
+  it("derives the goal from authoritative runtime autonomy signals when candidates are omitted", async () => {
+    const run = vi.fn(async (request: RuntimeAiRequest) => ({
+      request,
+      observation: observation(),
+      decision: decision(),
+      executions: [{
+        actionId: "action-1",
+        ok: true,
+        executed: true,
+        verification: { ok: true, checks: [{ name: "action-1", ok: true }] },
+      }],
+    }));
+    const agent = createNpcAutonomyAgent({ run } as unknown as RuntimeOrchestrator);
+
+    const runtimeRequest = request();
+    runtimeRequest.observation.perception = {
+      self: {
+        id: "npc-1",
+        kind: "npc",
+        mapId: "map-1",
+        position: { x: 1, y: 1 },
+        state: {
+          autonomy: {
+            energy: 10,
+            maxEnergy: 100,
+            scheduledActivityDue: true,
+            scheduleUrgency: 50,
+          },
+        },
+      },
+      nearbyEntities: [],
+      detections: [],
+      visibleMapIds: ["map-1"],
+      environment: {},
+    };
+
+    const result = await agent.tick(runtimeRequest);
+
+    expect(result.goal.kind).toBe("recover-energy");
+    expect(result.goal.score).toBe(90 * 0.7 + 80 * 0.3);
+    expect(run).toHaveBeenCalledWith(
+      expect.objectContaining({ goal: "recover-energy" }),
+      { maxActions: 1 },
+    );
+  });
+
 });
