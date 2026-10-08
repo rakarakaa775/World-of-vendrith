@@ -57,25 +57,14 @@ export function createNpcAutonomyAgent(
         throw new Error("NPC autonomy requires npc runtime intelligence.");
       }
 
-      const result = await orchestrator.run(request);
-
+      const result = await orchestrator.run(request, {
+        maxActions: maxActionsPerTick,
+      });
       const allowedActions = result.decision.actions.slice(0, maxActionsPerTick);
-      const allowedIds = new Set(allowedActions.map((action) => action.id));
-      const executions: RuntimeActionExecution[] = result.executions.map((execution) =>
-        allowedIds.has(execution.actionId)
-          ? execution
-          : {
-              actionId: execution.actionId,
-              ok: false,
-              executed: false,
-              detail: "NPC autonomy action budget blocked this action.",
-            },
-      );
 
       return {
         ...result,
         autonomous: true,
-        executions,
         actionBudget: {
           requested: result.decision.actions.length,
           allowed: allowedActions.length,
