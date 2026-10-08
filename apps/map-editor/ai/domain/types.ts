@@ -30,6 +30,8 @@ export interface AiRequest {
   prompt: string;
   projectPath?: string;
   conversation?: readonly AiConversationMessage[];
+  /** Selects the AI surface and therefore the tools visible to the agent. */
+  audience?: ToolAudience;
 }
 
 export interface AiPlanStep {
