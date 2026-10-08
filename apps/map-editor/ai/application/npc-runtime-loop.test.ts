@@ -375,8 +375,6 @@ describe("npc runtime loop", () => {
     expect(recovered.verification?.ok).toBe(true);
     expect(memory.get("npc-1")).toBeUndefined();
   });
-});
-
   it("uses explicit persistent NPC needs instead of temporary neutral values", async () => {
     const store = makeStore();
     const base = store.snapshot();
@@ -412,6 +410,8 @@ describe("npc runtime loop", () => {
     const result = await runNpcRuntimeTick({
       id: "npc-needs-1", surface: "game", intelligence: "npc", goal: "Respond to hunger", observation: {} as RuntimeObservation,
     }, ports, store);
+    expect(result.autonomous).toBe(true);
+    expect(result.autonomy).toMatchObject({ goal: "eat", actionBudget: { requested: 1, allowed: 1, blocked: 0 } });
     expect(result.behavior?.kind).toBe("eat");
     expect(result.execution?.ok).toBe(true);
     expect(result.verification?.ok).toBe(true);
@@ -420,3 +420,4 @@ describe("npc runtime loop", () => {
     expect(store.snapshot().entities.find(entity => entity.id === "npc-1")?.state?.npcActivity)
       .toMatchObject({ goal: "eat" });
   });
+});
