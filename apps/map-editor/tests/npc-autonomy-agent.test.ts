@@ -124,8 +124,7 @@ describe("NPC autonomy agent", () => {
         position: { x: 1, y: 1 },
         state: {
           autonomy: {
-            energy: 10,
-            maxEnergy: 100,
+            energyNeed: 90,
             scheduledActivityDue: true,
             scheduleUrgency: 50,
           },
