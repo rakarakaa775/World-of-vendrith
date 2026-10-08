@@ -194,6 +194,7 @@ export async function runNpcRuntimeTick(
   relationshipMemoryStore: NpcRelationshipMemoryStore = defaultNpcRelationshipMemoryStore,
   socialMemoryStore = defaultNpcSocialMemoryStore,
   reputationStore = defaultNpcReputationStore,
+  longTermMemoryStore: NpcLongTermMemoryStore = defaultNpcLongTermMemoryStore,
 ): Promise<NpcRuntimeTickResult> {
   const observed = await ports.observation.observe(request);
   const observedSelf = observed.perception?.self;
