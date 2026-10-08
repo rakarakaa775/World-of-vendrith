@@ -65,9 +65,10 @@ export function proposeNpcCoordination(
   priority: number,
   durationTicks = 2,
 ): NpcCoordinationRequest {
-  const self = observation.perception?.self;
-  if (!self || self.kind !== "npc") throw new Error("NPC coordination requires an NPC requester.");
-  if (!observation.perception.nearbyEntities.some(entity => entity.id === targetNpcId && entity.kind === "npc")) {
+  const perception = observation.perception;
+  const self = perception?.self;
+  if (!self || self.kind !== "npc" || !perception) throw new Error("NPC coordination requires an NPC requester.");
+  if (!perception.nearbyEntities.some(entity => entity.id === targetNpcId && entity.kind === "npc")) {
     throw new Error("NPC coordination target must be a nearby NPC.");
   }
   if (!Number.isInteger(durationTicks) || durationTicks < 1) throw new Error("NPC coordination duration must be a positive integer.");
@@ -91,12 +92,13 @@ export function evaluateNpcCoordination(
   request: NpcCoordinationRequest,
   store?: NpcCoordinationStore,
 ): NpcCoordinationProposal {
-  const self = observation.perception?.self;
-  if (!self || self.kind !== "npc") return { request, accepted: false, reason: "Target is not an NPC runtime." };
+  const perception = observation.perception;
+  const self = perception?.self;
+  if (!self || self.kind !== "npc" || !perception) return { request, accepted: false, reason: "Target is not an NPC runtime." };
   if (request.targetNpcId !== self.id) return { request, accepted: false, reason: "Coordination request targets a different NPC." };
   if (request.requesterNpcId === request.targetNpcId) return { request, accepted: false, reason: "NPC coordination cannot target itself." };
   if (isExpired(request, observation.state.clock.tick)) return { request, accepted: false, reason: "Coordination request has expired." };
-  if (!observation.perception.nearbyEntities.some(entity => entity.id === request.requesterNpcId && entity.kind === "npc")) {
+  if (!perception.nearbyEntities.some(entity => entity.id === request.requesterNpcId && entity.kind === "npc")) {
     return { request, accepted: false, reason: "Requester is not currently observable to the target NPC." };
   }
 
