@@ -1,5 +1,7 @@
 import type { AssetRegistryPort, CodeIntelligencePort, DocumentationPort, RepositoryPort, VerificationPort } from "../ports/project-tools";
 import type { MapInspectorPort } from "../ports/map-tools";
+import type { DevelopmentWorkflowPort } from "../ports/development-tools";
+import { createDevelopmentWorkflowTools } from "../ports/development-tools";
 import { hasStringArgument, type ToolDefinition } from "../ports/tool-router";
 import { classifyAssetEvidence } from "../policies/asset-policy";
 import { buildProjectIntelligenceSnapshot } from "./project-intelligence";
@@ -27,6 +29,7 @@ export interface ProjectTools {
   assetRegistry: AssetRegistryPort;
   verification: VerificationPort;
   mapInspector?: MapInspectorPort;
+  developmentWorkflow?: DevelopmentWorkflowPort;
 }
 
 function pathArgument(name: string) { return { type: "object", properties: { [name]: { type: "string" } }, required: [name] }; }
@@ -274,6 +277,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
   }
 
   tools.push(
+    ...createDevelopmentWorkflowTools({ workflow: dependencies.developmentWorkflow }),
     { name: "repository.read_file", description: "Read a text file from the project repository.", audience: "development", capability: "read", parameters: pathArgument("path"), validate: hasStringArgument("path"), async execute(args) { const input = args as { path: string }; return { path: input.path, content: await dependencies.repository.readFile(input.path) }; } },
     { name: "repository.search", description: "Search project repository text for a query.", audience: "development", capability: "read", parameters: pathArgument("query"), validate: hasStringArgument("query"), async execute(args) { return dependencies.repository.search((args as { query: string }).query); } },
     { name: "codegraph.dependencies", description: "Find direct structural dependencies imported by a repository file.", audience: "development", capability: "read", parameters: pathArgument("path"), validate: hasStringArgument("path"), async execute(args) { return dependencies.codeIntelligence.findDependencies((args as { path: string }).path); } },
