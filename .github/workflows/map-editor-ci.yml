@@ -6,10 +6,12 @@ on:
       - "**"
     paths:
       - "apps/map-editor/**"
+      - "database/migrations/**"
       - ".github/workflows/map-editor-ci.yml"
   pull_request:
     paths:
       - "apps/map-editor/**"
+      - "database/migrations/**"
       - ".github/workflows/map-editor-ci.yml"
   workflow_dispatch:
 
