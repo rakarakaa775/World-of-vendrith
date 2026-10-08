@@ -126,7 +126,13 @@ describe("AI tool audience isolation", () => {
 
   it("isolates runtime loop tools to the game-runtime audience", async () => {
     const simulation = {
-      simulate: vi.fn(async (request: any) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
+      simulate: vi.fn(async (request: any) => ({
+        observation: { id: request.id, state: { stateVersion: "v1" } },
+        decision: { id: "decision" },
+        executed: false,
+        stateMutated: false,
+        stateVersion: "v1",
+      })),
     } as unknown as RuntimeSimulationPort;
     const orchestrator = {
       run: vi.fn(async (request: any, authorization: any) => ({ request, authorization })),
@@ -142,7 +148,13 @@ describe("AI tool audience isolation", () => {
 
   it("keeps runtime simulation separate from authoritative execution", async () => {
     const simulation = {
-      simulate: vi.fn(async (request: any) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
+      simulate: vi.fn(async (request: any) => ({
+        observation: { id: request.id, state: { stateVersion: "v1" } },
+        decision: { id: "decision" },
+        executed: false,
+        stateMutated: false,
+        stateVersion: "v1",
+      })),
     } as unknown as RuntimeSimulationPort;
     const orchestrator = {
       run: vi.fn(async (request: any) => ({ request, executions: [] })),
@@ -183,6 +195,53 @@ describe("AI tool audience isolation", () => {
 
     expect(executed.ok).toBe(true);
     expect(orchestrator.run).toHaveBeenCalledWith(request, { approved: false });
+  });
+
+
+
+  it("rejects a simulation result that claims authoritative mutation", async () => {
+    const simulation = {
+      simulate: vi.fn(async () => ({
+        observation: { id: "obs", state: { stateVersion: "v1" } },
+        decision: { id: "decision" },
+        executed: true,
+        stateMutated: true,
+        stateVersion: "v1",
+      })),
+    } as unknown as RuntimeSimulationPort;
+    const router = createToolRouter(createRuntimeTools({ simulation }));
+
+    const result = await router.execute(
+      { id: "simulate-invalid", name: "runtime.simulate", arguments: { request: { id: "runtime-3" } } },
+      { mode: "plan", requestId: "game", audience: "game-runtime" },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("no-mutation contract");
+  });
+
+  it("marks a valid dry-run as verified without executing the runtime orchestrator", async () => {
+    const simulation = {
+      simulate: vi.fn(async () => ({
+        observation: { id: "obs", state: { stateVersion: "v2" } },
+        decision: { id: "decision" },
+        executed: false,
+        stateMutated: false,
+        stateVersion: "v2",
+      })),
+    } as unknown as RuntimeSimulationPort;
+    const router = createToolRouter(createRuntimeTools({ simulation }));
+
+    const result = await router.execute(
+      { id: "simulate-valid", name: "runtime.simulate", arguments: { request: { id: "runtime-4" } } },
+      { mode: "plan", requestId: "game", audience: "game-runtime" },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.result).toEqual(expect.objectContaining({
+      verified: true,
+      execution: { executed: false, stateMutated: false, stateVersion: "v2" },
+    }));
   });
 
   it("allows a development request to select the development audience", async () => {
