@@ -101,7 +101,7 @@ describe("NPC autonomy agent", () => {
     expect(() => createNpcAutonomyAgent(orchestrator, { maxActionsPerTick: -1 })).toThrow();
     expect(() => createNpcAutonomyAgent(orchestrator, { maxActionsPerTick: 1.5 })).toThrow();
   });
-  it("uses explicit authoritative goal candidates without inventing a parallel signal model", async () => {
+  it("keeps goal selection in the authoritative NPC runtime", async () => {
     const run = vi.fn(async (request: RuntimeAiRequest) => ({
       request,
       observation: observation(),
@@ -115,17 +115,10 @@ describe("NPC autonomy agent", () => {
     }));
     const agent = createNpcAutonomyAgent({ run } as unknown as RuntimeOrchestrator);
 
-    const result = await agent.tick(request(), [
-      { kind: "eat", urgency: 90, importance: 80, reason: "Authoritative NPC need state reports high hunger need." },
-      { kind: "work", urgency: 50, importance: 70, reason: "Authoritative schedule activity is due." },
-    ]);
+    const result = await agent.tick(request());
 
-    expect(result.goal?.kind).toBe("eat");
-    expect(result.goal?.score).toBe(90 * 0.7 + 80 * 0.3);
-    expect(run).toHaveBeenCalledWith(
-      expect.objectContaining({ goal: "eat" }),
-      { maxActions: 1 },
-    );
+    expect(result.autonomous).toBe(true);
+    expect(result.request).toEqual(request);
+    expect(run).toHaveBeenCalledWith(request, { maxActions: 1 });
   });
-
 });
