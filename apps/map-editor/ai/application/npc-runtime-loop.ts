@@ -213,7 +213,7 @@ export async function runNpcRuntimeTick(
     : [];
   const relationshipPolicyValidation = validateNpcRelationshipPolicy(profileRecord?.relationshipPolicy);
   const emptySocialDiagnostics: NpcRuntimeSocialDiagnostics = { relationships, relationshipPolicyValidation };
-  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, autonomous: true, autonomy, status: "invalid" };
+  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, autonomous: true, status: "invalid" };
   const needsState = resolveNpcNeedsState(observation, needsStore);
   const needs = needsState?.needs;
   let activeGoal: {
