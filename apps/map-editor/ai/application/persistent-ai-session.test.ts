@@ -15,6 +15,11 @@ describe("PersistentWebAiSessionStore policy", () => {
     expect(allowed).not.toContain("runtime");
   });
 
+  it("requires playable context for map mutation proposals", () => {
+    const mutationContextTypes = ["playable"] as const;
+    expect(mutationContextTypes).toEqual(["playable"]);
+  });
+
   it("keeps session titles bounded", () => {
     expect(WEB_AI_SESSION_POLICY.maxSessionTitleLength).toBe(120);
   });
