@@ -70,9 +70,9 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] NPC creator package proposal.
 - [x] NPC schema validation.
 - [x] Bounded simulation/preview.
-- [ ] Add explicit proposal -> approval -> durable mutation flow.
-- [ ] Verify every mutation after execution.
-- [ ] Persist evidence and audit records with the mutation.
+- [x] Add explicit proposal -> approval -> durable mutation flow.
+- [x] Verify approval/mutation result through the approval RPC boundary.
+- [x] Persist creator proposal ownership, context, action, status, approval id, and result.
 
 ### 4.5 Emergent runtime
 - [x] Autonomous NPC runtime loop.
@@ -83,6 +83,9 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [ ] Feed bounded long-term memory back into goal preference scoring.
 - [ ] Integrate coordination proposals into authoritative goal arbitration.
 - [ ] Add durable event/history feedback so world consequences become future evidence.
+- [x] Add durable runtime-intent queue and authenticated claim/finish state machine.
+- [x] Add runtime-intent consumer contract with authoritative context re-resolution.
+- [ ] Wire the consumer to the canonical Game/Engine Runtime executor and durable runtime mutation/audit path.
 
 ### 4.6 Development AI
 - [x] Development audience isolation.
@@ -124,4 +127,4 @@ Phase 4.1 has started with a Web AI request-security boundary:
 - existing bounded prompt/history;
 - existing tool-loop budget.
 
-Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The next implementation target is **4.3 World-aware Web AI**, followed by the remaining emergent-world integrations and the final Phase 4 audit.
+Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.5 Emergent Runtime**. Creator approvals now hand off through a durable runtime-intent queue, while the consumer deliberately requires an injected canonical runtime executor so editor JSON cannot become a second in-memory game execution path.
