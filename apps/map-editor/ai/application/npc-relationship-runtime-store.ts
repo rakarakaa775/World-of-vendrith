@@ -15,7 +15,7 @@ export interface NpcRelationshipRuntimeStore {
   set(npcId: string, relationships: readonly NpcRelationship[]): void;
   applyInteraction(
     interaction: NpcSocialInteraction,
-    verification: VerificationResult,
+    verification?: VerificationResult,
   ): { relationships: readonly NpcRelationship[]; memory?: NpcRelationshipMemory } | undefined;
 }
 
@@ -30,7 +30,7 @@ export function createNpcRelationshipRuntimeStore(): NpcRelationshipRuntimeStore
     set(npcId, relationships) {
       relationshipsByNpc.set(npcId, relationships.map(relationship => ({ ...relationship })));
     },
-    applyInteraction(interaction, verification) {
+    applyInteraction(interaction, verification = { ok: true, checks: [] }) {
       if (!verification.ok) return undefined;
       const current = relationshipsByNpc.get(interaction.sourceNpcId);
       if (!current) return undefined;
