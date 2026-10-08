@@ -124,9 +124,23 @@ export function createSupabaseRuntimeIntentExecutor(
         p_tick: after.state.clock.tick,
         p_state_version: after.state.stateVersion,
         p_state_hash: String(journalRow?.state_hash ?? mutation.state_hash),
-        p_state: { ...after.state, entities: after.entities },
+        p_state: after.state,
         p_lease_token: leaseToken,
       });
+
+      if (checkpoint.error) {
+        return {
+          ok: false,
+          result: {
+            code: "RUNTIME_CHECKPOINT_ERROR",
+            actionId: action.id,
+            mutationId,
+            sequence,
+            detail: checkpoint.error.message,
+            retryable: true,
+          },
+        };
+      }
 
       return {
         ok: true,
@@ -137,8 +151,7 @@ export function createSupabaseRuntimeIntentExecutor(
           stateVersion: after.state.stateVersion,
           stateHash: String(journalRow?.state_hash ?? mutation.state_hash),
           verified: true,
-          checkpointSaved: !checkpoint.error,
-          ...(checkpoint.error ? { checkpointError: checkpoint.error.message } : {}),
+          checkpointSaved: true,
         },
       };
     },
