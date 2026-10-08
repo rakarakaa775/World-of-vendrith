@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createToolRouter, type ToolDefinition } from "../ai/ports/tool-router";
 import { createVendrithAgentOrchestrator } from "../ai/application/agent-orchestrator";
+import { createDevelopmentWorkflowTools, type DevelopmentWorkflowPort } from "../ai/ports/development-tools";
 
 function tool(name: string, audience: "web-creator" | "development"): ToolDefinition {
   return {
@@ -39,6 +40,33 @@ describe("AI tool audience isolation", () => {
     expect(result.ok).toBe(false);
     expect(result.error).toBe("Tool is outside the active AI audience");
     expect(developmentTool.execute).not.toHaveBeenCalled();
+  });
+
+  it("exposes external development workflows only through the development audience", async () => {
+    const workflow: DevelopmentWorkflowPort = {
+      capabilities: vi.fn(async () => [{ id: "ecc.inspect", description: "Inspect project", readOnly: true, requiresApproval: false }]),
+      execute: vi.fn(async (name, input) => ({ name, input })),
+    };
+    const tools = createDevelopmentWorkflowTools({ workflow });
+    const router = createToolRouter(tools);
+
+    expect(router.definitions({ mode: "plan", requestId: "dev", audience: "development" }).map(item => item.name))
+      .toEqual(["development.workflow.capabilities", "development.workflow.execute"]);
+    expect(router.definitions({ mode: "plan", requestId: "web", audience: "web-creator" })).toEqual([]);
+
+    const blocked = await router.execute(
+      { id: "call-1", name: "development.workflow.execute", arguments: { name: "ecc.inspect" } },
+      { mode: "execute", requestId: "dev", audience: "development", approvalState: "pending" },
+    );
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error).toBe("High-risk tools require an approved execution path");
+
+    const allowed = await router.execute(
+      { id: "call-2", name: "development.workflow.execute", arguments: { name: "ecc.inspect", input: {} } },
+      { mode: "high-risk", requestId: "dev", audience: "development", approvalState: "approved" },
+    );
+    expect(allowed.ok).toBe(true);
+    expect(workflow.execute).toHaveBeenCalledWith("ecc.inspect", {});
   });
 
   it("allows a development request to select the development audience", async () => {
