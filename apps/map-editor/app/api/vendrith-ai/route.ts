@@ -170,10 +170,18 @@ export async function POST(request: Request) {
       approve?: boolean;
     };
     if (body.approve === true && body.proposalId) {
-      const { data, error } = await createSupabase(auth.token).rpc("approve_vendrith_creator_action_v1", {
+      const supabase = createSupabase(auth.token);
+      const { data, error } = await supabase.rpc("approve_vendrith_creator_action_v1", {
         p_proposal_id: body.proposalId,
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (data?.ok === true) {
+        const queued = await supabase.rpc("enqueue_vendrith_runtime_intent_v1", {
+          p_proposal_id: body.proposalId,
+        });
+        if (queued.error) return NextResponse.json({ error: queued.error.message }, { status: 500 });
+        return NextResponse.json({ ...data, runtimeIntent: queued.data });
+      }
       return NextResponse.json(data);
     }
 
