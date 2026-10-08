@@ -37,6 +37,11 @@ function makeClient() {
   };
 
   return {
+    rpc(name: string) {
+      if (name === "read_latest_world_runtime_checkpoint_v1") return Promise.resolve({ data: [], error: null });
+      if (name === "read_world_runtime_mutations_v1") return Promise.resolve({ data: [], error: null });
+      throw new Error(`unexpected rpc: ${name}`);
+    },
     from(table: string) {
       let current = rows[table] ?? [];
       const builder = {
