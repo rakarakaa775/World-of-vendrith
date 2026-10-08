@@ -10,7 +10,7 @@ interface RateLimitRpcClient {
   rpc(
     functionName: string,
     args: Record<string, unknown>,
-  ): Promise<{
+  ): PromiseLike<{
     data: unknown;
     error: { message: string } | null;
   }>;
