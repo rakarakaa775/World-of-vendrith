@@ -80,7 +80,7 @@ describe("NPC autonomy agent", () => {
           actionId: "action-1",
           ok: true,
           executed: true,
-          verification: { ok: true, scope: "action-1" },
+          verification: { ok: true, checks: [{ name: "action-1", ok: true }] },
         }],
       };
     });
