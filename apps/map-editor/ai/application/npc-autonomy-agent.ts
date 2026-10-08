@@ -1,5 +1,4 @@
 import type { RuntimeAiRequest } from "../domain/runtime";
-import { selectNpcGoal, type NpcGoal, type NpcGoalCandidate } from "../domain/npc-autonomy";
 import type { RuntimeOrchestrator, RuntimeRunResult } from "./runtime-orchestrator";
 
 export interface NpcAutonomyPolicy {
@@ -7,13 +6,16 @@ export interface NpcAutonomyPolicy {
 }
 
 export interface NpcAutonomyTickResult extends RuntimeRunResult {
-  goal?: NpcGoal;
   autonomous: true;
   actionBudget: { requested: number; allowed: number; blocked: number };
 }
 
 export interface NpcAutonomyAgent {
-  tick(request: RuntimeAiRequest, candidates?: readonly NpcGoalCandidate[]): Promise<NpcAutonomyTickResult>;
+  /**
+   * Thin runtime boundary only.
+   * Authoritative NPC needs, goals, behavior, execution, and verification belong to runNpcRuntimeTick.
+   */
+  tick(request: RuntimeAiRequest): Promise<NpcAutonomyTickResult>;
 }
 
 function clampBudget(value: number): number {
@@ -27,23 +29,16 @@ export function createNpcAutonomyAgent(
 ): NpcAutonomyAgent {
   const maxActionsPerTick = clampBudget(policy.maxActionsPerTick);
   return {
-    async tick(request, candidates) {
+    async tick(request) {
       if (request.surface !== "game") throw new Error("NPC autonomy requires the game runtime surface.");
       if (request.intelligence !== "npc") throw new Error("NPC autonomy requires npc runtime intelligence.");
 
-      const goal = selectNpcGoal(candidates ?? []);
-      const autonomousRequest = {
-        ...request,
-        goal: goal?.kind ?? request.goal,
-      };
-      const result = await orchestrator.run(autonomousRequest, { maxActions: maxActionsPerTick });
+      const result = await orchestrator.run(request, { maxActions: maxActionsPerTick });
       const allowedActions = result.decision.actions.slice(0, maxActionsPerTick);
 
       return {
         ...result,
-        request: autonomousRequest,
         autonomous: true,
-        goal,
         actionBudget: {
           requested: result.decision.actions.length,
           allowed: allowedActions.length,
