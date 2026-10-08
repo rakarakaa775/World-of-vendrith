@@ -196,6 +196,7 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
             npcActivity: {
               actionId: activityId,
               goal,
+              activityKind,
               status,
               startedAtTick,
               updatedAtTick: snapshot.state.clock.tick,
