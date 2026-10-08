@@ -29,11 +29,12 @@ function resolveApiKey(options: DirectModelProviderOptions): string {
   const key =
     options.apiKey?.trim() ||
     process.env.VENDRITH_AI_API_KEY?.trim() ||
+    process.env.GEMINI_API_KEY?.trim() ||
     process.env.OPENAI_API_KEY?.trim();
 
   if (!key) {
     throw new Error(
-      "Direct AI provider authentication is not configured. Set VENDRITH_AI_API_KEY or OPENAI_API_KEY in the server environment. Never expose the credential to browser code or Git.",
+      "Direct AI provider authentication is not configured. Set VENDRITH_AI_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY in the server environment. Never expose the credential to browser code or Git.",
     );
   }
 
@@ -85,14 +86,15 @@ export class DirectModelProvider implements ModelProviderPort {
 
   async generate(request: ModelRequest): Promise<ModelResponse> {
     const apiKey = resolveApiKey(this.options);
+    const isGemini = Boolean(process.env.GEMINI_API_KEY?.trim()) && !process.env.OPENAI_API_KEY?.trim() && !process.env.VENDRITH_AI_API_KEY?.trim();
     const baseUrl =
       this.options.baseUrl ??
       process.env.VENDRITH_AI_BASE_URL ??
-      "https://api.openai.com/v1";
+      (isGemini ? "https://generativelanguage.googleapis.com/v1beta/openai" : "https://api.openai.com/v1");
     const model =
       this.options.model ??
       process.env.VENDRITH_AI_MODEL ??
-      "gpt-5";
+      (isGemini ? "gemini-3.6-flash" : "gpt-5");
 
     const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
