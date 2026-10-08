@@ -2,7 +2,7 @@ import type { CodeIntelligencePort, RepositoryPort } from "../ports/project-tool
 
 const IMPORT_RE = /(?:import|export)\s+(?:type\s+)?(?:[^"']+from\s+)?["']([^"']+)["']/g;
 
-function normalize(path: string): string {
+function escapeRegExp(value: string): string {\n  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\function normalize(path: string): string {");\n}\n\nfunction normalize(path: string): string {
   return path.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
@@ -51,6 +51,19 @@ export class RepositoryCodeGraphAdapter implements CodeIntelligencePort {
       }
     }
     return [...dependencies].sort();
+  }
+
+  async findSymbols(query: string): Promise<Array<{ path: string; excerpt: string }>> {
+    const results = await this.repository.search(query);
+    return results.filter((result) => new RegExp("\\b" + escapeRegExp(query) + "\\b").test(result.excerpt));
+  }
+
+  async findReferences(symbol: string): Promise<Array<{ path: string; excerpt: string }>> {
+    return this.repository.search(symbol);
+  }
+
+  async findCallChain(symbol: string): Promise<Array<{ path: string; excerpt: string }>> {
+    return this.repository.search(symbol).filter((result) => /\\b(?:call|execute|invoke|run|await)\\b/i.test(result.excerpt));
   }
 
   async findDependents(path: string): Promise<string[]> {
