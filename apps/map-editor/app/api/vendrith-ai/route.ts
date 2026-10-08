@@ -172,8 +172,11 @@ export async function POST(request: Request) {
     if (prompt.length > MAX_PROMPT_LENGTH) return NextResponse.json({ error: `Prompt is too long (maximum ${MAX_PROMPT_LENGTH} characters).` }, { status: 413 });
 
     const mode = body.mode ?? "explain";
+    if (mode === "execute" || mode === "high-risk") {
+      return NextResponse.json({ error: "Creator mutation requires an explicit persisted approval; use mode=plan to create a proposal." }, { status: 403 });
+    }
     if (mode !== "explain" && mode !== "plan") {
-      return NextResponse.json({ error: "The Web/Creator AI endpoint currently exposes read/analyze modes only." }, { status: 403 });
+      return NextResponse.json({ error: "Unsupported Web/Creator AI mode." }, { status: 400 });
     }
 
     const supabase = createSupabase(auth.token);
@@ -214,8 +217,34 @@ export async function POST(request: Request) {
 
     const assistantMessage = await store.appendMessage(session.id, "assistant", result.response.content);
 
+    let proposalId: string | null = null;
+    if (mode === "plan" && context && result.approval?.required) {
+      const proposedAction = (result.approval as { action?: { operation?: string; mapId?: string; [key: string]: unknown } }).action;
+      const operation = proposedAction?.operation;
+      const mapId = proposedAction?.mapId;
+      if (operation && ["create", "move", "rotate", "scale", "delete"].includes(operation) && typeof mapId === "string" && mapId === (context.type === "playable" ? context.id : mapId)) {
+        const { data: proposal, error: proposalError } = await supabase
+          .from("vendrith_creator_action_proposals")
+          .insert({
+            user_id: auth.user.id,
+            session_id: session.id,
+            context_type: context.type,
+            context_id: context.id,
+            map_id: mapId,
+            operation,
+            action: proposedAction,
+            rationale: result.response.content.slice(0, 4000),
+          })
+          .select("id")
+          .single();
+        if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 500 });
+        proposalId = proposal.id;
+      }
+    }
+
     return NextResponse.json({
       sessionId: session.id,
+      proposalId,
       response: assistantMessage.content,
       model: result.response.model,
       provider: result.response.provider,
