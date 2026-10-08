@@ -3,6 +3,7 @@ import { createToolRouter, type ToolDefinition } from "../ai/ports/tool-router";
 import { createVendrithAgentOrchestrator } from "../ai/application/agent-orchestrator";
 import { createDevelopmentWorkflowTools, type DevelopmentWorkflowPort } from "../ai/ports/development-tools";
 import { createRepositoryDevelopmentWorkflowProvider } from "../ai/application/development-workflow-provider";
+import { createRuntimeTools } from "../ai/ports/runtime-tools";
 
 function tool(name: string, audience: "web-creator" | "development"): ToolDefinition {
   return {
@@ -118,6 +119,69 @@ describe("AI tool audience isolation", () => {
     expect(inspect.ok).toBe(false);
     expect(execute.ok).toBe(false);
     expect(workflow.execute).not.toHaveBeenCalled();
+  });
+
+
+
+  it("isolates runtime loop tools to the game-runtime audience", async () => {
+    const simulation = {
+      simulate: vi.fn(async (request: { id: string }) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
+    };
+    const orchestrator = {
+      run: vi.fn(async (request: { id: string }, authorization: { approved?: boolean }) => ({ request, authorization })),
+    };
+    const tools = createRuntimeTools({ simulation, orchestrator });
+    const router = createToolRouter(tools);
+
+    expect(router.definitions({ mode: "plan", requestId: "game", audience: "game-runtime" }).map(item => item.name))
+      .toEqual(["runtime.simulate", "runtime.execute"]);
+    expect(router.definitions({ mode: "plan", requestId: "web", audience: "web-creator" })).toEqual([]);
+    expect(router.definitions({ mode: "plan", requestId: "dev", audience: "development" })).toEqual([]);
+  });
+
+  it("keeps runtime simulation separate from authoritative execution", async () => {
+    const simulation = {
+      simulate: vi.fn(async (request: { id: string }) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
+    };
+    const orchestrator = {
+      run: vi.fn(async (request: { id: string }) => ({ request, executions: [] })),
+    };
+    const router = createToolRouter(createRuntimeTools({ simulation, orchestrator }));
+    const request = { id: "runtime-1" };
+
+    const simulated = await router.execute(
+      { id: "simulate", name: "runtime.simulate", arguments: { request } },
+      { mode: "plan", requestId: "game", audience: "game-runtime" },
+    );
+
+    expect(simulated.ok).toBe(true);
+    expect(simulation.simulate).toHaveBeenCalledWith(request);
+    expect(orchestrator.run).not.toHaveBeenCalled();
+  });
+
+  it("requires the game-rule execution boundary for runtime.execute", async () => {
+    const orchestrator = {
+      run: vi.fn(async (request: { id: string }, authorization: { approved?: boolean }) => ({ request, authorization })),
+    };
+    const router = createToolRouter(createRuntimeTools({ orchestrator }));
+    const request = { id: "runtime-2" };
+
+    const planned = await router.execute(
+      { id: "execute", name: "runtime.execute", arguments: { request } },
+      { mode: "plan", requestId: "game", audience: "game-runtime" },
+    );
+
+    expect(planned.ok).toBe(false);
+    expect(planned.error).toBe("Game-rule tools require execute or high-risk mode");
+    expect(orchestrator.run).not.toHaveBeenCalled();
+
+    const executed = await router.execute(
+      { id: "execute-2", name: "runtime.execute", arguments: { request } },
+      { mode: "execute", requestId: "game", audience: "game-runtime" },
+    );
+
+    expect(executed.ok).toBe(true);
+    expect(orchestrator.run).toHaveBeenCalledWith(request, { approved: false });
   });
 
   it("allows a development request to select the development audience", async () => {
