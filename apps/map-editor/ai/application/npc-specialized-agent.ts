@@ -21,6 +21,7 @@ export interface NpcSpecialization {
   role?: NpcRole;
   archetype?: NpcArchetype;
   allowedGoals: readonly RuntimeGoalKind[];
+  allowedBehaviors: readonly RuntimeBehaviorKind[];
   preferredGoals: readonly RuntimeGoalKind[];
   preferredBehaviors: readonly RuntimeBehaviorKind[];
   coordinationTags: readonly string[];
@@ -89,8 +90,8 @@ export function resolveNpcSpecialization(observation: RuntimeObservation): NpcSp
   const baseId = archetype ? SPECIALIZATION_BY_ARCHETYPE[archetype] : "custom";
   const rolePreferences = role ? ROLE_PREFERENCES[role] : undefined;
   const capabilities = archetype ? npcArchetypeCapabilities(archetype) : undefined;
-  const allowedGoals = capabilities?.goals ?? DEFAULT_GOALS;
-  const allowedBehaviors = capabilities?.behaviors ?? DEFAULT_BEHAVIORS;
+  const allowedGoals = capabilities?.goals ?? [];
+  const allowedBehaviors = capabilities?.behaviors ?? [];
   const preferredGoals = intersect(rolePreferences?.goals ?? allowedGoals, allowedGoals);
   const preferredBehaviors = intersect(rolePreferences?.behaviors ?? allowedBehaviors, allowedBehaviors);
   const tags = [...new Set([baseId, ...(rolePreferences?.tags ?? []), ...(archetype ? [archetype] : [])])];
