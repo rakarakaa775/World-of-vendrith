@@ -41,6 +41,32 @@ describe("AI tool audience isolation", () => {
     expect(developmentTool.execute).not.toHaveBeenCalled();
   });
 
+  it("allows a development request to select the development audience", async () => {
+    const provider = {
+      generate: vi.fn(async (request: { messages: Array<{ role: string; content: string }>; tools?: unknown[] }) => ({
+        text: "development response",
+        toolCalls: [],
+      })),
+    };
+    const developmentTool = tool("development.repository", "development");
+    const router = createToolRouter([developmentTool]);
+    const orchestrator = createVendrithAgentOrchestrator({ modelProvider: provider, toolRouter: router });
+
+    const result = await orchestrator.run({
+      id: "dev-request",
+      mode: "plan",
+      audience: "development",
+      prompt: "Inspect the repository architecture.",
+    });
+
+    expect(result.response.text).toBe("development response");
+    expect(provider.generate).toHaveBeenCalledOnce();
+    expect(provider.generate.mock.calls[0][0].tools).toEqual([
+      expect.objectContaining({ name: "development.repository" }),
+    ]);
+    expect(provider.generate.mock.calls[0][0].messages[0].content).toContain("Development AI");
+  });
+
   it("keeps legacy tools in the web-creator audience by default", () => {
     const legacyTool: ToolDefinition = {
       name: "legacy.read",
