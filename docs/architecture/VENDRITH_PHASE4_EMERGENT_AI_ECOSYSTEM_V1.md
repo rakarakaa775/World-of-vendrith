@@ -85,7 +85,7 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [ ] Add durable event/history feedback so world consequences become future evidence.
 - [x] Add durable runtime-intent queue and authenticated claim/finish state machine.
 - [x] Add runtime-intent consumer contract with authoritative context re-resolution.
-- [ ] Wire the consumer to the canonical Game/Engine Runtime executor and durable runtime mutation/audit path.
+- [x] Wire the consumer to the canonical Game/Engine Runtime executor and durable runtime mutation/checkpoint path.
 
 ### 4.6 Development AI
 - [x] Development audience isolation.
@@ -98,9 +98,10 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Safe approval RPC for development actions.
 - [x] Durable development approval audit trail.
 - [x] Authenticated approval API requires explicit `approve: true`.
-- [ ] Connect ECC/Agent Skills through an explicit high-risk development workflow.
-- [ ] Require approval for repository mutation, database mutation, deployment, and destructive operations.
-- [ ] Verify mutation results before reporting success.
+- [x] Connect repository mutation through an explicit high-risk Development Workflow executor boundary compatible with ECC/Agent Skills workflows.
+- [x] Require explicit proposal approval and approval-id binding for repository mutation; database/deployment/destructive capabilities remain fail-closed.
+- [x] Verify repository mutation results before reporting success.
+- [x] Persist execution outcome in a separate durable execution-audit trail.
 
 ### 4.7 Final audit / exit gate
 - [ ] Cross-surface audience isolation audit.
@@ -134,4 +135,4 @@ Phase 4.1 has started with a Web AI request-security boundary:
 - existing bounded prompt/history;
 - existing tool-loop budget.
 
-Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.6 Development AI**. Development AI now has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Development mutations now have a durable proposal and explicit approval boundary, but actual ECC/Agent Skills mutation execution remains fail-closed until its executor is connected and verified.
+Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.6 Development AI**. Development AI now has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Development repository mutation now has a separate high-risk executor boundary: proposal -> explicit approval -> approval-id binding -> GitHub mutation -> read-back verification -> durable execution audit. Database, deployment, and destructive operations remain fail-closed.
