@@ -19,8 +19,8 @@ export interface NpcAutonomyAgent {
 }
 
 function clampBudget(value: number): number {
-  if (!Number.isFinite(value) || value < 0) throw new Error("NPC autonomy maxActionsPerTick must be a finite non-negative number.");
-  return Math.floor(value);
+  if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) throw new Error("NPC autonomy maxActionsPerTick must be a finite non-negative integer.");
+  return value;
 }
 
 export function createNpcAutonomyAgent(
