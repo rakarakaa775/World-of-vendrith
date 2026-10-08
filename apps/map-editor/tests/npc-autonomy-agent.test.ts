@@ -101,7 +101,7 @@ describe("NPC autonomy agent", () => {
     expect(() => createNpcAutonomyAgent(orchestrator, { maxActionsPerTick: -1 })).toThrow();
     expect(() => createNpcAutonomyAgent(orchestrator, { maxActionsPerTick: 1.5 })).toThrow();
   });
-  it("derives the goal from authoritative runtime autonomy signals when candidates are omitted", async () => {
+  it("uses explicit authoritative goal candidates without inventing a parallel signal model", async () => {
     const run = vi.fn(async (request: RuntimeAiRequest) => ({
       request,
       observation: observation(),
@@ -115,28 +115,10 @@ describe("NPC autonomy agent", () => {
     }));
     const agent = createNpcAutonomyAgent({ run } as unknown as RuntimeOrchestrator);
 
-    const runtimeRequest = request();
-    runtimeRequest.observation.perception = {
-      self: {
-        id: "npc-1",
-        kind: "npc",
-        mapId: "map-1",
-        position: { x: 1, y: 1 },
-        state: {
-          autonomy: {
-            energyNeed: 90,
-            scheduledActivityDue: true,
-            scheduleUrgency: 50,
-          },
-        },
-      },
-      nearbyEntities: [],
-      detections: [],
-      visibleMapIds: ["map-1"],
-      environment: {},
-    };
-
-    const result = await agent.tick(runtimeRequest);
+    const result = await agent.tick(request(), [
+      { kind: "recover-energy", urgency: 90, importance: 80, reason: "Authoritative NPC need state reports high energy need." },
+      { kind: "work", urgency: 50, importance: 70, reason: "Authoritative schedule activity is due." },
+    ]);
 
     expect(result.goal.kind).toBe("recover-energy");
     expect(result.goal.score).toBe(90 * 0.7 + 80 * 0.3);
