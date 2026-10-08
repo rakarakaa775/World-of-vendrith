@@ -52,8 +52,15 @@ describe("AI tool audience isolation", () => {
     const router = createToolRouter(tools);
 
     expect(router.definitions({ mode: "plan", requestId: "dev", audience: "development" }).map(item => item.name))
-      .toEqual(["development.workflow.capabilities", "development.workflow.execute"]);
+      .toEqual(["development.workflow.capabilities", "development.workflow.inspect", "development.workflow.execute"]);
     expect(router.definitions({ mode: "plan", requestId: "web", audience: "web-creator" })).toEqual([]);
+
+    const inspected = await router.execute(
+      { id: "call-inspect", name: "development.workflow.inspect", arguments: { name: "ecc.inspect" } },
+      { mode: "plan", requestId: "dev", audience: "development" },
+    );
+    expect(inspected.ok).toBe(true);
+    expect(workflow.execute).toHaveBeenCalledWith("ecc.inspect", undefined);
 
     const blocked = await router.execute(
       { id: "call-1", name: "development.workflow.execute", arguments: { name: "ecc.inspect" } },
@@ -66,8 +73,51 @@ describe("AI tool audience isolation", () => {
       { id: "call-2", name: "development.workflow.execute", arguments: { name: "ecc.inspect", input: {} } },
       { mode: "high-risk", requestId: "dev", audience: "development", approvalState: "approved" },
     );
-    expect(allowed.ok).toBe(true);
-    expect(workflow.execute).toHaveBeenCalledWith("ecc.inspect", {});
+    expect(allowed.ok).toBe(false);
+    expect(allowed.error).toBe("Read-only development workflow must use inspection boundary");
+    expect(workflow.execute).toHaveBeenCalledTimes(1);
+  });
+
+
+
+  it("prevents a read-only workflow from crossing into the high-risk execute boundary", async () => {
+    const workflow: DevelopmentWorkflowPort = {
+      capabilities: vi.fn(async () => [
+        { id: "inspect-only", description: "Inspect project", readOnly: true, requiresApproval: false },
+      ]),
+      execute: vi.fn(async (name) => ({ name })),
+    };
+    const router = createToolRouter(createDevelopmentWorkflowTools({ workflow }));
+
+    const result = await router.execute(
+      { id: "call-1", name: "development.workflow.execute", arguments: { name: "inspect-only" } },
+      { mode: "high-risk", requestId: "dev", audience: "development", approvalState: "approved" },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Read-only development workflow must use inspection boundary");
+    expect(workflow.execute).not.toHaveBeenCalled();
+  });
+
+  it("prevents unknown workflows from executing through either boundary", async () => {
+    const workflow: DevelopmentWorkflowPort = {
+      capabilities: vi.fn(async () => []),
+      execute: vi.fn(async () => ({ ok: true })),
+    };
+    const router = createToolRouter(createDevelopmentWorkflowTools({ workflow }));
+
+    const inspect = await router.execute(
+      { id: "inspect", name: "development.workflow.inspect", arguments: { name: "missing" } },
+      { mode: "plan", requestId: "dev", audience: "development" },
+    );
+    const execute = await router.execute(
+      { id: "execute", name: "development.workflow.execute", arguments: { name: "missing" } },
+      { mode: "high-risk", requestId: "dev", audience: "development", approvalState: "approved" },
+    );
+
+    expect(inspect.ok).toBe(false);
+    expect(execute.ok).toBe(false);
+    expect(workflow.execute).not.toHaveBeenCalled();
   });
 
   it("allows a development request to select the development audience", async () => {
