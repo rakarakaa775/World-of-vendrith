@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { GitHubHttpRepositoryAdapter, ProjectDocumentationAdapter, RepositoryCodeGraphAdapter, VercelAiGatewayModelProvider, createSupabaseAssetRegistryAdapter, createProjectTools, createToolRouter, createVendrithAgentOrchestrator } from "../../../ai";
+import { DirectModelProvider, GitHubHttpRepositoryAdapter, ProjectDocumentationAdapter, RepositoryCodeGraphAdapter, createSupabaseAssetRegistryAdapter, createProjectTools, createToolRouter, createVendrithAgentOrchestrator } from "../../../ai";
 import { resolveAuthoritativeMap } from "../../../editor/map-authoritative-resolver";
 
 export const runtime = "nodejs";
@@ -44,7 +44,7 @@ function createOrchestrator(accessToken: string) {
   const supabase = createSupabase(accessToken);
   const assetRegistry = createSupabaseAssetRegistryAdapter(supabase);
   const tools = createProjectTools({ repository, documentation, codeIntelligence, assetRegistry, verification: createVerification(repository), mapInspector: createMapInspector(supabase) });
-  return createVendrithAgentOrchestrator({ modelProvider: new VercelAiGatewayModelProvider(), toolRouter: createToolRouter(tools) });
+  return createVendrithAgentOrchestrator({ modelProvider: new DirectModelProvider(), toolRouter: createToolRouter(tools) });
 }
 export async function POST(request: Request) {
   try {
