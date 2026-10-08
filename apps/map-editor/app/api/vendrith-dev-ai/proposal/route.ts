@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createDevelopmentActionProposalStore, type DevelopmentActionType } from "../../../ai";
+import { createDevelopmentActionProposalStore, type DevelopmentActionType } from "../../../../ai";
 
 export const runtime = "nodejs";
 const MAX_RATIONALE_LENGTH = 4000;
