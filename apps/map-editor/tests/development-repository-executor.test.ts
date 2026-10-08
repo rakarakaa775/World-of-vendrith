@@ -16,15 +16,16 @@ const proposal = (action: Record<string, unknown>) => ({
 
 afterEach(() => vi.restoreAllMocks());
 
+const executor = () => createGitHubDevelopmentRepositoryExecutor({
+  owner: "rakarakaa775",
+  repository: "World-of-vendrith",
+  ref: "feat/vendrith-ecc-v1",
+  token: "test-token",
+});
+
 describe("GitHub development repository executor", () => {
   it("requires an approved proposal", async () => {
-    const executor = createGitHubDevelopmentRepositoryExecutor({
-      owner: "rakarakaa775",
-      repository: "World-of-vendrith",
-      ref: "feat/vendrith-ecc-v1",
-      token: "test-token",
-    });
-    await expect(executor.execute({
+    await expect(executor().execute({
       ...proposal({ operation: "write_file", path: "README.md", content: "x" }),
       status: "pending",
     })).rejects.toThrow("Approved proposal is required");
@@ -33,17 +34,30 @@ describe("GitHub development repository executor", () => {
   it("blocks GitHub Actions workflow mutation", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    const executor = createGitHubDevelopmentRepositoryExecutor({
-      owner: "rakarakaa775",
-      repository: "World-of-vendrith",
-      ref: "feat/vendrith-ecc-v1",
-      token: "test-token",
-    });
-    await expect(executor.execute(proposal({
+    await expect(executor().execute(proposal({
       operation: "write_file",
       path: ".github/workflows/deploy.yml",
       content: "name: forbidden",
     }))).rejects.toThrow("workflow files require a dedicated deployment workflow");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks secrets and traversal paths before contacting GitHub", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(executor().execute(proposal({
+      operation: "write_file",
+      path: "../.env",
+      content: "SECRET=forbidden",
+    }))).rejects.toThrow("unsafe repository path");
+
+    await expect(executor().execute(proposal({
+      operation: "write_file",
+      path: "config/production.pem",
+      content: "private-key",
+    }))).rejects.toThrow("unsafe repository path");
+
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -62,13 +76,7 @@ describe("GitHub development repository executor", () => {
       }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const executor = createGitHubDevelopmentRepositoryExecutor({
-      owner: "rakarakaa775",
-      repository: "World-of-vendrith",
-      ref: "feat/vendrith-ecc-v1",
-      token: "test-token",
-    });
-    const result = await executor.execute(proposal({
+    const result = await executor().execute(proposal({
       operation: "write_file",
       path: "docs/dev-test.txt",
       content: "new content",
