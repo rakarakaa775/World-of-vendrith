@@ -74,4 +74,25 @@ describe("NPC goal intelligence", () => {
     expect(result.scores.work).toBe(55);
     expect(result.scores.eat).toBe(54);
   });
+
+  it("lets a critical safety response override remembered work", () => {
+    const result = arbitrateNpcGoal(
+      observation,
+      [goal("work", 50), goal("respond-to-event", 100)],
+      memory,
+    );
+    expect(result.selected?.kind).toBe("respond-to-event");
+    expect(result.switched).toBe(true);
+  });
+
+  it("does not resurrect an expired remembered goal", () => {
+    const result = arbitrateNpcGoal(
+      { ...observation, state: { ...observation.state, clock: { ...observation.state.clock, tick: 21 } } },
+      [goal("work", 50, 20), goal("eat", 70, 30)],
+      memory,
+    );
+    expect(result.selected?.kind).toBe("eat");
+    expect(result.candidates.map(candidate => candidate.kind)).toEqual(["eat"]);
+    expect(result.switched).toBe(false);
+  });
 });
