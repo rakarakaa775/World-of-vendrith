@@ -9,13 +9,14 @@ import { executeRuntimeEvent } from "./runtime-event-executor";
 import type { SupabaseRuntimeEventAdapter } from "./supabase-runtime-event-adapter";
 import { createNpcRelationshipRuntimeStore, type NpcRelationshipRuntimeStore } from "./npc-relationship-runtime-store";
 import type { NpcSocialInteraction } from "./npc-social-interaction-schema";
+import type { VerificationResult } from "../domain/types";
 
 export interface SupabaseRuntimeEngine {
   readonly mapId: string;
   readonly bridge: SupabaseRuntimeWorldBridge;
   readonly memory: NpcBehaviorMemoryStore;
   readonly relationships: NpcRelationshipRuntimeStore;
-  applySocialInteraction(interaction: NpcSocialInteraction): ReturnType<NpcRelationshipRuntimeStore["applyInteraction"]>;
+  applySocialInteraction(interaction: NpcSocialInteraction, verification: VerificationResult): ReturnType<NpcRelationshipRuntimeStore["applyInteraction"]>;
   tick(events?: RuntimeScheduledEvent[], minutesPerTick?: number): Promise<SupabaseRuntimeEngineTickResult>;
 }
 
@@ -51,7 +52,7 @@ export async function createSupabaseRuntimeEngine(
     memory,
     relationships,
     applySocialInteraction(interaction, verification: VerificationResult) {
-      return relationships.applyInteraction(interaction);
+      return relationships.applyInteraction(interaction, verification);
     },
     async tick(events = [], minutesPerTick = 1) {
       const authoritativeEvents = eventAdapter
