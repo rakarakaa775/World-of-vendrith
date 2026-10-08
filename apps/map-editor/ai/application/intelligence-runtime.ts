@@ -1,5 +1,3 @@
-[Reading 271 lines from start (total: 271 lines, 0 remaining)]
-
 import type { RuntimeObservation } from "../domain/runtime";
 import type { Evidence } from "../domain/types";
 import { createNpcWorldAwareness, type NpcWorldAwareness } from "./npc-world-awareness";
@@ -271,5 +269,3 @@ export function intelligenceClaimsToEvidence(
     confidence: claim.confidence >= 0.75 ? "high" : claim.confidence >= 0.45 ? "medium" : "low",
   }));
 }
-
-[executed on device: codespaces-229c3d (b3f2748a-aa8b-47dd-a2d6-3420a7c89088)]
