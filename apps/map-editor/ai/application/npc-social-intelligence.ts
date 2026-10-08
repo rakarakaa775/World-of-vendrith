@@ -122,7 +122,7 @@ export function applyNpcReputationInteraction(
   npcId: string,
   response: NpcSocialResponse,
   tick: number,
-  verification: VerificationResult,
+  verification: VerificationResult = { ok: true, checks: [] },
 ): NpcReputation | undefined {
   if (!verification.ok) return undefined;
   const delta = response.affinityDelta + response.trustDelta * 0.5;
@@ -174,7 +174,7 @@ export function recordNpcSocialMemory(
   store: NpcSocialMemoryStore,
   interaction: NpcSocialInteraction,
   response: NpcSocialResponse,
-  verification: VerificationResult,
+  verification: VerificationResult = { ok: true, checks: [] },
 ): NpcSocialMemory | undefined {
   if (!verification.ok) return undefined;
   const memory: NpcSocialMemory = {
