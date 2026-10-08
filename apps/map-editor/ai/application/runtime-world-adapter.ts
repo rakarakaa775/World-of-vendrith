@@ -275,9 +275,7 @@ export function createRuntimeWorldVerificationPort(store: RuntimeWorldStore): Ru
             !Array.isArray(activity) &&
             (activity as Record<string, unknown>).actionId === action.id &&
             (activity as Record<string, unknown>).goal === action.payload.goal &&
-            ((activity as Record<string, unknown>).status === "started" ||
-              (activity as Record<string, unknown>).status === "running" ||
-              (activity as Record<string, unknown>).status === "completed"),
+            (activity as Record<string, unknown>).status === "completed",
           ),
         });
       }
