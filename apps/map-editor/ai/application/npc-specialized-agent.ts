@@ -101,6 +101,7 @@ export function resolveNpcSpecialization(observation: RuntimeObservation): NpcSp
     role,
     archetype,
     allowedGoals,
+    allowedBehaviors,
     preferredGoals,
     preferredBehaviors,
     coordinationTags: tags,
