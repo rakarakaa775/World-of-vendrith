@@ -50,7 +50,7 @@ export async function createSupabaseRuntimeEngine(
     bridge,
     memory,
     relationships,
-    applySocialInteraction(interaction) {
+    applySocialInteraction(interaction, verification: VerificationResult) {
       return relationships.applyInteraction(interaction);
     },
     async tick(events = [], minutesPerTick = 1) {
