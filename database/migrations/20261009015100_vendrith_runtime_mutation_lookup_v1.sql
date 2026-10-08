@@ -17,10 +17,10 @@ security definer
 set search_path = ''
 as $$
 begin
-  if auth.uid() is null then raise exception 'authentication required'; end if;
+  if auth.uid() is null or (auth.jwt()->>'is_anonymous')='true' then raise exception 'authentication required'; end if;
   if p_mutation_id is null or length(trim(p_mutation_id)) = 0 then raise exception 'mutation id required'; end if;
-  if not exists (select 1 from public.worlds where id = p_world_id) then
-    raise exception 'world not found: %', p_world_id;
+  if not exists (select 1 from public.maps m where m.world_id = p_world_id and m.created_by = auth.uid()) then
+    raise exception 'world access denied';
   end if;
   return query
     select l.sequence,l.mutation_id,l.mutation_type,l.mutation,l.domain_event,
