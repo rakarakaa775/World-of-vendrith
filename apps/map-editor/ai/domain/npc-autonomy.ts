@@ -8,8 +8,10 @@ export interface NpcGoalCandidate {
 }
 
 export interface NpcAutonomySignals {
-  energy?: number;
-  maxEnergy?: number;
+  energyNeed?: number;
+  hungerNeed?: number;
+  socialNeed?: number;
+  safetyNeed?: number;
   survivalRisk?: number;
   scheduledActivityDue?: boolean;
   scheduleUrgency?: number;
