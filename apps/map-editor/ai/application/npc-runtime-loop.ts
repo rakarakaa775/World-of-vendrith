@@ -2,6 +2,7 @@ import type { RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../d
 import { createNpcBehaviorRuntimeStateStore, type NpcBehaviorMemoryStore, type NpcBehaviorRuntimeStateStore } from "../domain/runtime-behavior";
 import { interruptNpcBehavior, recoverNpcBehavior, syncNpcBehaviorRuntimeState } from "./npc-behavior-runtime";
 import type { RuntimeGoalKind } from "../domain/runtime-goal";
+import { createNpcLongTermMemoryStore, recordNpcLongTermOutcome, type NpcLongTermMemoryStore } from "../domain/runtime-npc-long-term-memory";
 import { createNpcNeedsStore, resolveNpcNeedsState, type NpcNeedsStore } from "../domain/runtime-npc-needs";
 import { createNpcActivityEffectStore, type NpcActivityEffectStore, type NpcActivityEffectResult } from "../domain/runtime-npc-activity-effects";
 import { applyVerifiedNpcActivityEffect } from "./npc-activity-effects";
@@ -50,6 +51,7 @@ const defaultNpcBehaviorRuntimeStore = createNpcBehaviorRuntimeStateStore();
 const defaultNpcRelationshipMemoryStore = createNpcRelationshipMemoryStore();
 const defaultNpcSocialMemoryStore = createNpcSocialMemoryStore();
 const defaultNpcReputationStore = createNpcReputationStore();
+const defaultNpcLongTermMemoryStore = createNpcLongTermMemoryStore();
 
 export interface NpcRuntimeTickResult {
   autonomous: true;
@@ -437,7 +439,13 @@ export async function runNpcRuntimeTick(
     const execution = await ports.action.execute(activityAction, observation);
     const verification = await ports.verification.verify(activityAction, execution);
     const activityCompleted = execution.detail === "NPC activity completed.";
+    const activityFailed = !execution.ok || !verification.ok;
     const activityInProgress = execution.ok && execution.detail === "NPC activity is running.";
+    if (activityCompleted && execution.ok && verification.ok) {
+      recordNpcLongTermOutcome(longTermMemoryStore, self.id, observation.state.stateVersion, observation.state.clock.tick, { type: "goal-completed", goal: activityGoal, value: 1, detail: "Verified NPC activity completed." });
+    } else if (activityFailed && !activityInProgress) {
+      recordNpcLongTermOutcome(longTermMemoryStore, self.id, observation.state.stateVersion, observation.state.clock.tick, { type: "goal-failed", goal: activityGoal, value: -1, detail: !execution.ok ? "NPC activity execution failed." : "NPC activity verification failed." });
+    }
     const activityEffect = applyVerifiedNpcActivityEffect(
       activityAction,
       observation,
