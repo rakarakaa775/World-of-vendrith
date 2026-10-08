@@ -34,6 +34,7 @@ export interface AiRequest {
   conversation?: readonly AiConversationMessage[];
   /** Selects the AI surface and therefore the tools visible to the agent. */
   audience?: ToolAudience;
+  worldContext?: { type: "world" | "region" | "playable"; id: string };
 }
 
 export interface AiPlanStep {
