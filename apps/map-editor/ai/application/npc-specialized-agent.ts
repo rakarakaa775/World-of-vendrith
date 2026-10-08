@@ -1,7 +1,8 @@
 import type { RuntimeBehaviorKind } from "../domain/runtime-behavior";
 import type { RuntimeGoalKind, NpcGoalMemory } from "../domain/runtime-goal";
 import type { RuntimeObservation } from "../domain/runtime";
-import { npcArchetypeCapabilities, type NpcArchetype } from "./npc-archetype-capabilities";
+import { npcArchetypeCapabilities } from "./npc-archetype-capabilities";
+import type { NpcArchetype } from "./npc-archetype-schema";
 import type { NpcRole } from "./npc-role-schema";
 import { NPC_ROLES } from "./npc-role-schema";
 import { validateNpcDecisionProfile, type NpcDecisionProfile } from "./npc-decision-profile-schema";
