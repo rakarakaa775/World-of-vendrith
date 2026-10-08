@@ -21,7 +21,7 @@ export async function runToolLoop(
   const maxIterations = options.maxIterations ?? 4;
   let currentRequest: ModelRequest = {
     ...request,
-    tools: router.definitions().map(({ name, description, parameters }) => ({
+    tools: router.definitions(context).map(({ name, description, parameters }) => ({
       name,
       description,
       parameters,
