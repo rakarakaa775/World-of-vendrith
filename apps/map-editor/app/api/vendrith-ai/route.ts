@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { DirectModelProvider, GitHubHttpRepositoryAdapter, ProjectDocumentationAdapter, RepositoryCodeGraphAdapter, createSupabaseAssetRegistryAdapter, createProjectTools, createToolRouter, createVendrithAgentOrchestrator } from "../../../ai";
+import { DirectModelProvider, GitHubHttpRepositoryAdapter, ProjectDocumentationAdapter, RepositoryCodeGraphAdapter, createSupabaseAssetRegistryAdapter, createProjectTools, createToolRouter, createVendrithAgentOrchestrator, consumeWebAiRequestBudget, requestBodyExceedsWebAiLimit } from "../../../ai";
 import { resolveAuthoritativeMap } from "../../../editor/map-authoritative-resolver";
 
 export const runtime = "nodejs";
@@ -51,9 +51,20 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!token) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    if (requestBodyExceedsWebAiLimit(request.headers.get("content-length"))) {
+      return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
+    }
     const authSupabase = createSupabase();
     const { data: authData, error: authError } = await authSupabase.auth.getUser(token);
     if (authError || !authData.user) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
+
+    const rateLimit = consumeWebAiRequestBudget(authData.user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Web AI request rate limit exceeded.", retryAfterSeconds: rateLimit.retryAfterSeconds },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      );
+    }
 
     const body = await request.json() as { prompt?: string; mode?: "explain" | "plan" | "execute" | "high-risk"; conversation?: unknown };
     const prompt = body.prompt?.trim();
@@ -61,7 +72,7 @@ export async function POST(request: Request) {
     if (prompt.length > MAX_PROMPT_LENGTH) return NextResponse.json({ error: `Prompt is too long (maximum ${MAX_PROMPT_LENGTH} characters).` }, { status: 413 });
     const mode = body.mode ?? "explain";
     if (mode !== "explain" && mode !== "plan") return NextResponse.json({ error: "The Web/Creator AI endpoint currently exposes read/analyze modes only." }, { status: 403 });
-    const result = await createOrchestrator(token).run({ id: crypto.randomUUID(), mode, prompt, conversation: parseConversation(body.conversation) });
+    const result = await createOrchestrator(token).run({ id: crypto.randomUUID(), mode, prompt, conversation: parseConversation(body.conversation), audience: "web-creator" });
     return NextResponse.json({ response: result.response.content, model: result.response.model, provider: result.response.provider, iterations: result.iterations, approval: result.approval, evidence: result.evidence, toolResults: result.toolResults.map(item => ({ id: item.id, name: item.name, ok: item.ok, error: item.error })) });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Vendrith AI request failed." }, { status: 500 }); }
 }
