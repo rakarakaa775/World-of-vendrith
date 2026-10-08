@@ -176,11 +176,30 @@ export async function POST(request: Request) {
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       if (data?.ok === true) {
-        const queued = await supabase.rpc("enqueue_vendrith_runtime_intent_v1", {
-          p_proposal_id: body.proposalId,
-        });
-        if (queued.error) return NextResponse.json({ error: queued.error.message }, { status: 500 });
-        return NextResponse.json({ ...data, runtimeIntent: queued.data });
+        const proposal = await supabase
+          .from("vendrith_creator_action_proposals")
+          .select("action")
+          .eq("id", body.proposalId)
+          .maybeSingle();
+        if (proposal.error) return NextResponse.json({ error: proposal.error.message }, { status: 500 });
+
+        const runtimeAction = proposal.data?.action
+          && typeof proposal.data.action === "object"
+          && !Array.isArray(proposal.data.action)
+          ? (proposal.data.action as Record<string, unknown>).runtimeAction
+          : undefined;
+
+        if (runtimeAction && typeof runtimeAction === "object" && !Array.isArray(runtimeAction)) {
+          const queued = await supabase.rpc("enqueue_vendrith_runtime_intent_v1", {
+            p_proposal_id: body.proposalId,
+          });
+          if (queued.error) return NextResponse.json({ error: queued.error.message }, { status: 500 });
+          return NextResponse.json({ ...data, runtimeIntent: queued.data });
+        }
+
+        // Editor mutations stay on the approved editor mutation gateway.
+        // They must never be reinterpreted as game-runtime actions.
+        return NextResponse.json(data);
       }
       return NextResponse.json(data);
     }
