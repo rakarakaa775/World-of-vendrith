@@ -44,15 +44,15 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Bound request body size.
 - [x] Add per-authenticated-user request rate limiting.
 - [x] Keep the existing per-run tool-call and iteration budget.
-- [ ] Add durable session ownership and server-side conversation persistence.
+- [x] Add durable session ownership and server-side conversation persistence.
 - [ ] Add distributed rate limiting when the runtime is scaled across instances.
 
 ### 4.2 Persistent AI sessions
-- [ ] Define user-owned AI session identity.
-- [ ] Persist conversation messages server-side.
-- [ ] Enforce user/session ownership at the persistence boundary.
-- [ ] Never expose provider credentials to the client.
-- [ ] Bound stored history and retention.
+- [x] Define user-owned AI session identity.
+- [x] Persist conversation messages server-side.
+- [x] Enforce user/session ownership at the persistence boundary with Supabase RLS.
+- [x] Never expose provider credentials to the client.
+- [x] Bound stored history and retention to 100 messages / 4,000 characters per message.
 
 ### 4.3 World-aware Web AI
 - [x] World inspection.
@@ -122,4 +122,4 @@ Phase 4.1 has started with a Web AI request-security boundary:
 - existing bounded prompt/history;
 - existing tool-loop budget.
 
-The next implementation target is **4.2 Persistent AI Sessions**, followed by the remaining emergent-world integrations and the final Phase 4 audit.
+Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The next implementation target is **4.3 World-aware Web AI**, followed by the remaining emergent-world integrations and the final Phase 4 audit.
