@@ -42,7 +42,7 @@ describe("GitHub development repository executor", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("blocks secrets and traversal paths before contacting GitHub", async () => {
+  it("blocks traversal and secret/private-key paths before contacting GitHub", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -50,13 +50,13 @@ describe("GitHub development repository executor", () => {
       operation: "write_file",
       path: "../.env",
       content: "SECRET=forbidden",
-    }))).rejects.toThrow("unsafe repository path");
+    }))).rejects.toThrow("Repository path is not allowed");
 
     await expect(executor().execute(proposal({
       operation: "write_file",
       path: "config/production.pem",
       content: "private-key",
-    }))).rejects.toThrow("unsafe repository path");
+    }))).rejects.toThrow("Secret or private-key files cannot be modified by Development AI");
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
