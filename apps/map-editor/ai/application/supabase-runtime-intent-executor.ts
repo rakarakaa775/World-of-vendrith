@@ -54,6 +54,64 @@ export function createSupabaseRuntimeIntentExecutor(
         return { ok: false, result: { code: "RUNTIME_LEASE_UNAVAILABLE", detail: "Runtime authority lease could not be acquired." } };
       }
 
+      const mutationId = "runtime-intent:" + intent.intentId;
+      const existingResponse = await client.rpc("read_world_runtime_mutation_by_id_v1", {
+        p_world_id: worldId,
+        p_mutation_id: mutationId,
+      });
+      if (existingResponse.error) {
+        return { ok: false, result: { code: "RUNTIME_IDEMPOTENCY_LOOKUP_ERROR", detail: existingResponse.error.message, retryable: true } };
+      }
+      const existing = firstRow(existingResponse.data as unknown as Record<string, unknown>[] | Record<string, unknown> | null);
+      if (existing) {
+        const storedMutation = existing.mutation as Record<string, unknown> | null;
+        const storedAction = storedMutation?.action;
+        if (existing.mutation_type !== "ai_runtime_intent" ||
+            storedMutation?.intentId !== intent.intentId ||
+            storedMutation?.proposalId !== intent.proposalId ||
+            stableJson(storedAction) !== stableJson(action)) {
+          return { ok: false, result: { code: "RUNTIME_IDEMPOTENCY_CONFLICT", mutationId } };
+        }
+        const storedState = storedMutation?.state;
+        if (!storedState || String(existing.state_hash) !== stateHash(storedState)) {
+          return { ok: false, result: { code: "RUNTIME_IDEMPOTENCY_STATE_INVALID", mutationId } };
+        }
+        const checkpoint = await client.rpc("save_world_runtime_checkpoint_v1", {
+          p_world_id: worldId,
+          p_sequence: Number(existing.sequence),
+          p_tick: Number(existing.tick),
+          p_state_version: String(existing.state_version),
+          p_state_hash: String(existing.state_hash),
+          p_state: storedState,
+          p_lease_token: leaseToken,
+        });
+        if (checkpoint.error) {
+          return {
+            ok: false,
+            result: {
+              code: "RUNTIME_CHECKPOINT_ERROR",
+              mutationId,
+              sequence: Number(existing.sequence),
+              detail: checkpoint.error.message,
+              retryable: true,
+            },
+          };
+        }
+        return {
+          ok: true,
+          result: {
+            actionId: action.id,
+            mutationId,
+            sequence: Number(existing.sequence),
+            stateVersion: String(existing.state_version),
+            stateHash: String(existing.state_hash),
+            verified: true,
+            checkpointSaved: true,
+            idempotentRecovery: true,
+          },
+        };
+      }
+
       const adapter = createSupabaseRuntimeWorldAdapter(client);
       const engine = await createSupabaseRuntimeEngine(adapter, intent.contextId);
       if (!engine) {
@@ -77,7 +135,6 @@ export function createSupabaseRuntimeIntentExecutor(
       }
 
       const after = engine.bridge.snapshot();
-      const mutationId = "runtime-intent:" + intent.intentId;
       const mutation = {
         mutation_id: mutationId,
         mutation_type: "ai_runtime_intent",
