@@ -166,7 +166,17 @@ export async function POST(request: Request) {
       sessionId?: string;
       title?: string;
       context?: { type: "world" | "region" | "playable"; id: string };
+      proposalId?: string;
+      approve?: boolean;
     };
+    if (body.approve === true && body.proposalId) {
+      const { data, error } = await createSupabase(auth.token).rpc("approve_vendrith_creator_action_v1", {
+        p_proposal_id: body.proposalId,
+      });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(data);
+    }
+
     const prompt = body.prompt?.trim();
     if (!prompt) return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     if (prompt.length > MAX_PROMPT_LENGTH) return NextResponse.json({ error: `Prompt is too long (maximum ${MAX_PROMPT_LENGTH} characters).` }, { status: 413 });
@@ -218,7 +228,7 @@ export async function POST(request: Request) {
     const assistantMessage = await store.appendMessage(session.id, "assistant", result.response.content);
 
     let proposalId: string | null = null;
-    if (mode === "plan" && context && result.approval?.required) {
+    if (mode === "plan" && context?.type === "playable" && result.approval?.required) {
       const proposedAction = (result.approval as { action?: { operation?: string; mapId?: string; [key: string]: unknown } }).action;
       const operation = proposedAction?.operation;
       const mapId = proposedAction?.mapId;
