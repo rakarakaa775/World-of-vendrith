@@ -287,7 +287,7 @@ export async function runNpcRuntimeTick(
           action: behaviorDecision.actions[0],
         }
       : undefined);
-  if (!behavior) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, needs, status: "invalid" };
+  if (!behavior) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, autonomous: true, autonomy, needs, status: "invalid" };
   const socialDiagnostics: NpcRuntimeSocialDiagnostics = {
     relationships,
     relationshipPolicyValidation,
@@ -403,7 +403,7 @@ export async function runNpcRuntimeTick(
           },
         },
       });
-      return { observation, behavior, socialDiagnostics, dailyLife, needs, status: "idle" };
+      return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, dailyLife, needs, status: "idle" };
     }
     const continuingActivity = previousActivityRecord?.goal === activityGoal
       && previousActivityRecord?.activityKind === activityKind
@@ -518,7 +518,7 @@ export async function runNpcRuntimeTick(
     };
   }
 
-  if (!goal) return { observation, behavior, socialDiagnostics, needs, status: "invalid" };
+  if (!goal) return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, needs, status: "invalid" };
 
   const grid = world.grid(self.mapId);
   if (!grid) {
@@ -541,12 +541,12 @@ export async function runNpcRuntimeTick(
     if (behavior.kind === "investigate" && memoryStore) {
       recoverInvestigationFailure(observation, self.id, memoryStore, "navigation");
     }
-    return { observation, behavior, socialDiagnostics, needs, status: "replan-required" };
+    return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, needs, status: "replan-required" };
   }
   const validation = validateRuntimeDecision(navigationDecision, observation);
   if (!validation.ok) {
     syncNpcBehaviorRuntimeState(behaviorRuntimeStore, self.id, behavior.kind, observation.state.clock.tick, false, false);
-    return { observation, behavior, socialDiagnostics, needs, decision: navigationDecision, status: "invalid" };
+    return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, needs, decision: navigationDecision, status: "invalid" };
   }
 
   const action = navigationDecision.actions[0];
