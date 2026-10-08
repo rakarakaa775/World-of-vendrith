@@ -8,6 +8,11 @@ const mapPort = (document: any): MapInspectorPort => ({
     if (mapId !== document?.id) return null;
     return { document, version: 7, source: "test:authoritative-map" };
   },
+});
+
+
+
+describe("asset identity matching", () => {
   it("does not trust the first broad asset-registry match when its identity differs", async () => {
     const result = await inspectMap("world-1", {
       map: mapPort(document),
