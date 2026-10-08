@@ -3,7 +3,8 @@ import { createToolRouter, type ToolDefinition } from "../ai/ports/tool-router";
 import { createVendrithAgentOrchestrator } from "../ai/application/agent-orchestrator";
 import { createDevelopmentWorkflowTools, type DevelopmentWorkflowPort } from "../ai/ports/development-tools";
 import { createRepositoryDevelopmentWorkflowProvider } from "../ai/application/development-workflow-provider";
-import { createRuntimeTools } from "../ai/ports/runtime-tools";
+import { createRuntimeTools, type RuntimeSimulationPort } from "../ai/ports/runtime-tools";
+import type { RuntimeOrchestrator } from "../ai/application/runtime-orchestrator";
 
 function tool(name: string, audience: "web-creator" | "development"): ToolDefinition {
   return {
@@ -125,11 +126,11 @@ describe("AI tool audience isolation", () => {
 
   it("isolates runtime loop tools to the game-runtime audience", async () => {
     const simulation = {
-      simulate: vi.fn(async (request: { id: string }) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
-    };
+      simulate: vi.fn(async (request: any) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
+    } as unknown as RuntimeSimulationPort;
     const orchestrator = {
-      run: vi.fn(async (request: { id: string }, authorization: { approved?: boolean }) => ({ request, authorization })),
-    };
+      run: vi.fn(async (request: any, authorization: any) => ({ request, authorization })),
+    } as unknown as RuntimeOrchestrator;
     const tools = createRuntimeTools({ simulation, orchestrator });
     const router = createToolRouter(tools);
 
@@ -141,11 +142,11 @@ describe("AI tool audience isolation", () => {
 
   it("keeps runtime simulation separate from authoritative execution", async () => {
     const simulation = {
-      simulate: vi.fn(async (request: { id: string }) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
-    };
+      simulate: vi.fn(async (request: any) => ({ observation: { id: request.id }, decision: { id: "decision" } })),
+    } as unknown as RuntimeSimulationPort;
     const orchestrator = {
-      run: vi.fn(async (request: { id: string }) => ({ request, executions: [] })),
-    };
+      run: vi.fn(async (request: any) => ({ request, executions: [] })),
+    } as unknown as RuntimeOrchestrator;
     const router = createToolRouter(createRuntimeTools({ simulation, orchestrator }));
     const request = { id: "runtime-1" };
 
@@ -161,8 +162,8 @@ describe("AI tool audience isolation", () => {
 
   it("requires the game-rule execution boundary for runtime.execute", async () => {
     const orchestrator = {
-      run: vi.fn(async (request: { id: string }, authorization: { approved?: boolean }) => ({ request, authorization })),
-    };
+      run: vi.fn(async (request: any, authorization: any) => ({ request, authorization })),
+    } as unknown as RuntimeOrchestrator;
     const router = createToolRouter(createRuntimeTools({ orchestrator }));
     const request = { id: "runtime-2" };
 
