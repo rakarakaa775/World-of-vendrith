@@ -54,6 +54,7 @@ export * from "./application/npc-world-awareness";
 export * from "./application/npc-relationship-memory-runtime";
 export * from "./application/npc-relationship-runtime-store";
 export * from "./application/npc-specialized-agent";
+export * from "./application/npc-coordination";
 
 export * from "./ports/map-tools";
 export * from "./application/map-inspector";
