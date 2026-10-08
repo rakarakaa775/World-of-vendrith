@@ -32,8 +32,9 @@ export function applyVerifiedNpcActivityEffect(
   effectStore: NpcActivityEffectStore,
 ): NpcActivityEffectResult {
   const actionId = action.id;
-  if (!executionOk || !verificationOk) return { applied: false, actionId, reason: "Activity was not successfully executed and verified." };
   if (action.type !== "npc.activity" || action.intelligence !== "npc") return { applied: false, actionId, reason: "Action is not a verified NPC activity." };
+  if (executionOk && !verificationOk && !activityCompleted) return { applied: false, actionId, reason: "Activity is still running." };
+  if (!executionOk || !verificationOk) return { applied: false, actionId, reason: "Activity was not successfully executed and verified." };
   if (!activityCompleted) return { applied: false, actionId, reason: "Activity is still running." };
   if (effectStore.hasApplied(actionId)) return { applied: false, actionId, reason: "Activity effect was already applied." };
   const goal = action.payload.goal;
