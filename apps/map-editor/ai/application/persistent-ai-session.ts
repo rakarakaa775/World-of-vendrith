@@ -61,7 +61,7 @@ export class PersistentWebAiSessionStore {
   async getSession(sessionId: string): Promise<PersistentWebAiSession | null> {
     const { data, error } = await this.client
       .from("vendrith_ai_sessions")
-      .select("id,user_id,audience,title,status,created_at,updated_at")
+      .select("id,user_id,audience,title,status,context_type,context_id,created_at,updated_at")
       .eq("id", sessionId)
       .maybeSingle();
     if (error) throw new Error(error.message);
