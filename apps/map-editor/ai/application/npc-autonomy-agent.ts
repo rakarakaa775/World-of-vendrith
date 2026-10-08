@@ -59,12 +59,11 @@ export function createNpcAutonomyAgent(
 function buildNpcGoalCandidates(signals: NpcAutonomySignals): readonly NpcGoalCandidate[] {
   const candidates: NpcGoalCandidate[] = [];
   if (typeof signals.survivalRisk === "number") candidates.push({ kind: "survive", urgency: signals.survivalRisk, importance: 100, reason: "Authoritative runtime reports a survival risk." });
-  if (typeof signals.energy === "number") {
-    const maxEnergy = signals.maxEnergy ?? 100;
-    const deficit = maxEnergy > 0 ? (1 - signals.energy / maxEnergy) * 100 : 0;
-    candidates.push({ kind: "recover-energy", urgency: deficit, importance: 80, reason: "Energy deficit requires recovery consideration." });
-  }
+  if (typeof signals.energyNeed === "number") candidates.push({ kind: "recover-energy", urgency: signals.energyNeed, importance: 80, reason: "Authoritative runtime reports elevated energy need." });
+  if (typeof signals.safetyNeed === "number") candidates.push({ kind: "survive", urgency: signals.safetyNeed, importance: 100, reason: "Authoritative runtime reports elevated safety need." });
+  if (typeof signals.hungerNeed === "number") candidates.push({ kind: "work", urgency: signals.hungerNeed, importance: 60, reason: "Authoritative runtime reports elevated hunger need." });
   if (signals.scheduledActivityDue) candidates.push({ kind: "work", urgency: signals.scheduleUrgency ?? 70, importance: 70, reason: "The authoritative schedule reports an activity is due." });
+  if (typeof signals.socialNeed === "number") candidates.push({ kind: "socialize", urgency: signals.socialNeed, importance: 40, reason: "Authoritative runtime reports elevated social need." });
   if (signals.socialOpportunity) candidates.push({ kind: "socialize", urgency: signals.socialUrgency ?? 40, importance: 40, reason: "A social opportunity is available in the observed runtime state." });
   if (signals.explorationAvailable) candidates.push({ kind: "explore", urgency: signals.explorationUrgency ?? 20, importance: 20, reason: "Exploration is available in the observed runtime state." });
   return candidates;
