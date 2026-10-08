@@ -52,6 +52,13 @@ const defaultNpcSocialMemoryStore = createNpcSocialMemoryStore();
 const defaultNpcReputationStore = createNpcReputationStore();
 
 export interface NpcRuntimeTickResult {
+  autonomous: true;
+  autonomy?: {
+    goal: RuntimeGoalKind;
+    priority: number;
+    reason: string;
+    actionBudget: { requested: number; allowed: number; blocked: number };
+  };
   observation: RuntimeObservation;
   behavior: ReturnType<typeof createNpcBehaviorDecisionCandidates>[number] | undefined;
   socialDiagnostics: NpcRuntimeSocialDiagnostics;
@@ -206,7 +213,7 @@ export async function runNpcRuntimeTick(
     : [];
   const relationshipPolicyValidation = validateNpcRelationshipPolicy(profileRecord?.relationshipPolicy);
   const emptySocialDiagnostics: NpcRuntimeSocialDiagnostics = { relationships, relationshipPolicyValidation };
-  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, status: "invalid" };
+  if (observation.perception?.self?.kind !== "npc") return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, autonomous: true, autonomy, status: "invalid" };
   const needsState = resolveNpcNeedsState(observation, needsStore);
   const needs = needsState?.needs;
   let activeGoal: {
@@ -238,6 +245,14 @@ export async function runNpcRuntimeTick(
   } catch {
     activeGoal = undefined;
   }
+  const autonomy = activeGoal
+    ? {
+        goal: activeGoal.kind,
+        priority: activeGoal.priority,
+        reason: activeGoal.reason,
+        actionBudget: { requested: 1, allowed: 1, blocked: 0 },
+      }
+    : undefined;
   const dailyLife = resolveNpcDailyLifeState(
     observation,
     activeGoal
@@ -260,7 +275,7 @@ export async function runNpcRuntimeTick(
     && !visibleTargetIds.has(behaviorMemoryTargetEntityId);
   const behaviorGoal = recoveringInvestigation ? undefined : activeGoal;
   const candidates = createNpcBehaviorDecisionCandidates(observation, behaviorMemory, behaviorGoal);
-  if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, dailyLife, needs, status: "invalid" };
+  if (!candidates.length) return { observation, behavior: undefined, socialDiagnostics: emptySocialDiagnostics, autonomous: true, autonomy, dailyLife, needs, status: "invalid" };
 
   const behaviorDecision = decideNpcBehavior(request, observation, undefined, memoryStore, behaviorGoal);
   const behavior = candidates.find(candidate => candidate.action.id === behaviorDecision.actions[0]?.id)
@@ -312,11 +327,11 @@ export async function runNpcRuntimeTick(
     const validation = validateRuntimeDecision(decision, observation);
     const runtimeState = syncNpcBehaviorRuntimeState(behaviorRuntimeStore, observation.perception.self.id, behavior.kind, observation.state.clock.tick, validation.ok, validation.ok);
     const syncedDailyLife = syncDailyLifeBehaviorState(dailyLife, runtimeState);
-    return { observation, behavior, socialDiagnostics, dailyLife: syncedDailyLife, needs, decision, status: validation.ok ? "idle" : "invalid" };
+    return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, dailyLife: syncedDailyLife, needs, decision, status: validation.ok ? "idle" : "invalid" };
   }
 
   const self = observation.perception?.self;
-  if (!self) return { observation, behavior, socialDiagnostics, needs, status: "invalid" };
+  if (!self) return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, needs, status: "invalid" };
 
   const isActivity = behavior.kind === "work" || behavior.kind === "eat" || behavior.kind === "sleep" || behavior.kind === "socialize"
     || behavior.kind === "routine" || behavior.kind === "free-time" || behavior.kind === "rest"
@@ -416,7 +431,7 @@ export async function runNpcRuntimeTick(
     });
     const activityValidation = validateRuntimeDecision(activityDecision, observation);
     if (!activityValidation.ok) {
-      return { observation, behavior, socialDiagnostics, dailyLife, needs, decision: activityDecision, status: "invalid" };
+      return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, dailyLife, needs, decision: activityDecision, status: "invalid" };
     }
 
     const execution = await ports.action.execute(activityAction, observation);
@@ -508,7 +523,7 @@ export async function runNpcRuntimeTick(
   const grid = world.grid(self.mapId);
   if (!grid) {
     syncNpcBehaviorRuntimeState(behaviorRuntimeStore, self.id, behavior.kind, observation.state.clock.tick, false, false);
-    return { observation, behavior, socialDiagnostics, needs, status: "rejected" };
+    return { observation, behavior, socialDiagnostics, autonomous: true, autonomy, needs, status: "rejected" };
   }
 
   const navigationTargetEntityId = typeof behavior.action.payload.targetEntityId === "string"
