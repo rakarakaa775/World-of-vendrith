@@ -5,3 +5,4 @@ export * from "./github-repository";
 export * from "./github-http-repository";
 export * from "./improvement-memory";
 export * from "./vercel-ai-gateway";
+export * from "./direct-model-provider";
