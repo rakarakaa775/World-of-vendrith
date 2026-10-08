@@ -66,7 +66,16 @@ export function createToolRouter(tools: ToolDefinition[]): ToolRouter {
         return { id: call.id, name: call.name, ok: false, error: "Tool is outside the active AI audience" };
       }
 
-      const capability = tool.capability ?? (tool.access === "mutation" ? "high-risk" : "read");
+      const legacyMutation = tool.access === "mutation" && !tool.capability;
+      const capability = tool.capability ?? (legacyMutation ? "high-risk" : "read");
+
+      if (legacyMutation && context.mode !== "execute" && context.mode !== "high-risk") {
+        return { id: call.id, name: call.name, ok: false, error: "Mutation tools require execute or high-risk mode" };
+      }
+
+      if (legacyMutation && context.approvalState !== "approved") {
+        return { id: call.id, name: call.name, ok: false, error: "Mutation tools require an approved execution path" };
+      }
 
       if (capability === "game-rule" && context.mode !== "execute" && context.mode !== "high-risk") {
         return {
