@@ -1,4 +1,5 @@
 import type { RuntimeAiRequest } from "../domain/runtime";
+import { selectNpcGoal, type NpcGoal, type NpcGoalCandidate } from "../domain/npc-autonomy";
 import type {
   RuntimeActionExecution,
   RuntimeOrchestrator,
@@ -15,6 +16,7 @@ export interface NpcAutonomyPolicy {
 }
 
 export interface NpcAutonomyTickResult extends RuntimeRunResult {
+  goal: NpcGoal;
   autonomous: true;
   actionBudget: {
     requested: number;
@@ -49,7 +51,7 @@ export function createNpcAutonomyAgent(
   const maxActionsPerTick = clampBudget(policy.maxActionsPerTick);
 
   return {
-    async tick(request) {
+    async tick(request, candidates = []) {
       if (request.surface !== "game") {
         throw new Error("NPC autonomy requires the game runtime surface.");
       }
@@ -57,7 +59,7 @@ export function createNpcAutonomyAgent(
         throw new Error("NPC autonomy requires npc runtime intelligence.");
       }
 
-      const result = await orchestrator.run(request, {
+      const goal = selectNpcGoal(candidates);\n      const autonomousRequest = { ...request, goal: goal.kind === "idle" ? request.goal : goal.kind };\n      const result = await orchestrator.run(autonomousRequest, {
         maxActions: maxActionsPerTick,
       });
       const allowedActions = result.decision.actions.slice(0, maxActionsPerTick);
