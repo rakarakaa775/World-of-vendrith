@@ -84,3 +84,5 @@ export * from "./application/runtime-tool-registry";
 export * from "./application/npc-autonomy-agent";
 
 export * from "./application/web-ai-security";
+
+export * from "./application/persistent-ai-session";
