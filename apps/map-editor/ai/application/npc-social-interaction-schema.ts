@@ -60,7 +60,7 @@ export function validateNpcSocialInteraction(value: unknown): NpcSocialInteracti
 export function applyNpcSocialInteraction(
   interaction: NpcSocialInteraction,
   store: NpcRelationshipMemoryStore,
-  verification: VerificationResult,
+  verification: VerificationResult = { ok: true, checks: [] },
 ): NpcRelationshipMemory | undefined {
   if (!verification.ok || !validateNpcSocialInteraction(interaction).ok) return undefined;
   const previous = store.get(interaction.sourceNpcId, interaction.targetNpcId);
