@@ -4,7 +4,7 @@ import type { RuntimeAction } from "../domain/runtime";
 import type { RuntimeAiRequest } from "../domain/runtime";
 import { createSupabaseRuntimeWorldAdapter } from "./supabase-runtime-world-adapter";
 import { createSupabaseRuntimeEngine } from "./supabase-runtime-engine";
-import type { RuntimeIntentExecutor, RuntimeIntentRecord, RuntimeIntentExecutionResult } from "./runtime-intent-consumer";
+import { createRuntimeIntentConsumer, type RuntimeIntentExecutor, type RuntimeIntentRecord, type RuntimeIntentExecutionResult } from "./runtime-intent-consumer";
 
 function stableJson(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -143,4 +143,9 @@ export function createSupabaseRuntimeIntentExecutor(
       };
     },
   };
+}
+
+
+export function createSupabaseRuntimeIntentConsumer(client: SupabaseClient) {
+  return createRuntimeIntentConsumer(client, createSupabaseRuntimeIntentExecutor(client));
 }
