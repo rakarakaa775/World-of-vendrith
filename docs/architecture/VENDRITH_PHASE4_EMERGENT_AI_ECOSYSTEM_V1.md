@@ -1,6 +1,6 @@
 # VENDRITH PHASE 4 — EMERGENT WORLD & FULL AI ECOSYSTEM V1
 
-Status: IN PROGRESS  
+Status: COMPLETE — FINAL AUDIT PASSED WITH EXPLICIT DEFERRED FOLLOW-UPS  
 Branch: `feat/vendrith-ecc-v1`
 
 ## Goal
@@ -106,16 +106,16 @@ Agent Skills and ECC are development workflows. They are never implicit runtime 
 - [x] Execute the full Vitest/build gate on the latest branch head (CI #657 passed on the Phase 4.6 executor/runtime fixes).
 
 ### 4.7 Final audit / exit gate
-- [ ] Cross-surface audience isolation audit.
-- [ ] Tool capability/approval audit.
-- [ ] Prompt-injection resistance audit.
-- [ ] Session isolation audit.
-- [ ] Runtime autonomy safety audit.
-- [ ] Memory authority audit.
-- [ ] Production provider/auth audit.
-- [ ] Full tests/typecheck/build.
-- [ ] Production smoke test.
-- [ ] Phase 4 sign-off.
+- [x] Cross-surface audience isolation audit — Web/Creator/Development audiences are explicitly separated; anonymous Supabase users are denied at the Development persistence boundary.
+- [x] Tool capability/approval audit — capabilities are explicit; high-risk Development repository writes require proposal approval and approval-id binding; database/deployment/destructive actions remain fail-closed.
+- [x] Prompt-injection resistance audit — model/tool/repository outputs remain untrusted evidence; ECC/Agent Skills do not grant authority; policy and verification remain outside the model.
+- [x] Session isolation audit — Web AI sessions/messages are user-owned with RLS and bounded retention; world/region/playable context is re-resolved authoritatively.
+- [x] Runtime autonomy safety audit — runtime intents use authenticated claim/finish state, authoritative context re-resolution, Execute -> Verify -> durable mutation/checkpoint, and fail-closed verification.
+- [x] Memory authority audit — NPC memory remains evidence/preference input and cannot grant mutation authority.
+- [x] Production provider/auth audit — production root smoke is HTTP 200; Web/Runtime Supabase configuration is present; Development repository mutation fails closed when `GITHUB_TOKEN` is absent rather than silently gaining authority.
+- [x] Full tests/typecheck/build — CI #665 for commit `a0e3300345d9f6ddfff6484e21d246832e74af81` completed successfully with TypeScript typecheck, Next.js build, and Vitest green.
+- [x] Production smoke test — latest application deployment for commit `411b90c77e2283aa3388e89810cf48f834392fb8` is READY and the deployed root returned HTTP 200 with the Vendrith World Builder shell.
+- [x] Phase 4 sign-off — baseline governed AI ecosystem is signed off. Deferred items below are intentionally post-Phase-4 capability work, not authority/security blockers.
 
 ## Non-negotiable rules
 
@@ -137,4 +137,15 @@ Phase 4.1 has started with a Web AI request-security boundary:
 - existing bounded prompt/history;
 - existing tool-loop budget.
 
-Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. The current implementation target is **4.7 Final Audit**. Development AI has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Repository mutation now has a separate high-risk executor boundary: proposal -> explicit approval -> approval-id binding -> GitHub mutation -> read-back verification -> durable execution audit. Database, deployment, and destructive operations remain fail-closed. Phase 4.6's latest CI gate passed; final audit remains responsible for cross-surface isolation, prompt-injection resistance, session isolation, runtime autonomy safety, memory authority, production auth/provider configuration, and production smoke validation.
+Phase 4.2 is implemented with server-owned session IDs, persisted Web/Creator messages, authenticated ownership via RLS, and bounded retention. Phase 4.7 final audit is complete. Development AI has a dedicated authenticated API surface and only receives development-audience tools. Repository/code-graph inspection is exposed through an explicit workflow-provider boundary. Repository mutation has a separate high-risk executor boundary: proposal -> explicit approval -> approval-id binding -> GitHub mutation -> read-back verification -> durable execution audit. Database, deployment, and destructive operations remain fail-closed.
+
+### Phase 4 sign-off notes
+
+The following remain intentionally deferred because they depend on broader world/runtime scale rather than being required for the governed Phase 4 authority boundary:
+- Distributed rate limiting for multi-instance scale.
+- Authoritative world-history/economy/faction/quest evidence when those subsystems exist.
+- Feeding bounded long-term memory into goal preference scoring.
+- Integrating coordination proposals into authoritative goal arbitration.
+- Durable event/history feedback loops for future-world evidence.
+
+The CI workflow now includes `database/migrations/**` in its push and pull-request path filters, so migration security changes trigger the same Map Editor typecheck/build/test gate. GitHub requires both branch and path filters to match when both are configured.
