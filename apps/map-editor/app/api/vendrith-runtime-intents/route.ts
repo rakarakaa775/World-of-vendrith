@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 function createSupabase(accessToken?: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Runtime execution must fail closed when Supabase configuration is absent.
   if (!url || !key) throw new Error("Supabase environment is not configured.");
   return createClient(
     url,
