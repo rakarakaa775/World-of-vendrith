@@ -1,3 +1,5 @@
+import type { ToolAudience } from "../ports/tool-router";
+
 export type AiMode = "explain" | "plan" | "execute" | "high-risk";
 
 export type EvidenceKind =
