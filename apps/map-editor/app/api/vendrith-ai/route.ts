@@ -236,8 +236,9 @@ export async function POST(request: Request) {
     const assistantMessage = await store.appendMessage(session.id, "assistant", result.response.content);
 
     let proposalId: string | null = null;
-    if (mode === "plan" && context?.type === "playable" && result.approval?.required) {
-      const proposedAction = (result.approval as { action?: { operation?: string; mapId?: string; [key: string]: unknown } }).action;
+    const approvalPayload = result.approval as unknown as { required?: boolean; action?: { operation?: string; mapId?: string; [key: string]: unknown } };
+    if (mode === "plan" && context?.type === "playable" && approvalPayload.required === true) {
+      const proposedAction = approvalPayload.action;
       const operation = proposedAction?.operation;
       const mapId = proposedAction?.mapId;
       if (operation && ["create", "move", "rotate", "scale", "delete"].includes(operation) && typeof mapId === "string" && mapId === (context.type === "playable" ? context.id : mapId)) {
