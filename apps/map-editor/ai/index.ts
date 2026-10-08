@@ -94,3 +94,4 @@ export * from "./application/supabase-runtime-intent-executor";
 export * from "./application/runtime-recovery";
 
 export * from "./application/development-action-proposal";
+\nexport * from "./application/development-repository-executor";\n
