@@ -36,13 +36,20 @@ export async function POST(request: Request) {
     const auth = await authenticate(request);
     if (!auth) return NextResponse.json({ error: "Invalid or expired authentication session." }, { status: 401 });
 
-    const body = await request.json() as { intentId?: unknown };
+    const body = await request.json() as { intentId?: unknown; retry?: unknown };
     const intentId = typeof body.intentId === "string" ? body.intentId.trim() : "";
     if (!/^[0-9a-fA-F-]{36}$/.test(intentId)) {
       return NextResponse.json({ error: "A valid runtime intent id is required." }, { status: 400 });
     }
 
-    const result = await createSupabaseRuntimeIntentConsumer(createSupabase(auth.token)).consume(intentId);
+    const client = createSupabase(auth.token);
+    if (body.retry === true) {
+      const retry = await client.rpc("retry_vendrith_runtime_intent_v1", { p_intent_id: intentId });
+      if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 500 });
+      if (retry.data?.ok !== true) return NextResponse.json(retry.data, { status: 409 });
+    }
+
+    const result = await createSupabaseRuntimeIntentConsumer(client).consume(intentId);
     if (result.ok) return NextResponse.json(result, { status: 200 });
     if (result.status === "rejected") return NextResponse.json(result, { status: 422 });
     return NextResponse.json(result, { status: 409 });
