@@ -5,6 +5,7 @@ import type { NavigationGrid } from "../domain/runtime-navigation";
 import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
 import { decisionProfileFromMetadata } from "./npc-runtime-profile";
 import { validatedNpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
+import { recoverWorldFromSupabase } from "./runtime-recovery";
 
 type RuntimeSupabaseClient = SupabaseClient;
 
@@ -276,24 +277,32 @@ export function createSupabaseRuntimeWorldAdapter(
         .filter(event => event.startTick <= currentTick)
         .map(event => event.id);
 
-      return {
-        snapshot: {
-          state: {
-            worldId: map.world_id,
-            clock: {
-              tick: currentTick,
-              day: currentDate.getUTCDate(),
-              hour: currentDate.getUTCHours(),
-              minute: currentDate.getUTCMinutes(),
-              season,
-              ...(weather ? { weather } : {}),
-            },
-            activeEventIds,
-            stateVersion,
-            activeRegionId: map.metadata?.activeRegionId as string | undefined,
+      const baseSnapshot: RuntimeWorldSnapshot = {
+        state: {
+          worldId: map.world_id,
+          clock: {
+            tick: currentTick,
+            day: currentDate.getUTCDate(),
+            hour: currentDate.getUTCHours(),
+            minute: currentDate.getUTCMinutes(),
+            season,
+            ...(weather ? { weather } : {}),
           },
-          entities,
+          activeEventIds,
+          stateVersion,
+          activeRegionId: map.metadata?.activeRegionId as string | undefined,
         },
+        entities,
+      };
+
+      const recoveredSnapshot = (await recoverWorldFromSupabase(
+        client,
+        map.world_id,
+        baseSnapshot,
+      )).snapshot;
+
+      return {
+        snapshot: recoveredSnapshot,
         grid: { width: map.width, height: map.height, blocked },
         scheduledEvents,
       };
