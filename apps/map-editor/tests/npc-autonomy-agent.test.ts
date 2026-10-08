@@ -121,9 +121,9 @@ describe("NPC autonomy agent", () => {
     ]);
 
     expect(result.goal?.kind).toBe("eat");
-    expect(result.goal.score).toBe(90 * 0.7 + 80 * 0.3);
+    expect(result.goal?.score).toBe(90 * 0.7 + 80 * 0.3);
     expect(run).toHaveBeenCalledWith(
-      expect.objectContaining({ goal: "recover-energy" }),
+      expect.objectContaining({ goal: "eat" }),
       { maxActions: 1 },
     );
   });
