@@ -1,3 +1,4 @@
+import { getVercelOidcToken } from "@vercel/oidc";
 import type { ModelMessage, ModelProviderPort, ModelRequest, ModelResponse } from "../ports/model-provider";
 
 interface GatewayResponse {
@@ -16,7 +17,7 @@ interface GatewayCredential {
   token: string;
 }
 
-function getGatewayCredential(options: VercelAiGatewayOptions): GatewayCredential {
+async function getGatewayCredential(options: VercelAiGatewayOptions): Promise<GatewayCredential> {
   if (options.apiKey?.trim()) return { token: options.apiKey.trim() };
 
   const apiKey = process.env.AI_GATEWAY_API_KEY?.trim();
@@ -24,6 +25,13 @@ function getGatewayCredential(options: VercelAiGatewayOptions): GatewayCredentia
 
   const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim();
   if (oidcToken) return { token: oidcToken };
+
+  try {
+    const runtimeOidcToken = await getVercelOidcToken();
+    if (runtimeOidcToken?.trim()) return { token: runtimeOidcToken.trim() };
+  } catch {
+    // Local/non-Vercel runtimes may not have an OIDC context; report the normal credential error below.
+  }
 
   throw new Error(
     "AI Gateway authentication is not configured. Set AI_GATEWAY_API_KEY for local/production use, or provide VERCEL_OIDC_TOKEN through Vercel OIDC (for example, run `vercel env pull .env.local` locally). Never put the credential in browser code or Git.",
@@ -52,7 +60,7 @@ export class VercelAiGatewayModelProvider implements ModelProviderPort {
   constructor(private readonly options: VercelAiGatewayOptions = {}) {}
 
   async generate(request: ModelRequest): Promise<ModelResponse> {
-    const credential = getGatewayCredential(this.options);
+    const credential = await getGatewayCredential(this.options);
     const baseUrl = this.options.baseUrl ?? process.env.VENDRITH_AI_GATEWAY_BASE_URL ?? "https://ai-gateway.vercel.sh/v1";
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
