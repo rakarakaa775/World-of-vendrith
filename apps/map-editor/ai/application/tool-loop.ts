@@ -9,6 +9,8 @@ export interface ToolLoopResult {
 
 export interface ToolLoopOptions {
   maxIterations?: number;
+  /** Maximum total model-requested tool calls allowed in one loop. */
+  maxToolCalls?: number;
 }
 
 export async function runToolLoop(
@@ -19,6 +21,7 @@ export async function runToolLoop(
   options: ToolLoopOptions = {},
 ): Promise<ToolLoopResult> {
   const maxIterations = options.maxIterations ?? 4;
+  const maxToolCalls = options.maxToolCalls ?? 12;
   let currentRequest: ModelRequest = {
     ...request,
     tools: router.definitions(context).map(({ name, description, parameters }) => ({
@@ -29,12 +32,18 @@ export async function runToolLoop(
   };
 
   const toolResults: ToolLoopResult["toolResults"] = [];
+  let toolCallCount = 0;
 
   for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
     const response = await provider.generate(currentRequest);
     if (response.toolCalls.length === 0) {
       return { response, toolResults, iterations: iteration };
     }
+
+    if (toolCallCount + response.toolCalls.length > maxToolCalls) {
+      throw new Error(`Tool loop exceeded maximum tool calls (${maxToolCalls})`);
+    }
+    toolCallCount += response.toolCalls.length;
 
     const results = await Promise.all(
       response.toolCalls.map((call) =>
