@@ -15,8 +15,8 @@ export interface DevelopmentWorkflowPort {
   capabilities(): Promise<readonly DevelopmentWorkflowCapability[]>;
 
   /**
-   * Execute a named workflow only after the caller has passed its own
-   * approval/policy boundary.
+   * Execute a named workflow after the caller has passed its policy boundary.
+   * The adapter must enforce the capability's declared approval contract.
    */
   execute(name: string, input: unknown): Promise<unknown>;
 }
@@ -52,8 +52,36 @@ export function createDevelopmentWorkflowTools(
       },
     },
     {
+      name: "development.workflow.inspect",
+      description: "Run a declared read-only external development workflow without repository mutation or approval.",
+      audience: "development",
+      capability: "read",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          input: {},
+        },
+        required: ["name"],
+      },
+      validate: (args): args is { name: string; input?: unknown } =>
+        typeof args === "object" &&
+        args !== null &&
+        typeof (args as { name?: unknown }).name === "string",
+      async execute(args) {
+        const value = args as { name: string; input?: unknown };
+        const capabilities = await workflow.capabilities();
+        const capability = capabilities.find((item) => item.id === value.name);
+        if (!capability) throw new Error("Unknown development workflow capability");
+        if (!capability.readOnly || capability.requiresApproval) {
+          throw new Error("Development workflow is not eligible for read-only inspection");
+        }
+        return workflow.execute(value.name, value.input);
+      },
+    },
+    {
       name: "development.workflow.execute",
-      description: "Execute a named external development workflow. Requires approved high-risk execution.",
+      description: "Execute a mutating external development workflow. Requires approved high-risk execution.",
       audience: "development",
       capability: "high-risk",
       parameters: {
@@ -70,8 +98,14 @@ export function createDevelopmentWorkflowTools(
         typeof (args as { name?: unknown }).name === "string",
       async execute(args) {
         const value = args as { name: string; input?: unknown };
+        const capabilities = await workflow.capabilities();
+        const capability = capabilities.find((item) => item.id === value.name);
+        if (!capability) throw new Error("Unknown development workflow capability");
+        if (capability.readOnly && !capability.requiresApproval) {
+          throw new Error("Read-only development workflow must use inspection boundary");
+        }
         return workflow.execute(value.name, value.input);
       },
-    },
+    }
   ];
 }
