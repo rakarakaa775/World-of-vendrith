@@ -73,3 +73,5 @@ export * from "./application/runtime-event-executor";
 export * from "./application/supabase-runtime-event-adapter";
 export * from "./domain/runtime-behavior";
 export * from "./application/npc-behavior-runtime";
+
+export * from "./application/development-tool-registry";
