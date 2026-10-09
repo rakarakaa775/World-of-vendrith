@@ -18,7 +18,6 @@ import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConfl
 import { serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
-import { applyWaterDepthGradient } from "../editor/terrain-engine";
 
 const WORLD_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_ID?.trim() || "3695d0b0-788e-42fa-9345-cc3197d0c94d";
 const AUTHORITATIVE_WORLD_MAP_ID = process.env.NEXT_PUBLIC_VANDRITH_WORLD_MAP_ID?.trim() || "87ba34eb-5a75-42fa-8919-63e44b700c02";
@@ -70,9 +69,8 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       ),
     };
 
-    // Rebuild the derived ocean-depth bands when loading older snapshots that
-    // were saved before distance-based water depth existed.
-    return applyWaterDepthGradient(normalized, ground.id);
+    // Keep legacy snapshots canonical on load. Water depth is now derived at render time.
+    return normalized;
   }, []);
 
   const update = useCallback((next: MapDocument) => {
