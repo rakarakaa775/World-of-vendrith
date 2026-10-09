@@ -1,3 +1,10 @@
+## 2026-10-10 — Save Slot schema-aware loading and live audit
+
+- Added `parseGameSaveSlotSnapshot` to dispatch current Game Save v1 versus legacy map-document v1, validate authoritative world identity/type and exterior type/space, and reject unsupported formats before state adoption. The active Load Slot handler now uses this boundary.
+- Added regression tests for current and legacy formats, wrong world identity, unsupported versions, invalid exterior, and non-world snapshots. Tests are committed but have not been executed here.
+- Inspected deployed Save/Load RPC definitions read-only. All three existing Save Slots pass schema-aware world/version equality; two are Game Save v1 and one is legacy map-document v1. The earlier schema-agnostic mismatch was a false positive caused by the legacy envelope shape.
+- Added a remediation contract for future RPC hardening. No production SQL, RPC, or data changes; deployed RPC equality validation remains a pending migration gate.
+
 ## 2026-10-10 — Save Slot invariant propagated to integration gate
 
 - Updated the editor integration contract to require the embedded world `MapDocument` to match the referenced canonical map-version snapshot's `document` member; the exterior remains independent.
