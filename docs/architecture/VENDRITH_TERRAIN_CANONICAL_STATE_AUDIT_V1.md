@@ -503,3 +503,42 @@ The source audit has not yet found/confirmed a single authoritative player/NPC m
 - Unit-test source added; execution result is **pending** because no local test runner is available through the GitHub file-editing connection in this session.
 - CI must be checked for the resulting commit before claiming tests passed.
 - No production database query that mutates state, DDL, migration, or schema change was performed.
+
+
+## 25. Follow-up audit: traversal policy and runtime enforcement boundary — 2026-10-09
+
+### Existing implementation confirmed
+
+- `apps/map-editor/editor/water-traversal-policy.ts` defines a pure decision helper: `walk | swim | water_transport | blocked`.
+- `apps/map-editor/editor/water-traversal-policy.test.ts` covers land, explicitly designated shallow shoreline, swimming capability, deep-sea transport, bridges/crossing points, shallow river fords, river current, and unknown water semantics.
+- The helper consumes explicit semantic inputs (`feature`, `depth`, `current`, `shallowWalkable`, `bridge`, `crossingPoint`) and does not infer gameplay semantics from the visual IDs `water`, `brackish`, `deepwater2`, or `deepwater`.
+- The latest visible Map Editor CI run for the fail-closed traversal test commit completed successfully: run `37923703715`, commit `a9ce0fcbd4c4f7ef85701b7a6fa99dadabf66693`. This confirms that commit's workflow, not necessarily the current branch tip or any future runtime integration.
+
+### Current product decisions mapped to policy
+
+| Product rule | Current pure helper behavior | Status |
+|---|---|---|
+| Walk on beach and explicitly designated shallow water | `shoreline + shallow + shallowWalkable=true` returns `walk` | Unit-tested |
+| Swimming requires capability/attribute | Non-deep water requires `canSwim=true`; unknown depth fails closed | Unit-tested |
+| Deep ocean/sea requires water transport | Deep `ocean_sea` requires `hasWaterTransport=true`, including when the actor can swim | Unit-tested |
+| River crossing depends on depth/current/bridge/crossing point | Bridge/crossing point permits crossing; otherwise current must be known and safe and depth/capability must qualify | Unit-tested |
+
+### Integration audit finding
+
+A bounded GitHub code search for navigation/pathfinding and water-policy call sites did not establish an authoritative production player/NPC movement function that consumes this helper. The known database snapshot projection still copies ground `tileId` values into `map_cells.biome` and `map_cells.terrain_variant`, and initializes `walkable=true`; that generic projection is not a safe integration point for the new policy.
+
+This is not proof that no movement implementation exists. It means the integration target and authoritative semantic source remain unverified. Wiring the helper to editor render bands or the generic `map_cells.walkable` projection would silently invent gameplay behavior and is therefore explicitly out of scope for this step.
+
+### Next safe implementation gate
+
+1. Locate the real player/NPC movement and path-planning entry points by tracing runtime routes, imports, and call sites rather than guessed filenames alone.
+2. Identify the authoritative runtime cell representation and where explicit water feature/depth/current/bridge/crossing data can originate.
+3. Add an adapter only after that source is verified; it must fail closed on missing semantics and must not derive physical depth/current from visual bands.
+4. Add integration tests proving shoreline, swimming capability, deep-sea transport, river crossings, and unknown data at the actual movement boundary.
+5. Keep schema-v1 editor snapshots and production Supabase unchanged until the semantic source, migration/recovery behavior, and integration tests are reviewed.
+
+### Safety and verification
+
+- No new runtime movement integration was made because its authoritative call site has not been verified.
+- No production database, schema, RPC, migration, or data was changed.
+- Existing unit tests are present; CI success is confirmed only for the cited commit above. No claim is made that the current branch tip has completed CI.
