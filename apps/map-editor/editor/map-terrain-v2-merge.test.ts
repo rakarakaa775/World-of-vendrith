@@ -42,6 +42,22 @@ describe("mergeMapAndTerrainV2ThreeWay", () => {
     ]);
   });
 
+  it("blocks adoption on a document-only conflict while preserving the semantic result", () => {
+    const base = state("Base");
+    const local = structuredClone(base);
+    const remote = structuredClone(base);
+    local.document.name = "Local title";
+    remote.document.name = "Remote title";
+
+    const result = mergeMapAndTerrainV2ThreeWay(base, local, remote);
+    expect(result.status).toBe("conflict");
+    if (result.status !== "conflict") throw new Error("Expected document conflict");
+    expect(result.reason).toBe("document-conflict");
+    expect(result.documentMerge.conflicts.some((conflict) => conflict.id === "name")).toBe(true);
+    expect(result.terrainConflicts).toEqual([]);
+    expect("state" in result).toBe(false);
+  });
+
   it("blocks adoption when terrain semantics conflict even if document merge is clean", () => {
     const base = state();
     const local = structuredClone(base);
