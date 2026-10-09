@@ -47,12 +47,14 @@ export function mergeMapAndTerrainV2ThreeWay(
   local: MapDocumentV2State,
   remote: MapDocumentV2State,
 ): MapAndTerrainMergeResult {
-  validateV2State(base);
-  validateV2State(local);
-  validateV2State(remote);
+  for (const state of [base, local, remote]) {
+    if (!state || typeof state !== "object" || !state.document) {
+      throw new Error("Terrain v2 merge state must contain a document");
+    }
+  }
 
-  const documents = [base.document, local.document, remote.document];
-  const [first, ...rest] = documents;
+  const first = base.document;
+  const rest = [local.document, remote.document];
   if (rest.some((document) => document.id !== first.id)) {
     throw new Error("Cannot merge different map identities");
   }
@@ -61,6 +63,12 @@ export function mergeMapAndTerrainV2ThreeWay(
   )) {
     throw new Error("Cannot merge terrain v2 states with different dimensions");
   }
+
+  // Check identity/dimensions before deep validation so a concurrent resize
+  // is rejected by this policy even if its old layer arrays no longer fit.
+  validateV2State(base);
+  validateV2State(local);
+  validateV2State(remote);
 
   const documentMerge = mergeMapDocumentsThreeWay(
     base.document,
