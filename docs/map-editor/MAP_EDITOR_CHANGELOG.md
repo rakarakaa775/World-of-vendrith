@@ -558,3 +558,11 @@
 - **Affected:** `docs/map-editor/MAP_EDITOR_TERRAIN_V2_ACTIVE_SAVE_SLOT_AUDIT.md`.
 - **Verification:** GitHub source inspection only; no tests/typecheck/build executed.
 - **Safety:** No active Save/Load, RPC, production database, or runtime behavior changed.
+
+
+## 2026-10-10 — Save Slot RPC contract audit for terrain v2
+
+- **Type:** Audit / Persistence contract
+- **Details:** Inspected the repository-main Save Slot RPC migration and recorded its validation boundary and the gap between the independently stored slot envelope and referenced world version. Explicitly distinguished repository source from deployed database state.
+- **Affected:** `docs/map-editor/MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`.
+- **Verification:** Source inspection only. No SQL or production DB changes; automated tests not run.
