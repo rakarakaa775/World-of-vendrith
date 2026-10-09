@@ -1,3 +1,12 @@
+## 2026-10-10 — Schema-aware Save Slot loader and live integrity audit
+
+- **Type:** Compatibility hardening, regression tests, and read-only database audit
+- **Details:** Added `parseGameSaveSlotSnapshot` for current Game Save v1 and legacy map-document v1 formats, including authoritative world identity/type and exterior type/space validation. Wired it into the active Load Slot handler and added tests for legacy compatibility, unsupported versions, identity mismatch, invalid exterior, and wrong world type.
+- **Live audit:** Inspected deployed RPC definitions without mutation. All three existing slots match their referenced canonical world versions when compared by schema; two use Game Save v1 and one uses the supported legacy map-document v1 envelope. The prior schema-agnostic mismatch was a false positive.
+- **Affected:** `apps/map-editor/editor/game-save.ts`, `apps/map-editor/tests/game-save.test.ts`, `apps/map-editor/components/vendrith-world-builder-app.tsx`, Save Slot audit/remediation contracts, status log.
+- **Verification:** Source and read-only database audit completed. Unit tests, typecheck, build, and deployed RPC hardening remain pending. No production SQL/RPC/data changes.
+- **Safety:** Legacy slot retained; no slot data rewritten; V2 remains opt-in.
+
 ## 2026-10-10 — Save Slot invariant propagated to integration gate
 
 - **Type:** Contract alignment
