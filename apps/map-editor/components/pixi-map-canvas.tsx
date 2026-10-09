@@ -325,7 +325,7 @@ export function PixiMapCanvas(props: Props) {
       }
 
       if (propsRef.current.debugViews?.terrainId || propsRef.current.debugViews?.waterDepth) {
-        const debugLayer = document.layers.find(layer => layer.id === (layerIsolationId ?? activeLayerId));
+        const debugLayer = renderDocument.layers.find(layer => layer.id === (layerIsolationId ?? activeLayerId));
         if (debugLayer && debugLayer.kind !== "objects") {
           for (let i = 0; i < document.width * document.height; i++) {
             const tileId = debugLayer.cells[i]?.tileId;
