@@ -34,6 +34,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - Open-LLM-VTuber — Audit: ./OPEN_LLM_VTUBER_AUDIT.md
 - Ryza AI Revive — Audit: ./RYZA_AI_REVIVE_AUDIT.md
 - MiniMind — Audit Vendrith Project AI: ./MINIMIND_AUDIT.md
+- No AI Slop — Audit Vendrith: ./NO_AI_SLOP_AUDIT.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
@@ -102,3 +103,14 @@ Ryza AI Revive diperlakukan sebagai referensi engineering untuk:
 - packaging privacy/secret gates.
 
 Repository ini **bukan dependency Vendrith**. Kode repository berlisensi MIT, tetapi media game/aset besar yang dipulihkan dari release harus diperlakukan sebagai provenance/licensing terpisah dan tidak otomatis dianggap MIT. Aset Ryza tidak disetujui untuk registry Vendrith berdasarkan audit ini.
+
+## Catatan untuk No AI Slop
+
+No AI Slop diperlakukan sebagai referensi untuk meningkatkan mutu dokumentasi dan komunikasi AI-assisted:
+- mempertahankan maksud dan gaya penulis;
+- melakukan penyuntingan minimum yang efektif;
+- mengganti klaim generik dengan fakta spesifik yang dapat diverifikasi;
+- mendeteksi pola tulisan yang mekanis tanpa menebak apakah teks ditulis oleh AI;
+- melakukan pemeriksaan ulang setelah penyuntingan.
+
+Keputusan audit: **ADAPT**. Terapkan prinsipnya secara selektif pada audit, status, roadmap, dan penjelasan yang memang perlu disunting. Ini bukan dependency wajib, bukan AI detector, dan bukan pengganti review kode, test, atau verifikasi sumber. Lihat ./NO_AI_SLOP_AUDIT.md.
