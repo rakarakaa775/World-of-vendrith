@@ -1,3 +1,11 @@
+## 2026-10-10 — Save Slot invariant propagated to integration gate
+
+- **Type:** Contract alignment
+- **Details:** Updated Gate D of the editor-state integration contract to select the recommended integrity target: the embedded world `MapDocument` must match the `document` member of the referenced canonical map-version snapshot; the exterior is independent. Explicitly states that the current RPC does not guarantee this.
+- **Affected:** `MAP_EDITOR_TERRAIN_V2_EDITOR_STATE_INTEGRATION_CONTRACT.md`, `MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Documentation/source audit only. No SQL, live RPC, tests, typecheck, or build performed.
+- **Safety:** No active Save/Load, production database/schema/data, or runtime behavior changed.
+
 ## 2026-10-10 — Save Slot world-version integrity contract clarified
 
 - **Type:** Persistence contract audit (documentation only)
