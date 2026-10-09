@@ -452,3 +452,35 @@ The large baseline migration was successfully retrieved through its Git blob (bl
 The inspected baseline definitions follow the same key behavior as the read-only live Supabase definitions: the reconciliation function projects non-empty ground `tileId` values into `map_cells.biome` and `map_cells.terrain_variant`, rebuilds geometry/navigation and writes the runtime snapshot; the merge function validates schema/document dimensions, checks the expected version, stores the snapshot, then invokes reconciliation and returns a separate projection status.
 
 This resolves the earlier uncertainty about whether the target branch's reconstructed baseline contains these function definitions. It does **not** resolve repository migration-history drift: the remote migration history lists the standalone migration version, while the target branch's migration directory currently contains only the reconstructed baseline. No DDL, data, migrations, or application code were changed.
+
+
+## 23. Gameplay water semantics and migration reproducibility — 2026-10-09
+
+### Runtime consumer search
+
+- The target-branch `apps/map-editor/ai/application/supabase-runtime-world-adapter.ts` loads map identity/type/dimensions plus simulation clock, environment, navigation and entity-placement records. Its map query does not select `map_cells.biome` or `map_cells.terrain_variant`; this adapter therefore does not directly translate terrain IDs into runtime snapshot terrain semantics.
+- Repository code search for direct Supabase client reads of `map_cells` and for `terrain_variant` found no additional application consumer in the indexed results. The search index is not a complete proof that no consumer exists, so this remains a bounded source audit rather than a global absence claim.
+- The projection migration's own comment defines `map_cells` as a relational gameplay projection, but its implementation writes each canonical ground `tileId` unchanged into both `biome` and `terrain_variant`, with `collision=false` and `walkable=true`. That mapping is generic projection behavior, not an explicit water gameplay policy.
+- The terrain resolver treats `water`, `brackish`, `deepwater2`, and `deepwater` as one compatible water family for render/transition resolution. The water projection algorithm derives these bands by distance from land; it does not measure physical depth, salinity, current, or navigability.
+- Asset documentation separately proposes a richer water taxonomy (`water_state` plus `water_feature`, such as river/lake/shoreline). That taxonomy is not equivalent to the current four display-band IDs and should not be silently collapsed into them.
+
+### Decision
+
+For now, `water`, `brackish`, `deepwater2`, and `deepwater` are **editor/render semantic bands derived from distance to land**, not verified gameplay properties. No evidence in the inspected runtime adapter establishes that runtime movement, swimming, boating, damage, or ecology consumes these strings as gameplay rules.
+
+Therefore:
+1. Keep water-depth projection render-only and deterministic in the editor.
+2. Do not infer collision, walkability, physical depth, or travel rules from the four display-band IDs.
+3. If gameplay needs water behavior, introduce an explicit server/gameplay contract (for example `water_state`, `water_feature`, navigability and movement policy) and map it to runtime systems deliberately.
+4. Do not change the deployed RPC, map schema, or migration history merely to make the visual bands appear in `map_cells`; first define and test the gameplay semantics.
+
+### Migration reproducibility finding
+
+The target branch contains a reconstructed baseline that includes definitions for the snapshot projection and merge functions, while the connected database migration history still records the earlier standalone projection migration version. This is consistent with a reconstructed/current schema baseline coexisting with historical remote migration records; it does not alone indicate that the live database is missing the function. A byte-for-byte comparison between the entire baseline function source and the deployed definition has not been established, so do not claim exact equivalence.
+
+### Verification boundary
+
+- Read-only source inspection and indexed repository search only.
+- No SQL, migration, app code, or production data changed.
+- No new automated tests were run during this audit.
+- Next implementation gate: decide the gameplay water-state contract with movement/navigation requirements, then add focused tests for editor projection and any separate gameplay mapping before modifying persistence.
