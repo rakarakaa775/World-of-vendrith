@@ -64,6 +64,12 @@ describe("opt-in map snapshot v2 adapter", () => {
     expect(() => parseMapSnapshot(payload)).toThrow("outside map bounds");
   });
 
+  it("rejects duplicate semantic coordinates", () => {
+    const payload = JSON.parse(serializeMapDocumentV2(state));
+    payload.terrainSemantics.cells.push({ x: 1, y: 1, surface: "water" });
+    expect(() => parseMapSnapshot(payload)).toThrow("Duplicate terrain semantic coordinate");
+  });
+
   it("writes the explicit v2 envelope", () => {
     const payload = JSON.parse(serializeMapDocumentV2(state));
     expect(payload.schema).toBe(MAP_DOCUMENT_V2_SCHEMA);
