@@ -449,3 +449,14 @@
 \n\n## 2026-10-02 — Layer Groups\n\n- **Type:** Added\n- **Details:** Added document-level layer groups with visibility, lock, expand/collapse, layer assignment, safe group deletion, and effective renderer visibility. Older serialized documents normalize missing group/opacity metadata safely.\n- **Roadmap phase:** Phase 2E — Layer System.\n- **Verification:** PR #30 merged. Browser click-level verification remains pending.\n- **Notes:** No Supabase schema/data/RPC or asset binary changes.\n
 
 ## 2026-10-02 — Layer Templates\n\n- **Type:** Added\n- **Details:** Added reusable layer templates capturing layer kind/presentation metadata. Applying a template creates a fresh empty layer; deleting a template does not affect existing layers.\n- **Roadmap phase:** Phase 2E — Layer System.\n- **Verification:** PR #32 merged. Browser click-level verification remains pending.\n- **Notes:** No Supabase schema/data/RPC or asset binary changes.
+
+
+## 2026-10-10 — Terrain semantics v2 snapshot hardening
+
+- **Type:** Changed / Test
+- **Reason:** Ensure the opt-in v2 adapter cannot serialize a malformed MapDocument past the established v1 document invariants.
+- **Details:** V2 serialization now parses the serialized document through the canonical v1 parser before wrapping it with terrain semantics. Added a regression test for inconsistent map dimensions and layer cell counts. Audited persistence paths: active Save/Load, crash recovery, and conflict-save remain v1-only, so v2 has not been wired into production.
+- **Affected:** `apps/map-editor/editor/map-snapshot-v2.ts`, `apps/map-editor/editor/map-snapshot-v2.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — opt-in persistence adapter.
+- **Verification:** Source-level review only. Vitest, typecheck, and build are pending; no passing result is claimed.
+- **Notes:** No production RPC, database schema/data, or asset binary changes.
