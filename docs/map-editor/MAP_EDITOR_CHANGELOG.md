@@ -490,3 +490,13 @@
 - **Roadmap phase:** Terrain semantics v2 — persistence integration gate.
 - **Verification:** Source-level review only. Vitest, typecheck, and build have not been executed in this workflow; no passing result is claimed.
 - **Notes:** This remains separate from active v1 editor history and live persistence. No production RPC, database schema/data, or runtime water-navigation changes.
+
+
+## 2026-10-10 — Active-editor Terrain v2 integration audit
+
+- **Type:** Audit / Documentation
+- **Reason:** The isolated v2 snapshot, history, and recovery helpers are not yet connected to the active editor; integration must not lose semantics through document-only pathways.
+- **Details:** Audited `editor-shell.tsx`, v1 map history, v1 persistence, v1/v2 crash recovery, conflict-save controller, and save-slot parser. Recorded current boundaries, invariants, and staged integration gates in `MAP_EDITOR_TERRAIN_V2_INTEGRATION_GATE.md`.
+- **Decision:** Keep v2 opt-in. Before integration, define explicit legacy/uninitialized semantics, coordinate edits and resize atomically, resolve semantic three-way merge behavior, and audit database RPC payload contracts. Run tests/typecheck/build before any activation.
+- **Verification:** Source-level repository audit only; no Vitest/typecheck/build result is claimed.
+- **Safety:** No production RPC/schema/data, active editor UI, or runtime navigation changes.
