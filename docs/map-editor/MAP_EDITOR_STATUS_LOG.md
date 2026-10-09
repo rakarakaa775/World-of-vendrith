@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 history map-identity guard
+
+- Audit found the lower-level `MapHistoryV2` helper accepted a commit whose document ID differed from the current map, unlike the newer `MapEditorStateHistory` helper. Such a commit could allow undo to cross map identity.
+- Added a guard in `commitHistoryV2` and a regression test proving cross-map commits are rejected without mutating history; a new map must start a fresh history via `createHistoryV2`.
+- Active roadmap phase: Terrain semantics v2 — editor-state and persistence integration gate.
+- Tests were authored but not executed. No active UI, Save/Load, RPC, database/schema/data, or production runtime changes.
+
 ## 2026-10-10 — Terrain v2 pair-validation regression coverage
 
 - Added tests confirming an interior playable map cannot be accepted as the exterior and a world-only save remains valid with `exterior: null`.
