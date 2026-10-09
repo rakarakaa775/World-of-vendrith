@@ -45,6 +45,9 @@ export function deriveWaterProjection(
   if (!layer || layer.kind !== 'ground') return null;
 
   const size = document.width * document.height;
+  if (!Number.isInteger(size) || size < 1 || layer.cells.length !== size) {
+    throw new Error('Water projection requires exactly width × height ground cells');
+  }
   const distance = new Int32Array(size);
   distance.fill(-1);
   const queue: number[] = [];
