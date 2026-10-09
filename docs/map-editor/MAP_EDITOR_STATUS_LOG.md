@@ -82,3 +82,12 @@
 - Confirmed active EditorShell history and callbacks still carry MapDocument only; v2 history/recovery are not wired into the active UI.
 - Added `MAP_EDITOR_TERRAIN_V2_INTEGRATION_GATE.md` with the integration invariants and staged gates for state, UI lifecycle, recovery/conflict policy, and persistence.
 - No active editor integration, production RPC/schema/data changes, or runtime navigation changes were made. Test/typecheck/build execution remains pending.
+
+
+## 2026-10-10 — Terrain v2 Gate A state contract
+
+- Added the opt-in `MapEditorState` discriminated union: legacy v1 state keeps `terrainSemantics: null`; initialized state carries validated semantics.
+- Added explicit initialization, v1/v2 parsing, guarded v2 serialization, and document replacement rules. Switching map IDs clears semantics; same-map resize clips removed cells and invents no new semantic records.
+- Added focused Vitest regression coverage for legacy/v2 parsing, initialization, invalid semantics, map identity changes, resize, and version/identity rejection.
+- Documented the contract in `MAP_EDITOR_TERRAIN_V2_GATE_A_STATE_CONTRACT.md`.
+- The adapter remains opt-in and is not wired into active EditorShell, Save/Load, recovery, conflict merge, Supabase RPC, production database, or runtime navigation. Tests/typecheck/build have not been executed in this workflow.
