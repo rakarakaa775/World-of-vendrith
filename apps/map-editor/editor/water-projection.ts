@@ -118,3 +118,26 @@ export function deriveWaterProjection(
     bands,
   };
 }
+
+
+/**
+ * Explicit and lossy compatibility normalization for schema-v1 snapshots
+ * whose derived water bands may have been persisted by older editor versions.
+ * Preserve the original serialized snapshot before calling this helper.
+ */
+export function normalizeLegacyWaterBands(document: MapDocument): MapDocument {
+  let documentChanged = false;
+  const layers = document.layers.map(layer => {
+    if (layer.kind !== 'ground') return layer;
+    let layerChanged = false;
+    const cells = layer.cells.map(cell => {
+      const terrain = terrainFromTileId(cell.tileId);
+      if (!isWaterTerrain(terrain) || cell.tileId === 'water') return cell;
+      layerChanged = true;
+      documentChanged = true;
+      return { ...cell, tileId: 'water' };
+    });
+    return layerChanged ? { ...layer, cells } : layer;
+  });
+  return documentChanged ? { ...document, layers } : document;
+}
