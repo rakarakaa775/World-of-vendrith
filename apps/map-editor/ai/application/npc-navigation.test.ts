@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeAiRequest, RuntimeObservation } from "../domain/runtime";
-import type { NavigationGrid } from "../domain/runtime-navigation";
+import { validateNavigationWaterCells, type NavigationGrid } from "../domain/runtime-navigation";
 import { applyDynamicNavigationObstacles, createNavigationPlan, decideNpcNavigation, findNavigationPath } from "./npc-navigation";
 
 const grid: NavigationGrid = {
@@ -186,4 +186,46 @@ describe("NPC navigation", () => {
     }, { x: 0, y: 0 }, { x: 2, y: 0 }, { canSwim: true })).toBeUndefined();
   });
 
+});
+
+describe("navigation water metadata validation", () => {
+  it("accepts explicit, in-bounds water semantics without deriving them from terrain IDs", () => {
+    const result = validateNavigationWaterCells(3, 1, [
+      { x: 1, y: 0, surface: "water", feature: "shoreline", depth: "shallow", shallowWalkable: true },
+    ]);
+    expect(result).toEqual({
+      valid: true,
+      cells: [{ x: 1, y: 0, surface: "water", feature: "shoreline", depth: "shallow", shallowWalkable: true }],
+    });
+  });
+
+  it("rejects duplicate and out-of-bounds coordinates rather than silently dropping records", () => {
+    const result = validateNavigationWaterCells(2, 1, [
+      { x: 1, y: 0, surface: "water", feature: "river" },
+      { x: 1, y: 0, surface: "water", feature: "river" },
+      { x: 2, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" },
+    ]);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(error => error.includes("Duplicate water cell coordinate 1:0"))).toBe(true);
+      expect(result.errors.some(error => error.includes("outside map bounds"))).toBe(true);
+    }
+  });
+
+  it("rejects invalid enum values and non-boolean crossing flags", () => {
+    const result = validateNavigationWaterCells(2, 1, [
+      { x: 0, y: 0, surface: "water", feature: "ocean", depth: "bottomless", bridge: "yes" },
+    ]);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(error => error.includes("invalid feature"))).toBe(true);
+      expect(result.errors.some(error => error.includes("invalid depth"))).toBe(true);
+      expect(result.errors.some(error => error.includes("field bridge must be boolean"))).toBe(true);
+    }
+  });
+
+  it("rejects non-array payloads and invalid map dimensions", () => {
+    expect(validateNavigationWaterCells(0, 1, []).valid).toBe(false);
+    expect(validateNavigationWaterCells(2, 1, { x: 0, y: 0 }).valid).toBe(false);
+  });
 });
