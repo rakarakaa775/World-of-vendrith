@@ -50,6 +50,9 @@ export function commitHistoryV2(
 ): MapHistoryV2 {
   if (next === history.present) return history;
   validateState(next);
+  if (next.document.id !== history.present.document.id) {
+    throw new Error("Map identity changed; reset map history v2 instead of committing");
+  }
   return {
     past: [...history.past, history.present].slice(-MAP_HISTORY_V2_MAX_ENTRIES),
     present: next,
