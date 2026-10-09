@@ -1,3 +1,11 @@
+## 2026-10-10 — Complete Game Save v1 envelope guard
+
+- **Type:** Input validation and regression test
+- **Details:** The schema-dispatched Save Slot parser now requires both `world` and `exterior` fields in Game Save v1, rejects unsupported versions, and validates map identity/type before returning a result. Added an incomplete-envelope test and corrected the interior test fixture to meet the map parser's hierarchy contract.
+- **Affected:** `apps/map-editor/editor/game-save.ts`, `apps/map-editor/tests/game-save.test.ts`, `MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Code/test source committed; no test runner, typecheck, or build result is available for this commit.
+- **Safety:** Existing legacy map-document slots remain readable; no production data/RPC changes.
+
 ## 2026-10-10 — Schema-aware Save Slot loader and live integrity audit
 
 - **Type:** Compatibility hardening, regression tests, and read-only database audit
