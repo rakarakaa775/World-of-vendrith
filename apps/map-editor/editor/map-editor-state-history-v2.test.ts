@@ -55,7 +55,12 @@ describe("combined editor state history v2", () => {
       commitMapEditorStateHistory(createMapEditorStateHistory(first), second),
       third,
     );
-    const branched = commitMapEditorStateHistory(undoMapEditorStateHistory(history), second);
+    const undone = undoMapEditorStateHistory(history);
+    const branchState = replaceMapEditorDocument(undone.present, {
+      ...undone.present.document,
+      name: "Branch",
+    });
+    const branched = commitMapEditorStateHistory(undone, branchState);
     expect(branched.future).toEqual([]);
     expect(redoMapEditorStateHistory(branched)).toBe(branched);
   });
