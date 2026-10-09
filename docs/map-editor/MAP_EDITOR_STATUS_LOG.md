@@ -91,3 +91,11 @@
 - Added focused Vitest regression coverage for legacy/v2 parsing, initialization, invalid semantics, map identity changes, resize, and version/identity rejection.
 - Documented the contract in `MAP_EDITOR_TERRAIN_V2_GATE_A_STATE_CONTRACT.md`.
 - The adapter remains opt-in and is not wired into active EditorShell, Save/Load, recovery, conflict merge, Supabase RPC, production database, or runtime navigation. Tests/typecheck/build have not been executed in this workflow.
+
+
+## 2026-10-10 — Terrain v2 combined state history
+
+- Added an opt-in history adapter whose entries hold the complete legacy-or-initialized `MapEditorState`, so undo/redo restores document and semantics atomically.
+- Added canonical state validation, 100-entry history bounds, redo invalidation, cross-map commit rejection, and explicit history reset for map switches.
+- Added regression tests for atomic undo/redo, legacy state support, invalid state rejection, map-switch behavior, bounds, and resize semantics.
+- Active `EditorShell` still uses the v1 document-only history; this adapter is not integrated into active UI, persistence, recovery, conflict-save, RPC, or runtime navigation. Test/typecheck/build execution remains pending.
