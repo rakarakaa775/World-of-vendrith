@@ -302,3 +302,34 @@ The helper uses semantic inputs (`feature`, `depth`, `current`, `shallowWalkable
 - [ ] Trace the authoritative movement/pathfinding caller and integrate the helper there.
 - [ ] Define/version authored water semantics and server-side validation before persistence/runtime projection changes.
 - [ ] No production database or migration changes in this step.
+
+
+## 15. Runtime integration gate after source audit — 2026-10-09
+
+### Movement consumer audit
+
+The existing NPC pathfinder is `apps/map-editor/ai/application/npc-navigation.ts`. Its `NavigationGrid` contract currently contains only `width`, `height`, and a boolean `blocked[]` array. `findNavigationPath()` uses that array as its sole terrain passability input; it has no water feature, depth, current, actor swimming capability, or transport state.
+
+The runtime adapter `apps/map-editor/ai/application/supabase-runtime-world-adapter.ts` builds this grid from `vandrith_map_navigation_grid`, selecting only `x,y,walkable,collision`. The reviewed adapter does not load authored water semantics. The editor helper `navigationGridFromMap()` likewise builds passability from the collision layer, not from water semantics. Therefore neither path currently has enough authoritative information to apply the approved water contract safely.
+
+### Implemented and verified boundary
+
+- `apps/map-editor/editor/water-traversal-policy.ts` implements a pure policy decision function.
+- `apps/map-editor/editor/water-traversal-policy.test.ts` covers designated shallow shoreline, capability-gated swimming, boat-only deep ocean, river crossings/current, and fail-closed unknown semantics.
+- GitHub Actions Map Editor CI run [37923703715](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/37923703715) completed successfully for code commit `a9ce0fcbd4c4f7ef85701b7a6fa99dadabf66693`. The current branch head includes later documentation-only commits; this run does not claim to test those docs commits.
+
+### Why runtime wiring is intentionally not included yet
+
+Do not map the visual bands `water`, `brackish`, `deepwater2`, or `deepwater` directly into traversal semantics. Doing so would silently infer depth, current, shoreline eligibility, and boat access from rendering identifiers. Do not alter `vandrith_map_navigation_grid`, `map_cells`, SQL migrations, or production data as a shortcut.
+
+The next safe implementation step is to approve a versioned semantic source and projection contract, then add a typed navigation-cell policy input and adapter tests. Only after the source is authoritatively populated should the runtime pathfinder consume the policy. The projection must preserve ordinary land navigation, explicitly designated shallow shoreline, capability-gated swimming, transport-only deep sea, and validated river crossings, and fail closed for missing water semantics.
+
+### Status
+
+- [x] Audit existing editor and runtime navigation consumers.
+- [x] Add pure traversal policy and focused unit tests.
+- [x] CI passed for policy/test code commit.
+- [ ] Define authoritative, versioned source for feature/depth/current/crossing semantics.
+- [ ] Add adapter-level tests and integrate into runtime navigation after that source exists.
+- [ ] Verify server-side validation and recovery compatibility.
+- [x] No production database, SQL migration, or schema changes made.
