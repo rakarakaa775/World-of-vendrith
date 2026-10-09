@@ -35,13 +35,13 @@ export function serializeMapDocumentV2(state: MapDocumentV2State): string {
     state.document.height,
     state.terrainSemantics,
   );
-  const legacy = JSON.parse(serializeMapDocument(state.document)) as {
-    document: MapDocument;
-  };
+  // Validate with the canonical v1 parser before wrapping the document in v2.
+  // This ensures v2 writes preserve all existing MapDocument invariants.
+  const document = parseMapDocument(serializeMapDocument(state.document));
   const envelope: PersistedV2Envelope = {
     schema: MAP_DOCUMENT_V2_SCHEMA,
     version: MAP_DOCUMENT_V2_VERSION,
-    document: legacy.document,
+    document,
     terrainSemantics: semantics,
   };
   return JSON.stringify(envelope, null, 2);
