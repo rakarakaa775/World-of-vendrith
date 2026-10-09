@@ -1,3 +1,8 @@
+## 2026-10-10 — Terrain v2 merge serialization regression
+
+- Extended the pure merge suite with a conflict-free v2 snapshot serialize/parse round-trip assertion to verify merged semantics and MapDocument remain paired.
+- This is authored test coverage only; no test runner is available in this GitHub-only workflow, so execution remains pending. Active editor and production persistence remain unchanged.
+
 ## 2026-10-10 — Terrain v2 semantic three-way merge helper
 
 - Added an opt-in pure merge helper for sparse terrain semantic records, including explicit same-coordinate conflict reporting, deletion semantics, input validation, and deterministic row-major output.
