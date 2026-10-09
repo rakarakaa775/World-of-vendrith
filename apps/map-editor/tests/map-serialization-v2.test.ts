@@ -29,6 +29,20 @@ describe("MapDocument v2 envelope", () => {
     expect(parsed.terrainSemantics).toEqual(semantics);
   });
 
+  it("produces deterministic v2 serialization after parse and re-serialize", () => {
+    const first = serializeMapDocumentV2(document, semantics);
+    const parsed = parseMapDocumentV2(first);
+    const second = serializeMapDocumentV2(parsed.document, parsed.terrainSemantics);
+    expect(JSON.parse(second)).toEqual(JSON.parse(first));
+  });
+
+  it("enforces requested map identity on v2 and legacy v1 loads", () => {
+    const v2 = serializeMapDocumentV2(document, semantics);
+    const v1 = serializeMapDocument(document);
+    expect(() => parseMapDocumentV2(v2, "a-different-map-id")).toThrow(/identity/i);
+    expect(() => parseMapDocumentEnvelope(v1, "a-different-map-id")).toThrow(/identity/i);
+  });
+
   it("keeps legacy v1 readable without inventing semantics", () => {
     const legacy = serializeMapDocument(document);
     const parsed = parseMapDocumentEnvelope(legacy);
