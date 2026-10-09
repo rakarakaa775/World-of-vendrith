@@ -193,28 +193,11 @@ The project will use **canonical authored terrain plus a deterministic derived w
 - Production runtime adapter remains unverified via available indexed code search.
 - No application code, schema, database, or live data has been changed in this decision commit.
 
-## 12. B1 implementation — pure water projection API
+## 12. B1 implementation status — not yet implemented
 
-Added `apps/map-editor/editor/water-projection.ts` and focused tests in `apps/map-editor/editor/water-projection.test.ts`.
+The earlier text in this document incorrectly stated that `apps/map-editor/editor/water-projection.ts` and its tests had been committed. That statement was inaccurate and is superseded here: the repository-edit tool rejected the attempted source writes, and the files have not been verified in the branch. No B1 implementation, automated test run, or typecheck is claimed.
 
-The new `deriveWaterProjection(document, layerId)` API returns a separate row-major grid of `water | brackish | deepwater2 | deepwater | null`, tagged with algorithm version 1 and map/layer identity. It does not return a MapDocument and does not write into input cells. The no-land World Map deepwater floor is represented only in the projection. Distance rules currently retain the existing thresholds (shore 1, brackish 2, mid 4; eight-neighbor distance).
-
-### B2 legacy snapshot policy — conservative, no silent migration
-
-Schema-v1 water-band IDs cannot reliably reveal whether the author deliberately painted that ID or whether a previous gradient pass wrote it. Therefore:
-
-- Do not auto-rewrite existing v1 snapshots during load, save, or recovery.
-- Preserve legacy cell values exactly until a separately designed migration or user-reviewed normalization can identify intended semantics.
-- The projection API can render from legacy input deterministically, but this is a compatibility bridge, not proof that the old snapshot has become canonical authored data.
-- New canonical authoring semantics must use a single semantic water input (`water`) for water surface; the four band IDs are projection output, not intended authoring choices. Before enforcing this in UI, audit tile palette/brushes and add explicit compatibility behavior for existing projects.
-- Never claim that original authored intent can be reconstructed from an old snapshot where that distinction was already lost.
-
-### B1 status and verification boundary
-
-- API and test source files were committed to `feat/vendrith-ecc-v1`.
-- Tests cover input immutability, deterministic output, no-land World Map floor, layer validation, and row-major grid shape.
-- Automated tests and TypeScript typecheck have **not** been run in this environment. The expected test output must be verified on the branch before claiming the test suite passes.
-- Existing `applyWaterDepthGradient()` call sites still materialize bands into MapDocument. They have not been switched to the new API yet; this is intentionally deferred until editor consumers and legacy handling are traced and tested.
+The intended B1 API and test contract remain proposals below. Existing `applyWaterDepthGradient()` call sites still materialize water bands into MapDocument and must not be described as migrated until code changes are committed and verified.
 
 ## 12. B1/B2 implementation contract draft
 
@@ -251,3 +234,27 @@ This is a lossy but explicit normalization: it preserves the semantic fact “th
 
 This section records the implementation contract only. A direct GitHub file-write attempt for the new module was blocked by the tool's safety checks, so the new source/test files were **not created** and no implementation or test execution is claimed. Continue by applying the small module and tests through an available authorized repository-edit path, then run the focused Vitest suite before wiring the projection into terrain paint/rendering.
 
+
+
+## 13. Runtime integration trace — current evidence
+
+A fresh GitHub code-search pass was made against `rakarakaa775/World-of-vendrith` while targeting `feat/vendrith-ecc-v1`.
+
+### Verified editor persistence boundary
+
+- `apps/map-editor/editor/map-persistence.ts` serializes the current `MapDocument` and sends the snapshot through `map_editor_upsert_runtime_snapshot_v1`.
+- `apps/map-editor/editor/terrain-paint.ts` invokes `applyWaterDepthGradient()` after both paint and erase operations.
+- `apps/map-editor/editor/terrain-engine.ts` implements the gradient by returning a modified document with water-band IDs written into ground-cell `tileId` values.
+- Search also found a call in `apps/map-editor/components/vendrith-world-builder-app.tsx` during saved-document normalization.
+
+### Production runtime boundary remains unverified
+
+Code search for `WorldDefinition`, `game-runtime`, `RuntimeWorldAdapter`, `SupabaseRuntimeWorldAdapter`, `recoverWorldFromSupabase`, and `append_world_runtime_mutation_batch_v1` returned no indexed matches. This does **not** prove those paths or symbols are absent: the connector search index may cover only the default branch or may not index these files. No production runtime route or adapter has therefore been verified from source in this pass.
+
+### Gate before code integration
+
+1. Obtain the repository tree or fetch exact runtime route/import files through an authorized source-reading path.
+2. Trace the production route to the adapter and its canonical persistence contract; distinguish editor snapshots from runtime world state.
+3. Implement B1 and focused tests through a repository-edit path that is authorized and succeeds.
+4. Run the focused Vitest tests and relevant typecheck before switching any editor call sites.
+5. Keep database migrations and production writes out of scope until a separately reviewed rollout plan exists.
