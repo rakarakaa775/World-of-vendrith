@@ -542,3 +542,33 @@ This is not proof that no movement implementation exists. It means the integrati
 - No new runtime movement integration was made because its authoritative call site has not been verified.
 - No production database, schema, RPC, migration, or data was changed.
 - Existing unit tests are present; CI success is confirmed only for the cited commit above. No claim is made that the current branch tip has completed CI.
+
+
+## 26. Runtime navigation call site found; water semantics source still missing — 2026-10-09
+
+This section supersedes the earlier bounded-search statement that the authoritative movement caller had not been located.
+
+### Verified runtime path
+
+- `apps/map-editor/ai/application/npc-navigation.ts` builds an A* path using `NavigationGrid.blocked`.
+- `apps/map-editor/ai/application/npc-movement.ts` validates each requested next step against bounds, adjacency, and `grid.blocked`.
+- `apps/map-editor/ai/application/runtime-world-adapter.ts` is the action execution boundary: it loads the entity's grid and calls `executeNpcMovementStep` before updating the entity position.
+- `apps/map-editor/ai/application/supabase-runtime-world-adapter.ts` constructs the grid from `vandrith_map_navigation_grid` rows containing only `x`, `y`, `walkable`, and `collision`. It computes `blocked = collision || !walkable`; missing rows default to blocked.
+
+### Why water policy is not yet wired
+
+The verified runtime grid currently carries only a boolean blocked flag. The Supabase adapter does not load a verified `water_feature`, authored depth, current, shallow-walkable marker, bridge/crossing-point marker, or actor swimming/transport capability contract. The NPC seed-derived entity state currently includes identity/profile/environment-policy fields, but no validated water-movement capability contract.
+
+Consequently, blindly calling `resolveWaterTraversal` from `npc-navigation.ts` or `npc-movement.ts` would require inventing semantic data or incorrectly deriving it from the visual water-band IDs. Neither is acceptable. The runtime execution boundary is now known, but the authoritative water-semantics source is still missing.
+
+### Minimal next implementation plan
+
+1. Define a versioned runtime water-cell contract and actor movement-capability contract, including provenance and validation rules.
+2. Decide where authored water feature/depth/current/bridge/crossing data belongs. Do not treat existing `map_cells.biome`, `terrain_variant`, `walkable`, or `collision` values as sufficient evidence of water semantics.
+3. Implement a pure adapter from validated runtime cell semantics to `resolveWaterTraversal`, then integrate its result into both path planning and per-step execution so a forged/stale path cannot bypass the rule.
+4. Add tests for planning and execution: beach/shallow access, swimming capability, deep-sea transport, river bridge/ford/current, unknown semantic data, and consistency between path planning and movement validation.
+5. Audit server authority and migration/recovery behavior before any production persistence change. No production database or migration is authorized by this audit.
+
+### Verification boundary
+
+This was a read-only source inspection. No runtime code or tests were changed in this follow-up. The last confirmed green Map Editor CI run for the fail-closed policy tests remains run `37923703715` on commit `a9ce0fcbd4c4f7ef85701b7a6fa99dadabf66693`; it is not evidence for the current documentation commit or for runtime integration.
