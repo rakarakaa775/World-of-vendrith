@@ -41,16 +41,18 @@ export function resolveWaterTraversal(
   // A water cell with no semantic feature is not silently treated as land.
   if (!cell.feature || cell.feature === 'none') return 'blocked';
 
-  // Explicit structures and authored crossing points take priority over water.
+  // Deep ocean/sea is always a transport domain. A generic crossing-point
+  // flag must not accidentally turn open ocean into walkable terrain.
+  if (cell.feature === 'ocean_sea' && cell.depth === 'deep') {
+    return actor.hasWaterTransport === true ? 'water_transport' : 'blocked';
+  }
+
+  // Explicit bridges/crossings can bypass ordinary wading rules in non-ocean
+  // water; the author is responsible for marking only validated crossings.
   if (cell.bridge === true || cell.crossingPoint === true) return 'walk';
 
   if (cell.feature === 'shoreline' && cell.depth === 'shallow' && cell.shallowWalkable === true) {
     return 'walk';
-  }
-
-  // Deep ocean/sea is a transport domain, not a swimming shortcut.
-  if (cell.feature === 'ocean_sea' && cell.depth === 'deep') {
-    return actor.hasWaterTransport === true ? 'water_transport' : 'blocked';
   }
 
   // River current must be known and non-dangerous before wading or swimming.
