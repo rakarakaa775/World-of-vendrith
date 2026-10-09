@@ -1,3 +1,9 @@
+## 2026-10-10 — Game Save v2 outbound serialization validation
+
+- Hardened `serializeGameSaveStateV2` to canonicalize both legacy and initialized map states through the parser before emitting the envelope; raw v1 serialization alone is not treated as validation.
+- Added a regression test that malformed legacy layer cell counts are rejected at serialization.
+- Updated the integration contract. Active Save/Load and v1 RPC remain unchanged; tests/typecheck/build are still unexecuted.
+
 ## 2026-10-10 — Terrain v2 merge gate hardening
 
 - Hardened the combined merge preflight so map identity and dimensions are checked before validating layer arrays. This ensures resize mismatches are rejected by the explicit no-concurrent-resize policy rather than by an incidental serialization error.
