@@ -413,3 +413,30 @@ The standalone migration's absence from the branch listing does not establish th
 2. If a connected Supabase project is available, inspect the deployed `pg_proc` definition and migration history read-only; compare the deployed function with the branch baseline.
 3. Only after comparison, decide whether to restore a missing standalone migration, update the baseline, or make no change. Do not create a speculative migration or apply database changes before this comparison.
 4. No SQL, migration, application code, or live database was changed in this follow-up.
+
+
+## 21. Live Supabase function + CI confirmation — 2026-10-09
+
+### Read-only database inspection
+
+The connected Supabase project `The world Vendrith` (ref `ojtmfokjcirvjvhnbnos`) reported status `ACTIVE_HEALTHY`. The remote migration history contains version `20260912083151`, named `map_editor_project_snapshot_to_map_cells_v1`, even though the current target branch's `supabase/migrations` directory listing exposes only `20261003170000_remote_schema_baseline_reconstructed.sql`.
+
+Read-only inspection of `pg_proc` confirmed these live functions:
+- `public.map_editor_commit_merge_v1(uuid, integer, jsonb, text)`
+- `public.map_editor_reconcile_after_merge_v1(uuid, uuid, jsonb)`
+- `public.map_editor_upsert_runtime_snapshot_v1(uuid, jsonb, uuid)`
+
+The live `map_editor_reconcile_after_merge_v1` definition reads the first ground layer's `cells`, copies non-empty `tileId` values into `map_cells.biome` and `map_cells.terrain_variant`, and rebuilds geometry/navigation/runtime snapshot projections. It does not calculate water-depth bands. The merge function stores the authoritative version snapshot, invokes reconciliation, and reports projection failure separately from commit status.
+
+### CI confirmation
+
+GitHub Actions shows Map Editor CI run `37919433844` completed with conclusion `success` for code SHA `93c81bad7b673345a8c7532084c3520b626f6747`:
+https://github.com/rakarakaa775/World-of-vendrith/actions/runs/37919433844
+
+That run's code SHA predates the later documentation-only commits; it is evidence for the brush-preview regression-test commit, not a CI run specifically on the newest documentation commit.
+
+### Conclusion and remaining boundary
+
+The live database has the migration recorded and the expected projection function installed. The target branch's standalone migration file is missing from its directory listing, so repository migration reproducibility/drift remains a documentation and repository-history issue. It does not by itself prove the deployed database is broken.
+
+The baseline SQL was too large for the connected GitHub file fetch to return, so a byte-for-byte/source comparison between that baseline and the live function remains incomplete. No database changes, migrations, or application code changes were made during this verification.
