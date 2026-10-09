@@ -243,7 +243,7 @@ export function PixiMapCanvas(props: Props) {
       // point. Remote textures remain optional enhancements below.
       const grid = new Graphics();
       grid.rect(0, 0, width, height).fill({ color: 0xffffff });
-      for (const layer of document.layers) {
+      for (const layer of renderDocument.layers) {
         if (!layer.visible || !groupVisible(layer) || !layerVisible(layer.id) || layer.kind === "objects") continue;
         for (let i = 0; i < document.width * document.height; i++) {
           const id = layer.cells[i]?.tileId;
