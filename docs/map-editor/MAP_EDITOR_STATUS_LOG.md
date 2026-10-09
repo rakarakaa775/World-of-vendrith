@@ -1,3 +1,9 @@
+## 2026-10-10 — Save Slot parser completeness guard
+
+- Tightened `parseGameSaveSlotSnapshot` to require both `world` and `exterior` properties in the current Game Save v1 envelope; malformed/incomplete envelopes fail before editor adoption.
+- Added a regression test for incomplete current envelopes and corrected the interior fixture to satisfy map hierarchy validation so the test targets the intended exterior-space guard.
+- CI status remains unavailable for the exact commits; no tests/typecheck/build are claimed as passing.
+
 ## 2026-10-10 — Save Slot schema-aware loading and live audit
 
 - Added `parseGameSaveSlotSnapshot` to dispatch current Game Save v1 versus legacy map-document v1, validate authoritative world identity/type and exterior type/space, and reject unsupported formats before state adoption. The active Load Slot handler now uses this boundary.
