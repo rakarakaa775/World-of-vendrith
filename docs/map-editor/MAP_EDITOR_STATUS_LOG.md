@@ -1,3 +1,11 @@
+## 2026-10-10 — Save Slot RPC preflight and database release gates
+
+- Rechecked live Save Slots using schema-aware JSONB comparisons: all 3 current rows pass version tuple, canonical version envelope, authoritative World ID/type, embedded World/version equality, and owner consistency checks.
+- Verified current Save/Load RPC grants and security context read-only. `anon` cannot execute; `authenticated` can. Both functions retain `SECURITY DEFINER` and pinned `search_path=public, pg_temp`; no grants or function definitions were changed.
+- Identified nullable `version_id` with `ON DELETE SET NULL` as an explicit fail-closed load case.
+- Expanded the Save Slot remediation contract with ordered Save/Load validation requirements, a database regression matrix, and release gates. Updated the RPC audit document.
+- Production remains unchanged. No migration was created/applied; migration CLI/test database workflow and explicit production approval remain prerequisites.
+
 ## 2026-10-10 — Save Slot parser regression resolved; CI green
 
 - Investigated the failing Map Editor CI run: TypeScript typecheck and Next.js build passed; Vitest exposed a legacy-map parsing gap in the opt-in Game Save v2 adapter and a contradictory expectation for a valid legacy World + Exterior pair.
