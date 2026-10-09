@@ -71,7 +71,7 @@ describe("Save Slot snapshot format dispatch", () => {
   it("rejects a playable interior as the exterior without partially accepting the save", () => {
     const world = createMap("world");
     world.id = "world-with-interior";
-    const interior = { ...createMap("playable", "region-1", "exterior"), id: "interior", playableSpace: "interior" as const };
+    const interior = { ...createMap("playable", "region-1", "exterior"), id: "interior", playableSpace: "interior" as const, parentPlayableMapId: "parent-playable" };
     expect(() => parseGameSaveSlotSnapshot(
       serializeGameSaveSnapshot(world, interior),
       "world-with-interior",
