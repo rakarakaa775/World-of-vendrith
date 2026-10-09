@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createStarterMap } from "./map-document";
+import { createMap, createStarterMap } from "./map-document";
 import { eraseTerrainPaint, applyTerrainPaint } from "./terrain-paint";
 import { deriveWaterProjection } from "./water-projection";
 
