@@ -1,3 +1,10 @@
+## 2026-10-10 — Expand Save Slot RPC integrity remediation contract
+
+- **Type:** Read-only production audit and implementation contract
+- **Details:** Rechecked all three Save Slots against their canonical map-version tuple and JSONB World document; all current rows pass. Verified the existing RPC execution boundary without changing grants or definitions. Added a null-version-reference failure case, ordered Save/Load validation requirements, and database regression/release gates.
+- **Verification:** Read-only SQL queries only. No production row, RPC, grant, or migration history was changed.
+- **Safety:** Migration and database tests remain unimplemented; production deployment is explicitly blocked until isolated SQL tests, CI, security review, and user approval pass.
+
 ## 2026-10-10 — Resolve Game Save v2 legacy parsing and verify CI
 
 - **Type:** Parser compatibility, regression correction, and verification
