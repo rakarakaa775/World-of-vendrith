@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vendrith.invalid/schemas/terrain-asset-metadata-v1.schema.json",
+  "title": "Vendrith Terrain Asset Metadata v1",
+  "description": "Metadata contract for original Vendrith hand-painted 2.5D terrain prototype assets. This schema documents candidate files only; it does not approve or bind assets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "asset_key",
+    "relative_path",
+    "material",
+    "role",
+    "width",
+    "height",
+    "format",
+    "alpha_mode",
+    "provenance",
+    "license",
+    "sha256",
+    "validation_status"
+  ],
+  "properties": {
+    "asset_key": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^[^/].*\\.(png|webp)$"
+    },
+    "material": {
+      "type": "string",
+      "enum": ["grass", "dirt", "sand", "water", "deepwater", "stone", "snow", "mud", "cliff"]
+    },
+    "role": {
+      "type": "string",
+      "enum": ["base", "transition", "overlay", "cliff_top", "cliff_face", "shoreline", "preview_only"]
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "runtime_tile_size": {
+      "type": ["integer", "null"],
+      "enum": [32, 64, null]
+    },
+    "logical_footprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width_tiles", "height_tiles"],
+      "properties": {
+        "width_tiles": {"type": "number", "exclusiveMinimum": 0},
+        "height_tiles": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "visual_overhang_px": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "format": {
+      "type": "string",
+      "enum": ["PNG"]
+    },
+    "color_mode": {
+      "type": "string",
+      "enum": ["RGBA"]
+    },
+    "alpha_mode": {
+      "type": "string",
+      "enum": ["opaque", "transparent_edges", "overlay"]
+    },
+    "transition_pair": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "string",
+        "enum": ["grass", "dirt", "sand", "water", "deepwater", "stone", "snow", "mud", "cliff"]
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "neighbor_mask": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 255
+    },
+    "source_master": {
+      "type": ["string", "null"]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creator", "kind"],
+      "properties": {
+        "creator": {"type": "string", "minLength": 1},
+        "kind": {
+          "type": "string",
+          "enum": ["vendrith_original", "third_party", "adapted_third_party", "reference_only"]
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spdx_id", "registry_id", "attribution"],
+      "properties": {
+        "spdx_id": {"type": ["string", "null"]},
+        "registry_id": {"type": ["string", "null"]},
+        "attribution": {"type": "string"},
+        "adaptation_permitted": {"type": ["boolean", "null"]}
+      }
+    },
+    "sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": ["draft", "visual_review", "technical_review", "approved", "rejected"]
+    },
+    "validation_notes": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}
