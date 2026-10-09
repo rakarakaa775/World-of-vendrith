@@ -13,7 +13,7 @@ import {
 import type { MapDocumentV2State } from "./map-history-v2";
 
 const state: MapDocumentV2State = {
-  document: { ...createMap("world"), id: "world-test", width: 32, height: 32 },
+  document: { ...createMap("world", null, "exterior", null, 32, 32), id: "world-test" },
   terrainSemantics: {
     schema: TERRAIN_SEMANTICS_SCHEMA,
     version: TERRAIN_SEMANTICS_VERSION,
