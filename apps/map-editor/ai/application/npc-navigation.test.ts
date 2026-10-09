@@ -136,12 +136,9 @@ describe("NPC navigation", () => {
     const waterGrid: NavigationGrid = {
       width: 3, height: 1, blocked: [false, false, false],
       waterCells: [{ x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" }],
-      capabilities: { canSwim: true },
     };
-    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
-    expect(findNavigationPath({
-      ...waterGrid, capabilities: { canSwim: true, hasWaterTransport: true },
-    }, { x: 0, y: 0 }, { x: 2, y: 0 })?.cost).toBe(2);
+    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 }, { canSwim: true })).toBeUndefined();
+    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 }, { canSwim: true, hasWaterTransport: true })?.cost).toBe(2);
   });
 
   it("does not let water semantics bypass physical collision", () => {
@@ -159,12 +156,11 @@ describe("NPC navigation", () => {
     const base: NavigationGrid = {
       width: 3, height: 1, blocked: [false, false, false],
       waterCells: [{ x: 1, y: 0, surface: "water", feature: "river", depth: "medium", current: "strong" }],
-      capabilities: { canSwim: true },
     };
-    expect(findNavigationPath(base, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+    expect(findNavigationPath(base, { x: 0, y: 0 }, { x: 2, y: 0 }, { canSwim: true })).toBeUndefined();
     expect(findNavigationPath({
       ...base, waterCells: [{ x: 1, y: 0, surface: "water", feature: "river", depth: "medium", current: "unknown" }],
-    }, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+    }, { x: 0, y: 0 }, { x: 2, y: 0 }, { canSwim: true })).toBeUndefined();
   });
 
 });
