@@ -2,7 +2,6 @@ import type { MapDocument } from "./map-document";
 import { parseMapDocument, serializeMapDocument } from "./map-serialization";
 import {
   validateTerrainSemantics,
-  type TerrainSemanticsSection,
 } from "./terrain-semantics";
 import type { MapEditorState } from "./map-editor-state-v2";
 
