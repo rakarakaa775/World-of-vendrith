@@ -51,7 +51,7 @@ describe("MapDocument v2 atomic history", () => {
       document: { ...initial.document, name: "Alternative World" },
       terrainSemantics: {
         ...initial.terrainSemantics,
-        cells: [{ x: 3, y: 3, surface: "land", feature: "forest" }],
+        cells: [{ x: 3, y: 3, surface: "land", feature: "none" }],
       },
     };
     const branched = commitHistoryV2(undone, alternative);
