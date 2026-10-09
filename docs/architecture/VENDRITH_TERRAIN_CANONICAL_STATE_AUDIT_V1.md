@@ -103,3 +103,41 @@ Source: `apps/map-editor/editor/map-persistence.ts`.
 - No application code, database schema, live data, or production runtime was changed.
 
 Next gate: identify the exact production runtime adapter and its canonical world/map representation before deciding whether water bands should remain materialized, be rebuilt at load, or be moved to a derived cache. Then add tests for serialize/parse round trip, undo/redo exactness, deterministic gradient rebuild, legacy snapshots, and editor-to-runtime field mapping.
+
+
+## 8. Contract conflict found in the existing World Map blueprint
+
+Source: `docs/map-editor/blueprint/WORLD_MAP_EDITOR_COMPLETION_BLUEPRINT.md`, sections 1, 2, 5, and 6.
+
+The blueprint establishes several intended invariants:
+
+- Save should persist authoring state that is the source of truth.
+- Water depth is derived; users do not manually author water depth.
+- Rebuilding water after load must be deterministic.
+- Transition/autotile rules must not mutate semantic terrain IDs merely to satisfy rendering.
+- The water engine currently writes derived classifications into the ground projection.
+
+The current implementation serializes the same ground-cell `tileId` values directly into MapDocument v1 snapshots. That means the implementation currently persists water classifications that the blueprint describes as derived. This is a **representation/contract ambiguity** rather than proof of a user-visible bug: the blueprint also explicitly permits derived water output to be written into the ground projection under the current contract.
+
+### Decision required (do not change implementation yet)
+
+Choose and document one of these models before adding elevation/biome/hydrology fields:
+
+1. **Materialized semantic bands:** water-band IDs are treated as part of the saved terrain projection. Then document that they are derived-origin but persisted, and define when/how they are rebuilt and versioned.
+2. **Canonical authored terrain plus derived water cache:** persisted cells retain authored semantic terrain; water distance/bands are rebuilt deterministically on load/edit and kept in a derived projection/cache. This requires a migration-compatible representation and tests, not an in-place silent reinterpretation of existing v1 saves.
+3. **Split canonical and render projections:** keep authored terrain IDs in canonical MapDocument data and produce a distinct derived projection for water bands and autotile variants. Define the projection API and invalidation rules.
+
+The current evidence supports option 2 or 3 as cleaner long-term architecture, but neither is approved or implemented here. Do not change the existing schema or saved values until compatibility with old maps and the production runtime boundary is proven.
+
+## 9. Additional verified source boundary
+
+- `apps/map-editor/editor/map-crash-recovery.ts` writes the full serialized MapDocument to a local-storage recovery journal keyed by map ID; reading validates the requested map identity and parses through the same schema-v1 parser.
+- `apps/map-editor/components/editor-shell.tsx` uses `MapHistory` for the editor's document history and passes terrain edits through `applyTerrainPaint`. This confirms the editor-side command/history boundary, not production game-runtime integration.
+- Several plausible runtime route/type paths were checked directly and returned 404, but these were only candidate paths. This is not proof that the production runtime is absent; repository-wide runtime path discovery is still needed.
+
+## 10. Revised next gate
+
+1. Resolve the semantic-versus-materialized water contract explicitly.
+2. Locate the production runtime via repository structure, route imports, package exports, and call sites rather than guessed filenames alone.
+3. Trace editor map identity and persistence into any runtime projection or adapter.
+4. Add compatibility tests before altering existing save semantics.
