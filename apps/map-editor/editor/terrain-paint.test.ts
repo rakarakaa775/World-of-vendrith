@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMap, createStarterMap } from "./map-document";
 import { eraseTerrainPaint, applyTerrainPaint } from "./terrain-paint";
 import { deriveWaterProjection } from "./water-projection";
+import { parseMapDocument, serializeMapDocument } from "./map-serialization";
 
 describe("terrain paint", () => {
   it("paints only valid, unique ground cells and recalculates the affected perimeter", () => {
@@ -36,6 +37,18 @@ describe("terrain paint", () => {
       "deepwater", "deepwater", "deepwater", "grass", "deepwater", "deepwater", "deepwater",
     ]);
     expect(deriveWaterProjection(painted, "ground")?.bands).toEqual([
+      "deepwater2", "brackish", "water", null, "water", "brackish", "deepwater2",
+    ]);
+  });
+
+  it("preserves canonical water cells through schema-v1 save/load round-trip", () => {
+    const base = createMap("world", null, "exterior", null, 7, 1);
+    const painted = applyTerrainPaint(base, "ground", [{ x: 3, y: 0 }], "grass").document;
+    const loaded = parseMapDocument(serializeMapDocument(painted));
+    expect(loaded.layers.find(layer => layer.id === "ground")?.cells.map(cell => cell.tileId)).toEqual([
+      "deepwater", "deepwater", "deepwater", "grass", "deepwater", "deepwater", "deepwater",
+    ]);
+    expect(deriveWaterProjection(loaded, "ground")?.bands).toEqual([
       "deepwater2", "brackish", "water", null, "water", "brackish", "deepwater2",
     ]);
   });
