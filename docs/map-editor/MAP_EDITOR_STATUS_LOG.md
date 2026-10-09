@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 recovery identity regression coverage
+
+- Extended `map-crash-recovery-v2.test.ts` with adversarial entries: mismatched envelope map ID, mismatched embedded snapshot ID, and a v1 snapshot presented to the v2 recovery journal.
+- Expected behavior is fail-closed: each invalid or legacy entry returns `null`; the v2 journal does not infer terrain semantics from v1 data.
+- Tests were authored but not executed. No recovery implementation or active editor behavior was changed in this step.
+- No database/RPC/schema/data or production runtime changes.
+
 ## 2026-10-10 — Terrain v2 history map-identity guard
 
 - Audit found the lower-level `MapHistoryV2` helper accepted a commit whose document ID differed from the current map, unlike the newer `MapEditorStateHistory` helper. Such a commit could allow undo to cross map identity.
