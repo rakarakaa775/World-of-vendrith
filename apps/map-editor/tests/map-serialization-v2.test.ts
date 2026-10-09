@@ -18,7 +18,7 @@ const semantics = {
   version: TERRAIN_SEMANTICS_VERSION,
   cells: [
     { x: 2, y: 3, surface: "water" as const, feature: "ocean_sea" as const, depth: "deep" as const },
-    { x: 1, y: 1, surface: "land" as const, feature: "beach" as const },
+    { x: 1, y: 1, surface: "land" as const, feature: "shoreline" as const },
   ],
 };
 
@@ -78,7 +78,7 @@ describe("MapDocument v2 envelope", () => {
     expect(shrunk.document.height).toBe(2);
     expect(shrunk.document.layers.every(layer => layer.cells.length === 4)).toBe(true);
     expect(shrunk.terrainSemantics.cells).toEqual([
-      { x: 1, y: 1, surface: "land", feature: "beach" },
+      { x: 1, y: 1, surface: "land", feature: "shoreline" },
     ]);
 
     const expanded = resizeMapDocumentV2(shrunk, 4, 4);
