@@ -500,3 +500,13 @@
 - **Decision:** Keep v2 opt-in. Before integration, define explicit legacy/uninitialized semantics, coordinate edits and resize atomically, resolve semantic three-way merge behavior, and audit database RPC payload contracts. Run tests/typecheck/build before any activation.
 - **Verification:** Source-level repository audit only; no Vitest/typecheck/build result is claimed.
 - **Safety:** No production RPC/schema/data, active editor UI, or runtime navigation changes.
+
+
+## 2026-10-10 — Terrain v2 Gate A state contract
+
+- **Type:** Architecture / Test
+- **Reason:** The v2 terrain model needs one explicit editor-state boundary that does not fabricate semantics for legacy v1 maps or carry semantics across map identities.
+- **Details:** Added the opt-in `MapEditorState` union, explicit semantics initialization, canonical document replacement, same-map resize handling, and guarded v2 serialization. Added regression tests for legacy/v2 parse behavior, initialization validation, identity changes, resize, and malformed payloads.
+- **Affected:** `apps/map-editor/editor/map-editor-state-v2.ts`, `apps/map-editor/editor/map-editor-state-v2.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_GATE_A_STATE_CONTRACT.md`.
+- **Verification:** Source-level review only. Vitest, typecheck, and build have not been executed; no passing result is claimed.
+- **Safety:** Adapter remains isolated from active editor UI and persistence. No production RPC/database or runtime water-navigation changes.
