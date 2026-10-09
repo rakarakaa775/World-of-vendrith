@@ -3,7 +3,12 @@ export interface NavigationPoint { x: number; y: number; }
 export interface NavigationGrid {
   width: number;
   height: number;
+  /** Cells blocked by collision geometry; water policy must never erase these. */
   blocked: boolean[];
+  /** Optional authored water semantics. Absent entries mean no water policy can be inferred. */
+  waterCells?: NavigationWaterCell[];
+  /** Capabilities are explicit per moving actor, never inferred from NPC identity. */
+  capabilities?: NavigationCapabilities;
 }
 
 export interface DynamicNavigationObstacle {
