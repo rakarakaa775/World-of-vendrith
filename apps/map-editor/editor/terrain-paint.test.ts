@@ -3,6 +3,7 @@ import { createMap, createStarterMap } from "./map-document";
 import { eraseTerrainPaint, applyTerrainPaint } from "./terrain-paint";
 import { deriveWaterProjection } from "./water-projection";
 import { parseMapDocument, serializeMapDocument } from "./map-serialization";
+import { commitHistory, createHistory, redoHistory, undoHistory } from "./map-history";
 
 describe("terrain paint", () => {
   it("paints only valid, unique ground cells and recalculates the affected perimeter", () => {
@@ -49,6 +50,23 @@ describe("terrain paint", () => {
       "deepwater", "deepwater", "deepwater", "grass", "deepwater", "deepwater", "deepwater",
     ]);
     expect(deriveWaterProjection(loaded, "ground")?.bands).toEqual([
+      "deepwater2", "brackish", "water", null, "water", "brackish", "deepwater2",
+    ]);
+  });
+
+  it("keeps canonical water cells through undo and redo", () => {
+    const base = createMap("world", null, "exterior", null, 7, 1);
+    const edited = applyTerrainPaint(base, "ground", [{ x: 3, y: 0 }], "grass").document;
+    const history = commitHistory(createHistory(base), edited);
+    const undone = undoHistory(history);
+    const redone = redoHistory(undone);
+
+    expect(undone.present.layers.find(layer => layer.id === "ground")?.cells.map(cell => cell.tileId))
+      .toEqual(Array.from({ length: 7 }, () => "deepwater"));
+    expect(redone.present.layers.find(layer => layer.id === "ground")?.cells.map(cell => cell.tileId)).toEqual([
+      "deepwater", "deepwater", "deepwater", "grass", "deepwater", "deepwater", "deepwater",
+    ]);
+    expect(deriveWaterProjection(redone.present, "ground")?.bands).toEqual([
       "deepwater2", "brackish", "water", null, "water", "brackish", "deepwater2",
     ]);
   });
