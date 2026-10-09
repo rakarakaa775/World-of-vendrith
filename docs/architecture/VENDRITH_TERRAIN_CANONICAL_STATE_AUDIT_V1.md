@@ -332,3 +332,26 @@ The workflow definition runs, in order, dependency installation, `npm run typech
 2. Decide whether brush preview should use the same derived projection as the canvas for accurate depth-band previews; if changed, preserve canonical state and add focused preview tests.
 3. Check any database-side projection consumers separately. The editor RPC projects map snapshots into related map cells/navigation records; this audit did not modify or migrate those database functions.
 4. No runtime source code, database schema, or production data was changed during this audit.
+
+
+## 17. Brush preview alignment and latest CI — 2026-10-09
+
+This section supersedes the brush-preview statements in Sections 14 and 16 where they describe the preview as not using the derived water projection.
+
+### Implemented follow-up
+
+- `apps/map-editor/editor/terrain-brush-preview.ts` now derives water bands on a temporary prospective document via `deriveWaterProjection`; it does not write those bands into the source/canonical MapDocument.
+- The preview resolves terrain through `resolveTerrainRenderCell`, matching the Pixi canvas's render-time shoreline-mask and approved-binding policy rather than using only the semantic `resolveTerrainCell` path.
+- `apps/map-editor/editor/terrain-paint.test.ts` includes a regression test that checks the preview shows projected shoreline bands around a prospective land paint while the original canonical ground cells remain `deepwater`.
+- These changes preserve the separation between authored canonical cells and derived render projection. No runtime adapter, database schema, migration, or production data was changed.
+
+### Latest validation
+
+GitHub Actions run for commit `1324d7d023aab1056c2c53ca58b2db639cfc67fd` completed successfully:
+https://github.com/rakarakaa775/World-of-vendrith/actions/runs/37917785905
+
+The `Map Editor tests` job reports success for dependency installation, TypeScript typecheck, Next.js build, and Vitest. This is the latest verified CI run for the brush-preview resolver alignment.
+
+### Remaining focused coverage
+
+The terrain resolver tests already cover exact shoreline bindings and safe fallback to the verified base mask. A useful next regression is to assert the brush preview's reported mask/asset binding matches the render resolver for a shoreline fixture. Keep this as a test-only follow-up unless that test reveals an actual behavior mismatch. Do not expand this work into runtime persistence or database changes without a separate source trace and rollout review.
