@@ -510,3 +510,13 @@
 - **Affected:** `apps/map-editor/editor/map-editor-state-v2.ts`, `apps/map-editor/editor/map-editor-state-v2.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_GATE_A_STATE_CONTRACT.md`.
 - **Verification:** Source-level review only. Vitest, typecheck, and build have not been executed; no passing result is claimed.
 - **Safety:** Adapter remains isolated from active editor UI and persistence. No production RPC/database or runtime water-navigation changes.
+
+
+## 2026-10-10 — Terrain v2 combined state history
+
+- **Type:** Architecture / Test
+- **Reason:** Document-only undo/redo is not safe for an editor state that includes independent terrain semantics.
+- **Details:** Added an opt-in history adapter for the complete legacy-or-initialized state, with canonical validation, bounded history, atomic undo/redo, redo invalidation, and cross-map reset requirements. Added focused regression tests.
+- **Affected:** `apps/map-editor/editor/map-editor-state-history-v2.ts`, `apps/map-editor/editor/map-editor-state-history-v2.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_STATE_HISTORY.md`.
+- **Verification:** Source-level review only. Vitest, typecheck, and build have not been executed; no passing result is claimed.
+- **Safety:** Active v1 editor history and persistence remain unchanged. No production RPC/database or runtime water-navigation changes.
