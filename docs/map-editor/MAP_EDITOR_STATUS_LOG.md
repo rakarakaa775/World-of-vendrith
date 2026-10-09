@@ -114,3 +114,11 @@
 - Follow-up audit confirmed `GameSaveSnapshot` and save-slot parsing are v1-only and store `MapDocument` for world/exterior; terrain semantics cannot survive that envelope.
 - Added `MAP_EDITOR_TERRAIN_V2_GAME_SAVE_CONTRACT.md` specifying an opt-in versioned envelope, legacy compatibility, atomic validation, and migration gates.
 - Contract only: no implementation, active save/load wiring, RPC, production database, or runtime changes. Tests/typecheck/build remain unexecuted.
+
+
+## 2026-10-10 — Opt-in Game Save state v2 adapter
+
+- Added `game-save-state-v2.ts` as a separate adapter; the existing v1 `game-save.ts` API is unchanged.
+- The adapter supports legacy v1 envelopes without inferring terrain semantics, v2 envelopes containing legacy or initialized map snapshots, and atomic validation of world/exterior map types.
+- Added focused tests for initialized round-trip, legacy compatibility, malformed semantics, unsupported versions, invalid map types, and incomplete/atomic rejection.
+- The adapter remains opt-in: active Save/Load, save-slot callers, Supabase RPC, production database, recovery, conflict-save, and runtime navigation are unchanged. Tests/typecheck/build have not been executed in this workflow.
