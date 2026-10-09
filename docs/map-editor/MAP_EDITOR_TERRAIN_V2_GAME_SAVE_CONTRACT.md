@@ -1,6 +1,6 @@
 # Game Save v2 Contract for Terrain Semantics
 
-Status: proposal only; not implemented or wired to save-slot RPCs.
+Status: adapter implemented as an opt-in module; not wired to save-slot RPCs. Automated verification remains pending.
 
 ## Goals
 
@@ -32,4 +32,4 @@ Use the existing `vandrith.game-save` schema with a new `version: 2`. `world` an
 
 ## Current decision
 
-This document is a contract proposal, not an implementation or test result. Active save/load, crash recovery, conflict-save, production RPC/database, and runtime navigation remain unchanged.
+The separate opt-in adapter and focused tests have been added. This does not establish a passing test result; automated verification is still pending. Active save/load, crash recovery, conflict-save, production RPC/database, and runtime navigation remain unchanged.
