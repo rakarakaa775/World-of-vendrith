@@ -208,7 +208,7 @@ Proposed module: `apps/map-editor/editor/water-projection.ts`.
 - `WATER_PROJECTION_ALGORITHM_VERSION = 1` versions visual derivation independently of `MapDocument.version`.
 - `WaterBandTerrain = 'water' | 'brackish' | 'deepwater2' | 'deepwater`.
 - `WaterProjection` contains algorithm version, width, height, source layer ID, and a row-major read-only band array.
-- `projectWaterDepth(document, layerId = 'ground')` is pure: it returns a projection or `null` for a missing/non-ground layer; it never mutates or returns a changed document. Malformed cell count is rejected explicitly.
+- `deriveWaterProjection(document, layerId)` is pure: it returns a projection or `null` for a missing/non-ground layer; it never mutates or returns a changed document. Malformed cell count is rejected explicitly.
 - The current eight-neighbor BFS and distance thresholds remain 1 / 2 / 4 to preserve visual behavior. A World Map with no recognized land produces a derived all-`deepwater` projection without rewriting the canonical cells. Non-world maps with no land return `null` until their policy is separately specified.
 
 ### Schema-v1 compatibility policy
@@ -279,3 +279,31 @@ Do not globally remove the four legacy band identifiers from `TerrainKey` or the
 - Save/load and undo/redo regression tests are added but not executed in this workflow.
 - The GitHub connector returned no PR-triggered workflow runs for the latest commits; this is not evidence that tests passed or failed.
 - No database migration or production write has been performed.
+
+
+## 15. Production runtime source trace — 2026-10-09
+
+The runtime path was located by reading the target branch tree and fetching the source files directly; this supersedes the earlier statement that the production runtime source had not been verified.
+
+### Verified runtime loading chain
+
+1. `apps/map-editor/ai/application/supabase-runtime-world-adapter.ts` loads the map row and related clock, environment, navigation, NPC seed, and placement records from Supabase.
+2. It constructs a `RuntimeWorldSnapshot` from runtime state and entities. The snapshot does not read the editor's `MapDocument` or ground-cell `tileId` values in this adapter.
+3. Before returning the loaded snapshot, the adapter calls `recoverWorldFromSupabase(client, map.world_id, baseSnapshot)`.
+4. `apps/map-editor/ai/application/runtime-recovery.ts` reads the latest checkpoint through `read_latest_world_runtime_checkpoint_v1` and subsequent mutation records through `read_world_runtime_mutations_v1`. It validates sequence continuity, state version, and hashes before returning the recovered runtime snapshot.
+5. `apps/map-editor/ai/application/supabase-runtime-world-bridge.ts` wraps the recovered snapshot for runtime observation/actions and supports authoritative refresh by reloading through the adapter.
+6. `apps/map-editor/app/api/vendrith-runtime-intents/route.ts` is an authenticated runtime-intent consumer endpoint. It authenticates a non-anonymous Supabase user and delegates an approved intent to `createSupabaseRuntimeIntentConsumer`; this route is not an editor-map render route.
+
+### Terrain-specific conclusion and limits
+
+- In the inspected adapter/recovery/bridge path, there is no visible import of `MapDocument`, `deriveWaterProjection`, or the legacy `applyWaterDepthGradient`. This path builds a runtime snapshot from world clock, environment, navigation and entity records rather than deriving the editor's water-depth bands.
+- The terrain projection should therefore remain an editor/render projection and must not be inserted into runtime mutation or recovery records as part of this change.
+- This source trace does not prove that no other production route or subsystem consumes map terrain. The repository contains additional API routes and database functions; any terrain-specific consumer must be traced separately before changing runtime semantics.
+- The current recovery function restores stored runtime snapshots from checkpoint/mutation records; it is not a replay of editor `MapDocument` changes. Keep editor snapshot persistence and world-runtime recovery as separate contracts.
+- No runtime adapter, runtime recovery behavior, database migration, or production data was changed in this trace.
+
+### Validation gate
+
+- Runtime source tracing: completed for the adapter → recovery → bridge chain and the runtime-intent API route listed above.
+- Automated tests/typecheck: not executed in this workflow. Do not mark the terrain implementation validated until the focused water-projection, terrain-paint, serialization/history tests and relevant typecheck run successfully.
+- Next safe step: inspect remaining consumers of terrain/map snapshots, then run focused tests in a repository execution environment before considering rollout.
