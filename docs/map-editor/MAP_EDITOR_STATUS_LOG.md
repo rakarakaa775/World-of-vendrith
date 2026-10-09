@@ -1,3 +1,10 @@
+## 2026-10-10 — Combined Terrain v2 merge gate
+
+- Added an opt-in composition helper that runs document and terrain-semantics three-way merges as a single v2 result.
+- It rejects mismatched map identity/dimensions and invalid state, and returns an adoptable `merged` state only when both conflict collections are empty. Conflict results expose a preview but no `state` field.
+- Added regression tests for independent edits, semantic-only conflicts, simultaneous document+semantic conflicts, identity/dimension mismatch, invalid semantics, and a v2 snapshot serialize/parse round-trip.
+- The helper remains disconnected from active v1 save/UI/RPC. Tests, typecheck, and build are not executed in this GitHub-only workflow.
+
 ## 2026-10-10 — Terrain v2 merge serialization regression
 
 - Extended the pure merge suite with a conflict-free v2 snapshot serialize/parse round-trip assertion to verify merged semantics and MapDocument remain paired.
