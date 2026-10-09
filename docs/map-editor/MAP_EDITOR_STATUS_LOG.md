@@ -122,3 +122,11 @@
 - The adapter supports legacy v1 envelopes without inferring terrain semantics, v2 envelopes containing legacy or initialized map snapshots, and atomic validation of world/exterior map types.
 - Added focused tests for initialized round-trip, legacy compatibility, malformed semantics, unsupported versions, invalid map types, and incomplete/atomic rejection.
 - The adapter remains opt-in: active Save/Load, save-slot callers, Supabase RPC, production database, recovery, conflict-save, and runtime navigation are unchanged. Tests/typecheck/build have not been executed in this workflow.
+
+
+## 2026-10-10 — Active Save Slot consumer audit for terrain v2
+
+- Traced the active `VendrithWorldBuilderApp` Save Slot callbacks. Save still calls the v1 `serializeGameSaveSnapshot`; Load still parses nested map documents through the v1 parser.
+- Confirmed the new opt-in Game Save state v2 adapter is not integrated. A v2 envelope must not be sent to the v1 RPC until the payload contract is reviewed; current active editor state/history also cannot yet restore terrain semantics atomically.
+- Documented the consumer path, exterior validation gap, and safe integration sequence in `MAP_EDITOR_TERRAIN_V2_ACTIVE_SAVE_SLOT_AUDIT.md`.
+- Source inspection only. No active behavior, RPC, production database, or runtime navigation changes. Tests/typecheck/build remain unexecuted.
