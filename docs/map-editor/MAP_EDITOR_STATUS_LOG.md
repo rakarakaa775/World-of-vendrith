@@ -138,3 +138,10 @@
 - RPC validation covers authentication, owner scope, slot range, JSON object shape, and world version reference; it does not validate nested Game Save schema/map semantics or prove embedded snapshot equality with the referenced version.
 - The migration source was not present at the same path on `feat/vendrith-ecc-v1` during this audit, so this is not evidence of the currently deployed SQL definition.
 - Added `MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`. No SQL/RPC invocation, migration, production database mutation, or active UI change. No tests/typecheck/build run.
+
+
+## 2026-10-10 — Save Slot identity guard in opt-in adapter
+
+- Added `parseGameSaveStateV2ForWorld` to enforce the caller-supplied authoritative world map ID after the entire envelope has parsed successfully.
+- Added a focused unit test for matching ID, mismatched ID, and blank expected ID. The active Save Slot consumer remains unchanged and does not call this adapter.
+- Added the Save Slot RPC source audit. No SQL, RPC, or production database changes. Automated tests/typecheck/build still not executed.
