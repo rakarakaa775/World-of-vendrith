@@ -141,3 +141,55 @@ The current evidence supports option 2 or 3 as cleaner long-term architecture, b
 2. Locate the production runtime via repository structure, route imports, package exports, and call sites rather than guessed filenames alone.
 3. Trace editor map identity and persistence into any runtime projection or adapter.
 4. Add compatibility tests before altering existing save semantics.
+
+## 11. Architecture decision — Option B selected
+
+**Decision status: accepted as the target architecture; implementation is not yet changed.**
+
+The project will use **canonical authored terrain plus a deterministic derived water cache/projection**.
+
+### Target invariants
+
+1. Canonical MapDocument cells represent authored semantic surface. Engine-derived water-distance bands must not be written back into canonical cell tileId values.
+2. The Water Engine computes coastal/depth display bands from canonical terrain input and exposes them separately from MapDocument.
+3. Terrain autotile masks, asset bindings, water bands, and render variants are derived projections. Rebuilding from the same canonical map and rules version must produce the same output.
+4. Save, version history, local crash recovery, and editor persistence store canonical authored state, not a render cache.
+5. One paint gesture remains one undo transaction. Undo/redo restores canonical authored state; derived projections are invalidated/recomputed from restored state.
+6. Schema-v1 compatibility is mandatory. Existing snapshots may contain materialized water-band IDs; they must not be silently reinterpreted or discarded without a migration/normalization rule.
+7. The existing World Map no-land behavior (deepwater floor) must remain visually equivalent after migration, but must be supplied by the derived projection rather than mutating canonical cells.
+8. The projection/cache must not become a second authority or be written to production runtime persistence as canonical world mutations.
+
+### Compatibility and implementation sequence
+
+**B0 — Freeze semantics:** keep current code/schema unchanged while defining the target contract.
+
+**B1 — Define projection API:** add a pure function/module accepting canonical terrain input and returning water-band values keyed by grid index (or equivalent immutable grid). It must not mutate its input or return a modified MapDocument. Use an explicit result type so canonical cells cannot be confused with display bands.
+
+**B2 — Legacy snapshot normalization:** detect existing water-band IDs in schema-v1 snapshots and normalize them to authored surface semantics using a documented deterministic rule. Earlier gradient passes may have erased the distinction between authored and generated values, so do not claim perfect recovery where the saved data cannot prove original intent. Define a conservative compatibility policy and fixtures before enabling automatic conversion.
+
+**B3 — Separate editor projections:** make terrain neighborhood/autotile rendering consume canonical terrain plus derived water projection, without persisting the projection into MapDocument. Update normalization in vendrith-world-builder-app.tsx only after compatibility tests pass.
+
+**B4 — History and persistence tests:** prove paint, erase, undo/redo, serialize/parse, local crash recovery, and Supabase editor snapshot round trips preserve canonical authored cells; prove water projection rebuild is deterministic after each operation.
+
+**B5 — Runtime boundary audit:** locate and trace the production runtime map/world adapter before changing runtime representation. Runtime integration must explicitly choose whether it derives its own projection from canonical terrain or consumes a read-only shared projection.
+
+**B6 — Rollout gate:** only after legacy fixtures and runtime mapping are verified should the editor switch to the new projection API. This decision does not authorize a database migration or production runtime write.
+
+### Acceptance tests required before switching the editor
+
+- Pure derivation: input document remains structurally unchanged.
+- Determinism: same canonical input and algorithm version yield identical water-band grids.
+- Separation: paint/erase and normalization do not write derived water bands into canonical ground tileId values.
+- Undo/redo: canonical snapshots are exact; derived projection is recomputed and matches expected output.
+- Round trip: serialization, persistence fallback, and crash recovery preserve canonical values.
+- Legacy compatibility: fixtures containing water, brackish, deepwater2, and deepwater follow an explicit migration policy; ambiguous cases are not silently guessed.
+- Boundary behavior: no-land World Maps still display the deepwater floor; coastline and map-edge cases are deterministic.
+- Runtime: adapter mapping and authority are documented and tested before production integration.
+
+### Current status after decision
+
+- Architecture choice B is approved by the project owner.
+- Existing engine still materializes water bands in MapDocument; this is a known implementation gap, not yet fixed.
+- Production runtime adapter remains unverified via available indexed code search.
+- No application code, schema, database, or live data has been changed in this decision commit.
+
