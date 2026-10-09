@@ -440,3 +440,15 @@ That run's code SHA predates the later documentation-only commits; it is evidenc
 The live database has the migration recorded and the expected projection function installed. The target branch's standalone migration file is missing from its directory listing, so repository migration reproducibility/drift remains a documentation and repository-history issue. It does not by itself prove the deployed database is broken.
 
 The baseline SQL was too large for the connected GitHub file fetch to return, so a byte-for-byte/source comparison between that baseline and the live function remains incomplete. No database changes, migrations, or application code changes were made during this verification.
+
+
+## 22. Reconstructed baseline function inspection — 2026-10-09
+
+The large baseline migration was successfully retrieved through its Git blob (blob SHA `8a5e296840638929dcb5cc6aa722ab3fa5fb2d99`) and inspected around the relevant function definitions. It contains definitions for:
+- `public.map_editor_upsert_runtime_snapshot_v1` (baseline line 6547)
+- `public.map_editor_reconcile_after_merge_v1` (baseline line 6587)
+- `public.map_editor_commit_merge_v1` (baseline line 6667)
+
+The inspected baseline definitions follow the same key behavior as the read-only live Supabase definitions: the reconciliation function projects non-empty ground `tileId` values into `map_cells.biome` and `map_cells.terrain_variant`, rebuilds geometry/navigation and writes the runtime snapshot; the merge function validates schema/document dimensions, checks the expected version, stores the snapshot, then invokes reconciliation and returns a separate projection status.
+
+This resolves the earlier uncertainty about whether the target branch's reconstructed baseline contains these function definitions. It does **not** resolve repository migration-history drift: the remote migration history lists the standalone migration version, while the target branch's migration directory currently contains only the reconstructed baseline. No DDL, data, migrations, or application code were changed.
