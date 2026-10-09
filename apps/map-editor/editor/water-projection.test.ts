@@ -26,7 +26,7 @@ describe('deriveWaterProjection', () => {
     const projection = deriveWaterProjection(document, 'ground');
 
     expect(projection?.bands).toEqual([
-      'deepwater', 'deepwater2', 'brackish', null, 'brackish', 'deepwater2', 'deepwater',
+      'deepwater2', 'brackish', 'water', null, 'water', 'brackish', 'deepwater2',
     ]);
     expect(JSON.stringify(document)).toBe(before);
   });
