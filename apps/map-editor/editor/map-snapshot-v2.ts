@@ -1,5 +1,5 @@
 import type { MapDocument } from "./map-document";
-import { parseMapDocument, serializeMapDocument } from "./map-serialization";
+import { MAP_DOCUMENT_SCHEMA, MAP_DOCUMENT_VERSION, parseMapDocument, serializeMapDocument } from "./map-serialization";
 import {
   validateTerrainSemantics,
   type TerrainSemanticsSection,
@@ -63,11 +63,11 @@ export function parseMapSnapshot(
     if (payload.version !== MAP_DOCUMENT_V2_VERSION) {
       throw new Error("Unsupported map document v2 version");
     }
-    const document = parseMapDocument({
-      schema: "vandrith.map-document",
-      version: 1,
+    const document = parseMapDocument(JSON.stringify({
+      schema: MAP_DOCUMENT_SCHEMA,
+      version: MAP_DOCUMENT_VERSION,
       document: payload.document,
-    } as never, requestedMapId);
+    }), requestedMapId);
     const terrainSemantics = validateTerrainSemantics(
       document.width,
       document.height,
@@ -77,6 +77,6 @@ export function parseMapSnapshot(
   }
 
   // Delegate all legacy shapes to the existing compatibility parser.
-  const document = parseMapDocument(payload as never, requestedMapId);
+  const document = parseMapDocument(JSON.stringify(payload), requestedMapId);
   return { format: "v1", document, terrainSemantics: null };
 }
