@@ -1,3 +1,12 @@
+## 2026-10-10 — Terrain v2 merge snapshot round-trip coverage
+
+- **Type:** Regression test
+- **Details:** Extended the semantic merge test suite to serialize a conflict-free merged section into the v2 snapshot envelope and parse it back, asserting both the MapDocument and terrain semantics survive together.
+- **Affected:** `apps/map-editor/editor/terrain-semantics-merge.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — recovery/conflict-save integration.
+- **Verification:** Test source added through GitHub; Vitest/typecheck/build have not been executed.
+- **Safety:** No active UI, production RPC, database/schema/data, or runtime changes.
+
 ## 2026-10-10 — Terrain v2 semantic three-way merge policy
 
 - **Type:** Opt-in implementation, regression tests, and contract
