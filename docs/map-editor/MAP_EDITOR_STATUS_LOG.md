@@ -1,3 +1,8 @@
+## 2026-10-10 — Save Slot invariant propagated to integration gate
+
+- Updated the editor integration contract to require the embedded world `MapDocument` to match the referenced canonical map-version snapshot's `document` member; the exterior remains independent.
+- This is a future integrity target, not a claim that the current RPC enforces it. No SQL or production changes; verification remains pending.
+
 ## 2026-10-10 — Save Slot world-version integrity contract clarified
 
 - Audited the active Save Slot caller and repository serializer: the slot embeds a raw world `MapDocument`, while the referenced durable map version stores the canonical `{ schema, version, document }` wrapper.
