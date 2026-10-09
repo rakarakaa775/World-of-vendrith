@@ -1,3 +1,10 @@
+## 2026-10-10 — Resolve Game Save v2 legacy parsing and verify CI
+
+- **Type:** Parser compatibility, regression correction, and verification
+- **Details:** Raw legacy MapDocument payloads nested inside Game Save v2 are normalized through the strict map parser. Valid legacy World-only and World + Exterior pairs remain legacy states without inferred terrain semantics. Load Slot status now accurately distinguishes World-only saves.
+- **Verification:** GitHub Actions Map Editor CI passed for commit `b15e2b257baaf36c1240292d41046b3461256da2`: TypeScript typecheck, Next.js build, 163 test files, and 793 tests.
+- **Safety:** No production database, RPC, or Save Slot rows were changed. Server-side snapshot/version equality enforcement remains pending a reviewed migration and explicit production approval.
+
 ## 2026-10-10 — Complete Game Save v1 envelope guard
 
 - **Type:** Input validation and regression test
