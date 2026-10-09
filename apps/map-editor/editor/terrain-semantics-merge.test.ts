@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createMap } from "./map-document";
+import { parseMapSnapshot, serializeMapDocumentV2 } from "./map-snapshot-v2";
 import {
   TERRAIN_SEMANTICS_SCHEMA,
   TERRAIN_SEMANTICS_VERSION,
