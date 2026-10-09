@@ -26,3 +26,14 @@ Status: audit-only; no live editor behavior changed.
 ## Safety boundary
 
 No production database/RPC/schema changes and no runtime water-navigation changes are included. This is source inspection via GitHub file reads; tests, typecheck, and build have not been executed. Empty status checks are not evidence of success.
+
+
+## Save-slot follow-up audit
+
+Inspected `apps/map-editor/editor/game-save.ts` and `editor/map-save-slot.ts`:
+
+- `GameSaveSnapshot` is version 1 only and embeds `MapDocument` for `world` and optional `exterior`.
+- `parseGameSaveSnapshot` rejects other envelope versions and canonicalizes each nested document with the v1 parser. Terrain semantics cannot survive this shape.
+- `parseSaveSlotSnapshot` validates world/exterior identity and map types after parsing the v1 envelope.
+- Therefore, a future combined save-slot format needs an explicit new envelope version and compatibility tests. Existing v1 saves must load as legacy/uninitialized states; no semantics may be inferred from tiles.
+- The active save-slot parser and RPC path remain unchanged. No new persistence format is activated by this audit.
