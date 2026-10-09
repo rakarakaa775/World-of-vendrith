@@ -1,3 +1,11 @@
+## 2026-10-10 — Terrain v2 snapshot adapter hardening
+
+- Corrected the v2 test fixture to create a real 32×32 map instead of changing dimensions without resizing layer cells.
+- Routed v2 and legacy snapshot parsing through the canonical `parseMapDocument` string parser; removed `as never` casts from this adapter boundary.
+- Added a dedicated regression test for duplicate terrain-semantic coordinates.
+- Verification remains pending: no test/typecheck execution is available from the current GitHub-only workflow, and the latest commit has no reported status checks. Do not treat these tests as passed until CI or a local run confirms them.
+- Scope unchanged: opt-in adapter only; live Save/Load, recovery, Save Slot, UI, Supabase RPC/schema/data, and production runtime remain untouched.
+
 # Vandrith Map Editor — Status Log
 
 **Purpose:** Short operational timeline of Map Editor updates.
