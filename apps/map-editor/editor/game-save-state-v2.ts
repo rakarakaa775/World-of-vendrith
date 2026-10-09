@@ -65,3 +65,13 @@ export function parseGameSaveStateV2(input: unknown): GameSaveStateV2 | null {
     return null;
   }
 }
+
+/** Enforce the caller's authoritative world identity after atomic envelope parsing. */
+export function parseGameSaveStateV2ForWorld(
+  input: unknown,
+  expectedWorldId: string,
+): GameSaveStateV2 | null {
+  if (!expectedWorldId.trim()) return null;
+  const parsed = parseGameSaveStateV2(input);
+  return parsed && parsed.world.document.id === expectedWorldId ? parsed : null;
+}
