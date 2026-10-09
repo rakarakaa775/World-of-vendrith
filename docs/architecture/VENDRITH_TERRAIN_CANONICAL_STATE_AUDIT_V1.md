@@ -355,3 +355,12 @@ The `Map Editor tests` job reports success for dependency installation, TypeScri
 ### Remaining focused coverage
 
 The terrain resolver tests already cover exact shoreline bindings and safe fallback to the verified base mask. A useful next regression is to assert the brush preview's reported mask/asset binding matches the render resolver for a shoreline fixture. Keep this as a test-only follow-up unless that test reveals an actual behavior mismatch. Do not expand this work into runtime persistence or database changes without a separate source trace and rollout review.
+
+
+## 18. Brush-preview mask and asset-binding regression — 2026-10-09
+
+A focused regression test was added to `apps/map-editor/editor/terrain-paint.test.ts` in commit `93c81bad7b673345a8c7532084c3520b626f6747`.
+
+The test builds a World Map shoreline fixture, paints a prospective grass cell, derives a temporary water projection, and compares the brush preview's center-cell mask, resolved asset ID, tile ID, and binding status with `resolveTerrainRenderCell` applied to the equivalent render-only document. It also asserts the authored base document remains canonical deepwater and the prospective painted ground cell remains grass.
+
+This is a test-only follow-up; no runtime, persistence, database, or production data behavior was changed. The commit has been pushed to `feat/vendrith-ecc-v1`. CI for this exact commit still needs to be checked before recording the regression as passing.
