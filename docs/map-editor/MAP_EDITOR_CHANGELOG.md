@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 recovery identity regression coverage
+
+- **Type:** Tests added (execution pending)
+- **Details:** Added tests verifying that the opt-in v2 recovery journal rejects a stored envelope with the wrong map ID, a snapshot whose embedded map ID differs from the requested map, and a legacy v1 snapshot. This protects against cross-map recovery and implicit legacy migration.
+- **Affected:** `apps/map-editor/editor/map-crash-recovery-v2.test.ts`, `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Test source added through GitHub; tests/typecheck/build not run. No production recovery/UI or database/RPC/schema/data changes.
+
 ## 2026-10-10 — Terrain v2 history map-identity guard
 
 - **Type:** Bug fix and regression test added (execution pending)
