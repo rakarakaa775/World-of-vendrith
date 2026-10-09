@@ -1,3 +1,9 @@
+## 2026-10-10 — Terrain v2 editor-state integration contract
+
+- Added `MAP_EDITOR_TERRAIN_V2_EDITOR_STATE_INTEGRATION_CONTRACT.md` defining atomic world/exterior adoption, authoritative world identity, strict map types, legacy semantics, history/recovery/conflict-save boundaries, and Save Slot/RPC migration gates.
+- Active roadmap phase: Terrain semantics v2 — editor-state and persistence integration gate.
+- Design/documentation only. No live editor wiring, tests, database/RPC/schema/data changes, or production runtime changes. Automated tests/typecheck/build remain unverified.
+
 ## 2026-10-10 — Terrain v2 snapshot adapter hardening
 
 - Corrected the v2 test fixture to create a real 32×32 map instead of changing dimensions without resizing layer cells.
