@@ -529,3 +529,12 @@
 - **Details:** Documented active editor mutation paths, paint gesture special handling, and the required integration sequence in `MAP_EDITOR_TERRAIN_V2_ACTIVE_EDITOR_AUDIT.md`.
 - **Verification:** GitHub source inspection only; Vitest, typecheck, and build have not been executed.
 - **Safety:** No live editor, production persistence/RPC/database, or runtime water-navigation changes.
+
+
+## 2026-10-10 — Game Save v2 contract proposal
+
+- **Type:** Architecture / Compatibility contract
+- **Reason:** Current save-slot format is v1-only and cannot persist initialized terrain semantics.
+- **Details:** Added `MAP_EDITOR_TERRAIN_V2_GAME_SAVE_CONTRACT.md` with proposed v2 envelope, validation rules, legacy behavior, and gated migration sequence.
+- **Verification:** Source inspection through GitHub file reads only; tests, typecheck, and build have not been executed.
+- **Safety:** Proposal only. Active save/load and production RPC/database behavior are unchanged.
