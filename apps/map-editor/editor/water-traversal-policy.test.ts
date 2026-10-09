@@ -17,6 +17,11 @@ describe('resolveWaterTraversal', () => {
     )).toBe('blocked');
   });
 
+  it('blocks water whose gameplay feature is missing or none', () => {
+    expect(resolveWaterTraversal({ surface: 'water' }, { canSwim: true })).toBe('blocked');
+    expect(resolveWaterTraversal({ surface: 'water', feature: 'none' }, {})).toBe('blocked');
+  });
+
   it('requires swimming capability for ordinary medium-depth water', () => {
     const lake = { surface: 'water' as const, feature: 'lake' as const, depth: 'medium' as const };
     expect(resolveWaterTraversal(lake, {})).toBe('blocked');
@@ -40,11 +45,13 @@ describe('resolveWaterTraversal', () => {
     )).toBe('walk');
   });
 
-  it('allows a designated shallow river ford only when current is not dangerous', () => {
+  it('allows a designated shallow river ford only when depth and current are safe', () => {
     const ford = { surface: 'water' as const, feature: 'river' as const, depth: 'shallow' as const, shallowWalkable: true };
     expect(resolveWaterTraversal({ ...ford, current: 'calm' }, {})).toBe('walk');
+    expect(resolveWaterTraversal({ ...ford, current: 'moderate' }, {})).toBe('walk');
     expect(resolveWaterTraversal({ ...ford, current: 'strong' }, {})).toBe('blocked');
-    expect(resolveWaterTraversal(ford, {})).toBe('walk');
+    expect(resolveWaterTraversal({ ...ford, current: 'unknown' }, {})).toBe('blocked');
+    expect(resolveWaterTraversal(ford, {})).toBe('blocked');
   });
 
   it('requires swimming and known non-dangerous current to swim across rivers', () => {
