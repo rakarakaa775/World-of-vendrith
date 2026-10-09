@@ -43,6 +43,11 @@ export function parseGameSaveSlotSnapshot(
 
   if (candidate.schema === 'vandrith.game-save') {
     if (candidate.version !== 1) throw new Error('Unsupported Game Save snapshot version');
+    if (!Object.prototype.hasOwnProperty.call(candidate, 'world')
+        || !Object.prototype.hasOwnProperty.call(candidate, 'exterior')
+        || (candidate.exterior !== null && typeof candidate.exterior !== 'object')) {
+      throw new Error('Game Save snapshot is incomplete');
+    }
     const parsed = parseGameSaveSnapshot(candidate);
     if (!parsed) throw new Error('Game Save snapshot is invalid');
     world = parsed.world;
