@@ -1,3 +1,4 @@
+import type { MapDocument } from "./map-document";
 import type { MapEditorState } from "./map-editor-state-v2";
 import { parseMapEditorState, serializeInitializedMapEditorState } from "./map-editor-state-v2";
 import { parseGameSaveSnapshot } from "./game-save";
@@ -24,6 +25,17 @@ function mapStatePayload(state: MapEditorState): unknown {
     ? serializeInitializedMapEditorState(canonical)
     : serializeMapDocument(canonical.document);
   return JSON.parse(canonicalJson) as unknown;
+}
+
+function parseNestedMapState(input: unknown): MapEditorState {
+  // v2 envelopes in the wild may contain a raw legacy MapDocument, while
+  // initialized states and canonical v1 snapshots carry their own envelope.
+  // Normalize raw documents through the strict map parser before accepting them.
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    const candidate = input as Record<string, unknown>;
+    if ("schema" in candidate || "document" in candidate) return parseMapEditorState(input);
+  }
+  return parseMapEditorState(serializeMapDocument(input as MapDocument));
 }
 
 function isValidPair(world: MapEditorState, exterior: MapEditorState | null): boolean {
@@ -63,8 +75,8 @@ export function parseGameSaveStateV2(input: unknown): GameSaveStateV2 | null {
 
     if (envelope.version !== GAME_SAVE_STATE_V2_VERSION ||
         !("world" in envelope) || !("exterior" in envelope)) return null;
-    const world = parseMapEditorState(envelope.world);
-    const exterior = envelope.exterior === null ? null : parseMapEditorState(envelope.exterior);
+    const world = parseNestedMapState(envelope.world);
+    const exterior = envelope.exterior === null ? null : parseNestedMapState(envelope.exterior);
     if (!isValidPair(world, exterior)) return null;
     return { schema: GAME_SAVE_STATE_V2_SCHEMA, version: GAME_SAVE_STATE_V2_VERSION, world, exterior };
   } catch {
