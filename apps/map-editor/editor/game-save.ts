@@ -49,7 +49,7 @@ export function parseGameSaveSlotSnapshot(
     exterior = parsed.exterior;
     format = 'game-save-v1';
   } else if (candidate.schema === 'vandrith.map-document' && candidate.version === 1) {
-    world = parseMapDocument(candidate, expectedWorldId);
+    world = parseMapDocument(value as Parameters<typeof parseMapDocument>[0], expectedWorldId);
     format = 'legacy-map-document-v1';
   } else {
     throw new Error('Unsupported Save Slot snapshot schema');
