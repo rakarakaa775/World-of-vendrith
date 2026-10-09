@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "../editor/map-document";
 import { parseMapDocument, serializeMapDocument } from "../editor/map-serialization";
+import { resizeMapDocumentV2 } from "../editor/map-document-v2";
 import {
   parseMapDocumentEnvelope,
   parseMapDocumentV2,
@@ -68,6 +69,27 @@ describe("MapDocument v2 envelope", () => {
       ],
     };
     expect(() => serializeMapDocumentV2(document, duplicate)).toThrow(/duplicate/i);
+  });
+
+  it("resizes the document and semantic section together, pruning out-of-bounds records", () => {
+    const state = { document, terrainSemantics: semantics };
+    const shrunk = resizeMapDocumentV2(state, 2, 2);
+    expect(shrunk.document.width).toBe(2);
+    expect(shrunk.document.height).toBe(2);
+    expect(shrunk.document.layers.every(layer => layer.cells.length === 4)).toBe(true);
+    expect(shrunk.terrainSemantics.cells).toEqual([
+      { x: 1, y: 1, surface: "land", feature: "beach" },
+    ]);
+
+    const expanded = resizeMapDocumentV2(shrunk, 4, 4);
+    expect(expanded.document.width).toBe(4);
+    expect(expanded.terrainSemantics.cells).toEqual(shrunk.terrainSemantics.cells);
+  });
+
+  it("does not mutate the input state during resize", () => {
+    const before = JSON.stringify({ document, terrainSemantics: semantics });
+    resizeMapDocumentV2({ document, terrainSemantics: semantics }, 1, 1);
+    expect(JSON.stringify({ document, terrainSemantics: semantics })).toBe(before);
   });
 
   it("rejects malformed JSON", () => {
