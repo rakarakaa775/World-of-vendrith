@@ -61,7 +61,7 @@ Before integration, add controller-level tests for:
 
 A second opt-in helper, `apps/map-editor/editor/map-terrain-v2-merge.ts`, now composes the existing MapDocument three-way merge with the terrain-semantic merge. It validates each v2 state, rejects differing map identities and dimensions, and returns `status: "merged"` only when both merge layers are conflict-free. Otherwise it returns `status: "conflict"`, both conflict collections, a reason, and a preview that must not be adopted or persisted. It has no persistence dependency and is not wired into the active v1 controller.
 
-Its tests cover clean independent edits across document and semantics, terrain-only conflict, simultaneous document+terrain conflicts, identity mismatch, dimension mismatch, and invalid semantics. These are source-level tests until executed in a real test runner.
+Its tests cover clean independent edits across document and semantics, document-only conflict, terrain-only conflict, simultaneous document+terrain conflicts, identity mismatch, dimension mismatch, and invalid semantics. These are source-level tests until executed in a real test runner.
 
 ## Rollout gate
 
