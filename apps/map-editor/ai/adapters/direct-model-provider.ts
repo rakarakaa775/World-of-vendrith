@@ -11,6 +11,8 @@ interface OpenAiCompatibleResponse {
           name?: string;
           arguments?: string | Record<string, unknown>;
         };
+        extra_content?: { google?: { thought_signature?: string } };
+        thought_signature?: string;
       }>;
     };
   }>;
@@ -56,6 +58,9 @@ function toMessages(messages: ModelMessage[]) {
               name: call.name,
               arguments: JSON.stringify(call.arguments),
             },
+            ...(typeof call.providerMetadata?.thought_signature === "string"
+              ? { extra_content: { google: { thought_signature: call.providerMetadata.thought_signature } } }
+              : {}),
           })),
         }
       : {}),
@@ -164,6 +169,9 @@ export class DirectModelProvider implements ModelProviderPort {
           id: call.id ?? `tool-${index + 1}`,
           name: call.function?.name ?? "",
           arguments: parseArguments(call.function?.arguments),
+          ...((call.extra_content?.google?.thought_signature ?? call.thought_signature)
+            ? { providerMetadata: { thought_signature: call.extra_content?.google?.thought_signature ?? call.thought_signature } }
+            : {}),
         }))
         .filter((call) => call.name.length > 0),
       provider: this.options.providerName ?? "direct-openai-compatible",
