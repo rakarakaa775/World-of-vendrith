@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "./map-document";
 import { serializeGameSaveSnapshot } from "./game-save";
-import { parseGameSaveStateV2, serializeGameSaveStateV2 } from "./game-save-state-v2";
+import { parseGameSaveStateV2, parseGameSaveStateV2ForWorld, serializeGameSaveStateV2 } from "./game-save-state-v2";
 import { initializeTerrainSemantics, parseMapEditorState } from "./map-editor-state-v2";
 import { serializeMapDocument } from "./map-serialization";
 import { TERRAIN_SEMANTICS_SCHEMA, TERRAIN_SEMANTICS_VERSION } from "./terrain-semantics";
@@ -78,4 +78,12 @@ describe("opt-in game save state v2 adapter", () => {
     expect(parseGameSaveStateV2("{")).toBeNull();
     expect(parseGameSaveStateV2({ schema: "vandrith.game-save", version: 2, world: map("world", "w") })).toBeNull();
   });
+
+  it("enforces the caller's authoritative world identity", () => {
+    const payload = serializeGameSaveStateV2(initialized("world", "authoritative-world"), null);
+    expect(parseGameSaveStateV2ForWorld(payload, "authoritative-world")?.world.document.id).toBe("authoritative-world");
+    expect(parseGameSaveStateV2ForWorld(payload, "different-world")).toBeNull();
+    expect(parseGameSaveStateV2ForWorld(payload, "   ")).toBeNull();
+  });
+
 });
