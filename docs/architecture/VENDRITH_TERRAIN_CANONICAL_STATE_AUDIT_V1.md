@@ -51,3 +51,55 @@ Before any code change, trace `terrain-paint.ts` through editor commands/history
 - Existing terrain engine tests were inspected, not executed in this audit.
 - Runtime `WorldDefinition`, adapter, mutation-batch and recovery source paths remain unconfirmed through the connected GitHub search interface.
 - No application code, database schema, live data, or production runtime was changed.
+
+
+## 6. Follow-up trace: history, serialization, and editor persistence
+
+### History and undo/redo
+
+Source: `apps/map-editor/editor/map-history.ts`.
+
+- `MapHistory` stores full `MapDocument` objects in `past`, `present`, and `future`.
+- `commitHistory` pushes the prior full document and clears redo history.
+- `undoHistory` and `redoHistory` restore stored document snapshots; they do not replay semantic terrain commands or independently recalculate water bands.
+- Therefore, when a terrain edit has already materialized water bands into `tileId`, undo/redo preserves the relevant before/after snapshot values exactly. This is snapshot semantics, not command/event semantics.
+
+### Serialization and schema compatibility
+
+Source: `apps/map-editor/editor/map-serialization.ts`.
+
+- The serialized envelope is `{ schema: "vandrith.map-document", version: 1, document }`.
+- The parser requires schema version 1 and document version 1, validates every layer's cell count against width × height, and validates each cell's `tileId` as a string or null.
+- `serializeMapDocument` serializes the document as it currently exists; it does not strip or independently recompute materialized water bands.
+- `cloneMapDocument` is a serialize/parse round trip, so the existing `tileId` representation is retained through cloning.
+- Introducing first-class elevation, biome, hydrology, or chunk fields needs a deliberate schema/version and migration plan; the current parser does not define those as required canonical fields.
+
+### Editor persistence
+
+Source: `apps/map-editor/editor/map-persistence.ts`.
+
+- `saveMapDocumentSnapshot` serializes the current document and sends it to RPC `map_editor_upsert_runtime_snapshot_v1`.
+- `loadMapDocumentSnapshot` first tries RPC `map_editor_get_runtime_snapshot_v1`; if the snapshot is absent or fails parsing, it falls back to the newest `map_versions` snapshot.
+- The persistence helper describes runtime snapshots as a fast editor cache and `map_versions` as durable authoritative history for the editor map document. This is specifically the map-editor persistence path and must not be conflated with production game-runtime mutation/checkpoint recovery.
+- Both runtime and durable editor snapshots are parsed through the same MapDocument schema contract. The current materialized `tileId` water bands therefore remain part of the serialized snapshot representation.
+
+### Updated data-boundary table
+
+| Concern | Current confirmed behavior | Classification |
+|---|---|---|
+| Authored surface edit | `applyTerrainPaint` paints a `tileId` then runs the water gradient | Authored input plus deterministic transformation |
+| Water depth bands | `water`, `brackish`, `deepwater2`, `deepwater` are chosen by 8-neighbor distance from non-water terrain | Derived, then materialized into cells |
+| Undo/redo | Stores and restores complete MapDocument snapshots | Snapshot history |
+| Serialization | Persists current cell values in schema v1 | Materialized representation persisted |
+| Editor load fallback | Runtime snapshot RPC, then newest `map_versions` snapshot | Editor persistence/recovery |
+| Terrain render variants | Neighbor masks, corner masks, asset bindings/fallbacks | Derived render projection |
+| Production runtime mapping | Not confirmed by available source-search results in this audit | Unverified; do not infer absent code |
+
+## 7. Verification status and next gate
+
+- Confirmed by source inspection: terrain paint, full-document history, schema-v1 serialization/parser, and editor snapshot fallback path.
+- Not executed here: automated tests, browser/editor interaction tests, or a live Supabase round trip.
+- Production runtime source mapping remains unverified. Searches for `WorldDefinition`, `recoverWorldFromSupabase`, and `SupabaseRuntimeWorldAdapter` returned no indexed matches through the connected GitHub code-search interface. This is a search limitation, **not evidence that the symbols or implementation do not exist**.
+- No application code, database schema, live data, or production runtime was changed.
+
+Next gate: identify the exact production runtime adapter and its canonical world/map representation before deciding whether water bands should remain materialized, be rebuilt at load, or be moved to a derived cache. Then add tests for serialize/parse round trip, undo/redo exactness, deterministic gradient rebuild, legacy snapshots, and editor-to-runtime field mapping.
