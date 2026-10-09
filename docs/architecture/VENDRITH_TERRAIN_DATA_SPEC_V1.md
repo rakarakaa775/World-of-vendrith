@@ -270,3 +270,35 @@ These are conceptual fields, **not approved additions to `MapDocument v1` or the
 - [ ] Versioned gameplay-water schema and adapter approved.
 - [ ] Server-side projection and regression tests implemented.
 
+
+
+## 14. Initial gameplay traversal policy implementation — 2026-10-09
+
+### Added pure policy boundary
+
+`apps/map-editor/editor/water-traversal-policy.ts` introduces `resolveWaterTraversal(cell, actor)` as a pure, deterministic policy helper. It is intentionally separate from `deriveWaterProjection()` and does not mutate `MapDocument`, write render bands, read `map_cells`, or call Supabase.
+
+The current helper rules are:
+
+- Land is walkable.
+- Shoreline water is walkable only when depth is explicitly `shallow` and `shallowWalkable=true`.
+- Swimming in non-deep water requires `canSwim=true`; unknown depth fails closed.
+- Deep `ocean_sea` requires `hasWaterTransport=true`; swimming alone does not bypass this rule.
+- River bridges and validated crossing points are walkable even when the water itself is unsafe.
+- River wading/swimming requires a known `calm` or `moderate` current. Shallow wading additionally requires `shallowWalkable=true`; swimming requires `canSwim=true` and non-deep, known depth.
+- Missing/`none` water feature, unknown depth, and unknown/strong river current do not silently become safe crossings.
+
+### Scope and limitations
+
+This is a **pure policy helper plus unit tests**, not yet wired into a production movement/pathfinding caller. Current source audit did not establish a single authoritative gameplay movement consumer that can safely be integrated without inventing a new runtime contract. Do not treat the helper's existence as proof that NPC/player movement currently enforces these rules.
+
+The helper uses semantic inputs (`feature`, `depth`, `current`, `shallowWalkable`, `bridge`, `crossingPoint`) that must eventually be supplied by a versioned authored/gameplay projection. The current visual IDs (`water`, `brackish`, `deepwater2`, `deepwater`) are insufficient to populate these fields safely.
+
+### Verification gate
+
+- [x] Pure traversal policy module added.
+- [x] Focused Vitest cases added for beach/shallow water, swimming capability, deep-sea transport, river bridges/ford/current, and unknown data.
+- [ ] Run `npm test -- water-traversal-policy.test.ts` in `apps/map-editor` and confirm CI result.
+- [ ] Trace the authoritative movement/pathfinding caller and integrate the helper there.
+- [ ] Define/version authored water semantics and server-side validation before persistence/runtime projection changes.
+- [ ] No production database or migration changes in this step.
