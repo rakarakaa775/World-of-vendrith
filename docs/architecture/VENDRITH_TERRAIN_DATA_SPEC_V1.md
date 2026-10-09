@@ -333,3 +333,51 @@ The next safe implementation step is to approve a versioned semantic source and 
 - [ ] Add adapter-level tests and integrate into runtime navigation after that source exists.
 - [ ] Verify server-side validation and recovery compatibility.
 - [x] No production database, SQL migration, or schema changes made.
+
+
+## 16. Navigation water semantics source contract — 2026-10-09
+
+### Purpose
+
+The traversal policy and NPC pathfinder now support an optional, explicitly authored `waterCells` input. This is a domain-level input only: the current Supabase adapter does not populate it, so the behavior is not yet active for production-loaded maps.
+
+### Proposed version-1 semantic record
+
+A future authoritative projection may represent each water cell with these fields:
+
+- `x`, `y`: integer cell coordinates within the selected map bounds.
+- `surface`: `land` or `water`.
+- `feature`: `shoreline`, `river`, `lake`, `waterfall`, `ocean_sea`, or `none`.
+- `depth`: `shallow`, `medium`, `deep`, or `unknown`.
+- `current`: `calm`, `moderate`, `strong`, or `unknown`.
+- `shallowWalkable`: explicit author decision that ordinary walking may enter the shallow cell.
+- `bridge` / `crossingPoint`: explicit, validated crossing metadata.
+
+This is a proposed runtime input contract, **not a change to MapDocument v1, database tables, RPC payloads, or migrations**. Missing water records must never be synthesized from render-band IDs. A water record must be validated against map bounds, duplicate coordinates, allowed enum values, and the version of the projection that produced it before it is used.
+
+### Traversal and authority rules
+
+1. Collision remains an absolute blocker; water metadata cannot override it.
+2. Deep ocean/sea requires water transport, even if the actor can swim and even if a generic crossing flag is present.
+3. Shoreline wading is permitted only when shallow depth and `shallowWalkable=true` are explicitly authored.
+4. River crossing requires a validated bridge/crossing point or an explicitly safe, known current and depth combination. Strong or unknown current fails closed.
+5. Actor capabilities belong to the moving entity state, not shared grid state.
+6. Missing semantic data means the new water rule cannot authorize traversal. Existing non-water grids retain their existing behavior until a versioned authoritative projection is adopted.
+7. Runtime and editor projections must use the same semantic contract and deterministic mapping; rendering remains a separate concern.
+
+### Current code and verification
+
+- `runtime-navigation.ts` defines optional `NavigationWaterCell[]` on `NavigationGrid`.
+- `npc-navigation.ts` applies `resolveWaterTraversal` when an authored water-cell record is present and takes swimming/transport capabilities from the NPC's own state.
+- Focused tests cover missing water semantics, shallow shoreline, deep-sea transport, actor-scoped capabilities, collision precedence, and dangerous/unknown river current.
+- GitHub Actions Map Editor CI run [37927345770](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/37927345770) completed successfully for commit `3916c233bafe2752bb046d1e6039d4d13d81fbcd`.
+
+### Remaining release gates
+
+- [ ] Define where authored semantic records live and how map authors edit/review them.
+- [ ] Define a versioned, deterministic source-to-navigation projection and server-side validation.
+- [ ] Extend the runtime adapter and its tests to supply the semantic records from that approved source.
+- [ ] Test save/load, recovery/replay, map resizing, out-of-bounds and duplicate records, and mixed land/water paths.
+- [ ] Only after the above gates pass, propose any persistence or migration change for review.
+
+No production database, deployed SQL migration, or production map data was changed by this work.
