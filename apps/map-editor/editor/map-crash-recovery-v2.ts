@@ -29,9 +29,11 @@ export function createMapV2CrashRecoveryJournal(
   const keyFor = (mapId: string) => `${keyPrefix}.${mapId}`;
 
   function readState(mapId: string): MapDocumentV2State | null {
-    const raw = storage.getItem(keyFor(mapId));
-    if (!raw) return null;
     try {
+      // Storage can throw in restricted/private browsing contexts. Recovery
+      // reads must fail closed instead of preventing the editor from opening.
+      const raw = storage.getItem(keyFor(mapId));
+      if (!raw) return null;
       const entry: unknown = JSON.parse(raw);
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
       const candidate = entry as Partial<MapV2RecoveryEntry>;
