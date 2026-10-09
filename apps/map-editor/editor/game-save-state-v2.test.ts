@@ -74,6 +74,20 @@ describe("opt-in game save state v2 adapter", () => {
     })).toBeNull();
   });
 
+  it("rejects a playable interior map when used as the exterior", () => {
+    const interior = { ...map("playable", "interior"), playableSpace: "interior" };
+    expect(parseGameSaveStateV2({
+      schema: "vandrith.game-save", version: 2,
+      world: map("world", "w"), exterior: interior,
+    })).toBeNull();
+  });
+
+  it("accepts a world-only save without inventing an exterior", () => {
+    const parsed = parseGameSaveStateV2(serializeGameSaveStateV2(initialized("world", "world-only"), null));
+    expect(parsed?.world.document.id).toBe("world-only");
+    expect(parsed?.exterior).toBeNull();
+  });
+
   it("rejects malformed and incomplete envelopes", () => {
     expect(parseGameSaveStateV2("{")).toBeNull();
     expect(parseGameSaveStateV2({ schema: "vandrith.game-save", version: 2, world: map("world", "w") })).toBeNull();
