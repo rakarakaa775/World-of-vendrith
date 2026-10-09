@@ -566,3 +566,12 @@
 - **Details:** Inspected the repository-main Save Slot RPC migration and recorded its validation boundary and the gap between the independently stored slot envelope and referenced world version. Explicitly distinguished repository source from deployed database state.
 - **Affected:** `docs/map-editor/MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`.
 - **Verification:** Source inspection only. No SQL or production DB changes; automated tests not run.
+
+
+## 2026-10-10 — Save Slot identity guard in opt-in adapter
+
+- **Type:** Validation hardening / Tests
+- **Details:** Added an opt-in parser wrapper that enforces the authoritative world map ID, plus matching/mismatching/blank-ID tests. This complements the source-only Save Slot RPC audit.
+- **Affected:** `apps/map-editor/editor/game-save-state-v2.ts`, `apps/map-editor/editor/game-save-state-v2.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`.
+- **Verification:** Source changes committed; tests/typecheck/build not run in this workflow.
+- **Safety:** No active Save/Load wiring or database changes.
