@@ -1,3 +1,9 @@
+## 2026-10-10 — Terrain v2 pair-validation regression coverage
+
+- Added tests confirming an interior playable map cannot be accepted as the exterior and a world-only save remains valid with `exterior: null`.
+- Active roadmap phase: Terrain semantics v2 — editor-state and persistence integration gate.
+- Tests were added but not executed; typecheck/build remain pending. No live UI or database/RPC/schema/data changes.
+
 ## 2026-10-10 — Terrain v2 editor-state integration contract
 
 - Added `MAP_EDITOR_TERRAIN_V2_EDITOR_STATE_INTEGRATION_CONTRACT.md` defining atomic world/exterior adoption, authoritative world identity, strict map types, legacy semantics, history/recovery/conflict-save boundaries, and Save Slot/RPC migration gates.
