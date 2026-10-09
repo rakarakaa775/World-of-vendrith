@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 recovery availability validation
+
+- Fixed `MapV2CrashRecoveryJournal.has(mapId)` so it reports a valid, readable v2 recovery rather than mere existence of a storage key.
+- Recovery envelope validation now rejects array-shaped envelopes and invalid timestamps before parsing the embedded snapshot.
+- Added regression tests for malformed data and invalid timestamps, including the expectation that `has()` returns false.
+- Tests were authored but not executed; typecheck/build remain unverified. No active editor integration or database/RPC/schema/data changes.
+
 ## 2026-10-10 — Terrain v2 recovery identity regression coverage
 
 - Extended `map-crash-recovery-v2.test.ts` with adversarial entries: mismatched envelope map ID, mismatched embedded snapshot ID, and a v1 snapshot presented to the v2 recovery journal.
