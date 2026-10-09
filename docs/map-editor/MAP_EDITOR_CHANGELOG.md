@@ -548,3 +548,13 @@
 - **Affected:** `apps/map-editor/editor/game-save-state-v2.ts`, `apps/map-editor/editor/game-save-state-v2.test.ts`.
 - **Verification:** GitHub source inspection only. Vitest, typecheck, and build have not been executed; no passing result is claimed.
 - **Safety:** Existing v1 helpers and active save/load, RPC/database, recovery, conflict-save, and runtime navigation remain unchanged. No production database changes.
+
+
+## 2026-10-10 — Active Save Slot consumer audit for terrain v2
+
+- **Type:** Audit / Compatibility
+- **Reason:** Prevent the new opt-in Game Save state v2 adapter from being accidentally connected to a v1-only active Save Slot consumer.
+- **Details:** Traced the active save/load callbacks, documented that the active save path uses the v1 serializer and the load path assumes nested v1 map documents. Recorded the missing atomic editor-state restoration and exterior-space guard.
+- **Affected:** `docs/map-editor/MAP_EDITOR_TERRAIN_V2_ACTIVE_SAVE_SLOT_AUDIT.md`.
+- **Verification:** GitHub source inspection only; no tests/typecheck/build executed.
+- **Safety:** No active Save/Load, RPC, production database, or runtime behavior changed.
