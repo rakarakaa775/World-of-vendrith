@@ -1,4 +1,5 @@
 import type { MapDocument } from "../../editor/map-document";
+import { resolveWaterTraversal } from "../../editor/water-traversal-policy";
 import type { RuntimeAction, RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { DynamicNavigationObstacle, NavigationGrid, NavigationPath, NavigationPlan, NavigationPoint } from "../domain/runtime-navigation";
 import { createRuntimeDecision } from "./runtime-decision";
@@ -18,6 +19,23 @@ function inBounds(grid: NavigationGrid, point: NavigationPoint): boolean {
 
 function index(grid: NavigationGrid, point: NavigationPoint): number {
   return point.y * grid.width + point.x;
+}
+
+function waterCellAt(grid: NavigationGrid, point: NavigationPoint) {
+  return grid.waterCells?.find(cell => cell.x === point.x && cell.y === point.y);
+}
+
+/**
+ * Collision is an absolute constraint. Water semantics may further restrict
+ * a cell, but they never turn a collision-blocked cell into a traversable one.
+ * Grids without authored water data retain their existing navigation behavior.
+ */
+function isTraversalBlocked(grid: NavigationGrid, point: NavigationPoint): boolean {
+  const cellIndex = index(grid, point);
+  if (grid.blocked[cellIndex]) return true;
+  const waterCell = waterCellAt(grid, point);
+  if (!waterCell || waterCell.surface === "land") return false;
+  return resolveWaterTraversal(waterCell, grid.capabilities ?? {}) === "blocked";
 }
 
 function heuristic(a: NavigationPoint, b: NavigationPoint): number {
@@ -66,7 +84,7 @@ export function findNavigationPath(
   goal: NavigationPoint,
 ): NavigationPath | undefined {
   if (!inBounds(grid, start) || !inBounds(grid, goal)) return undefined;
-  if (grid.blocked[index(grid, start)] || grid.blocked[index(grid, goal)]) return undefined;
+  if (isTraversalBlocked(grid, start) || isTraversalBlocked(grid, goal)) return undefined;
 
   const open = new Map<string, { point: NavigationPoint; f: number; g: number }>();
   const closed = new Set<string>();
@@ -88,7 +106,7 @@ export function findNavigationPath(
 
     for (const direction of DIRECTIONS) {
       const neighbor = { x: current.point.x + direction.x, y: current.point.y + direction.y };
-      if (!inBounds(grid, neighbor) || grid.blocked[index(grid, neighbor)] || closed.has(key(neighbor))) continue;
+      if (!inBounds(grid, neighbor) || isTraversalBlocked(grid, neighbor) || closed.has(key(neighbor))) continue;
 
       const tentativeG = current.g + 1;
       const neighborKey = key(neighbor);
