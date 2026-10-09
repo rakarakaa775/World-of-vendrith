@@ -14,10 +14,16 @@ export type GameSaveStateV2 = Readonly<{
 }>;
 
 function mapStatePayload(state: MapEditorState): unknown {
+  // Canonicalize legacy and initialized states through the same parser before
+  // emitting the save envelope. serializeMapDocument alone is not a validator.
   const json = state.kind === "initialized"
     ? serializeInitializedMapEditorState(state)
     : serializeMapDocument(state.document);
-  return JSON.parse(json) as unknown;
+  const canonical = parseMapEditorState(json);
+  const canonicalJson = canonical.kind === "initialized"
+    ? serializeInitializedMapEditorState(canonical)
+    : serializeMapDocument(canonical.document);
+  return JSON.parse(canonicalJson) as unknown;
 }
 
 function isValidPair(world: MapEditorState, exterior: MapEditorState | null): boolean {
