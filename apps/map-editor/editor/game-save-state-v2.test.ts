@@ -73,9 +73,11 @@ describe("opt-in game save state v2 adapter", () => {
     expect(parseGameSaveStateV2({
       schema: "vandrith.game-save", version: 99, world: map("world", "w"), exterior: null,
     })).toBeNull();
-    expect(parseGameSaveStateV2({
+    const legacyPair = parseGameSaveStateV2({
       schema: "vandrith.game-save", version: 2, world: map("world", "w"), exterior: map("playable", "e"),
-    })).toBeNull();
+    });
+    expect(legacyPair?.world.kind).toBe("legacy");
+    expect(legacyPair?.exterior?.kind).toBe("legacy");
   });
 
   it("rejects an invalid exterior rather than returning a partial save", () => {
