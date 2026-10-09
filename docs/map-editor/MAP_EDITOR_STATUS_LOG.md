@@ -65,3 +65,12 @@
 | 2026-10-10 | Opt-in v2 crash-recovery journal added | Terrain semantics v2 — recovery adapter | Added a separate Storage-compatible journal that persists the combined v2 document + terrain semantics, validates map identity and the v2 envelope on recovery, and safely returns null for malformed entries. Existing v1 journal and active recovery path are untouched. Commits dc34dc102352430b2df21566dbeb4bcf9678d601 and edd05efbd9605f7e254767bdc276a4fe00b1986b. Tests/typecheck/build and CI remain unverified; no production RPC/database changes. |
 
 | 2026-10-10 | Combined v2 undo/redo regression coverage | Terrain semantics v2 — history adapter | Added tests for atomic document+terrain undo/redo, no-op boundaries, redo invalidation after a new commit, and combined history entries. Existing v1 editor history remains untouched. Commit 54e4148c55870a3407591ba68c21b15fe673349c. Source reviewed; test/typecheck/build execution and CI remain unverified. No production RPC/database changes. |
+
+
+## 2026-10-10 — V2 history safety audit
+
+- Bounded retained undo/redo entries to 100 per direction to prevent unbounded history growth.
+- Added runtime validation for MapDocument invariants and terrain-semantic bounds before creating/committing v2 history states.
+- Added regression cases for history cap, invalid dimensions, and out-of-bounds terrain cells.
+- V2 history remains an isolated helper: no active editor UI/history, Save/Load, recovery, conflict-save, RPC, production database, or runtime water-navigation integration.
+- Verification is source-level only; Vitest/typecheck/build still need CI or local execution.
