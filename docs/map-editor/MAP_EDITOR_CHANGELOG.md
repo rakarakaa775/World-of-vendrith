@@ -1,3 +1,11 @@
+## 2026-10-10 — Terrain v2 recovery availability validation
+
+- **Type:** Bug fix and regression tests added (execution pending)
+- **Reason:** The v2 recovery journal previously returned `has() === true` for any existing storage key, including malformed or unreadable entries, which could lead callers to advertise recovery that cannot be restored.
+- **Details:** `has()` now validates the stored entry through the same read path; the envelope rejects array-shaped values and invalid timestamps. Tests cover malformed JSON and invalid timestamps.
+- **Affected:** `apps/map-editor/editor/map-crash-recovery-v2.ts`, `apps/map-editor/editor/map-crash-recovery-v2.test.ts`, `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Tests/typecheck/build not run; no passing CI is claimed. No active editor or production persistence changes.
+
 ## 2026-10-10 — Terrain v2 recovery identity regression coverage
 
 - **Type:** Tests added (execution pending)
