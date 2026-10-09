@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMap } from "./map-document";
 import { serializeGameSaveSnapshot } from "./game-save";
 import { parseGameSaveStateV2, parseGameSaveStateV2ForWorld, serializeGameSaveStateV2 } from "./game-save-state-v2";
-import { initializeTerrainSemantics, parseMapEditorState } from "./map-editor-state-v2";
+import { initializeTerrainSemantics, parseMapEditorState, type MapEditorState } from "./map-editor-state-v2";
 import { serializeMapDocument } from "./map-serialization";
 import { TERRAIN_SEMANTICS_SCHEMA, TERRAIN_SEMANTICS_VERSION } from "./terrain-semantics";
 
@@ -55,6 +55,17 @@ describe("opt-in game save state v2 adapter", () => {
     const world = valid.world as Record<string, unknown>;
     world.terrainSemantics = { ...semantics, version: 999 };
     expect(parseGameSaveStateV2(valid)).toBeNull();
+  });
+
+  it("rejects an invalid legacy map at serialization instead of emitting a malformed save", () => {
+    const invalid = map("world", "invalid-world");
+    invalid.layers[0].cells.pop();
+    const legacy = {
+      kind: "legacy",
+      document: invalid,
+      terrainSemantics: null,
+    } as MapEditorState;
+    expect(() => serializeGameSaveStateV2(legacy, null)).toThrow(/Layer cell count/);
   });
 
   it("rejects invalid map types and unsupported envelope versions", () => {
