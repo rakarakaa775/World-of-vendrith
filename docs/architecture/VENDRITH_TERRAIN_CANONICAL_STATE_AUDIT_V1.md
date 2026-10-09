@@ -258,3 +258,23 @@ Code search for `WorldDefinition`, `game-runtime`, `RuntimeWorldAdapter`, `Supab
 3. Implement B1 and focused tests through a repository-edit path that is authorized and succeeds.
 4. Run the focused Vitest tests and relevant typecheck before switching any editor call sites.
 5. Keep database migrations and production writes out of scope until a separately reviewed rollout plan exists.
+
+
+## 14. Editor palette and legacy-band compatibility trace
+
+A follow-up source search found additional constraints relevant to B2/B3:
+
+- `apps/map-editor/editor/tile-palette.ts` includes `water`, `brackish`, `deepwater2`, and `deepwater` in its terrain type and asset definitions.
+- `apps/map-editor/components/editor-shell.tsx` filters those four water terrain values out of the basic visible terrain list. This suggests the editor UI intentionally hides water-band options from the basic palette, but does not by itself prove no alternate picker or persisted document can contain them.
+- `apps/map-editor/editor/terrain-brush-preview.ts` includes all four values in its terrain input mapping, so these values are recognized by brush-preview code.
+- `apps/map-editor/editor/terrain-engine.test.ts` currently tests the *materializing* gradient behavior, including a 64×64 water body and the no-land World Map floor. These tests describe current behavior and will need to be split or replaced when the pure projection API is introduced.
+
+### Compatibility implication
+
+Do not globally remove the four legacy band identifiers from `TerrainKey` or the tile resolver as part of B1. They may still be required to read old MapDocument snapshots and render assets. First introduce a distinct derived projection type, then migrate consumers explicitly. Palette visibility is not a data migration and does not establish the provenance of band IDs in old saves.
+
+### Current verified status
+
+- No source implementation or test files have been added for the pure projection API.
+- No editor call sites have been switched.
+- No Vitest run, typecheck, database migration, or production write has been performed.
