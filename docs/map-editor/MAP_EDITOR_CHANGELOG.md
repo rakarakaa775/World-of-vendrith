@@ -1,3 +1,12 @@
+## 2026-10-10 — Atomic terrain v2 history model added
+
+- **Type:** Added / Tested (test execution pending)
+- **Reason:** Prevent document edits and authored terrain semantics from drifting apart when undo/redo is eventually enabled for v2 snapshots.
+- **Details:** Added a separate `MapHistoryV2` pure state helper whose history entries hold the MapDocument and TerrainSemanticsSection together. Added tests for undo, redo, alternate edit after undo, identity no-op, and history boundaries. The existing v1 `MapHistory` and EditorShell remain unchanged; this is not yet wired into UI state or persistence.
+- **Affected:** `apps/map-editor/editor/map-history-v2.ts`, `apps/map-editor/tests/map-history-v2.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — persistence integration gate.
+- **Verification:** Source and fixtures reviewed against allowed terrain feature values. Tests/typecheck were not executed through the available GitHub connector; no passing CI result is claimed. No Supabase schema/data/RPC or runtime navigation changes.
+
 ## 2026-10-10 — Terrain persistence integration audit and serializer test hardening
 
 - **Type:** Added / Tested (test execution pending)
