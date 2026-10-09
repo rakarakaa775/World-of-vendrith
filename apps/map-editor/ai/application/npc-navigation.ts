@@ -1,5 +1,5 @@
 import type { MapDocument } from "../../editor/map-document";
-import { resolveWaterTraversal } from "../../editor/water-traversal-policy";
+import { resolveWaterTraversal, type WaterTraversalActor } from "../../editor/water-traversal-policy";
 import type { RuntimeAction, RuntimeAiRequest, RuntimeDecision, RuntimeObservation } from "../domain/runtime";
 import type { DynamicNavigationObstacle, NavigationGrid, NavigationPath, NavigationPlan, NavigationPoint } from "../domain/runtime-navigation";
 import { createRuntimeDecision } from "./runtime-decision";
@@ -30,12 +30,12 @@ function waterCellAt(grid: NavigationGrid, point: NavigationPoint) {
  * a cell, but they never turn a collision-blocked cell into a traversable one.
  * Grids without authored water data retain their existing navigation behavior.
  */
-function isTraversalBlocked(grid: NavigationGrid, point: NavigationPoint): boolean {
+function isTraversalBlocked(grid: NavigationGrid, point: NavigationPoint, actor: WaterTraversalActor): boolean {
   const cellIndex = index(grid, point);
   if (grid.blocked[cellIndex]) return true;
   const waterCell = waterCellAt(grid, point);
   if (!waterCell || waterCell.surface === "land") return false;
-  return resolveWaterTraversal(waterCell, grid.capabilities ?? {}) === "blocked";
+  return resolveWaterTraversal(waterCell, actor) === "blocked";
 }
 
 function heuristic(a: NavigationPoint, b: NavigationPoint): number {
@@ -82,9 +82,10 @@ export function findNavigationPath(
   grid: NavigationGrid,
   start: NavigationPoint,
   goal: NavigationPoint,
+  actor: WaterTraversalActor = {},
 ): NavigationPath | undefined {
   if (!inBounds(grid, start) || !inBounds(grid, goal)) return undefined;
-  if (isTraversalBlocked(grid, start) || isTraversalBlocked(grid, goal)) return undefined;
+  if (isTraversalBlocked(grid, start, actor) || isTraversalBlocked(grid, goal, actor)) return undefined;
 
   const open = new Map<string, { point: NavigationPoint; f: number; g: number }>();
   const closed = new Set<string>();
@@ -106,7 +107,7 @@ export function findNavigationPath(
 
     for (const direction of DIRECTIONS) {
       const neighbor = { x: current.point.x + direction.x, y: current.point.y + direction.y };
-      if (!inBounds(grid, neighbor) || isTraversalBlocked(grid, neighbor) || closed.has(key(neighbor))) continue;
+      if (!inBounds(grid, neighbor) || isTraversalBlocked(grid, neighbor, actor) || closed.has(key(neighbor))) continue;
 
       const tentativeG = current.g + 1;
       const neighborKey = key(neighbor);
@@ -167,7 +168,11 @@ export function createNavigationPlan(
     return { found: false, start: start ?? goal, goal, path: [], reason: "Navigation requires an NPC self entity with a position." };
   }
   const navigationGrid = applyDynamicNavigationObstacles(grid, dynamicObstacles, self.id, self.mapId, ignoredEntityIds);
-  const result = findNavigationPath(navigationGrid, start, goal);
+  const actorCapabilities: WaterTraversalActor = {
+    canSwim: self.state?.canSwim === true,
+    hasWaterTransport: self.state?.hasWaterTransport === true,
+  };
+  const result = findNavigationPath(navigationGrid, start, goal, actorCapabilities);
   if (!result) return { found: false, start, goal, path: [], reason: "No walkable path exists between the NPC and the target." };
   const multiplier = movementCostMultiplier(observation);
   const cost = result.cost * multiplier;
