@@ -1,6 +1,7 @@
 import type { GridPoint } from './grid';
 import type { MapDocument } from './map-document';
 import { paintCell } from './map-state';
+import { deriveWaterProjection } from './water-projection';
 import { pointsInFloodFill } from './paint-tools';
 import { affectedTerrainCells, terrainFromTileId, type TerrainKey } from './terrain-engine';
 import { resolveTerrainJunction } from './terrain-junction-resolver';
@@ -49,6 +50,26 @@ function prospectiveDocument(document: MapDocument, layerId: string, points: Gri
   const normalizedTileId = normalizePaintedTileId(paintedTileId);
   for (const point of points) next = paintCell(next, layerId, point, normalizedTileId);
   return next;
+}
+
+/** Apply derived water bands to a temporary preview document only. */
+function withWaterProjection(document: MapDocument, layerId: string): MapDocument {
+  const projection = deriveWaterProjection(document, layerId);
+  if (!projection) return document;
+  const layer = document.layers.find(item => item.id === layerId);
+  if (!layer || layer.kind !== 'ground') return document;
+  let changed = false;
+  const cells = layer.cells.map((cell, index) => {
+    const band = projection.bands[index];
+    if (!band || cell.tileId === band) return cell;
+    changed = true;
+    return { ...cell, tileId: band };
+  });
+  if (!changed) return document;
+  return {
+    ...document,
+    layers: document.layers.map(item => item.id === layerId ? { ...item, cells } : item),
+  };
 }
 
 function previewCells(
@@ -100,8 +121,11 @@ export function analyzeTerrainBrushPreview(
   }
   const changedCells = [...unique.values()];
   const prospective = prospectiveDocument(document, layerId, changedCells, paintedTileId);
-  const affected = affectedTerrainCells(prospective, changedCells);
-  const cells = previewCells(prospective, layerId, affected, bindings);
+  // Match the Pixi canvas: preview derived water depth without writing it into
+  // the authored document used by painting, history, or persistence.
+  const renderPreview = withWaterProjection(prospective, layerId);
+  const affected = affectedTerrainCells(renderPreview, changedCells);
+  const cells = previewCells(renderPreview, layerId, affected, bindings);
   const terrainCounts: Partial<Record<TerrainKey, number>> = {};
   const junctionCounts: TerrainBrushPreview['junctionCounts'] = { none: 0, single: 0, dual: 0, triple: 0, quad: 0 };
   for (const cell of cells) {
