@@ -36,7 +36,10 @@ export function resolveWaterTraversal(
   cell: WaterTraversalCell,
   actor: WaterTraversalActor,
 ): WaterTraversalDecision {
-  if (cell.surface === 'land' || cell.feature === 'none') return 'walk';
+  if (cell.surface === 'land') return 'walk';
+
+  // A water cell with no semantic feature is not silently treated as land.
+  if (!cell.feature || cell.feature === 'none') return 'blocked';
 
   // Explicit structures and authored crossing points take priority over water.
   if (cell.bridge === true || cell.crossingPoint === true) return 'walk';
@@ -50,14 +53,12 @@ export function resolveWaterTraversal(
     return actor.hasWaterTransport === true ? 'water_transport' : 'blocked';
   }
 
-  // Rivers require an explicit safe crossing, wading designation, or safe swim.
+  // River current must be known and non-dangerous before wading or swimming.
   if (cell.feature === 'river') {
-    if (cell.depth === 'shallow' && cell.shallowWalkable === true &&
-        cell.current !== 'strong' && cell.current !== 'unknown') {
-      return 'walk';
-    }
-    if (cell.depth !== 'deep' && cell.current !== 'strong' &&
-        cell.current !== 'unknown' && actor.canSwim === true) {
+    const safeCurrent = cell.current === 'calm' || cell.current === 'moderate';
+    if (!safeCurrent) return 'blocked';
+    if (cell.depth === 'shallow' && cell.shallowWalkable === true) return 'walk';
+    if (cell.depth !== 'deep' && cell.depth !== 'unknown' && actor.canSwim === true) {
       return 'swim';
     }
     return 'blocked';
