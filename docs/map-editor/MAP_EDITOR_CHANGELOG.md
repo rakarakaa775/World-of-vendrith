@@ -1,3 +1,13 @@
+## 2026-10-10 — Terrain v2 semantic three-way merge policy
+
+- **Type:** Opt-in implementation, regression tests, and contract
+- **Reason:** The existing conflict-save controller merges `MapDocument` only, so it cannot safely resolve separate terrain v2 semantics.
+- **Details:** Added `mergeTerrainSemanticsThreeWay` to validate three semantic sections, merge sparse coordinate records using deterministic three-way rules, treat absence/deletion explicitly, and report divergent same-coordinate changes. Conflicted output is documented as preview-only and must not be persisted. Added focused regression tests and a contract covering identity/dimension preconditions and rollout gates.
+- **Affected:** `apps/map-editor/editor/terrain-semantics-merge.ts`, `apps/map-editor/editor/terrain-semantics-merge.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_CONFLICT_MERGE_CONTRACT.md`.
+- **Roadmap phase:** Terrain semantics v2 — recovery/conflict-save integration.
+- **Verification:** GitHub source writes completed; Vitest, typecheck, and build have not been executed. No passing CI is claimed.
+- **Safety:** Helper remains opt-in. Active v1 conflict-save/UI, Supabase RPC, production database/schema/data, and runtime behavior are unchanged.
+
 ## 2026-10-10 — Terrain v2 recovery and conflict-save audit
 
 - **Type:** Source audit, recovery hardening, and regression tests (execution pending)
