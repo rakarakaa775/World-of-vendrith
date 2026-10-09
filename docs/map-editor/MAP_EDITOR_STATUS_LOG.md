@@ -255,3 +255,12 @@
 - Added `parseGameSaveStateV2ForWorld` to enforce the caller-supplied authoritative world map ID after the entire envelope has parsed successfully.
 - Added a focused unit test for matching ID, mismatched ID, and blank expected ID. The active Save Slot consumer remains unchanged and does not call this adapter.
 - Added the Save Slot RPC source audit. No SQL, RPC, or production database changes. Automated tests/typecheck/build still not executed.
+
+## 2026-10-10 — Save Slot RPC production preflight refresh
+
+- Re-read the deployed `map_editor_save_slot_v1` and `map_editor_load_save_slot_v1` definitions using read-only SQL. Both remain `SECURITY DEFINER` with pinned `search_path = public, pg_temp`; `anon` has no EXECUTE privilege and `authenticated` retains EXECUTE.
+- Confirmed the current Save RPC still validates the version tuple but does not validate Game Save schema/world/exterior semantics or compare the embedded World to the canonical version document. The current Load RPC returns the stored snapshot without validating its version reference or matching the embedded World to the canonical version document.
+- Re-ran schema-aware integrity checks on the three live slots. Slots 1 and 2 are Game Save v1; slot 3 is the legacy map-document v1 World-only slot. All three have a matching map/version tuple, canonical map-document v1 version envelope, object-valued document, matching embedded World/version document, correct World ID/type, and matching map/slot creator.
+- Read the Supabase security advisor output. It reports broad existing `rls_enabled_no_policy` informational findings; this is a project-wide baseline and was not changed as part of this Save Slot audit.
+- All database queries were read-only. No Save Slot rows, RPC definitions, grants, or migration history were changed.
+- Migration implementation and isolated RPC regression tests remain blocked on a repository workspace with Supabase CLI and a safe isolated database workflow. Do not bypass the CLI migration workflow, create a replacement branch, or apply a production migration before review and explicit approval.
