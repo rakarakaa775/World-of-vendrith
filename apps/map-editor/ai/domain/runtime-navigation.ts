@@ -48,3 +48,87 @@ export interface NavigationCapabilities {
   canSwim?: boolean;
   hasWaterTransport?: boolean;
 }
+
+
+export type NavigationWaterValidation =
+  | { valid: true; cells: NavigationWaterCell[] }
+  | { valid: false; errors: string[] };
+
+/**
+ * Validates an untrusted authored water-cell payload before projection into a
+ * navigation grid. This is intentionally pure and does not infer semantics
+ * from visual terrain IDs or silently discard invalid records.
+ */
+export function validateNavigationWaterCells(
+  width: number,
+  height: number,
+  input: unknown,
+): NavigationWaterValidation {
+  const errors: string[] = [];
+  if (!Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) {
+    return { valid: false, errors: ["Map dimensions must be positive integers."] };
+  }
+  if (!Array.isArray(input)) {
+    return { valid: false, errors: ["Water cells must be an array."] };
+  }
+
+  const features = new Set(["shoreline", "river", "lake", "waterfall", "ocean_sea", "none"]);
+  const depths = new Set(["shallow", "medium", "deep", "unknown"]);
+  const currents = new Set(["calm", "moderate", "strong", "unknown"]);
+  const seen = new Set<string>();
+  const cells: NavigationWaterCell[] = [];
+
+  input.forEach((value: unknown, index: number) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      errors.push(`Water cell ${index} must be an object.`);
+      return;
+    }
+    const cell = value as Record<string, unknown>;
+    const { x, y, surface, feature, depth, current, shallowWalkable, bridge, crossingPoint } = cell;
+    if (!Number.isInteger(x) || !Number.isInteger(y)) {
+      errors.push(`Water cell ${index} coordinates must be integers.`);
+      return;
+    }
+    if ((x as number) < 0 || (y as number) < 0 || (x as number) >= width || (y as number) >= height) {
+      errors.push(`Water cell ${index} is outside map bounds.`);
+      return;
+    }
+    const coordinate = `${x}:${y}`;
+    if (seen.has(coordinate)) {
+      errors.push(`Duplicate water cell coordinate ${coordinate}.`);
+      return;
+    }
+    seen.add(coordinate);
+
+    if (surface !== "land" && surface !== "water") errors.push(`Water cell ${index} has invalid surface.`);
+    if (feature !== undefined && (typeof feature !== "string" || !features.has(feature))) errors.push(`Water cell ${index} has invalid feature.`);
+    if (depth !== undefined && (typeof depth !== "string" || !depths.has(depth))) errors.push(`Water cell ${index} has invalid depth.`);
+    if (current !== undefined && (typeof current !== "string" || !currents.has(current))) errors.push(`Water cell ${index} has invalid current.`);
+    for (const flag of ["shallowWalkable", "bridge", "crossingPoint"] as const) {
+      if (cell[flag] !== undefined && typeof cell[flag] !== "boolean") {
+        errors.push(`Water cell ${index} field ${flag} must be boolean.`);
+      }
+    }
+    if (
+      (surface === "land" || surface === "water") &&
+      (feature === undefined || typeof feature === "string" && features.has(feature)) &&
+      (depth === undefined || typeof depth === "string" && depths.has(depth)) &&
+      (current === undefined || typeof current === "string" && currents.has(current)) &&
+      ["shallowWalkable", "bridge", "crossingPoint"].every(flag => cell[flag] === undefined || typeof cell[flag] === "boolean")
+    ) {
+      cells.push({
+        x: x as number,
+        y: y as number,
+        surface,
+        ...(feature !== undefined ? { feature: feature as NavigationWaterCell["feature"] } : {}),
+        ...(depth !== undefined ? { depth: depth as NavigationWaterCell["depth"] } : {}),
+        ...(current !== undefined ? { current: current as NavigationWaterCell["current"] } : {}),
+        ...(shallowWalkable !== undefined ? { shallowWalkable: shallowWalkable as boolean } : {}),
+        ...(bridge !== undefined ? { bridge: bridge as boolean } : {}),
+        ...(crossingPoint !== undefined ? { crossingPoint: crossingPoint as boolean } : {}),
+      });
+    }
+  });
+
+  return errors.length ? { valid: false, errors } : { valid: true, cells };
+}
