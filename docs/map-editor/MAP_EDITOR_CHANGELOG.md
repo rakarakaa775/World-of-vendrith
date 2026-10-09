@@ -1,3 +1,12 @@
+## 2026-10-10 — Combined Terrain v2 merge gate and round-trip tests
+
+- **Type:** Opt-in merge orchestration, tests, and contract update
+- **Details:** Added `map-terrain-v2-merge.ts` to compose document and semantic merges. The helper fails closed on invalid states, map identity mismatch, dimension mismatch, or any document/semantic conflict; only a fully conflict-free result exposes an adoptable combined state. Added tests for those gates and the v2 snapshot round-trip.
+- **Affected:** `apps/map-editor/editor/map-terrain-v2-merge.ts`, `apps/map-editor/editor/map-terrain-v2-merge.test.ts`, `apps/map-editor/editor/terrain-semantics-merge.test.ts`, `MAP_EDITOR_TERRAIN_V2_CONFLICT_MERGE_CONTRACT.md`.
+- **Roadmap phase:** Terrain semantics v2 — recovery/conflict-save integration.
+- **Verification:** Changes authored and committed through GitHub. Test runner, typecheck, and build were not executed; no passing CI is claimed.
+- **Safety:** Active v1 controller/UI, Supabase RPC, production database/schema/data, and runtime behavior remain unchanged.
+
 ## 2026-10-10 — Terrain v2 merge snapshot round-trip coverage
 
 - **Type:** Regression test
