@@ -107,3 +107,10 @@
 - Confirmed EditorShell callbacks and active history carry MapDocument only. Paint gesture continuation updates the v1 history present directly, so combined-state integration must preserve gesture coalescing atomically.
 - Recorded blockers and required integration order in `MAP_EDITOR_TERRAIN_V2_ACTIVE_EDITOR_AUDIT.md`.
 - No active UI, persistence, RPC/database, or runtime water-navigation code was changed. Source inspection only; tests, typecheck, and build remain unexecuted.
+
+
+## 2026-10-10 — Game Save v2 contract proposal
+
+- Follow-up audit confirmed `GameSaveSnapshot` and save-slot parsing are v1-only and store `MapDocument` for world/exterior; terrain semantics cannot survive that envelope.
+- Added `MAP_EDITOR_TERRAIN_V2_GAME_SAVE_CONTRACT.md` specifying an opt-in versioned envelope, legacy compatibility, atomic validation, and migration gates.
+- Contract only: no implementation, active save/load wiring, RPC, production database, or runtime changes. Tests/typecheck/build remain unexecuted.
