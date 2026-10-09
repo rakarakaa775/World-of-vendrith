@@ -215,9 +215,9 @@ Proposed module: `apps/map-editor/editor/water-projection.ts`.
 
 Existing schema-v1 saves do not record whether `water`, `brackish`, `deepwater2`, or `deepwater` was authored or produced by the old gradient. Therefore provenance cannot be reconstructed reliably.
 
-The proposed explicit compatibility helper `normalizeLegacyWaterBands(document, layerId = 'ground')` collapses all four recognized water-band IDs to semantic `water`, returns a new document only when a cell changes, and never runs automatically on load until fixture review and rollout approval. The original saved version must remain recoverable through normal version history before any user-visible migration is enabled.
+The implemented explicit compatibility helper `normalizeLegacyWaterBands(document)` collapses recognized legacy water-band IDs to semantic `water`, returns a new document only when a cell changes, and is not automatically invoked on load. The original saved version must remain recoverable through normal version history before any user-visible migration is enabled.
 
-This is a lossy but explicit normalization: it preserves the semantic fact “this cell is water,” not a claim about original authored depth. `projectWaterDepth` then derives the visual bands from the normalized terrain and applies the no-land World Map floor as a projection.
+This is a lossy but explicit normalization: it preserves the semantic fact “this cell is water,” not a claim about original authored depth. `deriveWaterProjection` derives visual bands from canonical terrain and applies the no-land World Map floor as a projection.
 
 ### Test contract for B1/B2
 
@@ -232,7 +232,7 @@ This is a lossy but explicit normalization: it preserves the semantic fact “th
 
 ### Execution status
 
-This section records the implementation contract only. A direct GitHub file-write attempt for the new module was blocked by the tool's safety checks, so the new source/test files were **not created** and no implementation or test execution is claimed. Continue by applying the small module and tests through an available authorized repository-edit path, then run the focused Vitest suite before wiring the projection into terrain paint/rendering.
+Implementation has since been added on `feat/vendrith-ecc-v1`: `apps/map-editor/editor/water-projection.ts` and `water-projection.test.ts` implement the pure projection and explicit legacy normalization. Editor paint/erase no longer calls the materializing gradient; Pixi rendering uses a derived `renderDocument`; schema-v1 round-trip and undo/redo regression tests have been added. Automated tests and typecheck remain unexecuted in this workflow, so implementation is not yet considered validated.
 
 
 
@@ -243,7 +243,7 @@ A fresh GitHub code-search pass was made against `rakarakaa775/World-of-vendrith
 ### Verified editor persistence boundary
 
 - `apps/map-editor/editor/map-persistence.ts` serializes the current `MapDocument` and sends the snapshot through `map_editor_upsert_runtime_snapshot_v1`.
-- `apps/map-editor/editor/terrain-paint.ts` invokes `applyWaterDepthGradient()` after both paint and erase operations.
+- `apps/map-editor/editor/terrain-paint.ts` no longer invokes `applyWaterDepthGradient()` after paint or erase; canonical ground cells are retained.
 - `apps/map-editor/editor/terrain-engine.ts` implements the gradient by returning a modified document with water-band IDs written into ground-cell `tileId` values.
 - Search also found a call in `apps/map-editor/components/vendrith-world-builder-app.tsx` during saved-document normalization.
 
@@ -255,8 +255,7 @@ Code search for `WorldDefinition`, `game-runtime`, `RuntimeWorldAdapter`, `Supab
 
 1. Obtain the repository tree or fetch exact runtime route/import files through an authorized source-reading path.
 2. Trace the production route to the adapter and its canonical persistence contract; distinguish editor snapshots from runtime world state.
-3. Implement B1 and focused tests through a repository-edit path that is authorized and succeeds.
-4. Run the focused Vitest tests and relevant typecheck before switching any editor call sites.
+3. Review the implemented projection and tests, then run the focused Vitest tests and relevant typecheck. The editor call sites have been switched, but the change is not validated until these checks run.
 5. Keep database migrations and production writes out of scope until a separately reviewed rollout plan exists.
 
 
@@ -267,7 +266,7 @@ A follow-up source search found additional constraints relevant to B2/B3:
 - `apps/map-editor/editor/tile-palette.ts` includes `water`, `brackish`, `deepwater2`, and `deepwater` in its terrain type and asset definitions.
 - `apps/map-editor/components/editor-shell.tsx` filters those four water terrain values out of the basic visible terrain list. This suggests the editor UI intentionally hides water-band options from the basic palette, but does not by itself prove no alternate picker or persisted document can contain them.
 - `apps/map-editor/editor/terrain-brush-preview.ts` includes all four values in its terrain input mapping, so these values are recognized by brush-preview code.
-- `apps/map-editor/editor/terrain-engine.test.ts` currently tests the *materializing* gradient behavior, including a 64×64 water body and the no-land World Map floor. These tests describe current behavior and will need to be split or replaced when the pure projection API is introduced.
+- `apps/map-editor/editor/terrain-engine.test.ts` still tests the legacy materializing helper `applyWaterDepthGradient()` for compatibility. Those tests do not validate the new render-only projection path; retain them as legacy-helper coverage until the intended deprecation or compatibility policy is reviewed.
 
 ### Compatibility implication
 
@@ -275,6 +274,8 @@ Do not globally remove the four legacy band identifiers from `TerrainKey` or the
 
 ### Current verified status
 
-- No source implementation or test files have been added for the pure projection API.
-- No editor call sites have been switched.
-- No Vitest run, typecheck, database migration, or production write has been performed.
+- The pure projection source and focused tests are present on the target branch.
+- Editor paint/erase and Pixi render/debug paths have been switched to separate canonical and derived state.
+- Save/load and undo/redo regression tests are added but not executed in this workflow.
+- The GitHub connector returned no PR-triggered workflow runs for the latest commits; this is not evidence that tests passed or failed.
+- No database migration or production write has been performed.
