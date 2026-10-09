@@ -1,3 +1,12 @@
+## 2026-10-10 — Terrain v2 history map-identity guard
+
+- **Type:** Bug fix and regression test added (execution pending)
+- **Reason:** The lower-level `MapHistoryV2` helper allowed a different map ID to be committed into an existing history, unlike `MapEditorStateHistory`. Undo could therefore restore a state belonging to another map.
+- **Details:** `commitHistoryV2` now rejects map-identity changes. The test asserts that rejection leaves the original history untouched and that a different map starts a fresh history using `createHistoryV2`.
+- **Affected:** `apps/map-editor/editor/map-history-v2.ts`, `apps/map-editor/editor/map-history-v2.test.ts`, `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`.
+- **Roadmap phase:** Terrain semantics v2 — editor-state and persistence integration gate.
+- **Verification:** Source/test updates are committed; tests, typecheck, and build have not been executed. No passing CI is claimed. No active editor wiring or production persistence/database changes.
+
 ## 2026-10-10 — Terrain v2 pair-validation regression coverage
 
 - **Type:** Tests added (execution pending)
