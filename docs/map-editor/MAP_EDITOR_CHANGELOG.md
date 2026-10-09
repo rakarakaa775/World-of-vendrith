@@ -1,3 +1,11 @@
+## 2026-10-10 — Terrain v2 merge gate hardening
+
+- **Type:** Safety hardening and regression test
+- **Details:** Moved identity/dimension preflight ahead of deep document validation so concurrent dimension changes are rejected explicitly under the v2 merge policy. Added a document-only conflict test to complement semantic-only and combined-conflict tests.
+- **Affected:** `apps/map-editor/editor/map-terrain-v2-merge.ts`, `apps/map-editor/editor/map-terrain-v2-merge.test.ts`, `MAP_EDITOR_TERRAIN_V2_CONFLICT_MERGE_CONTRACT.md`.
+- **Verification:** Source changes reviewed via GitHub retrieval; no local test runner or CI workflow results available. Tests/typecheck/build remain unexecuted.
+- **Safety:** No active v1 save controller, RPC, production database/schema/data, or runtime changes.
+
 ## 2026-10-10 — Combined Terrain v2 merge gate and round-trip tests
 
 - **Type:** Opt-in merge orchestration, tests, and contract update
