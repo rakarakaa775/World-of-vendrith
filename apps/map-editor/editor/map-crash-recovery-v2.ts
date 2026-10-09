@@ -28,6 +28,26 @@ export function createMapV2CrashRecoveryJournal(
 ): MapV2CrashRecoveryJournal {
   const keyFor = (mapId: string) => `${keyPrefix}.${mapId}`;
 
+  function readState(mapId: string): MapDocumentV2State | null {
+    const raw = storage.getItem(keyFor(mapId));
+    if (!raw) return null;
+    try {
+      const entry: unknown = JSON.parse(raw);
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+      const candidate = entry as Partial<MapV2RecoveryEntry>;
+      if (
+        candidate.mapId !== mapId ||
+        typeof candidate.savedAt !== "string" ||
+        !Number.isFinite(Date.parse(candidate.savedAt)) ||
+        typeof candidate.snapshot !== "string"
+      ) return null;
+      const parsed = parseMapSnapshot(candidate.snapshot, mapId);
+      return parsed.format === "v2" ? parsed.state : null;
+    } catch {
+      return null;
+    }
+  }
+
   return {
     write(state) {
       const entry: MapV2RecoveryEntry = {
@@ -37,29 +57,14 @@ export function createMapV2CrashRecoveryJournal(
       };
       storage.setItem(keyFor(state.document.id), JSON.stringify(entry));
     },
-    read(mapId) {
-      const raw = storage.getItem(keyFor(mapId));
-      if (!raw) return null;
-      try {
-        const entry: unknown = JSON.parse(raw);
-        if (!entry || typeof entry !== "object") return null;
-        const candidate = entry as Partial<MapV2RecoveryEntry>;
-        if (
-          candidate.mapId !== mapId ||
-          typeof candidate.savedAt !== "string" ||
-          typeof candidate.snapshot !== "string"
-        ) return null;
-        const parsed = parseMapSnapshot(candidate.snapshot, mapId);
-        return parsed.format === "v2" ? parsed.state : null;
-      } catch {
-        return null;
-      }
-    },
+    read: readState,
     clear(mapId) {
       storage.removeItem(keyFor(mapId));
     },
     has(mapId) {
-      return storage.getItem(keyFor(mapId)) !== null;
+      // "Has recovery" means a valid, readable v2 recovery—not merely a key
+      // left behind by a crash or malformed local storage entry.
+      return readState(mapId) !== null;
     },
   };
 }
