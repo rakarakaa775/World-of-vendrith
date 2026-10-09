@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMap, createStarterMap } from "./map-document";
 import { eraseTerrainPaint, applyTerrainPaint } from "./terrain-paint";
 import { deriveWaterProjection } from "./water-projection";
+import { analyzeTerrainBrushPreview } from "./terrain-brush-preview";
 import { parseMapDocument, serializeMapDocument } from "./map-serialization";
 import { commitHistory, createHistory, redoHistory, undoHistory } from "./map-history";
 
@@ -40,6 +41,19 @@ describe("terrain paint", () => {
     expect(deriveWaterProjection(painted, "ground")?.bands).toEqual([
       "deepwater2", "brackish", "water", null, "water", "brackish", "deepwater2",
     ]);
+  });
+
+  it("shows projected shoreline bands in the brush preview without mutating canonical cells", () => {
+    const base = createMap("world", null, "exterior", null, 7, 1);
+    const preview = analyzeTerrainBrushPreview(base, "ground", [{ x: 3, y: 0 }], "grass");
+    const byX = new Map(preview.cells.map(cell => [cell.point.x, cell.terrain]));
+
+    // Preview agrees with the canvas projection around the prospective land.
+    expect(byX.get(2)).toBe("water");
+    expect(byX.get(4)).toBe("water");
+    // The preview is a temporary render projection, not an authored edit.
+    expect(base.layers.find(layer => layer.id === "ground")?.cells.map(cell => cell.tileId))
+      .toEqual(Array.from({ length: 7 }, () => "deepwater"));
   });
 
   it("preserves canonical water cells through schema-v1 save/load round-trip", () => {
