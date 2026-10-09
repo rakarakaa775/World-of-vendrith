@@ -307,3 +307,28 @@ The runtime path was located by reading the target branch tree and fetching the 
 - Runtime source tracing: completed for the adapter → recovery → bridge chain and the runtime-intent API route listed above.
 - Automated tests/typecheck: not executed in this workflow. Do not mark the terrain implementation validated until the focused water-projection, terrain-paint, serialization/history tests and relevant typecheck run successfully.
 - Next safe step: inspect remaining consumers of terrain/map snapshots, then run focused tests in a repository execution environment before considering rollout.
+
+
+## 16. Consumer audit and CI validation — 2026-10-09
+
+### Additional consumers inspected
+
+- `apps/map-editor/components/pixi-map-canvas.tsx` calls `deriveWaterProjection(document, "ground")` and constructs a temporary `renderDocument`; the source `document` is not rewritten by the projection call. Grid fallback, terrain resolution, debug overlay, texture collection, and layer drawing use the render document in the inspected code paths.
+- `apps/map-editor/editor/terrain-resolver.ts` resolves masks and approved asset bindings from the document it receives. The Pixi render path supplies the projected render document, while authoring tools can continue to resolve canonical semantic terrain.
+- `apps/map-editor/editor/terrain-brush-preview.ts` operates on a prospective copy made by `paintCell` and resolves the preview from that copy. It does not call `deriveWaterProjection`; previewing a water/land brush may therefore not display the final derived depth bands exactly as the canvas does. This is a visual consistency item to verify, not a reason to write derived bands into canonical state.
+- `apps/map-editor/editor/map-persistence.ts` serializes the supplied document directly before the snapshot RPC; `map-serialization.ts` preserves its document payload and `map-history.ts` stores full-document snapshots. The inspected merge and identity persistence helpers likewise serialize or parse the supplied document without applying water projection.
+- `apps/map-editor/tests/water-depth.test.ts` tests stable depth-band mapping and checks that the tested view operation does not mutate the map document. The dedicated projection tests remain the primary coverage for the projection algorithm.
+
+### CI status
+
+GitHub Actions reports the `Map Editor CI` run for commit `84fc4998b697b84fd861440519d32a96dd7a5cc0` as completed with conclusion `success`:
+https://github.com/rakarakaa775/World-of-vendrith/actions/runs/37899215168
+
+The workflow definition runs, in order, dependency installation, `npm run typecheck`, `npm run build`, and `npm test` in `apps/map-editor`. Therefore this run validates those steps for the referenced commit. The audit documentation update itself is a later commit and is not the tested source revision; rerun CI after any subsequent source-code change.
+
+### Remaining risks / next safe actions
+
+1. Compare the latest branch tip with the successful CI head SHA before treating the latest state as validated.
+2. Decide whether brush preview should use the same derived projection as the canvas for accurate depth-band previews; if changed, preserve canonical state and add focused preview tests.
+3. Check any database-side projection consumers separately. The editor RPC projects map snapshots into related map cells/navigation records; this audit did not modify or migrate those database functions.
+4. No runtime source code, database schema, or production data was changed during this audit.
