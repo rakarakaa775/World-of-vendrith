@@ -78,6 +78,14 @@ describe("Save Slot snapshot format dispatch", () => {
     )).toThrow(/not an exterior playable map/i);
   });
 
+  it("rejects an incomplete current Game Save envelope atomically", () => {
+    const world = createMap("world");
+    world.id = "incomplete-world";
+    expect(() => parseGameSaveSlotSnapshot({
+      schema: "vandrith.game-save", version: 1, world,
+    }, "incomplete-world")).toThrow(/incomplete/i);
+  });
+
   it("rejects a non-world map in the World slot", () => {
     const playable = createMap("playable", "region-1", "exterior");
     expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(playable, null), playable.id))
