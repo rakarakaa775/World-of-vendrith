@@ -74,3 +74,11 @@
 - Added regression cases for history cap, invalid dimensions, and out-of-bounds terrain cells.
 - V2 history remains an isolated helper: no active editor UI/history, Save/Load, recovery, conflict-save, RPC, production database, or runtime water-navigation integration.
 - Verification is source-level only; Vitest/typecheck/build still need CI or local execution.
+
+
+## 2026-10-10 — Terrain v2 active-editor integration audit
+
+- Audited `editor-shell.tsx`, v1 history, snapshot adapter, runtime persistence, v1/v2 recovery journals, conflict-save controller, and save-slot parsing.
+- Confirmed active EditorShell history and callbacks still carry MapDocument only; v2 history/recovery are not wired into the active UI.
+- Added `MAP_EDITOR_TERRAIN_V2_INTEGRATION_GATE.md` with the integration invariants and staged gates for state, UI lifecycle, recovery/conflict policy, and persistence.
+- No active editor integration, production RPC/schema/data changes, or runtime navigation changes were made. Test/typecheck/build execution remains pending.
