@@ -1,3 +1,13 @@
+## 2026-10-10 — Terrain persistence integration audit and serializer test hardening
+
+- **Type:** Added / Tested (test execution pending)
+- **Reason:** Establish the safe integration boundary for authored terrain semantics before changing save/load, history, or runtime navigation.
+- **Details:** Expanded v2 envelope tests to cover deterministic parse/serialize round-trip and requested map identity for v1/v2. Added `VENDRITH_TERRAIN_PERSISTENCE_INTEGRATION_AUDIT_V1.md` documenting current v1 MapDocument shape, resize behavior, v2 envelope boundary, legacy handling, and required save/load/history/recovery sequence.
+- **Affected:** `apps/map-editor/tests/map-serialization-v2.test.ts`, `docs/architecture/VENDRITH_TERRAIN_PERSISTENCE_INTEGRATION_AUDIT_V1.md`.
+- **Roadmap phase:** Terrain semantics v2 — persistence integration gate.
+- **Verification:** Changes committed to `feat/vendrith-ecc-v1`. Automated tests and typecheck were not executed in this turn; GitHub status/workflow results were unavailable. No Supabase schema/data/RPC, production runtime, or navigation changes.
+- **Notes:** The v2 envelope is not yet wired into all save/load/history/recovery call sites.
+
 ## 2026-10-02 — Phase 2D diagnostic views implemented
 
 - **Type:** Added / Updated
