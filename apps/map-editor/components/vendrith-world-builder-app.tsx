@@ -15,7 +15,7 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
-import { serializeGameSaveSnapshot } from "../editor/game-save";
+import { parseGameSaveSlotSnapshot, serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
 
@@ -446,21 +446,12 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
       if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
 
-      const parsed = typeof result.snapshot === "string" ? JSON.parse(result.snapshot) : result.snapshot;
-      const gameSave = parsed?.schema === "vandrith.game-save" ? parsed : null;
-      const worldDocumentRaw = gameSave?.world
-        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.world }, AUTHORITATIVE_WORLD_MAP_ID)
-        : parseMapDocument(JSON.stringify(parsed), AUTHORITATIVE_WORLD_MAP_ID);
-      const worldDocument = normalizeWorldCanvas(worldDocumentRaw);
+      const parsed = parseGameSaveSlotSnapshot(result.snapshot, AUTHORITATIVE_WORLD_MAP_ID);
+      const worldDocument = normalizeWorldCanvas(parsed.world);
       if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID) {
         throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
       }
-      const exteriorDocument = gameSave?.exterior
-        ? parseMapDocument({ schema: "vandrith.map-document", version: 1, document: gameSave.exterior }, gameSave.exterior.id)
-        : null;
-      if (exteriorDocument && exteriorDocument.mapType !== "playable") {
-        throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not a playable map");
-      }
+      const exteriorDocument = parsed.exterior;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
       setMaps(cur => {
