@@ -11,7 +11,7 @@ Define the safe integration boundary between the opt-in `MapEditorState` / `Game
 
 - `map-editor-state-v2.ts` models a map as either `legacy` (no terrain semantics) or `initialized` (validated terrain semantics).
 - `map-editor-state-history-v2.ts` stores document and semantics together in one history entry and rejects cross-map commits.
-- `game-save-state-v2.ts` parses the whole world/exterior envelope atomically, supports v1 saves as legacy state, validates map types, and exposes an authoritative-world-ID guard.
+- `game-save-state-v2.ts` parses the whole world/exterior envelope atomically, supports v1 saves as legacy state, validates map types, and exposes an authoritative-world-ID guard. Its serializer now canonicalizes legacy maps through the parser instead of treating `serializeMapDocument` alone as validation.
 - The live editor shell, active Save Slot consumer, v1 recovery journal, and conflict-save path still use `MapDocument` / v1 payloads. The v2 adapter is not wired into them.
 
 ## Required state invariants
@@ -53,6 +53,7 @@ Define the safe integration boundary between the opt-in `MapEditorState` / `Game
 - Audit the deployed RPC contract separately; repository SQL source alone does not prove the deployed function definition.
 - Choose an explicit invariant for the Save Slot's version reference: either the embedded world snapshot must equal the referenced version snapshot, or the reference is documented as provenance/concurrency metadata for an independent combined save.
 - Dispatch load by envelope version. V1 continues through the v1 parser; v2 goes through `parseGameSaveStateV2ForWorld`.
+- Validate both inbound parsing and outbound serialization; malformed legacy `MapDocument` values must be rejected before a v2 Game Save envelope is emitted.
 - Do not write v2 through the active v1 path until the consumer, tests, and RPC contract all agree.
 - No production SQL/schema/data changes without a separate reviewed migration and explicit approval.
 
@@ -75,4 +76,4 @@ This contract does not change live UI, active Save/Load, Save Slot RPC payloads,
 
 ## Next concrete step
 
-Implement or test the smallest missing pure boundary for atomic pair adoption and expected-world identity, then add the test cases not already covered by `game-save-state-v2.test.ts`. Avoid duplicating `parseGameSaveStateV2ForWorld` if it fully satisfies the requirement.
+Continue the Save Slot audit by resolving the version-reference invariant (snapshot equality versus provenance/concurrency metadata) and verifying the actual deployed RPC definition. Then obtain real CI/local results for the focused and full test suites, typecheck, and build before considering any active integration.
