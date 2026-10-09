@@ -29,6 +29,14 @@ The load RPC checks authentication and map ownership, then returns the stored sn
 4. The v2 adapter validates the world/exterior pair's map types and semantics format, but caller-level identity checks against the authoritative world ID still need to be preserved.
 5. A robust future contract must choose and document one invariant: either the Save Slot snapshot must exactly match the referenced world version, or the slot envelope is an independent combined game save and the version reference is explicitly only a concurrency/provenance anchor. The current implementation does not enforce either equality invariant.
 
+## Version-reference invariant — recommended contract
+
+The active frontend saves the authoritative world first, then fetches the `map_versions` row for the exact `worldVersion`, and passes that row's ID/number alongside a Game Save envelope whose `world` field is the saved `MapDocument`. The durable map-version serializer uses the canonical wrapper `{ schema, version, document }`, while the Game Save v1 envelope embeds the raw `MapDocument`.
+
+Recommended invariant for a future reviewed RPC migration: the embedded world document must equal the `document` member of the referenced version snapshot under JSONB structural equality, while the exterior remains an independently saved member of the Game Save envelope. The referenced version is therefore not merely arbitrary provenance; it anchors the exact world revision represented by the slot. This comparison must first validate that the version snapshot has the expected schema/version/document shape.
+
+This is a contract recommendation based on repository source, not an assertion about the deployed function. The current RPC source does not enforce this equality, so frontend sequencing alone is not a durable integrity guarantee. Do not change or apply SQL until the deployed function is inspected, a separate migration is reviewed, and regression tests cover mismatched world/version pairs.
+
 ## Integration gates
 
 - Keep active Save/Load on v1 until the editor can own and restore world/exterior `MapEditorState` atomically.
