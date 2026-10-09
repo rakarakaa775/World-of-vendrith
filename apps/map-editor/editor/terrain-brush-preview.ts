@@ -5,7 +5,7 @@ import { deriveWaterProjection } from './water-projection';
 import { pointsInFloodFill } from './paint-tools';
 import { affectedTerrainCells, terrainFromTileId, type TerrainKey } from './terrain-engine';
 import { resolveTerrainJunction } from './terrain-junction-resolver';
-import { createTerrainAssetResolver, resolveTerrainCell, tileIdForTerrain } from './terrain-resolver';
+import { resolveTerrainRenderCell, tileIdForTerrain } from './terrain-resolver';
 import type { TerrainAssetBindingMap } from './terrain-asset-binding';
 
 export type TerrainBrushPreviewCell = {
@@ -80,13 +80,13 @@ function previewCells(
 ): TerrainBrushPreviewCell[] {
   const result: TerrainBrushPreviewCell[] = [];
   const seen = new Set<string>();
-  const resolver = createTerrainAssetResolver(bindings);
   for (const point of points) {
     if (point.x < 0 || point.y < 0 || point.x >= document.width || point.y >= document.height) continue;
     const key = `${point.x}:${point.y}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const resolved = resolveTerrainCell(document, layerId, point, resolver);
+    // Use the same render-time shoreline/mask policy as the Pixi canvas.
+    const resolved = resolveTerrainRenderCell(document, layerId, point, bindings);
     if (!resolved) {
       result.push({ point, terrain: null, mask: null, variantKey: null, junctionKind: 'none', junctionMode: 'none', assetId: null, tileId: null, bound: false });
       continue;
