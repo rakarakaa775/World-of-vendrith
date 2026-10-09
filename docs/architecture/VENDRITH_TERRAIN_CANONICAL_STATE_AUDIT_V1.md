@@ -193,3 +193,26 @@ The project will use **canonical authored terrain plus a deterministic derived w
 - Production runtime adapter remains unverified via available indexed code search.
 - No application code, schema, database, or live data has been changed in this decision commit.
 
+## 12. B1 implementation — pure water projection API
+
+Added `apps/map-editor/editor/water-projection.ts` and focused tests in `apps/map-editor/editor/water-projection.test.ts`.
+
+The new `deriveWaterProjection(document, layerId)` API returns a separate row-major grid of `water | brackish | deepwater2 | deepwater | null`, tagged with algorithm version 1 and map/layer identity. It does not return a MapDocument and does not write into input cells. The no-land World Map deepwater floor is represented only in the projection. Distance rules currently retain the existing thresholds (shore 1, brackish 2, mid 4; eight-neighbor distance).
+
+### B2 legacy snapshot policy — conservative, no silent migration
+
+Schema-v1 water-band IDs cannot reliably reveal whether the author deliberately painted that ID or whether a previous gradient pass wrote it. Therefore:
+
+- Do not auto-rewrite existing v1 snapshots during load, save, or recovery.
+- Preserve legacy cell values exactly until a separately designed migration or user-reviewed normalization can identify intended semantics.
+- The projection API can render from legacy input deterministically, but this is a compatibility bridge, not proof that the old snapshot has become canonical authored data.
+- New canonical authoring semantics must use a single semantic water input (`water`) for water surface; the four band IDs are projection output, not intended authoring choices. Before enforcing this in UI, audit tile palette/brushes and add explicit compatibility behavior for existing projects.
+- Never claim that original authored intent can be reconstructed from an old snapshot where that distinction was already lost.
+
+### B1 status and verification boundary
+
+- API and test source files were committed to `feat/vendrith-ecc-v1`.
+- Tests cover input immutability, deterministic output, no-land World Map floor, layer validation, and row-major grid shape.
+- Automated tests and TypeScript typecheck have **not** been run in this environment. The expected test output must be verified on the branch before claiming the test suite passes.
+- Existing `applyWaterDepthGradient()` call sites still materialize bands into MapDocument. They have not been switched to the new API yet; this is intentionally deferred until editor consumers and legacy handling are traced and tested.
+
