@@ -51,7 +51,7 @@ Define the safe integration boundary between the opt-in `MapEditorState` / `Game
 ### Gate D — Save Slot and RPC compatibility
 
 - Audit the deployed RPC contract separately; repository SQL source alone does not prove the deployed function definition.
-- Choose an explicit invariant for the Save Slot's version reference: either the embedded world snapshot must equal the referenced version snapshot, or the reference is documented as provenance/concurrency metadata for an independent combined save.
+- Adopt the reviewed target invariant that the embedded world `MapDocument` must structurally match the `document` member of the referenced canonical map-version snapshot; the exterior is independent. The current RPC source does not enforce this equality, so a separately reviewed migration and deployed-function audit are required before treating it as guaranteed.
 - Dispatch load by envelope version. V1 continues through the v1 parser; v2 goes through `parseGameSaveStateV2ForWorld`.
 - Validate both inbound parsing and outbound serialization; malformed legacy `MapDocument` values must be rejected before a v2 Game Save envelope is emitted.
 - Do not write v2 through the active v1 path until the consumer, tests, and RPC contract all agree.
