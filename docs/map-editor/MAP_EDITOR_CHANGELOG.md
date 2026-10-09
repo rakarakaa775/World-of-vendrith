@@ -460,3 +460,13 @@
 - **Roadmap phase:** Terrain semantics v2 — opt-in persistence adapter.
 - **Verification:** Source-level review only. Vitest, typecheck, and build are pending; no passing result is claimed.
 - **Notes:** No production RPC, database schema/data, or asset binary changes.
+
+
+## 2026-10-10 — Opt-in v2 crash-recovery journal
+
+- **Type:** Added / Test
+- **Details:** Added a separate v2 recovery journal that stores document and terrain semantics in one validated snapshot. Includes tests for round-trip recovery, map identity mismatch, malformed journal data, and clearing entries.
+- **Affected:** `apps/map-editor/editor/map-crash-recovery-v2.ts`, `apps/map-editor/editor/map-crash-recovery-v2.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — recovery adapter.
+- **Verification:** Source-level review only. Vitest, typecheck, and build have not been run in this workflow; no passing result is claimed.
+- **Notes:** Existing v1 recovery remains unchanged. No production RPC, database schema/data, or asset binary changes.
