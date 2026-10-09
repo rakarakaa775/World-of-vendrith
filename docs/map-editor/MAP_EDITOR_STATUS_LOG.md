@@ -130,3 +130,11 @@
 - Confirmed the new opt-in Game Save state v2 adapter is not integrated. A v2 envelope must not be sent to the v1 RPC until the payload contract is reviewed; current active editor state/history also cannot yet restore terrain semantics atomically.
 - Documented the consumer path, exterior validation gap, and safe integration sequence in `MAP_EDITOR_TERRAIN_V2_ACTIVE_SAVE_SLOT_AUDIT.md`.
 - Source inspection only. No active behavior, RPC, production database, or runtime navigation changes. Tests/typecheck/build remain unexecuted.
+
+
+## 2026-10-10 — Save Slot RPC contract audit for terrain v2
+
+- Reviewed the repository `main` migration source for `map_editor_save_slot_v1` / `map_editor_load_save_slot_v1` and compared it with the active frontend consumer.
+- RPC validation covers authentication, owner scope, slot range, JSON object shape, and world version reference; it does not validate nested Game Save schema/map semantics or prove embedded snapshot equality with the referenced version.
+- The migration source was not present at the same path on `feat/vendrith-ecc-v1` during this audit, so this is not evidence of the currently deployed SQL definition.
+- Added `MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`. No SQL/RPC invocation, migration, production database mutation, or active UI change. No tests/typecheck/build run.
