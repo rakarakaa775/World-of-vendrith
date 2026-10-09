@@ -1,3 +1,12 @@
+## 2026-10-10 — Game Save v2 outbound serialization validation
+
+- **Type:** Validation hardening and regression test
+- **Reason:** The v2 save serializer previously passed legacy map state directly through `serializeMapDocument`, which serializes but does not validate the document. A malformed legacy state could therefore be emitted by the outbound envelope builder.
+- **Details:** The serializer now reparses/canonicalizes legacy and initialized states before adding them to the Game Save envelope. Added a test proving a legacy map with an invalid layer cell count is rejected.
+- **Affected:** `apps/map-editor/editor/game-save-state-v2.ts`, `apps/map-editor/editor/game-save-state-v2.test.ts`, `MAP_EDITOR_TERRAIN_V2_EDITOR_STATE_INTEGRATION_CONTRACT.md`.
+- **Verification:** Source reviewed and committed through GitHub; tests, typecheck, and build have not been executed. No passing CI is claimed.
+- **Safety:** Active Save/Load, v1 RPC, production database/schema/data, and runtime behavior remain unchanged.
+
 ## 2026-10-10 — Terrain v2 merge gate hardening
 
 - **Type:** Safety hardening and regression test
