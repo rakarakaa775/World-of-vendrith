@@ -1,3 +1,12 @@
+## 2026-10-10 — Terrain v2 pair-validation regression coverage
+
+- **Type:** Tests added (execution pending)
+- **Reason:** Cover two Save v2 boundary cases called out by the editor-state integration contract.
+- **Details:** Added regression tests that reject a `playableSpace: "interior"` map as the exterior and accept a valid world-only save with `exterior: null`.
+- **Affected:** `apps/map-editor/editor/game-save-state-v2.test.ts`, `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`.
+- **Roadmap phase:** Terrain semantics v2 — editor-state and persistence integration gate.
+- **Verification:** Tests were authored through the GitHub connector but not executed; no passing test/typecheck/build/CI is claimed. No live UI, RPC, database/schema/data, or production runtime changes.
+
 ## 2026-10-10 — Terrain v2 editor-state integration contract
 
 - **Type:** Documentation / integration gate
