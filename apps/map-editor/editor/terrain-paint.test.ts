@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createStarterMap } from "./map-document";
 import { eraseTerrainPaint, applyTerrainPaint } from "./terrain-paint";
+import { deriveWaterProjection } from "./water-projection";
 
 describe("terrain paint", () => {
   it("paints only valid, unique ground cells and recalculates the affected perimeter", () => {
@@ -24,6 +25,19 @@ describe("terrain paint", () => {
     const result = applyTerrainPaint(base, "ground", [{ x: 2, y: 2 }], "starter-tile").document;
     expect(base).not.toBe(result);
     expect(base.layers.find(layer => layer.id === "ground")?.cells[2 + 2 * base.width].tileId).toBeNull();
+  });
+
+  it("keeps water depth bands out of canonical cells after painting land on a World Map", () => {
+    const base = createMap("world", null, "exterior", null, 7, 1);
+    const painted = applyTerrainPaint(base, "ground", [{ x: 3, y: 0 }], "grass").document;
+    const ground = painted.layers.find(layer => layer.id === "ground")!;
+
+    expect(ground.cells.map(cell => cell.tileId)).toEqual([
+      "deepwater", "deepwater", "deepwater", "grass", "deepwater", "deepwater", "deepwater",
+    ]);
+    expect(deriveWaterProjection(painted, "ground")?.bands).toEqual([
+      "deepwater2", "brackish", "water", null, "water", "brackish", "deepwater2",
+    ]);
   });
 
   it("ignores locked or invisible ground layers", () => {
