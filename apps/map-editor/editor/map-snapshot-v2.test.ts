@@ -70,6 +70,14 @@ describe("opt-in map snapshot v2 adapter", () => {
     expect(() => parseMapSnapshot(payload)).toThrow("Duplicate terrain semantic coordinate");
   });
 
+  it("rejects an invalid MapDocument before writing a v2 snapshot", () => {
+    const invalidState: MapDocumentV2State = {
+      ...state,
+      document: { ...state.document, width: 33 },
+    };
+    expect(() => serializeMapDocumentV2(invalidState)).toThrow("Layer cell count must equal width × height");
+  });
+
   it("writes the explicit v2 envelope", () => {
     const payload = JSON.parse(serializeMapDocumentV2(state));
     expect(payload.schema).toBe(MAP_DOCUMENT_V2_SCHEMA);
