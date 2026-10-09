@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 recovery and conflict-save audit
+
+- **Type:** Source audit, recovery hardening, and regression tests (execution pending)
+- **Details:** Documented that active v1 crash recovery and conflict-save operate on `MapDocument` only and cannot preserve the separate terrain v2 semantics section. The v2 recovery reader now fails closed if storage access throws; a test covers this behavior.
+- **Affected:** `docs/map-editor/MAP_EDITOR_TERRAIN_V2_RECOVERY_CONFLICT_SAVE_AUDIT.md`, `apps/map-editor/editor/map-crash-recovery-v2.ts`, `apps/map-editor/editor/map-crash-recovery-v2.test.ts`, `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Tests/typecheck/build have not been executed. No live editor, production persistence, RPC, database/schema/data changes.
+
 ## 2026-10-10 — Terrain v2 recovery availability validation
 
 - **Type:** Bug fix and regression tests added (execution pending)
