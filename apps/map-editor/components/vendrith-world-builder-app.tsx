@@ -466,7 +466,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       setLoadRevision(v => v + 1);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setShowSlots(false);
-      setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · World + Exterior`);
+      setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · ${exteriorDocument ? "World + Exterior" : "World only"}`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
   }, [refreshSlots]);
