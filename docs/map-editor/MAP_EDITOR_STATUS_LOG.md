@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 semantic three-way merge helper
+
+- Added an opt-in pure merge helper for sparse terrain semantic records, including explicit same-coordinate conflict reporting, deletion semantics, input validation, and deterministic row-major output.
+- Added focused tests for independent edits, identical edits, divergent edits, deletion-vs-edit, one-sided deletion, invalid bounds, and stable ordering.
+- Added `MAP_EDITOR_TERRAIN_V2_CONFLICT_MERGE_CONTRACT.md` with caller preconditions and no-persist-on-conflict rules.
+- Active v1 conflict-save/UI/RPC and production database remain unchanged. Tests/typecheck/build have not been executed; integration gate remains closed.
+
 ## 2026-10-10 — Terrain v2 recovery and conflict-save audit
 
 - Added `MAP_EDITOR_TERRAIN_V2_RECOVERY_CONFLICT_SAVE_AUDIT.md` documenting the current v2 journal and the active v1 recovery/conflict-save limitations.
