@@ -484,3 +484,22 @@ The target branch contains a reconstructed baseline that includes definitions fo
 - No SQL, migration, app code, or production data changed.
 - No new automated tests were run during this audit.
 - Next implementation gate: decide the gameplay water-state contract with movement/navigation requirements, then add focused tests for editor projection and any separate gameplay mapping before modifying persistence.
+
+
+## 24. Initial water traversal policy implementation — 2026-10-09
+
+### Changes committed on `feat/vendrith-ecc-v1`
+
+- Added `apps/map-editor/editor/water-traversal-policy.ts`, a pure policy function returning `walk | swim | water_transport | blocked` from explicit cell semantics and actor capabilities.
+- Added `apps/map-editor/editor/water-traversal-policy.test.ts` with focused Vitest coverage for land, explicitly walkable shallow shoreline, swim capability, deep-sea transport, river bridge/crossing point, shallow ford, current safety, and unknown water data.
+- The helper does not infer gameplay rules from render-band IDs and does not touch editor documents, Supabase, migrations, or production data.
+
+### Important enforcement boundary
+
+The source audit has not yet found/confirmed a single authoritative player/NPC movement consumer where this helper can be integrated safely. Therefore this commit establishes the tested policy primitive but does **not** claim that live movement/pathfinding enforces the policy yet. The next code step must trace the authoritative caller and adapt real runtime cell semantics without deriving physical depth or current from `water`, `brackish`, `deepwater2`, or `deepwater` visual bands.
+
+### Verification status
+
+- Unit-test source added; execution result is **pending** because no local test runner is available through the GitHub file-editing connection in this session.
+- CI must be checked for the resulting commit before claiming tests passed.
+- No production database query that mutates state, DDL, migration, or schema change was performed.
