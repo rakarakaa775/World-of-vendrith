@@ -7,8 +7,6 @@ export interface NavigationGrid {
   blocked: boolean[];
   /** Optional authored water semantics. Absent entries mean no water policy can be inferred. */
   waterCells?: NavigationWaterCell[];
-  /** Capabilities are explicit per moving actor, never inferred from NPC identity. */
-  capabilities?: NavigationCapabilities;
 }
 
 export interface DynamicNavigationObstacle {
