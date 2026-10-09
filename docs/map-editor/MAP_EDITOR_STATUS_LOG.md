@@ -1,3 +1,10 @@
+## 2026-10-10 — Save Slot parser regression resolved; CI green
+
+- Investigated the failing Map Editor CI run: TypeScript typecheck and Next.js build passed; Vitest exposed a legacy-map parsing gap in the opt-in Game Save v2 adapter and a contradictory expectation for a valid legacy World + Exterior pair.
+- Added strict normalization for raw legacy MapDocument payloads nested in Game Save v2, aligned the regression expectation with supported legacy compatibility, and corrected Load Slot status text for World-only saves.
+- Verified commit `b15e2b257baaf36c1240292d41046b3461256da2` with Map Editor CI: typecheck passed, build passed, 163/163 test files and 793/793 tests passed.
+- Production remains read-only: no migration applied, no RPC or data changes. Server-side Save Slot/version equality hardening remains gated on a separately reviewed migration and explicit production approval.
+
 ## 2026-10-10 — Save Slot parser completeness guard
 
 - Tightened `parseGameSaveSlotSnapshot` to require both `world` and `exterior` properties in the current Game Save v1 envelope; malformed/incomplete envelopes fail before editor adoption.
