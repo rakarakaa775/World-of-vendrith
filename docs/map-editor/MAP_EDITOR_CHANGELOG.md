@@ -479,3 +479,14 @@
 - **Roadmap phase:** Terrain semantics v2 — history adapter.
 - **Verification:** Source-level review only; Vitest, typecheck, and build have not been run in this workflow. No passing result is claimed.
 - **Notes:** Existing v1 editor history and production persistence remain unchanged.
+
+
+## 2026-10-10 — V2 history bounds and runtime validation
+
+- **Type:** Hardened / Test
+- **Reason:** The first v2 history helper allowed unbounded retained history and trusted TypeScript types at a runtime boundary.
+- **Details:** Added `MAP_HISTORY_V2_MAX_ENTRIES = 100`, bounded both undo and redo retention, and validated document shape through the canonical serializer/parser plus terrain semantics against map dimensions before accepting a new state. Added tests for history caps, malformed document dimensions, and out-of-bounds terrain semantics.
+- **Affected:** `apps/map-editor/editor/map-history-v2.ts`, `apps/map-editor/editor/map-history-v2.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — persistence integration gate.
+- **Verification:** Source-level review only. Vitest, typecheck, and build have not been executed in this workflow; no passing result is claimed.
+- **Notes:** This remains separate from active v1 editor history and live persistence. No production RPC, database schema/data, or runtime water-navigation changes.
