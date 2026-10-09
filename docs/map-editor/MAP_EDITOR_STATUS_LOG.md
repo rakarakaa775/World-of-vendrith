@@ -1,3 +1,9 @@
+## 2026-10-10 — Terrain v2 merge gate hardening
+
+- Hardened the combined merge preflight so map identity and dimensions are checked before validating layer arrays. This ensures resize mismatches are rejected by the explicit no-concurrent-resize policy rather than by an incidental serialization error.
+- Added a document-only conflict test; the suite now covers document-only, terrain-only, and simultaneous conflicts, plus clean merge, identity/dimension guards, invalid semantics, and snapshot round-trip.
+- Changes remain opt-in and disconnected from active v1 persistence. Execution of tests/typecheck/build remains pending.
+
 ## 2026-10-10 — Combined Terrain v2 merge gate
 
 - Added an opt-in composition helper that runs document and terrain-semantics three-way merges as a single v2 result.
