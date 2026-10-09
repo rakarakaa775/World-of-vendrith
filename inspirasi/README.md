@@ -35,6 +35,7 @@ Folder ini menyimpan repository, artikel, arsitektur, pola engineering, dan refe
 - Ryza AI Revive — Audit: ./RYZA_AI_REVIVE_AUDIT.md
 - MiniMind — Audit Vendrith Project AI: ./MINIMIND_AUDIT.md
 - No AI Slop — Audit Vendrith: ./NO_AI_SLOP_AUDIT.md
+- Terrain System Vendrith — Spesifikasi Lengkap: ../docs/map-editor/TERRAIN_SYSTEM_SPECIFICATION_V1.md
 - Template Referensi Baru: ./REFERENCE_TEMPLATE.md
 
 ## Catatan untuk referensi code-intelligence
