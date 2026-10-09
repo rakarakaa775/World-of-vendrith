@@ -34,6 +34,21 @@ describe('resolveWaterTraversal', () => {
     expect(resolveWaterTraversal(sea, { hasWaterTransport: true })).toBe('water_transport');
   });
 
+  it('never lets a generic crossing flag bypass deep-sea transport requirements', () => {
+    expect(resolveWaterTraversal(
+      { surface: 'water', feature: 'ocean_sea', depth: 'deep', crossingPoint: true },
+      {},
+    )).toBe('blocked');
+    expect(resolveWaterTraversal(
+      { surface: 'water', feature: 'ocean_sea', depth: 'deep', bridge: true },
+      { canSwim: true },
+    )).toBe('blocked');
+    expect(resolveWaterTraversal(
+      { surface: 'water', feature: 'ocean_sea', depth: 'deep', crossingPoint: true },
+      { hasWaterTransport: true },
+    )).toBe('water_transport');
+  });
+
   it('allows river crossings over bridges or designated crossing points', () => {
     expect(resolveWaterTraversal(
       { surface: 'water', feature: 'river', depth: 'deep', current: 'strong', bridge: true },
