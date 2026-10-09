@@ -1,3 +1,13 @@
+## 2026-10-10 — Opt-in terrain v2 snapshot adapter
+
+- **Type:** Added / Tested (test execution pending)
+- **Reason:** Establish a serializer boundary that can carry authored terrain semantics together with MapDocument without changing the live v1 Save/Load path.
+- **Details:** Added `map-snapshot-v2.ts` with an explicit `vandrith.map-document-v2` envelope, terrain semantics validation against document bounds, strict requested-map identity, and v1 parsing compatibility. Legacy v1 inputs intentionally return `terrainSemantics: null`; the adapter does not fabricate semantics or mutate stored data. Added regression cases for round-trip, legacy compatibility, requested-ID mismatch, unsupported versions, out-of-bounds cells, and envelope identity.
+- **Affected:** `apps/map-editor/editor/map-snapshot-v2.ts`, `apps/map-editor/editor/map-snapshot-v2.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — persistence integration gate.
+- **Verification:** GitHub source writes completed. Tests and typecheck have not been executed in this session; no passing CI is claimed. Adapter is not connected to the live Save/Load, Save Slot, recovery, or editor UI. No Supabase schema/data/RPC or runtime navigation changes.
+- **Notes:** Next step is run targeted Vitest and typecheck, fix any failures, then integrate only at a clearly versioned persistence boundary after tests pass.
+
 ## 2026-10-10 — Atomic terrain v2 history model added
 
 - **Type:** Added / Tested (test execution pending)
