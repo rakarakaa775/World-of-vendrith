@@ -520,3 +520,12 @@
 - **Affected:** `apps/map-editor/editor/map-editor-state-history-v2.ts`, `apps/map-editor/editor/map-editor-state-history-v2.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_STATE_HISTORY.md`.
 - **Verification:** Source-level review only. Vitest, typecheck, and build have not been executed; no passing result is claimed.
 - **Safety:** Active v1 editor history and persistence remain unchanged. No production RPC/database or runtime water-navigation changes.
+
+
+## 2026-10-10 — Active editor terrain v2 integration audit
+
+- **Type:** Architecture / Audit
+- **Reason:** Avoid partial integration that drops terrain semantics through document-only UI callbacks, history, persistence, recovery, save slots, or conflict merge.
+- **Details:** Documented active editor mutation paths, paint gesture special handling, and the required integration sequence in `MAP_EDITOR_TERRAIN_V2_ACTIVE_EDITOR_AUDIT.md`.
+- **Verification:** GitHub source inspection only; Vitest, typecheck, and build have not been executed.
+- **Safety:** No live editor, production persistence/RPC/database, or runtime water-navigation changes.
