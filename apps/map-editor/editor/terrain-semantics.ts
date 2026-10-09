@@ -15,9 +15,9 @@ export type TerrainSemanticsSection = Readonly<{
   cells: readonly TerrainSemanticRecord[];
 }>;
 
-const FEATURES = ["shoreline", "river", "lake", "waterfall", "ocean_sea", "none"];
-const DEPTHS = ["shallow", "medium", "deep", "unknown"];
-const CURRENTS = ["calm", "moderate", "strong", "unknown"];
+const FEATURES: ReadonlySet<string> = new Set(["shoreline", "river", "lake", "waterfall", "ocean_sea", "none"]);
+const DEPTHS: ReadonlySet<string> = new Set(["shallow", "medium", "deep", "unknown"]);
+const CURRENTS: ReadonlySet<string> = new Set(["calm", "moderate", "strong", "unknown"]);
 const FLAGS = ["shallowWalkable", "bridge", "crossingPoint"] as const;
 const FIELDS = new Set(["x", "y", "surface", "feature", "depth", "current", ...FLAGS]);
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -40,9 +40,9 @@ export function validateTerrainSemantics(width: number, height: number, input: u
     if (seen.has(key)) throw new Error(`Duplicate terrain semantic coordinate: ${key}`);
     seen.add(key);
     if (surface !== "land" && surface !== "water") throw new Error(`Terrain semantic cell ${index} has invalid surface`);
-    if (raw.feature !== undefined && (typeof raw.feature !== "string" || !FEATURES.includes(raw.feature))) throw new Error(`Terrain semantic cell ${index} has invalid feature`);
-    if (raw.depth !== undefined && (typeof raw.depth !== "string" || !DEPTHS.includes(raw.depth))) throw new Error(`Terrain semantic cell ${index} has invalid depth`);
-    if (raw.current !== undefined && (typeof raw.current !== "string" || !CURRENTS.includes(raw.current))) throw new Error(`Terrain semantic cell ${index} has invalid current`);
+    if (raw.feature !== undefined && (typeof raw.feature !== "string" || !FEATURES.has(raw.feature))) throw new Error(`Terrain semantic cell ${index} has invalid feature`);
+    if (raw.depth !== undefined && (typeof raw.depth !== "string" || !DEPTHS.has(raw.depth))) throw new Error(`Terrain semantic cell ${index} has invalid depth`);
+    if (raw.current !== undefined && (typeof raw.current !== "string" || !CURRENTS.has(raw.current))) throw new Error(`Terrain semantic cell ${index} has invalid current`);
     for (const flag of FLAGS) if (raw[flag] !== undefined && typeof raw[flag] !== "boolean") throw new Error(`Terrain semantic cell ${index} has invalid ${flag}`);
     if (Object.keys(raw).some((field) => !FIELDS.has(field))) throw new Error(`Terrain semantic cell ${index} contains unknown fields`);
     return {
