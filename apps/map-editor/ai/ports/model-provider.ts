@@ -19,6 +19,8 @@ export interface ModelToolCall {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+  /** Provider-specific metadata needed when replaying a tool call (e.g. Gemini thought signatures). */
+  providerMetadata?: Record<string, unknown>;
 }
 
 export interface ModelRequest {
