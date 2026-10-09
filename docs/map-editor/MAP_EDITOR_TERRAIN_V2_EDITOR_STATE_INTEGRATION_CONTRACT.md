@@ -51,10 +51,10 @@ Define the safe integration boundary between the opt-in `MapEditorState` / `Game
 ### Gate D — Save Slot and RPC compatibility
 
 - Audit the deployed RPC contract separately; repository SQL source alone does not prove the deployed function definition.
-- Adopt the reviewed target invariant that the embedded world `MapDocument` must structurally match the `document` member of the referenced canonical map-version snapshot; the exterior is independent. The current RPC source does not enforce this equality, so a separately reviewed migration and deployed-function audit are required before treating it as guaranteed.
-- Dispatch load by envelope version. V1 continues through the v1 parser; v2 goes through `parseGameSaveStateV2ForWorld`.
+- Adopt the target invariant that the embedded world `MapDocument` must structurally match the `document` member of the referenced canonical map-version snapshot; the exterior is independent. Read-only inspection of the deployed RPC confirms that the equality is not enforced today. Existing slot rows were checked schema-aware: two are Game Save v1 and one is legacy map-document v1; all three world documents match their referenced versions. Preserve legacy load support, and require a separately reviewed migration to enforce the invariant for future writes and loads.
+- Dispatch load by envelope schema/version. The active v1 loader now uses `parseGameSaveSlotSnapshot` to accept Game Save v1 and legacy map-document v1, while V2 must go through `parseGameSaveStateV2ForWorld`.
 - Validate both inbound parsing and outbound serialization; malformed legacy `MapDocument` values must be rejected before a v2 Game Save envelope is emitted.
-- Do not write v2 through the active v1 path until the consumer, tests, and RPC contract all agree.
+- New writes should use the current Game Save v1 envelope and enforce world/version equality at the RPC. Do not write v2 through the active v1 path until the consumer, tests, and RPC contract all agree.
 - No production SQL/schema/data changes without a separate reviewed migration and explicit approval.
 
 ### Gate E — Verification and rollout
