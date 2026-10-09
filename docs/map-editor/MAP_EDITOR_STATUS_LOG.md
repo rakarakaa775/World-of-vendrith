@@ -99,3 +99,11 @@
 - Added canonical state validation, 100-entry history bounds, redo invalidation, cross-map commit rejection, and explicit history reset for map switches.
 - Added regression tests for atomic undo/redo, legacy state support, invalid state rejection, map-switch behavior, bounds, and resize semantics.
 - Active `EditorShell` still uses the v1 document-only history; this adapter is not integrated into active UI, persistence, recovery, conflict-save, RPC, or runtime navigation. Test/typecheck/build execution remains pending.
+
+
+## 2026-10-10 — Active editor terrain v2 integration audit
+
+- Audited active EditorShell mutation/history paths and the current persistence, crash-recovery, save-slot, and conflict-save boundaries.
+- Confirmed EditorShell callbacks and active history carry MapDocument only. Paint gesture continuation updates the v1 history present directly, so combined-state integration must preserve gesture coalescing atomically.
+- Recorded blockers and required integration order in `MAP_EDITOR_TERRAIN_V2_ACTIVE_EDITOR_AUDIT.md`.
+- No active UI, persistence, RPC/database, or runtime water-navigation code was changed. Source inspection only; tests, typecheck, and build remain unexecuted.
