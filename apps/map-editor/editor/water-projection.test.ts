@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMap } from './map-document';
-import { deriveWaterProjection } from './water-projection';
+import { deriveWaterProjection, normalizeLegacyWaterBands } from './water-projection';
 
 function withCells(width: number, height: number, cells: string[]) {
   const base = createMap('world');
@@ -61,5 +61,32 @@ describe('deriveWaterProjection', () => {
     const projection = deriveWaterProjection(document, 'ground');
     expect(projection?.bands).toHaveLength(3);
     expect(projection?.bands[1]).toBeNull();
+  });
+});
+
+
+describe('normalizeLegacyWaterBands', () => {
+  it('collapses legacy water bands only when explicitly called', () => {
+    const document = withCells(4, 1, ['water', 'brackish', 'deepwater2', 'deepwater']);
+    const before = JSON.stringify(document);
+    expect(JSON.stringify(document)).toBe(before);
+
+    const normalized = normalizeLegacyWaterBands(document);
+    expect(normalized.layers.find(layer => layer.id === 'ground')?.cells.map(cell => cell.tileId))
+      .toEqual(['water', 'water', 'water', 'water']);
+    expect(document.layers.find(layer => layer.id === 'ground')?.cells.map(cell => cell.tileId))
+      .toEqual(['water', 'brackish', 'deepwater2', 'deepwater']);
+  });
+
+  it('rejects malformed ground cell counts rather than deriving a partial projection', () => {
+    const document = withCells(3, 1, ['deepwater', 'grass', 'deepwater']);
+    const malformed = {
+      ...document,
+      layers: document.layers.map(layer =>
+        layer.id === 'ground' ? { ...layer, cells: layer.cells.slice(0, 2) } : layer,
+      ),
+    };
+    expect(() => deriveWaterProjection(malformed, 'ground'))
+      .toThrow('exactly width × height ground cells');
   });
 });
