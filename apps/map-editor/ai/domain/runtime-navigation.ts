@@ -26,3 +26,22 @@ export interface NavigationPlan {
   cost?: number;
   reason: string;
 }
+
+
+/** Authored water semantics for one map cell; never infer these from render bands. */
+export interface NavigationWaterCell {
+  x: number;
+  y: number;
+  surface: "land" | "water";
+  feature?: "shoreline" | "river" | "lake" | "waterfall" | "ocean_sea" | "none";
+  depth?: "shallow" | "medium" | "deep" | "unknown";
+  current?: "calm" | "moderate" | "strong" | "unknown";
+  shallowWalkable?: boolean;
+  bridge?: boolean;
+  crossingPoint?: boolean;
+}
+
+export interface NavigationCapabilities {
+  canSwim?: boolean;
+  hasWaterTransport?: boolean;
+}
