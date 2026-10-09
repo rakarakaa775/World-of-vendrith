@@ -364,3 +364,30 @@ A focused regression test was added to `apps/map-editor/editor/terrain-paint.tes
 The test builds a World Map shoreline fixture, paints a prospective grass cell, derives a temporary water projection, and compares the brush preview's center-cell mask, resolved asset ID, tile ID, and binding status with `resolveTerrainRenderCell` applied to the equivalent render-only document. It also asserts the authored base document remains canonical deepwater and the prospective painted ground cell remains grass.
 
 This is a test-only follow-up; no runtime, persistence, database, or production data behavior was changed. The commit has been pushed to `feat/vendrith-ecc-v1`. CI for this exact commit still needs to be checked before recording the regression as passing.
+
+
+## 19. Database projection consumer audit — 2026-10-09
+
+### Source inspected
+
+- `apps/map-editor/editor/map-persistence.ts` serializes the supplied `MapDocument` directly for `map_editor_upsert_runtime_snapshot_v1`; it does not call `deriveWaterProjection`.
+- `apps/map-editor/editor/map-merge-persistence-supabase.ts` passes the serialized snapshot to `map_editor_commit_merge_v1`; it does not add render-only water bands.
+- `apps/map-editor/editor/map-serialization.ts` serializes the document payload unchanged under schema/version 1.
+- The database migration `20260912033000_map_editor_project_snapshot_to_map_cells_v1.sql` was inspected on the repository's default branch. Its `map_editor_reconcile_after_merge_v1` function reads the ground layer's `cells[].tileId` from `p_snapshot` and projects each non-null value directly to both `map_cells.biome` and `map_cells.terrain_variant`. It then rebuilds navigation and updates the runtime snapshot.
+
+### Finding and boundary
+
+The database projection currently mirrors canonical ground tile IDs; it does not calculate the editor's render-only water-depth bands. Therefore a World Map's derived shoreline/depth display should not be assumed to exist in `map_cells` merely because it appears in the Pixi canvas.
+
+This is not, by itself, proof of a production bug: the editor's water bands are presently documented as distance-to-land display semantics, and `map_cells` is a gameplay-oriented projection. Whether gameplay needs those bands is a product/runtime contract question. Do not change the SQL function, migration history, canonical snapshot, or live database as part of this audit.
+
+### Branch visibility limitation
+
+The migration file was found through the default-branch code index but returned 404 when requested at `feat/vendrith-ecc-v1`. Consequently, this audit records the default-branch migration's behavior as a reference, not as proof that the same migration file is present in the target branch or currently deployed in the connected Supabase project. Confirm branch migration inventory and deployed function definition before any change.
+
+### Safe next gate
+
+1. Decide whether `map_cells` should contain authored canonical terrain only, or a separately defined gameplay water-depth projection.
+2. If gameplay requires derived water bands, design a deterministic server-side projection contract with explicit map-type behavior and tests; do not persist render-only values back into `MapDocument`.
+3. Verify migration presence and deployed RPC definition in the intended environment before proposing implementation.
+4. Keep runtime snapshots and editor snapshots as separate contracts; no runtime/database changes were made during this audit.
