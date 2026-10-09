@@ -381,3 +381,54 @@ This is a proposed runtime input contract, **not a change to MapDocument v1, dat
 - [ ] Only after the above gates pass, propose any persistence or migration change for review.
 
 No production database, deployed SQL migration, or production map data was changed by this work.
+
+
+## 17. Canonical terrain semantics contract — proposal, implementation gate
+
+**Status: design contract only; not yet active in editor serialization or runtime persistence.** The current `MapDocument` and serialized envelope are schema version 1. Do not silently extend them with unvalidated fields, and do not imply that the proposed contract is already saved or consumed by the runtime.
+
+### Source-of-truth decision
+
+For the next implementation increment, explicit gameplay semantics must be authored as map data and travel through a versioned, validated projection. They must not be reconstructed from render tile IDs, visual water bands, generic `walkable` defaults, or collision alone.
+
+The canonical record is keyed by integer map-cell coordinates and includes a contract version plus explicit fields for surface, feature, depth, current, shallow-walk permission, bridge, and crossing point. The record must distinguish:
+- **Visual terrain:** tile/asset selection and render-only water-band projection.
+- **Physical/gameplay semantics:** whether a cell is land or water, feature classification, depth, current, and explicit crossing affordances.
+- **Actor capabilities:** swimming and water-transport access, sourced from validated entity state rather than shared map cells.
+- **Collision:** an independent hard constraint that water traversal policy cannot override.
+
+This record shape is a proposed versioned domain contract, not permission to change `MapDocument v1`, RPC payloads, SQL tables, or production data. The exact persisted owner (document extension versus normalized map-cell metadata) remains an explicit design decision and must be resolved by inspecting existing schema, migrations, save/load, and recovery paths before implementation.
+
+### Validation and deterministic projection
+
+Before a semantic record enters a navigation grid:
+1. Validate the contract version, required fields, enum values, booleans, integer coordinates, positive map dimensions, and coordinate bounds.
+2. Reject duplicate coordinates and malformed records as a whole; do not silently drop bad cells and continue with a partially different world.
+3. Define whether omitted optional fields are legal for each feature. Unknown depth/current must remain unknown, never be defaulted to safe values.
+4. Preserve source provenance and the source map revision so stale projections can be detected.
+5. Use one deterministic projection implementation for editor preview, path planning, and movement-step validation.
+6. Apply hard collision first. A path planner and the authoritative per-step movement validator must agree on the same traversal decision.
+7. Keep old maps readable without inventing semantic values. Until a map has validated authored semantics, no new water permission may be inferred; retain legacy non-water behavior only where it is already explicitly defined.
+
+### Approved gameplay invariants
+
+- Beach and shallow-water walking is allowed only for explicitly authored shoreline cells with shallow depth and `shallowWalkable=true`.
+- Swimming requires the actor's validated swimming capability and suitable known water semantics.
+- Deep ocean/sea requires water transport; swimming, bridge, or crossing-point flags must not bypass this restriction.
+- Rivers require a validated bridge/crossing point or a specifically approved known depth/current combination. Strong or unknown current fails closed.
+- Missing or invalid water semantics never grant traversal.
+- Render-only band recalculation must not mutate canonical gameplay records or alter save hashes.
+
+### Implementation sequence and exit criteria
+
+**Gate A — schema decision:** inspect actual SQL definitions, RPC contracts, document parser, save/load, resize, and recovery/replay; choose the authoritative persisted owner and migration/version strategy. No production writes.
+
+**Gate B — canonical model:** implement typed records and parser/serializer validation behind a compatible versioned contract; test round trips, old-document compatibility, resize/crop, duplicate/out-of-bounds input, and malformed payloads.
+
+**Gate C — shared projection:** project validated semantics into navigation using a single pure function; test editor preview and runtime projection determinism, collision precedence, and actor-specific capabilities.
+
+**Gate D — runtime enforcement:** load only from the approved source; enforce policy both while planning and at the authoritative movement step; test save/load/recovery and stale revisions.
+
+**Gate E — persistence approval:** review migration/backfill, rollback, server-side validation, replay/hash behavior, and non-production rehearsal. Production changes remain prohibited until all previous gates and tests pass.
+
+Current status: the pure traversal policy and water-cell validator exist, but `MapDocument v1` has no canonical water semantics field and the Supabase navigation adapter does not populate `waterCells`. Therefore gameplay water rules are not yet active for production-loaded maps.
