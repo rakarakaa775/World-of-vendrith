@@ -79,6 +79,23 @@ describe("mergeTerrainSemanticsThreeWay", () => {
       .toThrow("outside map bounds");
   });
 
+  it("round-trips a conflict-free merged semantics section through the v2 snapshot", () => {
+    const base = section([{ x: 0, y: 0, surface: "land" }]);
+    const local = section([{ x: 0, y: 0, surface: "land" }, { x: 1, y: 0, surface: "water", depth: "shallow" }]);
+    const remote = section([{ x: 0, y: 0, surface: "water", feature: "lake" }]);
+    const merged = mergeTerrainSemanticsThreeWay(3, 2, base, local, remote);
+    expect(merged.conflicts).toEqual([]);
+
+    const document = { ...createMap("world", null, "exterior", null, 3, 2), id: "merge-roundtrip" };
+    const snapshot = serializeMapDocumentV2({ document, terrainSemantics: merged.terrainSemantics });
+    const parsed = parseMapSnapshot(snapshot, "merge-roundtrip");
+
+    expect(parsed.format).toBe("v2");
+    if (parsed.format !== "v2") throw new Error("Expected a v2 snapshot");
+    expect(parsed.state.terrainSemantics).toEqual(merged.terrainSemantics);
+    expect(parsed.state.document).toEqual(document);
+  });
+
   it("returns records in deterministic row-major order", () => {
     const unsorted = section([
       { x: 2, y: 1, surface: "land" },
