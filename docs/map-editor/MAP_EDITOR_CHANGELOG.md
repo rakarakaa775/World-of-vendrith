@@ -1,3 +1,11 @@
+## 2026-10-10 — Save Slot world-version integrity contract clarified
+
+- **Type:** Persistence contract audit (documentation only)
+- **Details:** Traced the active Save Slot caller and serializers. The slot's `world` field is a raw `MapDocument`, while the referenced `map_versions.snapshot` uses the canonical `{ schema, version, document }` envelope. Recorded the recommended future invariant: `p_snapshot.world` must structurally equal the referenced version snapshot's `document`; the exterior is independent.
+- **Affected:** `MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`, `MAP_EDITOR_TERRAIN_V2_EDITOR_STATE_INTEGRATION_CONTRACT.md`, `MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Repository source audit only. The SQL migration source is not proof of the deployed function; no live RPC invocation, SQL migration, tests, typecheck, or build was performed.
+- **Safety:** No active Save/Load, RPC, production database/schema/data, or runtime behavior changed.
+
 ## 2026-10-10 — Game Save v2 outbound serialization validation
 
 - **Type:** Validation hardening and regression test
