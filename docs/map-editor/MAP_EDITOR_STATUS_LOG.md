@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain v2 recovery and conflict-save audit
+
+- Added `MAP_EDITOR_TERRAIN_V2_RECOVERY_CONFLICT_SAVE_AUDIT.md` documenting the current v2 journal and the active v1 recovery/conflict-save limitations.
+- Confirmed the active conflict-save controller merges and persists `MapDocument` only; it does not merge the separate v2 terrain semantics section. It must remain isolated from initialized v2 state until a semantics-aware conflict contract exists.
+- Hardened v2 recovery reads to fail closed when local storage access throws, with a regression test for `read() === null` and `has() === false`.
+- Tests were authored but not executed. No active UI, RPC, database/schema/data, or production runtime changes.
+
 ## 2026-10-10 — Terrain v2 recovery availability validation
 
 - Fixed `MapV2CrashRecoveryJournal.has(mapId)` so it reports a valid, readable v2 recovery rather than mere existence of a storage key.
