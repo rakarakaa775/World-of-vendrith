@@ -1,3 +1,13 @@
+## 2026-10-10 — Terrain v2 editor-state integration contract
+
+- **Type:** Documentation / integration gate
+- **Reason:** Define a safe migration path from opt-in terrain v2 state to the document-only active editor without losing semantics or changing production persistence prematurely.
+- **Details:** Documented atomic world/exterior pair adoption, authoritative world identity, strict map-type validation, legacy v1 behavior, combined history, recovery and conflict-save requirements, Save Slot/RPC invariants, and verification/rollout gates.
+- **Affected:** `docs/map-editor/MAP_EDITOR_TERRAIN_V2_EDITOR_STATE_INTEGRATION_CONTRACT.md`, `docs/map-editor/MAP_EDITOR_STATUS_LOG.md`.
+- **Roadmap phase:** Terrain semantics v2 — editor-state and persistence integration gate.
+- **Verification:** Documentation-only change. No test, typecheck, or build was run; no passing CI is claimed. No live editor, RPC, database/schema/data, or production runtime changes.
+- **Next:** Implement only missing pure pair-adoption tests/logic after checking existing parser coverage; avoid duplicating the existing authoritative-world-ID parser helper.
+
 ## 2026-10-10 — Opt-in terrain v2 snapshot adapter
 
 - **Type:** Added / Tested (test execution pending)
