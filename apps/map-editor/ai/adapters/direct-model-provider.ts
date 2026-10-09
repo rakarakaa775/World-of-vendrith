@@ -14,7 +14,8 @@ interface OpenAiCompatibleResponse {
       }>;
     };
   }>;
-  error?: { message?: string };
+  error?: { message?: string; type?: string; code?: string };
+  message?: string;
   model?: string;
 }
 
@@ -75,6 +76,23 @@ function parseArguments(value: string | Record<string, unknown> | undefined): Re
   }
 }
 
+function describeProviderError(status: number, bodyText: string): string {
+  let body: OpenAiCompatibleResponse | undefined;
+  try {
+    body = JSON.parse(bodyText) as OpenAiCompatibleResponse;
+  } catch {
+    // Some proxies/providers return a plain-text error instead of JSON.
+  }
+
+  const detail = body?.error?.message ?? body?.message;
+  const code = body?.error?.code ?? body?.error?.type;
+  const safeDetail = typeof detail === "string" ? detail.trim().slice(0, 1200) : "";
+  const safeCode = typeof code === "string" ? code.trim().slice(0, 120) : "";
+  const suffix = [safeCode, safeDetail].filter(Boolean).join(": ");
+
+  return `Direct AI provider request failed (HTTP ${status})${suffix ? `: ${suffix}` : bodyText.trim() ? `: ${bodyText.trim().slice(0, 600)}` : ". Provider returned an empty error response."}`;
+}
+
 /**
  * Direct OpenAI-compatible model provider.
  *
@@ -118,9 +136,19 @@ export class DirectModelProvider implements ModelProviderPort {
       }),
     });
 
-    const body = (await response.json()) as OpenAiCompatibleResponse;
+    const responseText = await response.text();
+    let body: OpenAiCompatibleResponse;
+    try {
+      body = JSON.parse(responseText) as OpenAiCompatibleResponse;
+    } catch {
+      if (!response.ok) {
+        throw new Error(describeProviderError(response.status, responseText));
+      }
+      throw new Error("Direct AI provider returned a non-JSON success response.");
+    }
+
     if (!response.ok) {
-      throw new Error(body.error?.message ?? `Direct AI provider request failed (${response.status})`);
+      throw new Error(describeProviderError(response.status, responseText));
     }
 
     const message = body.choices?.[0]?.message;
