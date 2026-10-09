@@ -112,4 +112,59 @@ describe("NPC navigation", () => {
     expect(decision?.stateVersion).toBe("state-40");
     expect(decision?.expiresAtTick).toBe(41);
   });
+
+  it("blocks water with missing authored semantics", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3, height: 1, blocked: [false, false, false],
+      waterCells: [{ x: 1, y: 0, surface: "water" }],
+    };
+    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+  });
+
+  it("allows explicitly designated shallow shoreline without granting swimming", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3, height: 1, blocked: [false, false, false],
+      waterCells: [{
+        x: 1, y: 0, surface: "water", feature: "shoreline",
+        depth: "shallow", shallowWalkable: true,
+      }],
+    };
+    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 })?.cost).toBe(2);
+  });
+
+  it("requires water transport for deep sea even when the actor can swim", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3, height: 1, blocked: [false, false, false],
+      waterCells: [{ x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" }],
+      capabilities: { canSwim: true },
+    };
+    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+    expect(findNavigationPath({
+      ...waterGrid, capabilities: { canSwim: true, hasWaterTransport: true },
+    }, { x: 0, y: 0 }, { x: 2, y: 0 })?.cost).toBe(2);
+  });
+
+  it("does not let water semantics bypass physical collision", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3, height: 1, blocked: [false, true, false],
+      waterCells: [{
+        x: 1, y: 0, surface: "water", feature: "shoreline",
+        depth: "shallow", shallowWalkable: true, crossingPoint: true,
+      }],
+    };
+    expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+  });
+
+  it("blocks river cells with strong or unknown current", () => {
+    const base: NavigationGrid = {
+      width: 3, height: 1, blocked: [false, false, false],
+      waterCells: [{ x: 1, y: 0, surface: "water", feature: "river", depth: "medium", current: "strong" }],
+      capabilities: { canSwim: true },
+    };
+    expect(findNavigationPath(base, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+    expect(findNavigationPath({
+      ...base, waterCells: [{ x: 1, y: 0, surface: "water", feature: "river", depth: "medium", current: "unknown" }],
+    }, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeUndefined();
+  });
+
 });
