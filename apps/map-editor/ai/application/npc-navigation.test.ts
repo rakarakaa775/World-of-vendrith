@@ -141,6 +141,29 @@ describe("NPC navigation", () => {
     expect(findNavigationPath(waterGrid, { x: 0, y: 0 }, { x: 2, y: 0 }, { canSwim: true, hasWaterTransport: true })?.cost).toBe(2);
   });
 
+  it("reads swimming and transport capabilities from the moving actor state", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3, height: 1, blocked: [false, false, false],
+      waterCells: [{ x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" }],
+    };
+    const actorObservation = {
+      ...observation,
+      perception: {
+        ...observation.perception!,
+        self: { ...observation.perception!.self!, state: { canSwim: true } },
+      },
+    };
+    expect(createNavigationPlan(actorObservation, waterGrid, { x: 2, y: 0 }).found).toBe(false);
+    const transportActorObservation = {
+      ...actorObservation,
+      perception: {
+        ...actorObservation.perception!,
+        self: { ...actorObservation.perception!.self!, state: { canSwim: true, hasWaterTransport: true } },
+      },
+    };
+    expect(createNavigationPlan(transportActorObservation, waterGrid, { x: 2, y: 0 }).found).toBe(true);
+  });
+
   it("does not let water semantics bypass physical collision", () => {
     const waterGrid: NavigationGrid = {
       width: 3, height: 1, blocked: [false, true, false],
