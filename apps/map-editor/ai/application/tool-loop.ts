@@ -20,7 +20,8 @@ export async function runToolLoop(
   context: ToolContext,
   options: ToolLoopOptions = {},
 ): Promise<ToolLoopResult> {
-  const maxIterations = options.maxIterations ?? 4;
+  // Allow multi-step repository inspection while keeping a strict overall tool-call budget.
+  const maxIterations = options.maxIterations ?? 8;
   const maxToolCalls = options.maxToolCalls ?? 12;
   let currentRequest: ModelRequest = {
     ...request,
@@ -32,6 +33,7 @@ export async function runToolLoop(
   };
 
   const toolResults: ToolLoopResult["toolResults"] = [];
+  const recentToolNames: string[] = [];
   let toolCallCount = 0;
 
   for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
@@ -41,9 +43,10 @@ export async function runToolLoop(
     }
 
     if (toolCallCount + response.toolCalls.length > maxToolCalls) {
-      throw new Error(`Tool loop exceeded maximum tool calls (${maxToolCalls})`);
+      throw new Error(`Tool loop exceeded maximum tool calls (${maxToolCalls}); recent tools: ${recentToolNames.slice(-4).join(", ") || "none"}`);
     }
     toolCallCount += response.toolCalls.length;
+    recentToolNames.push(...response.toolCalls.map((call) => call.name));
 
     const results = await Promise.all(
       response.toolCalls.map((call) =>
@@ -69,5 +72,7 @@ export async function runToolLoop(
     };
   }
 
-  throw new Error(`Tool loop exceeded maximum iterations (${maxIterations})`);
+  throw new Error(
+    `Tool loop exceeded maximum iterations (${maxIterations}); recent tools: ${recentToolNames.slice(-4).join(", ") || "none"}`,
+  );
 }
