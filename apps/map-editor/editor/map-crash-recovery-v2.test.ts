@@ -56,6 +56,65 @@ describe("opt-in v2 crash recovery journal", () => {
     expect(journal.read("recovery-world")).toBeNull();
   });
 
+  it("rejects a recovery envelope whose stored map identity does not match the requested key", () => {
+    const storage = createMemoryStorage();
+    const journal = createMapV2CrashRecoveryJournal(storage);
+    storage.setItem(
+      "vandrith.map-editor.recovery.v2.recovery-world",
+      JSON.stringify({
+        mapId: "another-world",
+        savedAt: new Date().toISOString(),
+        snapshot: JSON.stringify({
+          schema: "vandrith.map-document-v2",
+          version: 2,
+          document: state.document,
+          terrainSemantics: state.terrainSemantics,
+        }),
+      }),
+    );
+
+    expect(journal.read("recovery-world")).toBeNull();
+  });
+
+  it("rejects recovery data when the embedded snapshot belongs to another map", () => {
+    const storage = createMemoryStorage();
+    const journal = createMapV2CrashRecoveryJournal(storage);
+    storage.setItem(
+      "vandrith.map-editor.recovery.v2.recovery-world",
+      JSON.stringify({
+        mapId: "recovery-world",
+        savedAt: new Date().toISOString(),
+        snapshot: JSON.stringify({
+          schema: "vandrith.map-document-v2",
+          version: 2,
+          document: { ...state.document, id: "another-world" },
+          terrainSemantics: state.terrainSemantics,
+        }),
+      }),
+    );
+
+    expect(journal.read("recovery-world")).toBeNull();
+  });
+
+  it("does not upgrade a legacy v1 snapshot into terrain-aware recovery state", () => {
+    const storage = createMemoryStorage();
+    const journal = createMapV2CrashRecoveryJournal(storage);
+    storage.setItem(
+      "vandrith.map-editor.recovery.v2.recovery-world",
+      JSON.stringify({
+        mapId: "recovery-world",
+        savedAt: new Date().toISOString(),
+        snapshot: JSON.stringify({
+          schema: "vandrith.map-document",
+          version: 1,
+          document: state.document,
+        }),
+      }),
+    );
+
+    expect(journal.read("recovery-world")).toBeNull();
+  });
+
   it("clears only the requested map's recovery entry", () => {
     const storage = createMemoryStorage();
     const journal = createMapV2CrashRecoveryJournal(storage);
