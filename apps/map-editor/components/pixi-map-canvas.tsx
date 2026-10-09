@@ -12,6 +12,7 @@ import { terrainFromTileId, waterDepthBand } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveTerrainRenderCell } from "../editor/terrain-resolver";
+import { deriveWaterProjection } from "../editor/water-projection";
 import { terrainVariationIndex } from "../editor/terrain-variation";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
@@ -210,6 +211,25 @@ export function PixiMapCanvas(props: Props) {
       const host = hostRef.current;
       if (!world || !app || !host) return;
       const { document, activeLayerId, terrainBindings = {}, selectedObjectId, selectedObjectIds, layerIsolationId = null } = propsRef.current;
+      // Water bands exist only in this render projection. The authored document
+      // remains unchanged and is the only document passed back to editor state.
+      const waterProjection = deriveWaterProjection(document, "ground");
+      const renderDocument: MapDocument = waterProjection
+        ? {
+            ...document,
+            layers: document.layers.map(layer =>
+              layer.id === waterProjection.layerId && layer.kind === "ground"
+                ? {
+                    ...layer,
+                    cells: layer.cells.map((cell, index) => {
+                      const band = waterProjection.bands[index];
+                      return band ? { ...cell, tileId: band } : cell;
+                    }),
+                  }
+                : layer,
+            ),
+          }
+        : document;
       const layerVisible = (layerId: string) => layerIsolationId === null || layerIsolationId === layerId;
       const groupVisible = (layer: { groupId?: string | null }) => !layer.groupId || (document.layerGroups.find(group => group.id === layer.groupId)?.visible ?? true);
       const scene = new Container();
@@ -343,13 +363,13 @@ export function PixiMapCanvas(props: Props) {
         const binding = getTerrainAssetBinding(terrainBindings, terrain, 255);
         if (binding) textureRequests.add(binding.assetId);
       }
-      const activeLayer = document.layers.find(layer => layer.id === activeLayerId);
+      const activeLayer = renderDocument.layers.find(layer => layer.id === activeLayerId);
       if (activeLayer && activeLayer.kind !== "objects") {
         for (let i = 0; i < document.width * document.height; i++) {
           const id = activeLayer.cells[i]?.tileId;
           const terrain = terrainFromTileId(id ?? null);
           if (!terrain) continue;
-          const resolved = resolveTerrainRenderCell(document, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrainBindings);
+          const resolved = resolveTerrainRenderCell(renderDocument, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrainBindings);
           const binding = resolved?.assetId ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask) : null;
           if (binding) textureRequests.add(binding.assetId);
         }
@@ -390,8 +410,8 @@ export function PixiMapCanvas(props: Props) {
       }));
       
       // Remote textures are an enhancement only. They never determine whether
-      // the painted cell is rendered.
-      for (const layer of document.layers) {
+      // the painted cell is rendered. Use derived terrain only for rendering.
+      for (const layer of renderDocument.layers) {
         if (!layer.visible || !groupVisible(layer) || !layerVisible(layer.id)) continue;
         if (layer.kind !== "objects") {
           if (layer.kind === "ground") {
@@ -420,7 +440,7 @@ export function PixiMapCanvas(props: Props) {
                 const x = i % document.width;
                 const y = Math.floor(i / document.width);
                 const point = { x, y };
-                const resolved = resolveTerrainRenderCell(document, layer.id, point, terrainBindings);
+                const resolved = resolveTerrainRenderCell(renderDocument, layer.id, point, terrainBindings);
                 const binding = terrain === "deepwater"
                   ? { assetId: DEEP_WATER_ASSET_ID, region: { x: 0, y: 0, width: 16, height: 16 } }
                   : resolved?.assetId
