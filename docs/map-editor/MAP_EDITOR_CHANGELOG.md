@@ -538,3 +538,13 @@
 - **Details:** Added `MAP_EDITOR_TERRAIN_V2_GAME_SAVE_CONTRACT.md` with proposed v2 envelope, validation rules, legacy behavior, and gated migration sequence.
 - **Verification:** Source inspection through GitHub file reads only; tests, typecheck, and build have not been executed.
 - **Safety:** Proposal only. Active save/load and production RPC/database behavior are unchanged.
+
+
+## 2026-10-10 — Opt-in Game Save state v2 adapter
+
+- **Type:** Implementation / Tests
+- **Reason:** The existing v1 save envelope cannot retain initialized terrain semantics.
+- **Details:** Added a separate `game-save-state-v2.ts` adapter and focused compatibility/validation tests. Legacy v1 saves load as uninitialized states; no terrain semantics are inferred. V2 parsing validates the entire world/exterior pair atomically.
+- **Affected:** `apps/map-editor/editor/game-save-state-v2.ts`, `apps/map-editor/editor/game-save-state-v2.test.ts`.
+- **Verification:** GitHub source inspection only. Vitest, typecheck, and build have not been executed; no passing result is claimed.
+- **Safety:** Existing v1 helpers and active save/load, RPC/database, recovery, conflict-save, and runtime navigation remain unchanged. No production database changes.
