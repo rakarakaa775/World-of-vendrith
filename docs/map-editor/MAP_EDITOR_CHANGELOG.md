@@ -470,3 +470,12 @@
 - **Roadmap phase:** Terrain semantics v2 — recovery adapter.
 - **Verification:** Source-level review only. Vitest, typecheck, and build have not been run in this workflow; no passing result is claimed.
 - **Notes:** Existing v1 recovery remains unchanged. No production RPC, database schema/data, or asset binary changes.
+
+## 2026-10-10 — Combined v2 undo/redo regression coverage
+
+- **Type:** Test
+- **Details:** Added regression coverage proving the v2 history treats the MapDocument and terrain semantics as a single state through undo/redo, preserves no-op behavior at history boundaries, and clears redo history after a new commit following undo.
+- **Affected:** `apps/map-editor/editor/map-history-v2.test.ts`.
+- **Roadmap phase:** Terrain semantics v2 — history adapter.
+- **Verification:** Source-level review only; Vitest, typecheck, and build have not been run in this workflow. No passing result is claimed.
+- **Notes:** Existing v1 editor history and production persistence remain unchanged.
