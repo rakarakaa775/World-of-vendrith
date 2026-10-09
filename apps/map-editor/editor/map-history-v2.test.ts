@@ -92,10 +92,10 @@ describe("combined v2 map history", () => {
     const initial = stateWithTerrain(1);
     const history = createHistoryV2(initial);
     const invalid = stateWithTerrain(2);
-    const malformed = {
+    const malformed: MapDocumentV2State = {
       ...invalid,
       document: { ...invalid.document, width: 33 },
-    } as MapDocumentV2State;
+    };
 
     expect(() => commitHistoryV2(history, malformed)).toThrow();
     expect(history.present).toBe(initial);
