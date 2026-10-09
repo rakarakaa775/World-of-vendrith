@@ -57,6 +57,18 @@ describe("opt-in v2 crash recovery journal", () => {
     expect(journal.has("recovery-world")).toBe(false);
   });
 
+  it("fails closed when storage access throws during recovery reads", () => {
+    const storage = {
+      getItem() { throw new Error("Storage access denied"); },
+      setItem() {},
+      removeItem() {},
+    } as unknown as Storage;
+    const journal = createMapV2CrashRecoveryJournal(storage);
+
+    expect(journal.read("recovery-world")).toBeNull();
+    expect(journal.has("recovery-world")).toBe(false);
+  });
+
   it("reports no valid recovery when the envelope timestamp is invalid", () => {
     const storage = createMemoryStorage();
     const journal = createMapV2CrashRecoveryJournal(storage);
