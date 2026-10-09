@@ -3,6 +3,7 @@ import { createMap } from "./map-document";
 import {
   commitHistoryV2,
   createHistoryV2,
+  MAP_HISTORY_V2_MAX_ENTRIES,
   redoHistoryV2,
   undoHistoryV2,
   type MapDocumentV2State,
