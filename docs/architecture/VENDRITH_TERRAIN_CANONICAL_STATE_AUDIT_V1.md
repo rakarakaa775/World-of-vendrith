@@ -391,3 +391,25 @@ The migration file was found through the default-branch code index but returned 
 2. If gameplay requires derived water bands, design a deterministic server-side projection contract with explicit map-type behavior and tests; do not persist render-only values back into `MapDocument`.
 3. Verify migration presence and deployed RPC definition in the intended environment before proposing implementation.
 4. Keep runtime snapshots and editor snapshots as separate contracts; no runtime/database changes were made during this audit.
+
+
+## 20. Target-branch migration inventory check — 2026-10-09
+
+### What was verified on `feat/vendrith-ecc-v1`
+
+- The GitHub Contents API listing for `supabase/migrations` on this exact branch returned one file: `20261003170000_remote_schema_baseline_reconstructed.sql`.
+- The separately named migration `20260912033000_map_editor_project_snapshot_to_map_cells_v1.sql` is **not present as a standalone migration in the target branch directory listing**. The earlier direct path request also returned 404 on this branch.
+- The default branch's indexed copy of that standalone migration contains `map_editor_reconcile_after_merge_v1`, which copies ground `tileId` values into `map_cells.biome` and `map_cells.terrain_variant`; that remains reference evidence only, not proof of the target branch or deployed database definition.
+- The reconstructed baseline is approximately 1.07 MB. The connected GitHub fetch path rejected reading the whole file because it was too large, so this audit has **not** independently extracted the reconciliation function definition from that baseline.
+- The latest visible branch commit at this check is `260131edf91b1ad585819c8b506158742bafd131`; this confirms the audit note is committed to the target branch, not that a migration has been applied to Supabase.
+
+### Interpretation
+
+The standalone migration's absence from the branch listing does not establish that the function is absent from the baseline, absent from the live database, or broken in production. A reconstructed schema baseline may contain the function definition. The exact SQL definition and migration/deployment history must be verified before proposing a corrective migration.
+
+### Safe next gate
+
+1. Read the relevant function definition from the reconstructed baseline using a range-capable source path or local repository checkout.
+2. If a connected Supabase project is available, inspect the deployed `pg_proc` definition and migration history read-only; compare the deployed function with the branch baseline.
+3. Only after comparison, decide whether to restore a missing standalone migration, update the baseline, or make no change. Do not create a speculative migration or apply database changes before this comparison.
+4. No SQL, migration, application code, or live database was changed in this follow-up.
