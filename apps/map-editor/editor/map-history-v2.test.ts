@@ -88,6 +88,27 @@ describe("combined v2 map history", () => {
     expect(history.future).toEqual([]);
   });
 
+  it("rejects cross-map commits and requires a fresh history for a new map", () => {
+    const initial = stateWithTerrain(1);
+    const history = createHistoryV2(initial);
+    const otherMap: MapDocumentV2State = {
+      ...stateWithTerrain(2),
+      document: {
+        ...stateWithTerrain(2).document,
+        id: "another-world",
+      },
+    };
+
+    expect(() => commitHistoryV2(history, otherMap)).toThrow(/identity changed/);
+    expect(history.present).toBe(initial);
+    expect(history.past).toEqual([]);
+    expect(createHistoryV2(otherMap)).toEqual({
+      past: [],
+      present: otherMap,
+      future: [],
+    });
+  });
+
   it("rejects invalid document dimensions before adding history", () => {
     const initial = stateWithTerrain(1);
     const history = createHistoryV2(initial);
