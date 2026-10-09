@@ -1,3 +1,9 @@
+## 2026-10-10 — Save Slot world-version integrity contract clarified
+
+- Audited the active Save Slot caller and repository serializer: the slot embeds a raw world `MapDocument`, while the referenced durable map version stores the canonical `{ schema, version, document }` wrapper.
+- Documented the recommended invariant that the embedded world must structurally match the referenced version's `document` member; the current RPC source does not enforce it.
+- Audit/documentation only. No SQL or production database changes; deployed function and test execution remain unverified.
+
 ## 2026-10-10 — Game Save v2 outbound serialization validation
 
 - Hardened `serializeGameSaveStateV2` to canonicalize both legacy and initialized map states through the parser before emitting the envelope; raw v1 serialization alone is not treated as validation.
