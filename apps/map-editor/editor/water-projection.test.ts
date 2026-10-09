@@ -31,6 +31,18 @@ describe('deriveWaterProjection', () => {
     expect(JSON.stringify(document)).toBe(before);
   });
 
+  it('uses eight-neighbor distance for diagonal shoreline bands', () => {
+    const document = withCells(3, 3, Array.from({ length: 9 }, (_, index) =>
+      index === 0 ? 'grass' : 'deepwater',
+    ));
+
+    const projection = deriveWaterProjection(document, 'ground');
+
+    // (1, 1) is one diagonal step from land; (2, 2) is two.
+    expect(projection?.bands[4]).toBe('water');
+    expect(projection?.bands[8]).toBe('brackish');
+  });
+
   it('is deterministic for the same canonical input', () => {
     const document = withCells(9, 5, Array.from({ length: 45 }, (_, i) =>
       i === 22 ? 'grass' : 'deepwater',
