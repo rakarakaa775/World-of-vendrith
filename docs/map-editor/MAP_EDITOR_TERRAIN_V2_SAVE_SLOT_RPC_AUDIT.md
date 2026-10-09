@@ -60,3 +60,17 @@ This is a contract recommendation based on repository source, not an assertion a
 ## Verification
 
 Read-only inspection of deployed RPC definitions and aggregate Save Slot invariants, plus repository source review. No tests, typecheck, build, migration application, Save Slot RPC invocation, or production database mutation occurred.
+
+## Follow-up read-only verification — 2026-10-10
+
+Requeried the live project after the frontend regression fix. The production Save Slot integrity query returned three valid rows:
+
+- Slot 1 — `vandrith.game-save` v1; referenced version tuple valid; canonical version envelope valid; World ID/type valid; embedded World equals version document; slot owner matches map owner.
+- Slot 2 — same invariants as Slot 1.
+- Slot 3 — legacy `vandrith.map-document` v1; same World/version/owner invariants; must continue to load as World-only.
+
+Also verified the deployed function privilege boundary read-only: both Save/Load RPCs remain `SECURITY DEFINER` with `search_path=public, pg_temp`; `anon` cannot execute either and `authenticated` can. This is an observed current state, not a recommendation to broaden privileges. Future function replacement must preserve the existing signatures, access helper, and grants.
+
+The schema has an important failure case: `map_editor_save_slots.version_id` is nullable and uses `ON DELETE SET NULL`. The load RPC must explicitly reject a null or unresolvable version reference rather than return an unanchored snapshot. No row was modified by this audit.
+
+See `MAP_EDITOR_SAVE_SLOT_INTEGRITY_REMEDIATION_CONTRACT.md` for the save/load validation sequence, database regression matrix, and release gates. No migration has been created or applied; production remains unchanged.
