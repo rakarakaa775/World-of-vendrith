@@ -216,3 +216,38 @@ Schema-v1 water-band IDs cannot reliably reveal whether the author deliberately 
 - Automated tests and TypeScript typecheck have **not** been run in this environment. The expected test output must be verified on the branch before claiming the test suite passes.
 - Existing `applyWaterDepthGradient()` call sites still materialize bands into MapDocument. They have not been switched to the new API yet; this is intentionally deferred until editor consumers and legacy handling are traced and tested.
 
+## 12. B1/B2 implementation contract draft
+
+### Water projection API
+
+Proposed module: `apps/map-editor/editor/water-projection.ts`.
+
+- `WATER_PROJECTION_ALGORITHM_VERSION = 1` versions visual derivation independently of `MapDocument.version`.
+- `WaterBandTerrain = 'water' | 'brackish' | 'deepwater2' | 'deepwater`.
+- `WaterProjection` contains algorithm version, width, height, source layer ID, and a row-major read-only band array.
+- `projectWaterDepth(document, layerId = 'ground')` is pure: it returns a projection or `null` for a missing/non-ground layer; it never mutates or returns a changed document. Malformed cell count is rejected explicitly.
+- The current eight-neighbor BFS and distance thresholds remain 1 / 2 / 4 to preserve visual behavior. A World Map with no recognized land produces a derived all-`deepwater` projection without rewriting the canonical cells. Non-world maps with no land return `null` until their policy is separately specified.
+
+### Schema-v1 compatibility policy
+
+Existing schema-v1 saves do not record whether `water`, `brackish`, `deepwater2`, or `deepwater` was authored or produced by the old gradient. Therefore provenance cannot be reconstructed reliably.
+
+The proposed explicit compatibility helper `normalizeLegacyWaterBands(document, layerId = 'ground')` collapses all four recognized water-band IDs to semantic `water`, returns a new document only when a cell changes, and never runs automatically on load until fixture review and rollout approval. The original saved version must remain recoverable through normal version history before any user-visible migration is enabled.
+
+This is a lossy but explicit normalization: it preserves the semantic fact “this cell is water,” not a claim about original authored depth. `projectWaterDepth` then derives the visual bands from the normalized terrain and applies the no-land World Map floor as a projection.
+
+### Test contract for B1/B2
+
+- Input document remains structurally identical after projection.
+- Repeated calls return identical metadata and band arrays.
+- Expected distance thresholds are verified on a small fixture, including diagonal neighbors.
+- No-land World Map returns all `deepwater` bands without mutating saved cells.
+- No-land non-world map returns `null` under the initial policy.
+- Wrong ground cell count throws a clear error.
+- Legacy normalization handles all four water IDs, is immutable, and is a no-op when no conversion is needed.
+- No automatic load/save integration occurs as part of B1/B2.
+
+### Execution status
+
+This section records the implementation contract only. A direct GitHub file-write attempt for the new module was blocked by the tool's safety checks, so the new source/test files were **not created** and no implementation or test execution is claimed. Continue by applying the small module and tests through an available authorized repository-edit path, then run the focused Vitest suite before wiring the projection into terrain paint/rendering.
+
