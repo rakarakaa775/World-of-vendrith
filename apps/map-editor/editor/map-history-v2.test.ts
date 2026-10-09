@@ -77,4 +77,42 @@ describe("combined v2 map history", () => {
     expect(history.past[0].terrainSemantics.cells[0].x).toBe(1);
     expect(history.present.terrainSemantics.cells[0].x).toBe(2);
   });
+
+  it("caps retained undo history to the configured maximum", () => {
+    let history = createHistoryV2(stateWithTerrain(0));
+    for (let index = 1; index <= MAP_HISTORY_V2_MAX_ENTRIES + 5; index += 1) {
+      history = commitHistoryV2(history, stateWithTerrain(index % 32));
+    }
+
+    expect(history.past).toHaveLength(MAP_HISTORY_V2_MAX_ENTRIES);
+    expect(history.future).toEqual([]);
+  });
+
+  it("rejects invalid document dimensions before adding history", () => {
+    const initial = stateWithTerrain(1);
+    const history = createHistoryV2(initial);
+    const invalid = stateWithTerrain(2);
+    const malformed = {
+      ...invalid,
+      document: { ...invalid.document, width: 33 },
+    } as MapDocumentV2State;
+
+    expect(() => commitHistoryV2(history, malformed)).toThrow();
+    expect(history.present).toBe(initial);
+    expect(history.past).toEqual([]);
+  });
+
+  it("rejects terrain semantics outside map bounds", () => {
+    const invalid = stateWithTerrain(1);
+    const malformed: MapDocumentV2State = {
+      ...invalid,
+      terrainSemantics: {
+        ...invalid.terrainSemantics,
+        cells: [{ x: 32, y: 3, surface: "land" }],
+      },
+    };
+
+    expect(() => createHistoryV2(malformed)).toThrow(/outside map bounds/);
+  });
+
 });
