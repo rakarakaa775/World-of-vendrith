@@ -48,12 +48,34 @@ describe("opt-in v2 crash recovery journal", () => {
     expect(journal.read("another-world")).toBeNull();
   });
 
-  it("returns null for malformed recovery data", () => {
+  it("returns null and reports no valid recovery for malformed data", () => {
     const storage = createMemoryStorage();
     const journal = createMapV2CrashRecoveryJournal(storage);
     storage.setItem("vandrith.map-editor.recovery.v2.recovery-world", "{broken");
 
     expect(journal.read("recovery-world")).toBeNull();
+    expect(journal.has("recovery-world")).toBe(false);
+  });
+
+  it("reports no valid recovery when the envelope timestamp is invalid", () => {
+    const storage = createMemoryStorage();
+    const journal = createMapV2CrashRecoveryJournal(storage);
+    storage.setItem(
+      "vandrith.map-editor.recovery.v2.recovery-world",
+      JSON.stringify({
+        mapId: "recovery-world",
+        savedAt: "not-a-timestamp",
+        snapshot: JSON.stringify({
+          schema: "vandrith.map-document-v2",
+          version: 2,
+          document: state.document,
+          terrainSemantics: state.terrainSemantics,
+        }),
+      }),
+    );
+
+    expect(journal.read("recovery-world")).toBeNull();
+    expect(journal.has("recovery-world")).toBe(false);
   });
 
   it("rejects a recovery envelope whose stored map identity does not match the requested key", () => {
