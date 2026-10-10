@@ -25,6 +25,26 @@ describe('game save contract', () => {
     expect(parseGameSaveSnapshot(snapshot)).toEqual(snapshot);
   });
 
+  it('preserves the World + Exterior pair across a Save → Load → Save round trip', () => {
+    const world = map('world-round-trip');
+    world.name = 'Round-trip World';
+    const exterior = map('exterior-round-trip', 'playable');
+    exterior.name = 'Round-trip Exterior';
+    exterior.layers[0].cells[0] = { tileId: 'sand' };
+
+    // First save, then use the same strict parser that gates active Load Slot.
+    const firstSave = serializeGameSaveSnapshot(world, exterior);
+    const loaded = parseGameSaveSlotSnapshot(firstSave, world.id);
+
+    // Save the loaded documents again, as the editor does after a successful load.
+    const secondSave = serializeGameSaveSnapshot(loaded.world, loaded.exterior);
+    const restored = parseGameSaveSlotSnapshot(secondSave, world.id);
+
+    expect(restored.world).toEqual(world);
+    expect(restored.exterior).toEqual(exterior);
+    expect(restored.format).toBe('game-save-v1');
+  });
+
   it('rejects a slot snapshot with an invalid world document', () => {
     const snapshot = {
       schema: 'vandrith.game-save',
