@@ -733,3 +733,11 @@
 - **Affected:** `apps/map-editor/editor/game-save-state-v2.ts`, `apps/map-editor/editor/game-save-state-v2.test.ts`, `docs/map-editor/MAP_EDITOR_TERRAIN_V2_SAVE_SLOT_RPC_AUDIT.md`.
 - **Verification:** Source changes committed; tests/typecheck/build not run in this workflow.
 - **Safety:** No active Save/Load wiring or database changes.
+
+
+## 2026-10-10 — Map publish-readiness validation hardening
+
+- Extended `map-validation.ts` to detect unknown terrain IDs, layer cell-count/dimension mismatches, objects stored on non-object layers, non-integer grid geometry, and objects outside map bounds. Malformed layer/object arrays now fail closed instead of throwing during validation.
+- Added `map-validation.test.ts` with focused cases for valid starter maps and each new validation boundary.
+- Commit `3371a9c6125834bca7b192b3ba8e16daf3093794` implements validation; test commit `2f02390455be8ede4ffd5a1c65963e261cf416a9` adds regression coverage. CI for these commits is pending; tests are not yet claimed as passing.
+- Roadmap Phase 2I remains in progress: runtime/asset provenance, water structure, save/load round-trip, version consistency, and conflict-safe save still require separate verification. No Supabase migration or production data/RPC change.
