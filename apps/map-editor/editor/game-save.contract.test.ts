@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMap } from './map-document';
-import { parseGameSaveSnapshot, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from './game-save';
+import { assertSlotWorldMatchesCanonicalVersion, parseGameSaveSnapshot, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from './game-save';
 
 function map(id: string, mapType: 'world' | 'playable' = 'world') {
   const document = createMap(mapType);
@@ -173,5 +173,35 @@ describe('authoritative World selection for Save Slot', () => {
     const unrelated = map('unrelated-world');
     expect(resolveAuthoritativeWorldForSlot([canonical, unrelated], canonical, 'canonical-world')).toBe(canonical);
     expect(resolveAuthoritativeWorldForSlot([canonical, unrelated], unrelated, 'canonical-world')).toBe(canonical);
+  });
+});
+
+
+describe('Save Slot canonical World version integrity', () => {
+  const world = map('canonical-world');
+  const valid = {
+    slotWorld: world,
+    canonicalWorld: world,
+    slotVersionId: 'version-row-1',
+    canonicalVersionId: 'version-row-1',
+    slotVersionNumber: 7,
+    canonicalVersionNumber: 7,
+  };
+
+  it('accepts a slot whose World snapshot and version reference match', () => {
+    expect(() => assertSlotWorldMatchesCanonicalVersion(valid)).not.toThrow();
+  });
+
+  it('rejects missing or inconsistent version identity', () => {
+    expect(() => assertSlotWorldMatchesCanonicalVersion({ ...valid, slotVersionId: null }))
+      .toThrow('LOAD_SLOT_VERSION_MISMATCH');
+    expect(() => assertSlotWorldMatchesCanonicalVersion({ ...valid, canonicalVersionNumber: 6 }))
+      .toThrow('LOAD_SLOT_VERSION_MISMATCH');
+  });
+
+  it('rejects a slot World snapshot that differs from its canonical version', () => {
+    const editedWorld = { ...map('canonical-world'), name: 'Modified slot world' };
+    expect(() => assertSlotWorldMatchesCanonicalVersion({ ...valid, slotWorld: editedWorld }))
+      .toThrow('LOAD_SLOT_SNAPSHOT_MISMATCH');
   });
 });
