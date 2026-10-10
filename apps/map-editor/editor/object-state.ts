@@ -53,11 +53,31 @@ export function updateObjectTransform(document: MapDocument, layerId: string, ob
 
 export function duplicateObjects(document: MapDocument, layerId: string, objectIds: string[]): MapDocument {
   const layer = document.layers.find(l => l.id === layerId);
-  if (!layer || layer.locked) return document;
+  if (!layer || layer.kind !== 'objects' || layer.locked || !layer.visible) return document;
   const selected = layer.objects.filter(o => objectIds.includes(o.id));
   if (!selected.length) return document;
-  const copies = selected.map((o, index) => ({ ...o, id: `building-copy-${Date.now()}-${index}-${Math.random().toString(36).slice(2,7)}`, x: o.x + 1, y: o.y + 1 }));
-  if (copies.some(o => o.x + o.width > document.width || o.y + o.height > document.height)) return document;
+
+  // Place the duplicate group just beyond its own horizontal bounds. This
+  // avoids immediately overlapping the source when duplicating multi-cell props.
+  const selectedRight = Math.max(...selected.map(o => o.x + o.width));
+  const offsetX = selectedRight - Math.min(...selected.map(o => o.x)) + 1;
+  const safeLayerId = layerId.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'layer';
+  const copies = selected.map(o => {
+    const x = o.x + offsetX;
+    const safeSourceId = o.id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'object';
+    return { ...o, id: `duplicate-${safeLayerId}-${safeSourceId}-${x}-${o.y}`, x };
+  });
+
+  // Fail closed on bounds, duplicate IDs, overlap with existing objects, or
+  // overlap among the proposed copies. The source document remains untouched.
+  const existingIds = new Set(layer.objects.map(o => o.id));
+  if (copies.some(o => existingIds.has(o.id) || o.x < 0 || o.y < 0 || o.x + o.width > document.width || o.y + o.height > document.height)) return document;
+  const collides = (a: MapObject, b: MapObject) =>
+    a.x < b.x + b.width && a.x + a.width > b.x &&
+    a.y < b.y + b.height && a.y + a.height > b.y;
+  if (copies.some(copy => layer.objects.some(existing => collides(copy, existing)))) return document;
+  if (copies.some((copy, index) => copies.slice(index + 1).some(other => collides(copy, other)))) return document;
+
   return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: [...l.objects, ...copies] } : l) };
 }
 
