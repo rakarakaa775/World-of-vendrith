@@ -165,7 +165,7 @@ Memulai object authoring setelah terrain stabil.
 - [~] Rotation — inspector 90° controls added; browser interaction verification pending
 - [~] Scale — width/height transform controls added; bounds/overlap guard is in the domain helper
 - [~] Transform inspector — single-selected-object position/size/rotation controls added
-- [ ] Duplicate
+- [~] Duplicate — deterministic, bounds/collision-safe helper and inspector button wired; browser interaction check remains
 - [~] Multi-select — canvas selection state exists; inspector transform actions currently target the first selected object
 - [~] Scatter — seeded placement control wired; partial-placement count is reported in diagnostics
 - [~] Deterministic random placement — stable seed/position/layer/asset identity; latest CI verification pending
