@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStarterMap } from './map-document';
-import { placeBuilding, placePaletteAsset, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject } from './object-state';
+import { placeBuilding, placePaletteAsset, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject, scatterPaletteAssets } from './object-state';
 
 describe('selection and transform operations', () => {
   function doc() {
@@ -118,5 +118,51 @@ describe('level-aware palette asset placement', () => {
       family: 'playable-nature',
     });
     expect(second).toBe(first);
+  });
+});
+
+
+describe('deterministic collision-aware asset scatter', () => {
+  const asset = { id: 'forest-tree', label: 'Forest Tree', family: 'playable-nature' };
+
+  it('returns identical placements for the same seed and input document', () => {
+    const document = createStarterMap();
+    const first = scatterPaletteAssets(document, 'objects', asset, { count: 12, seed: 'forest-42' });
+    const second = scatterPaletteAssets(document, 'objects', asset, { count: 12, seed: 'forest-42' });
+    expect(first).toEqual(second);
+    expect(first.layers.find(layer => layer.id === 'objects')?.objects).toHaveLength(
+      (document.layers.find(layer => layer.id === 'objects')?.objects.length ?? 0) + 12,
+    );
+  });
+
+  it('does not overlap existing footprints or scatter cells', () => {
+    let document = createStarterMap();
+    document = placeBuilding(document, 'objects', { x: 3, y: 3 }, {
+      id: 'warehouse', label: 'Warehouse', category: 'warehouse', footprint: '3x3',
+      assetId: 'warehouse', width: 3, height: 3, collision: true,
+    });
+    const scattered = scatterPaletteAssets(document, 'objects', asset, {
+      count: 20, seed: 8, minDistance: 2,
+    });
+    const objects = scattered.layers.find(layer => layer.id === 'objects')!.objects;
+    const additions = objects.filter(object => object.id.startsWith('scatter-'));
+    expect(additions.length).toBeGreaterThan(0);
+    expect(additions.every(object => object.x >= 0 && object.y >= 0 && object.x < document.width && object.y < document.height)).toBe(true);
+    for (let i = 0; i < additions.length; i += 1) {
+      expect(additions[i].x >= 3 && additions[i].x < 6 && additions[i].y >= 3 && additions[i].y < 6).toBe(false);
+      for (let j = i + 1; j < additions.length; j += 1) {
+        expect(Math.abs(additions[i].x - additions[j].x) + Math.abs(additions[i].y - additions[j].y)).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  it('fails closed for invalid counts and locked layers', () => {
+    const document = createStarterMap();
+    expect(scatterPaletteAssets(document, 'objects', asset, { count: 0, seed: 1 })).toBe(document);
+    const locked = {
+      ...document,
+      layers: document.layers.map(layer => layer.id === 'objects' ? { ...layer, locked: true } : layer),
+    };
+    expect(scatterPaletteAssets(locked, 'objects', asset, { count: 4, seed: 1 })).toBe(locked);
   });
 });
