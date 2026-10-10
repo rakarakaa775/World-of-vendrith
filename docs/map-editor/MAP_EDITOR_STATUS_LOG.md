@@ -1,7 +1,7 @@
 ## 2026-10-10 — Save Slot Save → Load → Save regression
 
 - Added an in-memory Save → Load → Save contract regression for the combined World + Exterior snapshot, using the strict Save Slot parser between the two serializations.
-- Commit: `3f18d2f11c953fb678510f9d0dd4ffe42c066f06`. Exact-commit CI is pending verification.
+- Commit: `3f18d2f11c953fb678510f9d0dd4ffe42c066f06`. Verified by [GitHub Actions run 38062972977](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38062972977): TypeScript typecheck, Next.js build, 164/164 test files, and 833/833 tests passed.
 - This does not substitute for browser/session verification or persistent Save Slot testing. Save transaction atomicity and server-side snapshot/version enforcement remain open; production database/RPC were not changed.
 
 ## 2026-10-10 — Terrain water-gradient safety regression coverage
