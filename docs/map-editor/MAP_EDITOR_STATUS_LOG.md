@@ -1,3 +1,9 @@
+## 2026-10-10 — Save Slot Save → Load → Save regression
+
+- Added an in-memory Save → Load → Save contract regression for the combined World + Exterior snapshot, using the strict Save Slot parser between the two serializations.
+- Commit: `3f18d2f11c953fb678510f9d0dd4ffe42c066f06`. Exact-commit CI is pending verification.
+- This does not substitute for browser/session verification or persistent Save Slot testing. Save transaction atomicity and server-side snapshot/version enforcement remain open; production database/RPC were not changed.
+
 ## 2026-10-10 — Terrain water-gradient safety regression coverage
 
 - Added two tests in `apps/map-editor/editor/terrain-engine.test.ts`: non-WORLD maps with no land preserve their existing water bands, and a missing requested ground layer returns the original document unchanged.
