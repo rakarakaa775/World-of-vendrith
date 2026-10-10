@@ -169,3 +169,107 @@ export function placePaletteAsset(document: MapDocument, layerId: string, point:
   };
   return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: [...l.objects, placed] } : l) };
 }
+
+
+export type ScatterOptions = {
+  count: number;
+  seed: string | number;
+  /** Minimum Manhattan distance between placed cell origins. Defaults to 1. */
+  minDistance?: number;
+};
+
+/**
+ * Deterministically scatters one-cell palette assets onto currently unoccupied
+ * object-layer cells. It never mutates the input document and never overwrites
+ * an existing object. The seed and asset identity are included in stable IDs.
+ */
+export function scatterPaletteAssets(
+  document: MapDocument,
+  layerId: string,
+  asset: PaletteAssetPlacement,
+  options: ScatterOptions,
+): MapDocument {
+  const layer = document.layers.find(candidate => candidate.id === layerId);
+  if (
+    !layer ||
+    layer.kind !== 'objects' ||
+    layer.locked ||
+    !layer.visible ||
+    !Number.isInteger(options.count) ||
+    options.count <= 0 ||
+    !Number.isInteger(options.minDistance ?? 1) ||
+    (options.minDistance ?? 1) < 1 ||
+    !Number.isInteger(document.width) ||
+    !Number.isInteger(document.height) ||
+    document.width <= 0 ||
+    document.height <= 0
+  ) return document;
+
+  let seedText = String(options.seed);
+  if (!seedText.length) seedText = '0';
+  let state = 2166136261;
+  for (let i = 0; i < seedText.length; i += 1) {
+    state ^= seedText.charCodeAt(i);
+    state = Math.imul(state, 16777619);
+  }
+  // xorshift32 requires a non-zero state.
+  if (state === 0) state = 0x6d2b79f5;
+  const random = () => {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    return (state >>> 0) / 0x100000000;
+  };
+
+  const occupied = layer.objects.map(object => ({
+    x: object.x, y: object.y, width: object.width, height: object.height,
+  }));
+  const positions: GridPoint[] = [];
+  const minDistance = options.minDistance ?? 1;
+  const maxAttempts = Math.max(100, options.count * document.width * document.height * 4);
+  let attempts = 0;
+
+  while (positions.length < options.count && attempts < maxAttempts) {
+    attempts += 1;
+    const point = {
+      x: Math.floor(random() * document.width),
+      y: Math.floor(random() * document.height),
+    };
+    if (occupied.some(object =>
+      point.x >= object.x && point.x < object.x + object.width &&
+      point.y >= object.y && point.y < object.y + object.height
+    )) continue;
+    if (positions.some(existing =>
+      Math.abs(existing.x - point.x) + Math.abs(existing.y - point.y) < minDistance
+    )) continue;
+    positions.push(point);
+  }
+
+  if (positions.length === 0) return document;
+  const family = asset.family;
+  const kind: MapObject['kind'] = family.startsWith('region-') ? 'poi' :
+    family.includes('building') ? 'building' :
+    family.includes('decoration') || family.includes('nature') || family.includes('interior-') ? 'decoration' : 'poi';
+  const collision = family.includes('building') || family === 'interior-wall' || family === 'interior-door';
+  const safeSeed = seedText.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'seed';
+  const additions: MapObject[] = positions.map((point, index) => ({
+    id: `scatter-${safeSeed}-${index}-${asset.id}`,
+    kind,
+    category: asset.id,
+    x: point.x,
+    y: point.y,
+    width: 1,
+    height: 1,
+    assetId: asset.registryId ?? asset.id,
+    rotation: 0,
+    zIndex: 0,
+    collision,
+  }));
+
+  return {
+    ...document,
+    layers: document.layers.map(candidate => candidate.id === layerId
+      ? { ...candidate, objects: [...candidate.objects, ...additions] }
+      : candidate),
+  };
+}
