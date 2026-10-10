@@ -82,3 +82,22 @@ Direct inspection of the Supabase functions:
 - `public.map_editor_save_slot_v1(uuid, smallint, text, uuid, integer, jsonb)`
 
 Date: 2026-09-16
+
+
+## Frontend follow-up — 2026-10-10
+
+The active V4 consumer now performs these checks before replacing editor state:
+
+- Parses current Game Save v1 and legacy Map Document v1 envelopes, enforcing authoritative World ID/type and exterior map type.
+- Requires the slot's `version_id` and queries the referenced `map_versions` row for the authoritative World map.
+- Verifies referenced version ID/number and compares the slot's embedded World document with the canonical version document.
+- Performs slot-list refresh before changing editor map state, so a refresh failure does not occur after the map replacement.
+- Reconciles loaded World/Exterior maps so stale World/Exterior documents do not survive a legacy World-only load.
+
+The document comparison sorts object keys recursively, avoiding false mismatches caused only by JSON key ordering. Regression tests cover missing/inconsistent version references, mismatched snapshot contents, key-order differences, legacy load reconciliation, and unrelated World identity. CI run `38061931743` passed TypeScript, Next.js build, and Vitest for the canonical version check; later key-order changes are tracked by the newest workflow run on the branch.
+
+### Remaining gaps
+
+- Database RPC still does not enforce the snapshot/version relationship itself. Frontend checks reduce risk but cannot replace server-side integrity validation.
+- `saveToSlot` currently commits World/Exterior versions before calling the Save Slot RPC. If the slot RPC fails, those canonical versions may already have changed. True all-or-nothing save requires a reviewed, tested server-side transaction; do not apply a production migration without isolated DB tests and explicit approval.
+- No real browser/session round-trip or live slot mutation was performed during this source/CI work.
