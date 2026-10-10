@@ -1,3 +1,10 @@
+## 2026-10-10 — Terrain water-gradient safety regression coverage
+
+- Added two tests in `apps/map-editor/editor/terrain-engine.test.ts`: non-WORLD maps with no land preserve their existing water bands, and a missing requested ground layer returns the original document unchanged.
+- This is regression coverage for existing safety boundaries; no terrain algorithm, active Save/Load path, asset binding, RPC, or production data was changed.
+- Commit: `e6e349b32d2adcceac0774e1af9a7c7e95157df1`. CI for this exact commit is pending; do not treat these tests as passed until the matching GitHub Actions run succeeds.
+- Terrain roadmap is NOT complete: Phase 2D/2E still require browser runtime verification, and object placement (2F), geography (2G), cartography (2H), validation/publish readiness (2I), performance (2J), and the final exit gate remain open.
+
 ## 2026-10-10 — Save Slot stringified envelope regression CI verified
 
 - Verified GitHub Actions Map Editor CI run [38054500494](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38054500494) on feature-branch commit `6a142a6c78b3adaf6862fe7f9127236d3d32bd76`.
