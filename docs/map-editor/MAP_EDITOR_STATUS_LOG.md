@@ -1,3 +1,10 @@
+## 2026-10-10 — Expand unsupported Save Slot envelope regressions
+
+- Added tests rejecting legacy map-document v2, unknown snapshot schemas, and an array used as an Exterior payload.
+- Test commit: `ad4b16b8905e8aac1e97ab407cdbd7795302cdef`.
+- These are committed regression cases only; the exact commit has not yet been verified by CI or executed locally.
+- No Supabase branch, migration, RPC, grant, or production row was changed.
+
 ## 2026-10-10 — Extend Save Slot parser malformed-input coverage
 
 - Added regressions for JSON arrays and a current Game Save envelope missing the required `exterior` key.
