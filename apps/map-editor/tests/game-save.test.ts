@@ -124,6 +124,38 @@ describe("Save Slot parser malformed payload regression", () => {
     }, "missing-exterior-key")).toThrow(/incomplete/i);
   });
 
+  it("rejects legacy map-document snapshots with unsupported versions", () => {
+    const world = createMap("world");
+    world.id = "legacy-version-world";
+
+    expect(() => parseGameSaveSlotSnapshot({
+      schema: "vandrith.map-document",
+      version: 2,
+      document: world,
+    }, "legacy-version-world")).toThrow(/unsupported Save Slot snapshot schema/i);
+  });
+
+  it("rejects unknown Save Slot snapshot schemas", () => {
+    expect(() => parseGameSaveSlotSnapshot({
+      schema: "vandrith.unknown-save",
+      version: 1,
+      world: createMap("world"),
+      exterior: null,
+    }, "world-1")).toThrow(/unsupported Save Slot snapshot schema/i);
+  });
+
+  it("rejects an exterior array instead of accepting it as a map document", () => {
+    const world = createMap("world");
+    world.id = "array-exterior-world";
+
+    expect(() => parseGameSaveSlotSnapshot({
+      schema: "vandrith.game-save",
+      version: 1,
+      world,
+      exterior: [],
+    }, "array-exterior-world")).toThrow(/invalid/i);
+  });
+
   it("rejects legacy snapshots whose World identity does not match the authoritative map", () => {
     const world = createMap("world");
     world.id = "legacy-world-a";
