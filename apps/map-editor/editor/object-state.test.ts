@@ -155,7 +155,7 @@ describe('deterministic collision-aware asset scatter', () => {
     const objects = second.layers.find(layer => layer.id === 'objects')!.objects;
     const ids = objects.map(object => object.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(objects.filter(object => object.id.startsWith('scatter-repeat-me-'))).toHaveLength(16);
+    expect(objects.filter(object => object.id.startsWith('scatter-objects-repeat-me-'))).toHaveLength(16);
   });
 
   it('does not overlap existing footprints or scatter cells', () => {
