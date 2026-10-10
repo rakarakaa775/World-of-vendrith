@@ -13,7 +13,7 @@ import { copySelection, pasteSelection, moveSelection, replaceSelection, type Se
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
-import { deleteObject, placePaletteAsset, scatterPaletteAssets, updateObjectTransform, type PaletteAssetPlacement } from "../editor/object-state";
+import { deleteObject, duplicateObjects, placePaletteAsset, scatterPaletteAssets, updateObjectTransform, type PaletteAssetPlacement } from "../editor/object-state";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -278,6 +278,22 @@ export function EditorShell({
     setPaintDiagnostic(`objects deleted: ${selectedObjectIds.length}`);
   };
 
+  const handleDuplicateSelectedObjects = () => {
+    if (!selectedObjectLayer || !selectedObjectIds.length) return;
+    const current = documentRef.current;
+    const next = duplicateObjects(current, selectedObjectLayer.id, selectedObjectIds);
+    if (next === current) {
+      setPaintDiagnostic("duplicate rejected: no safe space to the right of the selected objects");
+      return;
+    }
+    const currentIds = new Set(selectedObjectLayer.objects.map(object => object.id));
+    const copies = next.layers.find(layer => layer.id === selectedObjectLayer.id)?.objects
+      .filter(object => !currentIds.has(object.id)).map(object => object.id) ?? [];
+    commit(next);
+    setSelectedObjectIds(copies);
+    setPaintDiagnostic(`objects duplicated: ${copies.length}`);
+  };
+
   const chooseLayer = (layerId: string) => commit(setActiveLayer(documentRef.current, layerId));
   const toggleLayerVisibility = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
     visible: !documentRef.current.layers.find(layer => layer.id === layerId)?.visible,
@@ -462,7 +478,8 @@ export function EditorShell({
               <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
                 <button type="button" onClick={() => handleSelectedObjectTransform({ rotation: selectedObject.rotation - 90 })} aria-label="Rotate object counterclockwise">↶ 90°</button>
                 <button type="button" onClick={() => handleSelectedObjectTransform({ rotation: selectedObject.rotation + 90 })} aria-label="Rotate object clockwise">↷ 90°</button>
-                <button type="button" onClick={handleDeleteSelectedObjects} style={{ marginLeft: "auto" }}>Delete selected</button>
+                <button type="button" onClick={handleDuplicateSelectedObjects} aria-label="Duplicate selected objects">Duplicate</button>
+                <button type="button" onClick={handleDeleteSelectedObjects}>Delete selected</button>
               </div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 5 }}>Rotation: {selectedObject.rotation}° · Collision: {selectedObject.collision ? "on" : "off"}</div>
             </>}
