@@ -168,7 +168,7 @@ export function placePaletteAsset(document: MapDocument, layerId: string, point:
     // The target cell and layer make placement IDs stable across replays.
     id: `asset-${safeLayerId}-${safeAssetId}-${point.x}-${point.y}`,
     kind, category: asset.id, x: point.x, y: point.y, width: 1, height: 1,
-    assetId: asset.registryId ?? asset.id, rotation: 0, zIndex: 0, collision,
+    assetId: asset.registryId ?? asset.id, assetName: asset.label, rotation: 0, zIndex: 0, collision,
   };
   return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: [...l.objects, placed] } : l) };
 }
@@ -267,6 +267,7 @@ export function scatterPaletteAssets(
     width: 1,
     height: 1,
     assetId: asset.registryId ?? asset.id,
+    assetName: asset.label,
     rotation: 0,
     zIndex: 0,
     collision,
