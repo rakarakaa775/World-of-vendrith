@@ -29,6 +29,41 @@ describe("water depth gradient", () => {
     expect(resultGround.cells.every(cell => cell.tileId === "deepwater")).toBe(true);
   });
 
+
+  it("does not collapse water bands on a non-WORLD map with no land", () => {
+    const base = createMap("playable");
+    const ground = base.layers.find(layer => layer.id === "ground")!;
+    const document = {
+      ...base,
+      layers: base.layers.map(layer =>
+        layer.id === ground.id
+          ? {
+              ...layer,
+              cells: layer.cells.map((_, index) =>
+                index === 0 ? { tileId: "water" } :
+                index === 1 ? { tileId: "brackish" } :
+                index === 2 ? { tileId: "deepwater2" } :
+                { tileId: "deepwater" },
+              ),
+            }
+          : layer,
+      ),
+    };
+
+    const before = JSON.stringify(document);
+    const result = applyWaterDepthGradient(document, ground.id);
+    expect(result).toBe(document);
+    expect(JSON.stringify(result)).toBe(before);
+  });
+
+  it("leaves the document unchanged when the requested ground layer is missing", () => {
+    const document = createMap("world");
+    const before = JSON.stringify(document);
+
+    expect(applyWaterDepthGradient(document, "missing-ground")).toBe(document);
+    expect(JSON.stringify(document)).toBe(before);
+  });
+
   it("handles a large water body deterministically without leaving invalid cells", () => {
     const base = createMap("world");
     const width = 64;
