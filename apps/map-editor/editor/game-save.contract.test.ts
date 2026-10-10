@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMap } from './map-document';
-import { parseGameSaveSnapshot, serializeGameSaveSnapshot } from './game-save';
+import { parseGameSaveSnapshot, parseGameSaveSlotSnapshot, serializeGameSaveSnapshot } from './game-save';
 
 function map(id: string, mapType: 'world' | 'playable' = 'world') {
   const document = createMap(mapType);
@@ -63,5 +63,66 @@ describe('game save contract', () => {
       world,
       exterior: null,
     })).toBeNull();
+  });
+});
+
+
+describe('game save slot loading contract', () => {
+  const worldId = 'world-1';
+
+  it('accepts a valid combined world and exterior slot snapshot', () => {
+    const world = map(worldId);
+    const exterior = map('exterior-1', 'playable');
+    const snapshot = serializeGameSaveSnapshot(world, exterior);
+
+    expect(parseGameSaveSlotSnapshot(snapshot, worldId)).toEqual({
+      format: 'game-save-v1',
+      world,
+      exterior,
+    });
+  });
+
+  it('accepts a legacy single-map world snapshot without fabricating an exterior', () => {
+    const world = map(worldId);
+    const legacy = {
+      schema: 'vandrith.map-document',
+      version: 1,
+      document: world,
+    };
+
+    expect(parseGameSaveSlotSnapshot(legacy, worldId)).toEqual({
+      format: 'legacy-map-document-v1',
+      world,
+      exterior: null,
+    });
+  });
+
+  it('rejects a world snapshot whose identity or map type is wrong', () => {
+    expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(map('other-world'), null), worldId))
+      .toThrow('Loaded map identity does not match requested map');
+
+    const region = map(worldId);
+    region.mapType = 'region';
+    region.parentMapId = 'parent-world';
+    expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(region, null), worldId))
+      .toThrow('LOAD_SLOT_IDENTITY_MISMATCH: World snapshot is not a World Map');
+  });
+
+  it('rejects an interior map where an exterior is required', () => {
+    const world = map(worldId);
+    const interior = createMap('playable', worldId, 'interior', worldId);
+    interior.id = 'interior-1';
+
+    expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(world, interior), worldId))
+      .toThrow('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not an exterior playable map');
+  });
+
+  it('rejects malformed and unsupported slot snapshots', () => {
+    expect(() => parseGameSaveSlotSnapshot(null, worldId))
+      .toThrow('Save Slot snapshot must be an object');
+    expect(() => parseGameSaveSlotSnapshot({ schema: 'vandrith.game-save', version: 2 }, worldId))
+      .toThrow('Unsupported Save Slot snapshot schema');
+    expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(map(worldId), null), ''))
+      .toThrow('Expected authoritative World Map ID is required');
   });
 });
