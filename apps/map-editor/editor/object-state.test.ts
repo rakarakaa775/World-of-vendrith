@@ -113,6 +113,8 @@ describe('level-aware palette asset placement', () => {
     });
     expect(next.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.assetId)
       .toBe('11111111-1111-4111-8111-111111111111');
+    expect(next.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.assetName)
+      .toBe('Approved Tree');
   });
 
   it('does not place an asset on a blocked object cell', () => {
