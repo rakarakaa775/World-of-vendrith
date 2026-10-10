@@ -37,6 +37,7 @@ export function updateObjectTransform(document: MapDocument, layerId: string, ob
   if (!layer || layer.locked) return document;
   const object = layer.objects.find(o => o.id === objectId);
   if (!object) return document;
+  if (Object.values(changes).some(value => value !== undefined && !Number.isFinite(value))) return document;
   const next = {
     ...object,
     x: changes.x ?? object.x,
@@ -69,6 +70,7 @@ export function updateObjectsTransform(
   const selected = layer.objects.filter(object => objectIds.includes(object.id));
   const primary = selected.find(object => object.id === primaryObjectId);
   if (!primary || selected.length === 0) return document;
+  if (Object.values(changes).some(value => value !== undefined && !Number.isFinite(value))) return document;
   if (selected.length > 1 && (changes.width !== undefined || changes.height !== undefined)) return document;
 
   const deltaX = changes.x === undefined ? 0 : changes.x - primary.x;
