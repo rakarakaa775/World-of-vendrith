@@ -99,7 +99,7 @@ describe('game save slot loading contract', () => {
 
   it('rejects a world snapshot whose identity or map type is wrong', () => {
     expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(map('other-world'), null), worldId))
-      .toThrow('Loaded map identity does not match requested map');
+      .toThrow('LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map');
 
     const region = map(worldId);
     region.mapType = 'region';
@@ -121,7 +121,7 @@ describe('game save slot loading contract', () => {
     expect(() => parseGameSaveSlotSnapshot(null, worldId))
       .toThrow('Save Slot snapshot must be an object');
     expect(() => parseGameSaveSlotSnapshot({ schema: 'vandrith.game-save', version: 2 }, worldId))
-      .toThrow('Unsupported Save Slot snapshot schema');
+      .toThrow('Unsupported Game Save snapshot version');
     expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(map(worldId), null), ''))
       .toThrow('Expected authoritative World Map ID is required');
   });
