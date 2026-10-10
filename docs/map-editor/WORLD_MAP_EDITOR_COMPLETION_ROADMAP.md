@@ -166,9 +166,9 @@ Memulai object authoring setelah terrain stabil.
 - [~] Scale — width/height transform controls added; bounds/overlap guard is in the domain helper
 - [~] Transform inspector — single-selected-object position/size/rotation controls added
 - [~] Duplicate — deterministic, bounds/collision-safe helper and inspector button wired; browser interaction check remains
-- [~] Multi-select — inspector X/Y translate the group and rotation applies a shared delta; resizing remains single-object only
+- [~] Multi-select — inspector X/Y translate the group and rotation applies a shared delta; atomic bounds/collision regression tests pass; resizing remains single-object only
 - [~] Scatter — seeded placement control wired; partial-placement count is reported in diagnostics
-- [~] Deterministic random placement — stable seed/position/layer/asset identity; latest CI verification pending
+- [~] Deterministic random placement — stable seed/position/layer/asset identity; CI verified
 - [~] Collision-aware placement — core avoids existing object footprints and applies minimum Manhattan spacing; UI wiring is partial
 - [~] Object bounds/debug — existing debug overlay toggle exists; object-specific visual verification remains
 - [~] Object metadata/provenance — stable asset ID/name stored; approved registry/license/source provenance remains
@@ -180,13 +180,19 @@ engine foundation.
 ### Current implementation note
 
 The editor now exposes a temporary semantic object palette, click-to-place,
-seed/count/minimum-distance scatter controls, and a single-object transform
-inspector with delete and 90-degree rotation actions. Placement/scatter IDs are
-deterministic and include layer identity; objects preserve asset labels. The
-palette entries are editor prototypes, not claims of approved asset-registry
-availability. Drag/drop, duplicate, full multi-object transforms, approved
-registry/license provenance, browser interaction checks, and save/load round-trip
-verification remain open. Latest CI runs are pending.
+seed/count/minimum-distance scatter controls, and a transform inspector with
+delete, duplicate, and 90-degree rotation actions. X/Y inspector changes translate
+a multi-selection atomically relative to the primary object; rotation applies a
+shared delta, while resizing remains single-object only. Operations fail closed
+when bounds or collision checks fail. Placement/scatter IDs are deterministic
+and include layer identity; objects preserve asset labels. CI on commit
+`ba023983db57d9e6490977b504f8c50a4b01386a` passed TypeScript, Next.js build,
+and Vitest (latest run: 38059438543). Regression coverage includes group
+transform/collision rejection and an in-memory serialization round trip for
+object transforms and asset provenance. The palette entries remain editor
+prototypes, not approved registry entries. Drag/drop, approved registry/license
+provenance, browser interaction checks, and a true persistent save/load round trip
+remain open.
 
 ### Exit gate
 Object dapat ditempatkan, disimpan, dimuat ulang, dipilih, diubah, dan
