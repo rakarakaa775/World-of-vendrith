@@ -452,8 +452,6 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
       }
       const exteriorDocument = parsed.exterior;
-      const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
-
       setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
       setActiveMapId(worldDocument.id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
