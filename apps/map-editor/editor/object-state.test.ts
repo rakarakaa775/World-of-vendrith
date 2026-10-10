@@ -53,7 +53,7 @@ describe('selection and transform operations', () => {
     const second = { ...first, id: 'group-b', x: 3, y: 1 };
     const blocker = { ...first, id: 'blocker', x: 6, y: 1 };
     const source = { ...value, layers: value.layers.map(candidate => candidate.id === layer.id ? { ...candidate, objects: [first, second, blocker] } : candidate) };
-    expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { x: 5 })).toBe(source);
+    expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { x: 6 })).toBe(source);
     expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { x: value.width })).toBe(source);
   });
 
