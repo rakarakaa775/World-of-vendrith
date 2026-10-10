@@ -15,7 +15,7 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
-import { parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, serializeGameSaveSnapshot } from "../editor/game-save";
+import { parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
 
@@ -308,10 +308,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       let worldDocument = worldRemote.document;
       let worldVersion = Number(worldRemote.result.version_number) || 0;
 
-      const localWorldSource = maps.find(m => m.mapType === "world" && m.id === AUTHORITATIVE_WORLD_MAP_ID) || (active.mapType === "world" ? active : null);
-      const localWorld = localWorldSource
-        ? { ...localWorldSource, id: AUTHORITATIVE_WORLD_MAP_ID, mapType: "world" as const }
-        : null;
+      const localWorld = resolveAuthoritativeWorldForSlot(maps, active, AUTHORITATIVE_WORLD_MAP_ID);
       if (localWorld && JSON.stringify(serializeResolvedMapSnapshot(localWorld)) !== JSON.stringify(serializeResolvedMapSnapshot(worldDocument))) {
         const worldSaved = await saveWithConflictDetection(client, localWorld, worldDocument, worldVersion);
         if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
