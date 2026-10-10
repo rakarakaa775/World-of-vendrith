@@ -1,3 +1,10 @@
+## 2026-10-10 — Harden v1 crash recovery reads
+
+- **Type:** Recovery integrity and availability hardening.
+- **Details:** The active v1 crash recovery journal now catches storage access and JSON parsing failures, validates the embedded MapDocument ID against the requested map ID, and makes `has(mapId)` reflect validated readable recovery rather than key existence.
+- **Tests:** Added regressions for embedded identity mismatch, malformed recovery JSON, and storage access throwing. The exact-commit CI result must be checked before claiming these tests passed.
+- **Scope:** No save RPC, database, terrain semantics, or v2 recovery integration changed.
+
 ## 2026-10-10 — Save Slot Save → Load → Save round-trip regression
 
 - **Type:** Save/Load regression-test coverage.
