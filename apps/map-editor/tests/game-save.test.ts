@@ -109,6 +109,21 @@ describe("Save Slot parser malformed payload regression", () => {
     )).toThrow(/exterior playable map/i);
   });
 
+  it("rejects JSON arrays instead of treating them as snapshot objects", () => {
+    expect(() => parseGameSaveSlotSnapshot("[]", "world-1")).toThrow(/must be an object/i);
+  });
+
+  it("rejects a current Game Save envelope when the exterior key is absent", () => {
+    const world = createMap("world");
+    world.id = "missing-exterior-key";
+
+    expect(() => parseGameSaveSlotSnapshot({
+      schema: "vandrith.game-save",
+      version: 1,
+      world,
+    }, "missing-exterior-key")).toThrow(/incomplete/i);
+  });
+
   it("rejects legacy snapshots whose World identity does not match the authoritative map", () => {
     const world = createMap("world");
     world.id = "legacy-world-a";
