@@ -58,6 +58,20 @@ describe("Save Slot snapshot format dispatch", () => {
     expect(parsed.exterior).toBeNull();
   });
 
+  it("loads a JSON-stringified current Game Save v1 envelope", () => {
+    const world = createMap("world");
+    world.id = "stringified-world";
+    const exterior = createMap("playable", "region-1", "exterior");
+    exterior.id = "stringified-exterior";
+    const snapshot = JSON.stringify(serializeGameSaveSnapshot(world, exterior));
+
+    const parsed = parseGameSaveSlotSnapshot(snapshot, "stringified-world");
+
+    expect(parsed.format).toBe("game-save-v1");
+    expect(parsed.world.id).toBe("stringified-world");
+    expect(parsed.exterior?.id).toBe("stringified-exterior");
+  });
+
   it("rejects mismatched world identity and unsupported schema versions", () => {
     const world = createMap("world");
     world.id = "world-a";
