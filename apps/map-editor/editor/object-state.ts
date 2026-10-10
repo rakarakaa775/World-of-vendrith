@@ -162,8 +162,11 @@ export function placePaletteAsset(document: MapDocument, layerId: string, point:
   const family = asset.family;
   const kind: MapObject["kind"] = family.startsWith("region-") ? "poi" : family.includes("building") ? "building" : family.includes("decoration") || family.includes("nature") || family.includes("interior-") ? "decoration" : "poi";
   const collision = family.includes("building") || family === "interior-wall" || family === "interior-door";
+  const safeAssetId = asset.id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'asset';
+  const safeLayerId = layerId.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'layer';
   const placed: MapObject = {
-    id: `asset-${asset.id}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+    // The target cell and layer make placement IDs stable across replays.
+    id: `asset-${safeLayerId}-${safeAssetId}-${point.x}-${point.y}`,
     kind, category: asset.id, x: point.x, y: point.y, width: 1, height: 1,
     assetId: asset.registryId ?? asset.id, rotation: 0, zIndex: 0, collision,
   };
