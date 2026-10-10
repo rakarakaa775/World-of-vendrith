@@ -303,3 +303,5 @@
 - Migration implementation and isolated RPC regression tests remain blocked on a repository workspace with Supabase CLI and a safe isolated database workflow. Do not bypass the CLI migration workflow, create a replacement branch, or apply a production migration before review and explicit approval.
 
 | 2026-10-10 | Map publish-readiness validation hardened | Phase 2I — Validation & Publish Readiness | Added terrain-ID, layer cell-count, object-layer, integer-grid geometry, and object-bounds checks plus focused regression tests. CI pending; no production DB/RPC changes. Commits `3371a9c6125834bca7b192b3ba8e16daf3093794`, `2f02390455be8ede4ffd5a1c65963e261cf416a9`. |
+
+| 2026-10-10 | Deterministic collision-aware scatter added | Phase 2F — Object / Asset Placement | Added seeded scatter with stable IDs, collision/spacing checks and regression tests. CI pending; UI and save/load round-trip remain open. No production DB/RPC changes. Commits `22cd8b2025d5cc8cb78251fdca314fe7336bdcfa`, `b32a64e043584820e50c0b8cf789630c07b1e956`. |
