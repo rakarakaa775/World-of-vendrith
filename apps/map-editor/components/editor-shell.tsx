@@ -31,11 +31,11 @@ type Props = {
 
 const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper", "Building"] as const;
 const OBJECT_PALETTE: PaletteAssetPlacement[] = [
-  { id: "tree-oak", label: "Oak Tree", family: "playable-nature", registryId: "nature/tree-oak" },
-  { id: "rock-small", label: "Small Rock", family: "playable-nature", registryId: "nature/rock-small" },
-  { id: "flower-wild", label: "Wild Flowers", family: "playable-nature", registryId: "nature/flower-wild" },
-  { id: "house-small", label: "Small House", family: "region-building", registryId: "region/house-small" },
-  { id: "poi-marker", label: "Point of Interest", family: "region-poi", registryId: "region/poi-marker" },
+  { id: "tree-oak", label: "Oak Tree", family: "playable-nature" },
+  { id: "rock-small", label: "Small Rock", family: "playable-nature" },
+  { id: "flower-wild", label: "Wild Flowers", family: "playable-nature" },
+  { id: "house-small", label: "Small House", family: "region-building" },
+  { id: "poi-marker", label: "Point of Interest", family: "region-poi" },
 ];
 const BRUSH_PRESETS = [
   { name: "Fine", size: 1 },
