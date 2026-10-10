@@ -135,6 +135,16 @@ describe('deterministic collision-aware asset scatter', () => {
     );
   });
 
+  it('keeps IDs unique when the same scatter seed is applied repeatedly', () => {
+    const document = createStarterMap();
+    const first = scatterPaletteAssets(document, 'objects', asset, { count: 8, seed: 'repeat-me' });
+    const second = scatterPaletteAssets(first, 'objects', asset, { count: 8, seed: 'repeat-me' });
+    const objects = second.layers.find(layer => layer.id === 'objects')!.objects;
+    const ids = objects.map(object => object.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(objects.filter(object => object.id.startsWith('scatter-repeat-me-'))).toHaveLength(16);
+  });
+
   it('does not overlap existing footprints or scatter cells', () => {
     let document = createStarterMap();
     document = placeBuilding(document, 'objects', { x: 3, y: 3 }, {
