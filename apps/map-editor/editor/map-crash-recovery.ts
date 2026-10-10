@@ -20,6 +20,22 @@ export function createCrashRecoveryJournal(
 ): CrashRecoveryJournal {
   const keyFor = (mapId: string) => `${keyPrefix}.${mapId}`;
 
+  function readState(mapId: string): MapDocument | null {
+    try {
+      const raw = storage.getItem(keyFor(mapId));
+      if (!raw) return null;
+      const entry = JSON.parse(raw) as Partial<RecoveryJournalEntry>;
+      if (entry.mapId !== mapId || typeof entry.snapshot !== 'string') return null;
+      // The envelope key alone is not authoritative: the embedded document
+      // must also match the requested map ID before recovery can be adopted.
+      return parseMapDocument(entry.snapshot, mapId);
+    } catch {
+      // Storage can throw in restricted/private browsing contexts. Recovery
+      // is best-effort and must not prevent the editor from opening.
+      return null;
+    }
+  }
+
   return {
     write(document) {
       const entry: RecoveryJournalEntry = {
@@ -29,22 +45,13 @@ export function createCrashRecoveryJournal(
       };
       storage.setItem(keyFor(document.id), JSON.stringify(entry));
     },
-    read(mapId) {
-      const raw = storage.getItem(keyFor(mapId));
-      if (!raw) return null;
-      try {
-        const entry = JSON.parse(raw) as RecoveryJournalEntry;
-        if (entry.mapId !== mapId || typeof entry.snapshot !== 'string') return null;
-        return parseMapDocument(entry.snapshot);
-      } catch {
-        return null;
-      }
-    },
+    read: readState,
     clear(mapId) {
       storage.removeItem(keyFor(mapId));
     },
     has(mapId) {
-      return storage.getItem(keyFor(mapId)) !== null;
+      // Report a recovery only when it is parseable and identity-safe.
+      return readState(mapId) !== null;
     },
   };
 }
