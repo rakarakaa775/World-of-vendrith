@@ -418,13 +418,14 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         throw new Error("Authoritative durable version is invalid");
       }
 
+      // Finish every fallible read before replacing the editor document.
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setMaps([normalizeWorldCanvas(document)]);
       setActiveMapId(normalizeWorldCanvas(document).id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
       setBaseDocument(normalizeWorldCanvas(document));
       setVersion(loadedVersion);
       setLoadRevision(v => v + 1);
-      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setStatus(
         directReadError
           ? `Loaded Latest · authoritative fallback · version ${loadedVersion}`
@@ -449,13 +450,14 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
       }
       const exteriorDocument = parsed.exterior;
+      // Refresh can fail; complete it before committing the loaded document to UI state.
+      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
       setActiveMapId(worldDocument.id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
       setBaseDocument(worldDocument);
       setVersion(Number(result.version_number) || 1);
       setLoadRevision(v => v + 1);
-      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setShowSlots(false);
       setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · ${exteriorDocument ? "World + Exterior" : "World only"}`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
