@@ -87,6 +87,7 @@ describe('level-aware palette asset placement', () => {
       kind: 'decoration',
       category: 'tree',
       assetId: 'tree',
+      assetName: 'Tree',
       x: 2,
       y: 2,
       collision: false,
