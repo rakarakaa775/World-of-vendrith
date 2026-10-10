@@ -305,3 +305,11 @@
 | 2026-10-10 | Map publish-readiness validation hardened | Phase 2I — Validation & Publish Readiness | Added terrain-ID, layer cell-count, object-layer, integer-grid geometry, and object-bounds checks plus focused regression tests. CI pending; no production DB/RPC changes. Commits `3371a9c6125834bca7b192b3ba8e16daf3093794`, `2f02390455be8ede4ffd5a1c65963e261cf416a9`. |
 
 | 2026-10-10 | Deterministic collision-aware scatter added | Phase 2F — Object / Asset Placement | Added seeded scatter with stable IDs, collision/spacing checks and regression tests. CI pending; UI and save/load round-trip remain open. No production DB/RPC changes. Commits `22cd8b2025d5cc8cb78251fdca314fe7336bdcfa`, `b32a64e043584820e50c0b8cf789630c07b1e956`. |
+
+
+## 2026-10-10 — Active Save Slot canonical version guard
+
+- Load Slot now queries the canonical World version referenced by the slot, verifies version ID/number, and rejects embedded World snapshots that differ from the canonical document before editor-state replacement.
+- Added a recursive key-order-independent snapshot comparison and regression test. Earlier CI run 38061931743 passed typecheck/build/Vitest; latest comparison/test CI is 38062605643 and must finish before claiming latest-head success.
+- Save Slot refuses to relabel an unrelated World as authoritative; Load Slot refreshes slot metadata before committing UI state and removes stale World/Exterior documents when restoring legacy World-only saves.
+- Remaining: RPC-side validation and atomic World+Exterior+slot save require isolated DB tests and explicit approval; no production database changes. Real browser/session round-trip remains open.
