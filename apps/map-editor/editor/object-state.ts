@@ -51,6 +51,58 @@ export function updateObjectTransform(document: MapDocument, layerId: string, ob
   return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: l.objects.map(o => o.id === objectId ? next : o) } : l) };
 }
 
+/**
+ * Applies inspector transforms to a selected group atomically. X/Y values are
+ * interpreted relative to the primary selected object and translate the whole
+ * group by the same delta. Rotation applies the same delta to every selection.
+ * Width/height changes are intentionally single-object only.
+ */
+export function updateObjectsTransform(
+  document: MapDocument,
+  layerId: string,
+  objectIds: string[],
+  primaryObjectId: string,
+  changes: TransformOptions,
+): MapDocument {
+  const layer = document.layers.find(candidate => candidate.id === layerId);
+  if (!layer || layer.kind !== 'objects' || layer.locked || !layer.visible) return document;
+  const selected = layer.objects.filter(object => objectIds.includes(object.id));
+  const primary = selected.find(object => object.id === primaryObjectId);
+  if (!primary || selected.length === 0) return document;
+  if (selected.length > 1 && (changes.width !== undefined || changes.height !== undefined)) return document;
+
+  const deltaX = changes.x === undefined ? 0 : changes.x - primary.x;
+  const deltaY = changes.y === undefined ? 0 : changes.y - primary.y;
+  const deltaRotation = changes.rotation === undefined ? 0 : changes.rotation - primary.rotation;
+  const selectedIds = new Set(selected.map(object => object.id));
+  const next = selected.map(object => ({
+    ...object,
+    x: object.x + deltaX,
+    y: object.y + deltaY,
+    width: changes.width === undefined ? object.width : Math.max(1, Math.round(changes.width)),
+    height: changes.height === undefined ? object.height : Math.max(1, Math.round(changes.height)),
+    rotation: ((object.rotation + deltaRotation) % 360 + 360) % 360,
+  }));
+
+  const collides = (a: MapObject, b: MapObject) =>
+    a.x < b.x + b.width && a.x + a.width > b.x &&
+    a.y < b.y + b.height && a.y + a.height > b.y;
+  if (next.some(object =>
+    object.x < 0 || object.y < 0 ||
+    object.x + object.width > document.width ||
+    object.y + object.height > document.height
+  )) return document;
+  if (next.some((object, index) => next.slice(index + 1).some(other => collides(object, other)))) return document;
+  if (next.some(object => layer.objects.some(other => !selectedIds.has(other.id) && collides(object, other)))) return document;
+
+  return {
+    ...document,
+    layers: document.layers.map(candidate => candidate.id === layerId
+      ? { ...candidate, objects: candidate.objects.map(object => next.find(updated => updated.id === object.id) ?? object) }
+      : candidate),
+  };
+}
+
 export function duplicateObjects(document: MapDocument, layerId: string, objectIds: string[]): MapDocument {
   const layer = document.layers.find(l => l.id === layerId);
   if (!layer || layer.kind !== 'objects' || layer.locked || !layer.visible) return document;
