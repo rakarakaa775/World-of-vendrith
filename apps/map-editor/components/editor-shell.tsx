@@ -13,6 +13,7 @@ import { copySelection, pasteSelection, moveSelection, replaceSelection, type Se
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
+import { placePaletteAsset, scatterPaletteAssets, type PaletteAssetPlacement } from "../editor/object-state";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -28,7 +29,14 @@ type Props = {
   environmentValidation?: EnvironmentRuntimeValidation | null;
 };
 
-const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper"] as const;
+const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper", "Building"] as const;
+const OBJECT_PALETTE: PaletteAssetPlacement[] = [
+  { id: "tree-oak", label: "Oak Tree", family: "playable-nature", registryId: "nature/tree-oak" },
+  { id: "rock-small", label: "Small Rock", family: "playable-nature", registryId: "nature/rock-small" },
+  { id: "flower-wild", label: "Wild Flowers", family: "playable-nature", registryId: "nature/flower-wild" },
+  { id: "house-small", label: "Small House", family: "region-building", registryId: "region/house-small" },
+  { id: "poi-marker", label: "Point of Interest", family: "region-poi", registryId: "region/poi-marker" },
+];
 const BRUSH_PRESETS = [
   { name: "Fine", size: 1 },
   { name: "Medium", size: 3 },
@@ -51,6 +59,10 @@ export function EditorShell({
   const [activeTool, setActiveTool] = useState<string>("Select");
   const [tileOptions, setTileOptions] = useState<TileOption[]>(STARTER_TILES);
   const [selectedTile, setSelectedTile] = useState<string>(STARTER_TILES.find(tile => tile.terrain !== "deepwater")?.id ?? STARTER_TILES[0].id);
+  const [selectedObjectAssetId, setSelectedObjectAssetId] = useState(OBJECT_PALETTE[0].id);
+  const [scatterCount, setScatterCount] = useState(20);
+  const [scatterSeed, setScatterSeed] = useState("vendrith-forest-01");
+  const [scatterDistance, setScatterDistance] = useState(2);
   const [brushSize, setBrushSize] = useState(1);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
@@ -203,6 +215,50 @@ export function EditorShell({
     setActiveTool("Paint");
   };
 
+  const activeObjectLayer = document.layers.find(layer => layer.id === activeLayer && layer.kind === "objects")
+    ?? document.layers.find(layer => layer.kind === "objects");
+  const selectedObjectAsset = OBJECT_PALETTE.find(asset => asset.id === selectedObjectAssetId) ?? OBJECT_PALETTE[0];
+  const handleObjectPlace = useCallback((point: GridPoint) => {
+    const current = documentRef.current;
+    const target = current.layers.find(layer => layer.id === activeLayer && layer.kind === "objects")
+      ?? current.layers.find(layer => layer.kind === "objects");
+    if (!target) {
+      setPaintDiagnostic("object placement: no object layer exists");
+      return;
+    }
+    const next = placePaletteAsset(current, target.id, point, selectedObjectAsset);
+    if (next === current) {
+      setPaintDiagnostic(`object placement blocked: layer=${target.id} cell=${point.x}:${point.y} (occupied, hidden, locked, or out of bounds)`);
+      return;
+    }
+    commit(next);
+    setSelectedObjectIds([next.layers.find(layer => layer.id === target.id)!.objects.at(-1)!.id]);
+    setPaintDiagnostic(`object placed: ${selectedObjectAsset.label} @ ${point.x}:${point.y}`);
+  }, [activeLayer, selectedObjectAsset, commit]);
+
+  const handleScatterObjects = () => {
+    const current = documentRef.current;
+    const target = current.layers.find(layer => layer.id === activeLayer && layer.kind === "objects")
+      ?? current.layers.find(layer => layer.kind === "objects");
+    if (!target) {
+      setPaintDiagnostic("scatter blocked: no object layer exists");
+      return;
+    }
+    const before = target.objects.length;
+    const next = scatterPaletteAssets(current, target.id, selectedObjectAsset, {
+      count: scatterCount,
+      seed: scatterSeed,
+      minDistance: scatterDistance,
+    });
+    const placed = (next.layers.find(layer => layer.id === target.id)?.objects.length ?? before) - before;
+    if (next === current) {
+      setPaintDiagnostic("scatter blocked: check count, seed, map dimensions, and layer visibility/lock");
+      return;
+    }
+    commit(next);
+    setPaintDiagnostic(`scatter: ${placed}/${scatterCount} ${selectedObjectAsset.label} placed · seed=${scatterSeed}`);
+  };
+
   const chooseLayer = (layerId: string) => commit(setActiveLayer(documentRef.current, layerId));
   const toggleLayerVisibility = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
     visible: !documentRef.current.layers.find(layer => layer.id === layerId)?.visible,
@@ -345,6 +401,35 @@ export function EditorShell({
             </div>
           </div>
 
+          <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--map-editor-line)" }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>OBJECT / ASSET PLACEMENT</div>
+            <label style={{ display: "grid", gap: 4, fontSize: 11, marginBottom: 6 }}>
+              Asset
+              <select value={selectedObjectAssetId} onChange={event => setSelectedObjectAssetId(event.target.value)} aria-label="Object asset">
+                {OBJECT_PALETTE.map(asset => <option key={asset.id} value={asset.id}>{asset.label}</option>)}
+              </select>
+            </label>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Target: {activeObjectLayer?.name ?? "No object layer"}</div>
+            <button type="button" onClick={() => setActiveTool("Building")} aria-pressed={activeTool === "Building"} disabled={!activeObjectLayer || activeObjectLayer.locked || !activeObjectLayer.visible} style={{ width: "100%", marginBottom: 8 }}>
+              {activeTool === "Building" ? "Click map to place ✓" : "Place selected asset"}
+            </button>
+            <label style={{ display: "grid", gap: 3, fontSize: 11, marginBottom: 5 }}>
+              Scatter count
+              <input type="number" min={1} max={500} step={1} value={scatterCount} onChange={event => setScatterCount(Math.max(1, Math.min(500, Number(event.target.value) || 1)))} />
+            </label>
+            <label style={{ display: "grid", gap: 3, fontSize: 11, marginBottom: 5 }}>
+              Seed (repeatable)
+              <input value={scatterSeed} maxLength={80} onChange={event => setScatterSeed(event.target.value)} />
+            </label>
+            <label style={{ display: "grid", gap: 3, fontSize: 11, marginBottom: 7 }}>
+              Minimum distance
+              <input type="number" min={1} max={20} step={1} value={scatterDistance} onChange={event => setScatterDistance(Math.max(1, Math.min(20, Number(event.target.value) || 1)))} />
+            </label>
+            <button type="button" onClick={handleScatterObjects} disabled={!activeObjectLayer || activeObjectLayer.locked || !activeObjectLayer.visible} style={{ width: "100%" }}>
+              Scatter selected asset
+            </button>
+          </div>
+
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYER TEMPLATES</div>
             {document.layerTemplates.length === 0 ? <div style={{ fontSize: 11, color: "#64748b" }}>Create a template from any layer using ☆.</div> : (
@@ -421,7 +506,7 @@ export function EditorShell({
             }}
             onInputDiagnostic={setPaintDiagnostic}
             onStamp={() => {}}
-            onObjectPlace={() => {}}
+            onObjectPlace={handleObjectPlace}
             onObjectMove={() => {}}
             selectedObjectId={null}
             selectedObjectIds={selectedObjectIds}
