@@ -1,3 +1,10 @@
+## 2026-10-10 — Save Slot Save → Load → Save round-trip regression
+
+- **Type:** Save/Load regression-test coverage.
+- **Details:** Added a pure contract test that serializes a World + Exterior pair, parses it through the same strict Save Slot loader boundary, serializes the restored pair again, and asserts both map documents survive unchanged.
+- **Verification:** Test source committed in `3f18d2f11c953fb678510f9d0dd4ffe42c066f06`; the exact commit's CI result must be checked before claiming it passed.
+- **Limitations:** This is an in-memory serializer/parser round trip, not a browser session or a real Supabase Save Slot round trip. The Save Slot transaction atomicity gap and server-side version/snapshot invariant remain open. No production database/RPC changes.
+
 ## 2026-10-10 — Terrain water-gradient safety regression coverage
 
 - **Type:** Terrain regression-test hardening
