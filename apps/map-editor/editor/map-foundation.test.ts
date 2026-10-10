@@ -98,6 +98,34 @@ describe('MapDocument foundation invariants', () => {
     expect(JSON.parse(serializeMapDocument(parsed))).toEqual(JSON.parse(serializeMapDocument(document)));
   });
 
+  it('round-trips placed object transforms and asset provenance without loss', () => {
+    const document = createMap('playable');
+    document.id = 'object-roundtrip';
+    const layer = document.layers.find(candidate => candidate.kind === 'objects')!;
+    const placed = {
+      id: 'asset-objects-tree-oak-4-3',
+      kind: 'decoration' as const,
+      category: 'tree-oak',
+      x: 4,
+      y: 3,
+      width: 2,
+      height: 1,
+      assetId: 'tree-oak',
+      assetName: 'Oak Tree',
+      assetUrl: 'https://assets.example.invalid/oak.png',
+      rotation: 270,
+      zIndex: 3,
+      collision: false,
+    };
+    document.layers = document.layers.map(candidate => candidate.id === layer.id
+      ? { ...candidate, objects: [placed] }
+      : candidate);
+
+    const restored = parseMapDocument(serializeMapDocument(document), document.id);
+    expect(restored.layers.find(candidate => candidate.id === layer.id)?.objects).toEqual([placed]);
+    expect(serializeMapDocument(restored)).toBe(serializeMapDocument(document));
+  });
+
   it('rejects malformed envelope schema and version', () => {
     const document = createMap('world');
     const payload = JSON.parse(serializeMapDocument(document)) as Record<string, unknown>;
