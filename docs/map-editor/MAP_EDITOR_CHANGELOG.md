@@ -749,3 +749,12 @@
 - Added regression tests for same-seed reproducibility, bounds/overlap/spacing, invalid counts, and locked layers.
 - Implementation commit `22cd8b2025d5cc8cb78251fdca314fe7336bdcfa`; test commit `b32a64e043584820e50c0b8cf789630c07b1e956`. CI for both commits is pending; do not mark tests passed until runs finish.
 - Phase 2F remains in progress: UI drag/drop/stamp wiring, rotation/scale inspector integration, metadata/provenance and save/load round-trip still require verification. No Supabase RPC/schema/data or production changes.
+
+
+## 2026-10-10 — Active Save Slot canonical version guard
+
+- **Type:** Persistence validation / Regression tests
+- **Details:** Active Load Slot now verifies the returned version ID against the authoritative map_versions row, checks the version number, and rejects a slot World snapshot that differs from the canonical World document. Added a stable JSON comparison so object key ordering alone does not cause false mismatches. Save Slot World selection also refuses to relabel an unrelated open World Map as authoritative, and load reconciliation removes stale World/Exterior maps.
+- **Affected:** apps/map-editor/editor/game-save.ts, apps/map-editor/editor/game-save.contract.test.ts, apps/map-editor/components/vendrith-world-builder-app.tsx, docs/map-editor/blueprint/MAP_EDITOR_LOAD_SLOT_AUDIT_2026-09-16.md.
+- **Verification:** CI run 38061931743 passed TypeScript, Next.js build, and Vitest for canonical version validation. The later key-order changes are tracked by CI run 38062605643; check that run before claiming the latest commit passed.
+- **Safety:** No production DB/RPC changes. Atomic Save Slot transaction and live browser round-trip remain unverified.
