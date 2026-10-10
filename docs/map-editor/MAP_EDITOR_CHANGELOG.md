@@ -741,3 +741,11 @@
 - Added `map-validation.test.ts` with focused cases for valid starter maps and each new validation boundary.
 - Commit `3371a9c6125834bca7b192b3ba8e16daf3093794` implements validation; test commit `2f02390455be8ede4ffd5a1c65963e261cf416a9` adds regression coverage. CI for these commits is pending; tests are not yet claimed as passing.
 - Roadmap Phase 2I remains in progress: runtime/asset provenance, water structure, save/load round-trip, version consistency, and conflict-safe save still require separate verification. No Supabase migration or production data/RPC change.
+
+
+## 2026-10-10 — Deterministic collision-aware object scatter
+
+- Added `scatterPaletteAssets()` in `object-state.ts`: seeded deterministic placements, stable IDs, occupied-footprint rejection, optional minimum Manhattan spacing, and fail-closed handling for invalid count or unavailable/locked/hidden layers.
+- Added regression tests for same-seed reproducibility, bounds/overlap/spacing, invalid counts, and locked layers.
+- Implementation commit `22cd8b2025d5cc8cb78251fdca314fe7336bdcfa`; test commit `b32a64e043584820e50c0b8cf789630c07b1e956`. CI for both commits is pending; do not mark tests passed until runs finish.
+- Phase 2F remains in progress: UI drag/drop/stamp wiring, rotation/scale inspector integration, metadata/provenance and save/load round-trip still require verification. No Supabase RPC/schema/data or production changes.
