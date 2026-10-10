@@ -46,6 +46,16 @@ describe('selection and transform operations', () => {
     expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { width: 2 })).toBe(source);
   });
 
+  it('rejects non-finite single and group transform values without mutating the document', () => {
+    const value = doc();
+    const layer = value.layers.find(candidate => candidate.id === 'objects')!;
+    const ids = layer.objects.slice(0, 2).map(object => object.id);
+    expect(updateObjectTransform(value, layer.id, ids[0], { x: Number.NaN })).toBe(value);
+    expect(updateObjectTransform(value, layer.id, ids[0], { width: Number.POSITIVE_INFINITY })).toBe(value);
+    expect(updateObjectsTransform(value, layer.id, ids, ids[0], { y: Number.NaN })).toBe(value);
+    expect(updateObjectsTransform(value, layer.id, ids, ids[0], { rotation: Number.NEGATIVE_INFINITY })).toBe(value);
+  });
+
   it('rejects group transforms that collide or exceed map bounds', () => {
     const value = createStarterMap();
     const layer = value.layers.find(candidate => candidate.id === 'objects')!;
