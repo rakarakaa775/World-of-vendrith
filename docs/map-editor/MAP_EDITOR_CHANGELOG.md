@@ -1,3 +1,11 @@
+## 2026-10-10 — Add malformed Save Slot payload regression coverage
+
+- **Type:** Regression-test hardening
+- **Details:** Added tests for malformed JSON input, a World Map incorrectly supplied as an Exterior, and legacy World identity mismatch. These cases ensure the parser rejects malformed data instead of returning a partially accepted save.
+- **Verification:** Tests are committed; execution status for this exact commit is pending CI. No production database, RPC, grants, or Save Slot rows were changed.
+- **Safety:** Server-side Save Slot/version integrity enforcement remains blocked until isolated database tests, security review, and explicit production approval.
+
+
 ## 2026-10-10 — Expand Save Slot RPC integrity remediation contract
 
 - **Type:** Read-only production audit and implementation contract
