@@ -92,3 +92,30 @@ describe("Save Slot snapshot format dispatch", () => {
       .toThrow(/not a World Map/i);
   });
 });
+
+describe("Save Slot parser malformed payload regression", () => {
+  it("rejects malformed JSON strings without returning a partial save", () => {
+    expect(() => parseGameSaveSlotSnapshot("{not-json", "world-1")).toThrow();
+  });
+
+  it("rejects an exterior whose map type is not playable", () => {
+    const world = createMap("world");
+    world.id = "world-exterior-type";
+    const invalidExterior = { ...createMap("world"), id: "not-playable" };
+
+    expect(() => parseGameSaveSlotSnapshot(
+      serializeGameSaveSnapshot(world, invalidExterior),
+      "world-exterior-type",
+    )).toThrow(/exterior playable map/i);
+  });
+
+  it("rejects legacy snapshots whose World identity does not match the authoritative map", () => {
+    const world = createMap("world");
+    world.id = "legacy-world-a";
+
+    expect(() => parseGameSaveSlotSnapshot(
+      serializeMapDocument(world),
+      "legacy-world-b",
+    )).toThrow();
+  });
+});
