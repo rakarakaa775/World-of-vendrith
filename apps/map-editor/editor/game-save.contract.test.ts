@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMap } from './map-document';
-import { parseGameSaveSnapshot, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, serializeGameSaveSnapshot } from './game-save';
+import { parseGameSaveSnapshot, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from './game-save';
 
 function map(id: string, mapType: 'world' | 'playable' = 'world') {
   const document = createMap(mapType);
@@ -158,5 +158,20 @@ describe('game save slot map reconciliation', () => {
       restoredWorld,
       restoredExterior,
     )).toEqual([region, restoredWorld, restoredExterior]);
+  });
+});
+
+
+describe('authoritative World selection for Save Slot', () => {
+  it('does not adopt an unrelated active World Map as the authoritative World', () => {
+    const unrelated = map('new-world-created-locally');
+    expect(resolveAuthoritativeWorldForSlot([unrelated], unrelated, 'canonical-world')).toBeNull();
+  });
+
+  it('selects the active document only when its identity is already authoritative', () => {
+    const canonical = map('canonical-world');
+    const unrelated = map('unrelated-world');
+    expect(resolveAuthoritativeWorldForSlot([canonical, unrelated], canonical, 'canonical-world')).toBe(canonical);
+    expect(resolveAuthoritativeWorldForSlot([canonical, unrelated], unrelated, 'canonical-world')).toBe(canonical);
   });
 });
