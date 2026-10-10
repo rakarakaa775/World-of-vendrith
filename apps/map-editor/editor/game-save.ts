@@ -130,6 +130,21 @@ export function resolveAuthoritativeWorldForSlot(
  * Fail closed when a slot's World snapshot is not tied to the canonical version
  * row returned by the persistence layer.
  */
+function stableJson(value: unknown): string {
+  const normalize = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(normalize);
+    if (item && typeof item === 'object') {
+      return Object.fromEntries(
+        Object.entries(item as Record<string, unknown>)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, child]) => [key, normalize(child)]),
+      );
+    }
+    return item;
+  };
+  return JSON.stringify(normalize(value));
+}
+
 export function assertSlotWorldMatchesCanonicalVersion(input: {
   slotWorld: MapDocument;
   canonicalWorld: MapDocument;
@@ -146,7 +161,7 @@ export function assertSlotWorldMatchesCanonicalVersion(input: {
     throw new Error('LOAD_SLOT_VERSION_MISMATCH: referenced World version number is inconsistent');
   }
   if (input.slotWorld.id !== input.canonicalWorld.id
-      || serializeMapDocument(input.slotWorld) !== serializeMapDocument(input.canonicalWorld)) {
+      || stableJson(input.slotWorld) !== stableJson(input.canonicalWorld)) {
     throw new Error('LOAD_SLOT_SNAPSHOT_MISMATCH: slot World snapshot differs from canonical version');
   }
 }
