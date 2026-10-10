@@ -1,3 +1,11 @@
+## 2026-10-10 — Terrain water-gradient safety regression coverage
+
+- **Type:** Terrain regression-test hardening
+- **Details:** Added coverage that a non-WORLD map without land preserves its existing water bands and that requesting a missing ground layer returns the original document without mutation.
+- **Affected:** `apps/map-editor/editor/terrain-engine.test.ts`, `MAP_EDITOR_STATUS_LOG.md`.
+- **Verification:** Test source committed; GitHub Actions for the exact test commit is pending. No algorithm, production RPC/database, asset binding, or save/load behavior changed.
+- **Roadmap:** Phase 2 terrain roadmap remains open. Browser verification for Phases 2D/2E and later Phases 2F–2J remain incomplete.
+
 ## 2026-10-10 — Add malformed Save Slot payload regression coverage
 
 - **Type:** Regression-test hardening
