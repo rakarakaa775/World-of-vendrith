@@ -1,3 +1,10 @@
+## 2026-10-10 — V1 crash recovery fail-closed guards
+
+- Hardened active v1 recovery reads against inaccessible storage, malformed JSON, and a recovery envelope whose embedded MapDocument ID differs from the requested map ID.
+- `has(mapId)` now shares the validated read path, so malformed keys are not shown as recoverable state.
+- Regression tests added in commit `95d9e6c61392baa78dee642235a77c8833dd0224`; exact-commit CI pending verification.
+- No database/RPC changes; v2 recovery remains opt-in and separate.
+
 ## 2026-10-10 — Save Slot Save → Load → Save regression
 
 - Added an in-memory Save → Load → Save contract regression for the combined World + Exterior snapshot, using the strict Save Slot parser between the two serializations.
