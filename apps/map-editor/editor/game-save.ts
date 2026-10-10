@@ -91,3 +91,22 @@ export function parseGameSaveSnapshot(snapshot: unknown): GameSaveSnapshot | nul
     return null;
   }
 }
+
+
+/**
+ * Reconcile the editor's open-map list with a loaded Game Save slot.
+ * A slot is authoritative for the World Map and its exterior: stale world
+ * and exterior documents must not survive a load, especially for legacy
+ * world-only slots. Other map categories (regions and interiors) are retained.
+ */
+export function reconcileGameSaveSlotMaps(
+  existing: MapDocument[],
+  world: MapDocument,
+  exterior: MapDocument | null,
+): MapDocument[] {
+  const retained = existing.filter((document) =>
+    document.mapType !== 'world'
+    && !(document.mapType === 'playable' && (document.playableSpace ?? 'exterior') === 'exterior'),
+  );
+  return exterior ? [...retained, world, exterior] : [...retained, world];
+}
