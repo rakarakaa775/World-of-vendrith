@@ -1,5 +1,5 @@
 import type { MapDocument } from './map-document';
-import { parseMapDocument, serializeMapDocument } from './map-serialization';
+import { parseMapDocument } from './map-serialization';
 
 export type GameSaveSnapshot = {
   schema: 'vandrith.game-save';
