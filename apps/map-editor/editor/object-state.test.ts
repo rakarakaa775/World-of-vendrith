@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStarterMap } from './map-document';
-import { placeBuilding, placePaletteAsset, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject, scatterPaletteAssets } from './object-state';
+import { placeBuilding, placePaletteAsset, alignObjects, distributeObjects, mirrorObjects, toggleObjectSelection, boxSelectObjectIds, updateObjectTransform, updateObjectsTransform, selectObjectIdsByFilter, scaleObjects, duplicateObjects, moveObject, scatterPaletteAssets } from './object-state';
 
 describe('selection and transform operations', () => {
   function doc() {
@@ -31,6 +31,30 @@ describe('selection and transform operations', () => {
     expect(object.x).toBe(20);
     expect(object.y).toBe(20);
     expect(object.rotation).toBe(90);
+  });
+
+  it('translates and rotates a selected group atomically using the primary object as anchor', () => {
+    const value = createMap('playable');
+    const layer = value.layers.find(candidate => candidate.id === 'objects')!;
+    const first = { id: 'group-a', kind: 'decoration' as const, category: 'nature', x: 1, y: 1, width: 1, height: 1, assetId: 'tree', rotation: 0, zIndex: 0, collision: false };
+    const second = { ...first, id: 'group-b', x: 3, y: 1, rotation: 90 };
+    const source = { ...value, layers: value.layers.map(candidate => candidate.id === layer.id ? { ...candidate, objects: [first, second] } : candidate) };
+    const moved = updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { x: 2, y: 2, rotation: 90 });
+    const objects = moved.layers.find(candidate => candidate.id === layer.id)!.objects;
+    expect(objects.find(object => object.id === first.id)).toMatchObject({ x: 2, y: 2, rotation: 90 });
+    expect(objects.find(object => object.id === second.id)).toMatchObject({ x: 4, y: 2, rotation: 180 });
+    expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { width: 2 })).toBe(source);
+  });
+
+  it('rejects group transforms that collide or exceed map bounds', () => {
+    const value = createMap('playable');
+    const layer = value.layers.find(candidate => candidate.id === 'objects')!;
+    const first = { id: 'group-a', kind: 'decoration' as const, category: 'nature', x: 1, y: 1, width: 1, height: 1, assetId: 'tree', rotation: 0, zIndex: 0, collision: false };
+    const second = { ...first, id: 'group-b', x: 3, y: 1 };
+    const blocker = { ...first, id: 'blocker', x: 6, y: 1 };
+    const source = { ...value, layers: value.layers.map(candidate => candidate.id === layer.id ? { ...candidate, objects: [first, second, blocker] } : candidate) };
+    expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { x: 5 })).toBe(source);
+    expect(updateObjectsTransform(source, layer.id, [first.id, second.id], first.id, { x: value.width })).toBe(source);
   });
 
   it('aligns and distributes selected objects', () => {
