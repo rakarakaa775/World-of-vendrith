@@ -110,3 +110,17 @@ export function reconcileGameSaveSlotMaps(
   );
   return exterior ? [...retained, world, exterior] : [...retained, world];
 }
+
+
+/**
+ * Select only the document that already has the authoritative World Map identity.
+ * A different open World Map must never be relabeled and saved over the authority.
+ */
+export function resolveAuthoritativeWorldForSlot(
+  maps: MapDocument[],
+  active: MapDocument,
+  expectedWorldId: string,
+): MapDocument | null {
+  if (active.mapType === 'world' && active.id === expectedWorldId) return active;
+  return maps.find((document) => document.mapType === 'world' && document.id === expectedWorldId) ?? null;
+}
