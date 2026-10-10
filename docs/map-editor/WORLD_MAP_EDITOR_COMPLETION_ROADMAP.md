@@ -156,22 +156,22 @@ Layer operation mempertahankan identity, serialization, dan undo/redo.
 ### Tujuan
 Memulai object authoring setelah terrain stabil.
 
-- [ ] Asset browser → canvas
+- [~] Asset browser → canvas — temporary semantic palette is wired; approved registry-backed browser and previews remain
 - [ ] Drag/drop
-- [ ] Stamp placement
-- [ ] Object selection
-- [ ] Object move
-- [ ] Delete
-- [ ] Rotation
-- [ ] Scale
-- [ ] Transform inspector
+- [~] Stamp placement — click-to-place via Building tool; drag stamping remains
+- [~] Object selection — existing canvas selection is connected to inspector; browser interaction verification pending
+- [~] Object move — Alt-drag path exists; browser interaction verification pending
+- [~] Delete — inspector delete action added; browser interaction verification pending
+- [~] Rotation — inspector 90° controls added; browser interaction verification pending
+- [~] Scale — width/height transform controls added; bounds/overlap guard is in the domain helper
+- [~] Transform inspector — single-selected-object position/size/rotation controls added
 - [ ] Duplicate
-- [ ] Multi-select
-- [~] Scatter — deterministic placement core exists; UI wiring and partial-count feedback remain
+- [~] Multi-select — canvas selection state exists; inspector transform actions currently target the first selected object
+- [~] Scatter — seeded placement control wired; partial-placement count is reported in diagnostics
 - [~] Deterministic random placement — stable seed/position/layer/asset identity; latest CI verification pending
-- [~] Collision-aware placement — core avoids existing object footprints and applies minimum Manhattan spacing; UI wiring remains
-- [ ] Object bounds/debug
-- [~] Object metadata/provenance — canonical registry asset ID is preserved when supplied; full provenance/approval metadata remains
+- [~] Collision-aware placement — core avoids existing object footprints and applies minimum Manhattan spacing; UI wiring is partial
+- [~] Object bounds/debug — existing debug overlay toggle exists; object-specific visual verification remains
+- [~] Object metadata/provenance — stable asset ID/name stored; approved registry/license/source provenance remains
 
 ### Boundary
 Object placement tidak mengubah terrain engine dan tidak mengubah building
@@ -179,11 +179,14 @@ engine foundation.
 
 ### Current implementation note
 
-The pure placement helpers now use deterministic IDs for palette placement and
-seeded scatter. Scatter avoids existing object footprints and can enforce minimum
-Manhattan spacing. This is only the operation layer: editor UI wiring, explicit
-partial-placement feedback, object bounds/debug, metadata/provenance review, and
-save/load round-trip verification remain open. Latest CI runs are pending.
+The editor now exposes a temporary semantic object palette, click-to-place,
+seed/count/minimum-distance scatter controls, and a single-object transform
+inspector with delete and 90-degree rotation actions. Placement/scatter IDs are
+deterministic and include layer identity; objects preserve asset labels. The
+palette entries are editor prototypes, not claims of approved asset-registry
+availability. Drag/drop, duplicate, full multi-object transforms, approved
+registry/license provenance, browser interaction checks, and save/load round-trip
+verification remain open. Latest CI runs are pending.
 
 ### Exit gate
 Object dapat ditempatkan, disimpan, dimuat ulang, dipilih, diubah, dan
