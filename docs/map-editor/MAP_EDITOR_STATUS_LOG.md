@@ -1,3 +1,11 @@
+## 2026-10-10 — Add malformed Save Slot payload regressions
+
+- Added focused parser tests for malformed JSON, a non-playable exterior payload, and legacy World identity mismatch.
+- Test source commit: `2798bdd52eedb61684dd9dd95d34cc4f0753872f`.
+- GitHub Actions execution for this exact commit has not yet been confirmed; do not treat the added cases as passing until CI reports green.
+- Production remains unchanged. No Supabase branch was created, no migration was applied, and no RPC/grant/slot data was modified.
+
+
 ## 2026-10-10 — Save Slot RPC preflight and database release gates
 
 - Rechecked live Save Slots using schema-aware JSONB comparisons: all 3 current rows pass version tuple, canonical version envelope, authoritative World ID/type, embedded World/version equality, and owner consistency checks.
