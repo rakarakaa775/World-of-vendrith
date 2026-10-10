@@ -301,3 +301,5 @@
 - Read the Supabase security advisor output. It reports broad existing `rls_enabled_no_policy` informational findings; this is a project-wide baseline and was not changed as part of this Save Slot audit.
 - All database queries were read-only. No Save Slot rows, RPC definitions, grants, or migration history were changed.
 - Migration implementation and isolated RPC regression tests remain blocked on a repository workspace with Supabase CLI and a safe isolated database workflow. Do not bypass the CLI migration workflow, create a replacement branch, or apply a production migration before review and explicit approval.
+
+| 2026-10-10 | Map publish-readiness validation hardened | Phase 2I — Validation & Publish Readiness | Added terrain-ID, layer cell-count, object-layer, integer-grid geometry, and object-bounds checks plus focused regression tests. CI pending; no production DB/RPC changes. Commits `3371a9c6125834bca7b192b3ba8e16daf3093794`, `2f02390455be8ede4ffd5a1c65963e261cf416a9`. |
