@@ -53,7 +53,21 @@ describe('selection and transform operations', () => {
     const next = duplicated.layers.find(l=>l.id==='objects')!;
     expect(next.objects).toHaveLength(4);
     expect(next.objects.filter(o=>!ids.includes(o.id))).toHaveLength(1);
-    expect(next.objects.find(o=>!ids.includes(o.id))!.x).toBe(layer.objects[0].x + 1);
+    const copy = next.objects.find(o=>!ids.includes(o.id))!;
+    expect(copy.x).toBe(layer.objects[0].x + layer.objects[0].width + 1);
+    expect(copy.y).toBe(layer.objects[0].y);
+    expect(copy.id).toContain("duplicate-objects-");
+    expect(next.objects.filter(o => o.id === copy.id)).toHaveLength(1);
+  });
+
+  it('rejects duplication when the translated group would overlap an existing object or leave map bounds', () => {
+    const value = doc();
+    const layer = value.layers.find(l => l.id === 'objects')!;
+    const selected = layer.objects[0];
+    const blocker = { ...layer.objects[1], x: selected.x + selected.width + 1, y: selected.y };
+    const blocked = { ...value, layers: value.layers.map(l => l.id === 'objects' ? { ...l, objects: l.objects.map(o => o.id === layer.objects[1].id ? blocker : o) } : l) };
+    expect(duplicateObjects(blocked, 'objects', [selected.id])).toBe(blocked);
+    expect(duplicateObjects(value, 'missing-layer', [selected.id])).toBe(value);
   });
 
   it('rejects move and scale when the result overlaps another object', () => {
