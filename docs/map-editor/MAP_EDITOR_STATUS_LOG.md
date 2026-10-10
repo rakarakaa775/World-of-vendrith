@@ -1,3 +1,10 @@
+## 2026-10-10 — Extend Save Slot parser malformed-input coverage
+
+- Added regressions for JSON arrays and a current Game Save envelope missing the required `exterior` key.
+- Latest test commit: `ee292e8e75f47706d45368aa1f357b49e4de2643`.
+- CI status for this exact commit has not been verified; do not treat the new cases as passing until a successful run is visible.
+- No Supabase branch was created, no migration was applied, and no production data, RPC, or grants were changed.
+
 ## 2026-10-10 — Add malformed Save Slot payload regressions
 
 - Added focused parser tests for malformed JSON, a non-playable exterior payload, and legacy World identity mismatch.
