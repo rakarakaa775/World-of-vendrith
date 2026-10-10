@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMap } from './map-document';
-import { parseGameSaveSnapshot, parseGameSaveSlotSnapshot, serializeGameSaveSnapshot } from './game-save';
+import { parseGameSaveSnapshot, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, serializeGameSaveSnapshot } from './game-save';
 
 function map(id: string, mapType: 'world' | 'playable' = 'world') {
   const document = createMap(mapType);
@@ -124,5 +124,39 @@ describe('game save slot loading contract', () => {
       .toThrow('Unsupported Game Save snapshot version');
     expect(() => parseGameSaveSlotSnapshot(serializeGameSaveSnapshot(map(worldId), null), ''))
       .toThrow('Expected authoritative World Map ID is required');
+  });
+});
+
+
+describe('game save slot map reconciliation', () => {
+  it('removes stale world and exterior maps when loading a legacy world-only slot', () => {
+    const currentWorld = map('world-current');
+    const staleExterior = map('exterior-stale', 'playable');
+    const region = map('region-keep');
+    region.mapType = 'region';
+    region.parentMapId = 'world-current';
+    const interior = createMap('playable', 'world-current', 'interior', 'building-1');
+    interior.id = 'interior-keep';
+
+    const restoredWorld = map('world-restored');
+    expect(reconcileGameSaveSlotMaps(
+      [currentWorld, staleExterior, region, interior],
+      restoredWorld,
+      null,
+    )).toEqual([region, interior, restoredWorld]);
+  });
+
+  it('replaces the previous exterior with the slot exterior while retaining unrelated map categories', () => {
+    const staleExterior = map('exterior-stale', 'playable');
+    const region = map('region-keep');
+    region.mapType = 'region';
+    const restoredWorld = map('world-restored');
+    const restoredExterior = map('exterior-restored', 'playable');
+
+    expect(reconcileGameSaveSlotMaps(
+      [staleExterior, region],
+      restoredWorld,
+      restoredExterior,
+    )).toEqual([region, restoredWorld, restoredExterior]);
   });
 });
