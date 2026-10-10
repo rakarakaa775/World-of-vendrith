@@ -124,3 +124,29 @@ export function resolveAuthoritativeWorldForSlot(
   if (active.mapType === 'world' && active.id === expectedWorldId) return active;
   return maps.find((document) => document.mapType === 'world' && document.id === expectedWorldId) ?? null;
 }
+
+
+/**
+ * Fail closed when a slot's World snapshot is not tied to the canonical version
+ * row returned by the persistence layer.
+ */
+export function assertSlotWorldMatchesCanonicalVersion(input: {
+  slotWorld: MapDocument;
+  canonicalWorld: MapDocument;
+  slotVersionId: string | null | undefined;
+  canonicalVersionId: string | null | undefined;
+  slotVersionNumber: number;
+  canonicalVersionNumber: number;
+}): void {
+  if (!input.slotVersionId || input.slotVersionId !== input.canonicalVersionId) {
+    throw new Error('LOAD_SLOT_VERSION_MISMATCH: referenced World version id is missing or inconsistent');
+  }
+  if (!Number.isInteger(input.slotVersionNumber) || input.slotVersionNumber < 1
+      || input.slotVersionNumber !== input.canonicalVersionNumber) {
+    throw new Error('LOAD_SLOT_VERSION_MISMATCH: referenced World version number is inconsistent');
+  }
+  if (input.slotWorld.id !== input.canonicalWorld.id
+      || serializeMapDocument(input.slotWorld) !== serializeMapDocument(input.canonicalWorld)) {
+    throw new Error('LOAD_SLOT_SNAPSHOT_MISMATCH: slot World snapshot differs from canonical version');
+  }
+}
