@@ -13,7 +13,7 @@ import { copySelection, pasteSelection, moveSelection, replaceSelection, type Se
 import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
-import { placePaletteAsset, scatterPaletteAssets, type PaletteAssetPlacement } from "../editor/object-state";
+import { deleteObject, placePaletteAsset, scatterPaletteAssets, updateObjectTransform, type PaletteAssetPlacement } from "../editor/object-state";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -258,6 +258,25 @@ export function EditorShell({
     commit(next);
     setPaintDiagnostic(`scatter: ${placed}/${scatterCount} ${selectedObjectAsset.label} placed · seed=${scatterSeed}`);
   };
+  const selectedObjectLayer = document.layers.find(layer => layer.kind === "objects" && layer.id === (activeObjectLayer?.id ?? "objects"));
+  const selectedObject = selectedObjectLayer?.objects.find(object => selectedObjectIds.includes(object.id)) ?? null;
+  const handleSelectedObjectTransform = (changes: { x?: number; y?: number; width?: number; height?: number; rotation?: number }) => {
+    if (!selectedObjectLayer || !selectedObject) return;
+    const next = updateObjectTransform(documentRef.current, selectedObjectLayer.id, selectedObject.id, changes);
+    if (next === documentRef.current) {
+      setPaintDiagnostic("object transform rejected: would overlap another object or exceed map bounds");
+      return;
+    }
+    commit(next);
+    setPaintDiagnostic(`object transform: ${selectedObject.id} updated`);
+  };
+  const handleDeleteSelectedObjects = () => {
+    if (!selectedObjectLayer || !selectedObjectIds.length) return;
+    const next = selectedObjectIds.reduce((current, id) => deleteObject(current, selectedObjectLayer.id, id), documentRef.current);
+    commit(next);
+    setSelectedObjectIds([]);
+    setPaintDiagnostic(`objects deleted: ${selectedObjectIds.length}`);
+  };
 
   const chooseLayer = (layerId: string) => commit(setActiveLayer(documentRef.current, layerId));
   const toggleLayerVisibility = (layerId: string) => commit(updateLayer(documentRef.current, layerId, {
@@ -428,6 +447,25 @@ export function EditorShell({
             <button type="button" onClick={handleScatterObjects} disabled={!activeObjectLayer || activeObjectLayer.locked || !activeObjectLayer.visible} style={{ width: "100%" }}>
               Scatter selected asset
             </button>
+          </div>
+
+          <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--map-editor-line)" }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>OBJECT INSPECTOR</div>
+            {!selectedObject ? <div style={{ fontSize: 11, color: "#64748b" }}>Select an object on the map to edit its transform.</div> : <>
+              <div style={{ fontSize: 11, overflowWrap: "anywhere", marginBottom: 6 }}>{selectedObject.assetName ?? selectedObject.category} · {selectedObject.id}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+                <label style={{ fontSize: 10 }}>X<input aria-label="Object X" type="number" min={0} max={document.width - selectedObject.width} value={selectedObject.x} onChange={event => handleSelectedObjectTransform({ x: Number(event.target.value) })} style={{ width: "100%" }} /></label>
+                <label style={{ fontSize: 10 }}>Y<input aria-label="Object Y" type="number" min={0} max={document.height - selectedObject.height} value={selectedObject.y} onChange={event => handleSelectedObjectTransform({ y: Number(event.target.value) })} style={{ width: "100%" }} /></label>
+                <label style={{ fontSize: 10 }}>Width<input aria-label="Object width" type="number" min={1} max={document.width} value={selectedObject.width} onChange={event => handleSelectedObjectTransform({ width: Number(event.target.value) })} style={{ width: "100%" }} /></label>
+                <label style={{ fontSize: 10 }}>Height<input aria-label="Object height" type="number" min={1} max={document.height} value={selectedObject.height} onChange={event => handleSelectedObjectTransform({ height: Number(event.target.value) })} style={{ width: "100%" }} /></label>
+              </div>
+              <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
+                <button type="button" onClick={() => handleSelectedObjectTransform({ rotation: selectedObject.rotation - 90 })} aria-label="Rotate object counterclockwise">↶ 90°</button>
+                <button type="button" onClick={() => handleSelectedObjectTransform({ rotation: selectedObject.rotation + 90 })} aria-label="Rotate object clockwise">↷ 90°</button>
+                <button type="button" onClick={handleDeleteSelectedObjects} style={{ marginLeft: "auto" }}>Delete selected</button>
+              </div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 5 }}>Rotation: {selectedObject.rotation}° · Collision: {selectedObject.collision ? "on" : "off"}</div>
+            </>}
           </div>
 
           <div style={{ marginBottom: 14 }}>
