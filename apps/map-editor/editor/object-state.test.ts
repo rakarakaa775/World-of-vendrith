@@ -34,7 +34,7 @@ describe('selection and transform operations', () => {
   });
 
   it('translates and rotates a selected group atomically using the primary object as anchor', () => {
-    const value = createMap('playable');
+    const value = createStarterMap();
     const layer = value.layers.find(candidate => candidate.id === 'objects')!;
     const first = { id: 'group-a', kind: 'decoration' as const, category: 'nature', x: 1, y: 1, width: 1, height: 1, assetId: 'tree', rotation: 0, zIndex: 0, collision: false };
     const second = { ...first, id: 'group-b', x: 3, y: 1, rotation: 90 };
@@ -47,7 +47,7 @@ describe('selection and transform operations', () => {
   });
 
   it('rejects group transforms that collide or exceed map bounds', () => {
-    const value = createMap('playable');
+    const value = createStarterMap();
     const layer = value.layers.find(candidate => candidate.id === 'objects')!;
     const first = { id: 'group-a', kind: 'decoration' as const, category: 'nature', x: 1, y: 1, width: 1, height: 1, assetId: 'tree', rotation: 0, zIndex: 0, collision: false };
     const second = { ...first, id: 'group-b', x: 3, y: 1 };
