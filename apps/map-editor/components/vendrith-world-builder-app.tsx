@@ -15,7 +15,7 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
-import { parseGameSaveSlotSnapshot, serializeGameSaveSnapshot } from "../editor/game-save";
+import { parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
 
@@ -454,11 +454,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       const exteriorDocument = parsed.exterior;
       const restored = exteriorDocument ? [worldDocument, exteriorDocument] : [worldDocument];
 
-      setMaps(cur => {
-        const byId = new Map(cur.map(document => [document.id, document]));
-        for (const document of restored) byId.set(document.id, document);
-        return Array.from(byId.values());
-      });
+      setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
       setActiveMapId(worldDocument.id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
       setBaseDocument(worldDocument);
