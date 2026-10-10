@@ -16,7 +16,7 @@ File: `apps/map-editor/editor/map-crash-recovery-v2.ts`
 - `has(mapId)` now uses the same validated read path; malformed keys do not advertise a valid recovery.
 - The journal remains opt-in and is not connected to the active editor shell.
 
-Regression tests in `map-crash-recovery-v2.test.ts` cover round-trip, wrong requested ID, malformed JSON, clearing a single map, envelope ID mismatch, embedded snapshot ID mismatch, rejection of v1 snapshots, and invalid timestamps. Tests have been authored but not executed in this environment.
+Regression tests in `map-crash-recovery-v2.test.ts` cover round-trip, wrong requested ID, malformed JSON, clearing a single map, envelope ID mismatch, embedded snapshot ID mismatch, rejection of v1 snapshots, and invalid timestamps. The active v1 journal now also has regressions for embedded identity mismatch, malformed JSON, and storage read exceptions.
 
 ### 2. Active v1 crash recovery
 
@@ -24,7 +24,7 @@ File: `apps/map-editor/editor/map-crash-recovery.ts`
 
 - Persists only a serialized `MapDocument`.
 - Does not carry terrain semantics or a v2 schema/version discriminator.
-- `has(mapId)` currently checks only key existence; it may report true for an unreadable entry. This behavior belongs to the existing v1 path and is not changed by this audit.
+- The v1 read path now catches storage access/parse failures, validates that the embedded snapshot ID matches the requested map ID, and `has(mapId)` uses the same validated read path. Malformed or inaccessible entries no longer advertise a valid recovery.
 - Do not route initialized v2 state through this journal because terrain semantics would be lost.
 
 ### 3. Active conflict-save path
