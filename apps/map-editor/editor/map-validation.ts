@@ -24,6 +24,11 @@ const issue = (
 ) => issues.push({ code, severity, message, path });
 
 const layerKinds = new Set(['ground', 'objects', 'collision']);
+const knownTerrainIds = new Set([
+  'grass', 'grassalt', 'sand', 'redsand', 'dirt', 'dirt2', 'pavement',
+  'water', 'deepwater', 'deepwater2', 'brackish', 'tallgrass',
+  'hole', 'holek', 'holemid', 'lava', 'lavarock',
+]);
 
 function validateLayers(document: MapDocument, issues: MapValidationIssue[]) {
   if (!Array.isArray(document.layers) || document.layers.length === 0) {
@@ -36,13 +41,30 @@ function validateLayers(document: MapDocument, issues: MapValidationIssue[]) {
 
   document.layers.forEach((layer: MapLayer, index) => {
     const path = `layers[${index}]`;
+    if (!layer || typeof layer !== 'object') {
+      issue(issues, 'layer.invalid', 'error', 'Layer entry must be an object.', path);
+      return;
+    }
     if (!layer.id) issue(issues, 'layer.id.missing', 'error', 'Layer id is required.', `${path}.id`);
     if (ids.has(layer.id)) issue(issues, 'layer.id.duplicate', 'error', 'Layer ids must be unique.', `${path}.id`);
     ids.add(layer.id);
     if (!layerKinds.has(layer.kind)) issue(issues, 'layer.kind.invalid', 'error', 'Layer kind is invalid.', `${path}.kind`);
     if (layer.active) activeCount += 1;
-    if (!Array.isArray(layer.cells)) issue(issues, 'layer.cells.invalid', 'error', 'Layer cells must be an array.', `${path}.cells`);
-    if (!Array.isArray(layer.objects)) issue(issues, 'layer.objects.invalid', 'error', 'Layer objects must be an array.', `${path}.objects`);
+    if (!Array.isArray(layer.cells)) {
+      issue(issues, 'layer.cells.invalid', 'error', 'Layer cells must be an array.', `${path}.cells`);
+    } else if (Number.isInteger(document.width) && document.width > 0 && Number.isInteger(document.height) && document.height > 0 && layer.cells.length !== document.width * document.height) {
+      issue(issues, 'layer.cells.count_mismatch', 'error', 'Layer cell count must match map dimensions.', `${path}.cells`);
+    }
+    if (!Array.isArray(layer.objects)) {
+      issue(issues, 'layer.objects.invalid', 'error', 'Layer objects must be an array.', `${path}.objects`);
+    }
+    if (layer.kind === 'ground' && Array.isArray(layer.cells)) {
+      layer.cells.forEach((cell, cellIndex) => {
+        if (cell?.tileId != null && !knownTerrainIds.has(cell.tileId)) {
+          issue(issues, 'terrain.id.unknown', 'error', `Unknown terrain id "${cell.tileId}".`, `${path}.cells[${cellIndex}].tileId`);
+        }
+      });
+    }
   });
 
   if (activeCount !== 1) {
@@ -51,22 +73,35 @@ function validateLayers(document: MapDocument, issues: MapValidationIssue[]) {
 }
 
 function validateObjects(document: MapDocument, issues: MapValidationIssue[]) {
-  const capabilities = MAP_CAPABILITIES[document.mapType];
+  const capabilities = MAP_CAPABILITIES[document.mapType as keyof typeof MAP_CAPABILITIES];
   const ids = new Set<string>();
+  if (!Array.isArray(document.layers)) return;
 
   document.layers.forEach((layer, layerIndex) => {
+    if (!layer || !Array.isArray(layer.objects)) return;
     layer.objects.forEach((object: MapObject, objectIndex) => {
       const path = `layers[${layerIndex}].objects[${objectIndex}]`;
+      if (!object || typeof object !== 'object') {
+        issue(issues, 'object.invalid', 'error', 'Object entry must be an object.', path);
+        return;
+      }
       if (!object.id) issue(issues, 'object.id.missing', 'error', 'Object id is required.', `${path}.id`);
       if (ids.has(object.id)) issue(issues, 'object.id.duplicate', 'error', 'Object ids must be unique.', `${path}.id`);
       ids.add(object.id);
-      if (!Number.isFinite(object.x) || !Number.isFinite(object.y)) issue(issues, 'object.position.invalid', 'error', 'Object position must be finite.', path);
-      if (!Number.isFinite(object.width) || object.width <= 0 || !Number.isFinite(object.height) || object.height <= 0) {
-        issue(issues, 'object.size.invalid', 'error', 'Object width and height must be positive.', path);
+      if (layer.kind !== 'objects') {
+        issue(issues, 'object.layer.invalid', 'error', 'Map objects must belong to an objects layer.', path);
+      }
+      if (!Number.isFinite(object.x) || !Number.isFinite(object.y) || !Number.isInteger(object.x) || !Number.isInteger(object.y)) {
+        issue(issues, 'object.position.invalid', 'error', 'Object position must use finite integer grid coordinates.', path);
+      }
+      if (!Number.isFinite(object.width) || !Number.isInteger(object.width) || object.width <= 0 || !Number.isFinite(object.height) || !Number.isInteger(object.height) || object.height <= 0) {
+        issue(issues, 'object.size.invalid', 'error', 'Object width and height must be positive integers.', path);
+      } else if (Number.isFinite(object.x) && Number.isFinite(object.y) && (object.x < 0 || object.y < 0 || object.x + object.width > document.width || object.y + object.height > document.height)) {
+        issue(issues, 'object.bounds.out_of_map', 'error', 'Object bounds must remain inside the map.', path);
       }
       if (!Number.isFinite(object.rotation)) issue(issues, 'object.rotation.invalid', 'error', 'Object rotation must be finite.', `${path}.rotation`);
       if (!object.assetId) issue(issues, 'object.asset.missing', 'warning', 'Object has no asset id.', `${path}.assetId`);
-      if (object.collision && !capabilities.collision) {
+      if (object.collision && capabilities && !capabilities.collision) {
         issue(issues, 'object.collision.unsupported', 'error', 'This map type does not support collision objects.', path);
       }
     });
