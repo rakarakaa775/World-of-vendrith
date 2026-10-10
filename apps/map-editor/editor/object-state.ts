@@ -252,8 +252,11 @@ export function scatterPaletteAssets(
     family.includes('decoration') || family.includes('nature') || family.includes('interior-') ? 'decoration' : 'poi';
   const collision = family.includes('building') || family === 'interior-wall' || family === 'interior-door';
   const safeSeed = seedText.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'seed';
-  const additions: MapObject[] = positions.map((point, index) => ({
-    id: `scatter-${safeSeed}-${index}-${asset.id}`,
+  const safeAssetId = asset.id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'asset';
+  const additions: MapObject[] = positions.map(point => ({
+    // Position-based identity prevents duplicate IDs when the same seed is
+    // applied again to a document that already contains earlier scatter output.
+    id: `scatter-${safeSeed}-${point.x}-${point.y}-${safeAssetId}`,
     kind,
     category: asset.id,
     x: point.x,
