@@ -36,3 +36,41 @@ describe('createMapSaveController', () => {
     expect(controller.getState()).toBe('clean');
   });
 });
+
+
+describe('v1 crash recovery journal safety', () => {
+  it('rejects an embedded recovery snapshot whose map ID differs from the journal key', () => {
+    const storage = memoryStorage();
+    const journal = createCrashRecoveryJournal(storage);
+    const wrongDocument = { ...document, id: 'different-map-id' };
+    storage.setItem(`vandrith.map-editor.recovery.${document.id}`, JSON.stringify({
+      mapId: document.id,
+      savedAt: new Date().toISOString(),
+      snapshot: serializeMapDocument(wrongDocument),
+    }));
+
+    expect(journal.read(document.id)).toBeNull();
+    expect(journal.has(document.id)).toBe(false);
+  });
+
+  it('does not report malformed recovery data as available', () => {
+    const storage = memoryStorage();
+    const journal = createCrashRecoveryJournal(storage);
+    storage.setItem(`vandrith.map-editor.recovery.${document.id}`, '{broken');
+
+    expect(journal.read(document.id)).toBeNull();
+    expect(journal.has(document.id)).toBe(false);
+  });
+
+  it('fails closed when local storage throws during recovery reads', () => {
+    const storage = {
+      getItem() { throw new Error('Storage access denied'); },
+      setItem() {},
+      removeItem() {},
+    };
+    const journal = createCrashRecoveryJournal(storage);
+
+    expect(journal.read(document.id)).toBeNull();
+    expect(journal.has(document.id)).toBe(false);
+  });
+});
