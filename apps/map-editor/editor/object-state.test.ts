@@ -93,6 +93,16 @@ describe('level-aware palette asset placement', () => {
     });
   });
 
+  it('creates stable IDs for the same asset and target cell', () => {
+    const document = createStarterMap();
+    const asset = { id: 'forest/tree-01', label: 'Tree', family: 'playable-nature' };
+    const first = placePaletteAsset(document, 'objects', { x: 7, y: 9 }, asset);
+    const second = placePaletteAsset(document, 'objects', { x: 7, y: 9 }, asset);
+    expect(first).toEqual(second);
+    expect(first.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.id)
+      .toBe('asset-objects-forest_tree-01-7-9');
+  });
+
   it('persists the physical registry identity when a runtime asset is placed', () => {
     const document = createStarterMap();
     const next = placePaletteAsset(document, 'objects', { x: 6, y: 6 }, {
