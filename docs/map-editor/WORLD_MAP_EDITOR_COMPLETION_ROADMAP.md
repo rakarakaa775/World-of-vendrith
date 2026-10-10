@@ -167,15 +167,23 @@ Memulai object authoring setelah terrain stabil.
 - [ ] Transform inspector
 - [ ] Duplicate
 - [ ] Multi-select
-- [ ] Scatter
-- [ ] Deterministic random placement
-- [ ] Collision-aware placement
+- [~] Scatter — deterministic placement core exists; UI wiring and partial-count feedback remain
+- [~] Deterministic random placement — stable seed/position/layer/asset identity; latest CI verification pending
+- [~] Collision-aware placement — core avoids existing object footprints and applies minimum Manhattan spacing; UI wiring remains
 - [ ] Object bounds/debug
-- [ ] Object metadata/provenance
+- [~] Object metadata/provenance — canonical registry asset ID is preserved when supplied; full provenance/approval metadata remains
 
 ### Boundary
 Object placement tidak mengubah terrain engine dan tidak mengubah building
 engine foundation.
+
+### Current implementation note
+
+The pure placement helpers now use deterministic IDs for palette placement and
+seeded scatter. Scatter avoids existing object footprints and can enforce minimum
+Manhattan spacing. This is only the operation layer: editor UI wiring, explicit
+partial-placement feedback, object bounds/debug, metadata/provenance review, and
+save/load round-trip verification remain open. Latest CI runs are pending.
 
 ### Exit gate
 Object dapat ditempatkan, disimpan, dimuat ulang, dipilih, diubah, dan
