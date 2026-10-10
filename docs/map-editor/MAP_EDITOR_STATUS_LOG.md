@@ -1,3 +1,11 @@
+## 2026-10-10 — Save Slot stringified envelope regression CI verified
+
+- Verified GitHub Actions Map Editor CI run [38054500494](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38054500494) on feature-branch commit `6a142a6c78b3adaf6862fe7f9127236d3d32bd76`.
+- Dependency installation, TypeScript typecheck, Next.js production build, and Vitest all completed successfully. Vitest reports 163/163 test files and 802/802 tests passed.
+- Build emitted an existing Autoprefixer warning in `app/globals.css`; dependency installation reported 5 audit vulnerabilities (2 moderate, 1 high, 2 critical). These warnings did not fail CI and remain separate follow-up audit items.
+- The newly added regression covers a JSON-stringified current Game Save v1 envelope. This CI result verifies the feature-branch code and current automated suite only; it does not verify deployed Save/Load RPC integrity.
+- Production Save Slot rows, RPC definitions, grants, and migration history remain unchanged. Server-side validation is still gated on the Supabase CLI migration workflow, isolated database regression tests, review, and explicit production approval.
+
 ## 2026-10-10 — Expand unsupported Save Slot envelope regressions
 
 - Added tests rejecting legacy map-document v2, unknown snapshot schemas, and an array used as an Exterior payload.
