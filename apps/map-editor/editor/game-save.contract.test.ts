@@ -192,6 +192,11 @@ describe('Save Slot canonical World version integrity', () => {
     expect(() => assertSlotWorldMatchesCanonicalVersion(valid)).not.toThrow();
   });
 
+  it('compares snapshot content independent of JSON object key order', () => {
+    const reorderedWorld = Object.fromEntries(Object.entries(world).reverse()) as typeof world;
+    expect(() => assertSlotWorldMatchesCanonicalVersion({ ...valid, slotWorld: reorderedWorld })).not.toThrow();
+  });
+
   it('rejects missing or inconsistent version identity', () => {
     expect(() => assertSlotWorldMatchesCanonicalVersion({ ...valid, slotVersionId: null }))
       .toThrow('LOAD_SLOT_VERSION_MISMATCH');
