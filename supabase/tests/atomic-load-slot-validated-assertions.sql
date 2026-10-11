@@ -14,17 +14,17 @@ begin
 end $$;
 rollback;
 
--- Missing/deleted or foreign version reference is rejected.
+-- A version owned by another user cannot satisfy this owner's canonical version reference.
 begin;
 select atomic_save_slot_test.seed_case();
-update public.map_editor_save_slots
-set version_id='cccccccc-3333-3333-3333-333333333333'
-where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+insert into auth.users(id) values('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+update public.map_versions set created_by='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+where id='aaaaaaaa-1111-1111-1111-111111111111';
 do $$
 declare r jsonb;
 begin
   r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
-  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='SLOT_VERSION_REFERENCE_INVALID','missing version reference rejected');
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='SLOT_VERSION_REFERENCE_INVALID','foreign-owner canonical version reference rejected');
 end $$;
 rollback;
 
