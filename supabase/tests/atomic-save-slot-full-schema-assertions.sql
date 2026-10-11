@@ -194,7 +194,7 @@ insert into auth.users(id) values ('cccccccc-cccc-cccc-cccc-cccccccccccc') on co
 update public.map_editor_save_slots
 set created_by='cccccccc-cccc-cccc-cccc-cccccccccccc'
 where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
-do $
+do $slot_owner$
 declare r jsonb;
 begin
   r := public.map_editor_save_game_slot_atomic_v1(
@@ -204,7 +204,7 @@ begin
   perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='ATOMIC_SAVE_FAILED','foreign-owned slot must fail closed');
   perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'foreign slot owner failure rolls back World version');
   perform atomic_save_slot_test.assert_true((select created_by='cccccccc-cccc-cccc-cccc-cccccccccccc' and version_number=1 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'foreign slot remains unchanged');
-end $;
+end $slot_owner$;
 rollback;
 
 -- Verify the RPC's execute grants match the intended Supabase caller boundary.
