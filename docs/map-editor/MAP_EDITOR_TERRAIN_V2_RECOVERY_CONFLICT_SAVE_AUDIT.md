@@ -49,6 +49,13 @@ File: `apps/map-editor/editor/map-conflict-save-controller.ts`
 5. Test same-cell terrain edits, independent document edits, concurrent terrain edits, map identity mismatch, invalid semantics, post-merge serialization round-trip, and recovery after interrupted writes.
 6. Run focused Vitest, full app Vitest, typecheck, and production build; record actual output or keep the gate open.
 
+## 2026-10-11 — V2 recovery terrain semantics validation tests
+
+- Added regression cases in `map-crash-recovery-v2.test.ts` for invalid surface values and duplicate terrain coordinates in a stored v2 recovery snapshot.
+- Expected safety behavior: parser rejects the entire recovery entry; `read()` returns `null` and `has()` returns `false`. No partial document-only recovery is accepted.
+- Test commit: `9f4323f68dde09fd37d016f43d843ac7c13f29ce`; exact-commit CI is running at the time of this note.
+- This adds validation coverage only. V2 recovery remains opt-in and disconnected from the active editor shell; no database, RPC, or production data changed.
+
 ## Verification limits
 
 This is a source-level repository audit, not proof of deployed Supabase RPC definitions or runtime behavior. No database, RPC, schema, production data, active UI, or production runtime was changed. CI and local test execution have not been verified for the audited commits.
