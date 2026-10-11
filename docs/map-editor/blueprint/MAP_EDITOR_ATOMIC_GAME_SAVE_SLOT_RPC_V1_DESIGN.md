@@ -181,3 +181,18 @@ These facts reinforce why the migration must validate the World and Exterior ide
 A read-only aggregate of `editor_map_identity` currently returns **one `world` identity and zero `region` or `playable` identities**; the existing world identity is linked to a legacy map, has no parent, and has a non-null owner. No database state was changed.
 
 This is an additional activation blocker: the current Save Slot UI can hold a local Exterior document, but the live identity store presently has no persisted Exterior/Playable identity to lock and version. The atomic RPC must not silently assume that a local document ID already has a row. Before implementing its Exterior branch, the project must either (a) establish and audit the canonical identity-creation flow and its parent/world linkage, or (b) explicitly scope the first atomic RPC to World-only saves and keep combined World+Exterior Save Slot disabled until identity creation is persisted. Do not create identity rows implicitly as a side effect of saving a slot without a separate reviewed contract.
+
+
+## 7. Active-branch caller audit — 2026-10-11
+
+The current feat/vendrith-ecc-v1 source was inspected directly (not inferred from the historical status log):
+
+- apps/map-editor/components/world-browser.tsx calls map_editor_bootstrap_world_identity_v1 for a World parent, then map_editor_create_child_v1 for Region/Playable identities; Interior creation calls map_editor_create_interior_v1. The returned editor_map_id becomes the MapDocument.id. These paths create durable identity rows, but the document content is explicitly reported as “unsaved document.”
+- The read-only live inventory still has zero region and zero playable identity rows. This proves no such child identities are currently present in the inspected live project; it does not prove the code path is unwired. Browser/session verification of the create flow remains a separate gate.
+- apps/map-editor/components/vendrith-world-builder-app.tsx currently implements saveToSlot as sequential operations: load and possibly commit World, load and possibly commit Exterior identity, query the World version ID, then call map_editor_save_slot_v1. Therefore the active UI still has the partial-commit risk; the dormant adapter does not change this behavior.
+- A future frontend switch cannot simply replace the last map_editor_save_slot_v1 call. It must remove the preceding World/Exterior writes from the Save Slot path and pass the latest known expected versions plus local snapshots to the single atomic RPC. Otherwise earlier writes would still survive a later atomic-RPC failure.
+- The World persistence identifier is the authoritative legacy maps.id; the Exterior identifier is the editor_map_identity.editor_map_id returned by the identity RPC. The server function must treat these as different identifier domains and validate them against their own tables. Never substitute a local-only/generated ID for a persisted identity ID.
+
+### Next safe implementation gate
+
+Before adding production SQL, build a zero-cost isolated PostgreSQL/Supabase test harness from the repository migrations and seed fixtures. The test must execute the actual candidate function and inject failures after each authoritative write. If the required schema cannot be reconstructed reproducibly in CI, stop at design-only and do not wire the client or apply production SQL. The existing Supabase main branch is not a clean test target and no paid branch should be created.
