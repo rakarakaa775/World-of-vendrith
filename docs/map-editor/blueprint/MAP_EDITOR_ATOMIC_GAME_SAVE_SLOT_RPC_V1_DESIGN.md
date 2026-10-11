@@ -237,3 +237,10 @@ This closes the zero-cost reconstructed-schema test gate. It does **not** close 
 The reconstructed-schema integration suite now also checks unauthenticated calls, malformed envelope rejection, World identity mismatch, and access denial for a non-owner on a non-shared test World. The fixture uses a World UUID distinct from the hard-coded shared-world ID recognized by the reconstructed `map_editor_can_access_v1`; this avoids falsely treating the intentionally shared World as an owner-only resource.
 
 Run [38152895700](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38152895700) subsequently completed successfully. Both PostgreSQL jobs passed, and TypeScript typecheck, Next.js build, and Vitest (166 files / 850 tests) passed. A follow-up test verifies that the atomic RPC is executable by `authenticated` but not by `anon`. GitHub Actions run [38154020747](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38154020747) completed successfully: both PostgreSQL jobs passed (including malformed/auth/ownership/grant assertions and concurrency), as did TypeScript typecheck, Next.js build, and Vitest (166 files / 850 tests).
+
+
+## 14. Save Slot ownership regression — 2026-10-11
+
+The candidate RPC now requires the authenticated user to own the World map and limits the slot upsert conflict update to rows owned by that same user. It checks the affected row count and fails closed if a foreign-owned slot cannot be updated. The reconstructed full-schema SQL assertions seed a distinct authenticated user as the slot owner, attempt an overwrite, and assert that the slot stays unchanged and no World version write leaks through.
+
+GitHub Actions run [38155440561](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38155440561) completed successfully after correcting the regression fixture's SQL block delimiters. This is evidence from disposable PostgreSQL CI, not hosted Supabase. The candidate migration is still unapplied, and the active UI remains on the legacy Save Slot flow.
