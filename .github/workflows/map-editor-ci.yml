@@ -52,8 +52,9 @@ jobs:
 
       - name: Run Vitest
         run: npm test
+
   atomic-save-slot-sql:
-    name: Atomic Save Slot PostgreSQL contract tests
+    name: Atomic Save Slot PostgreSQL fixture contract tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -79,7 +80,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Create isolated schema fixture
+      - name: Create isolated stub fixture
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-fixture.sql
       - name: Apply candidate RPC to disposable database only
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql
@@ -87,3 +88,46 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-assertions.sql
       - name: Assert concurrent saves serialize and conflict
         run: bash supabase/tests/atomic-save-slot-concurrency.sh
+
+  atomic-save-slot-full-schema:
+    name: Atomic Save Slot reconstructed full-schema integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vendrith_full_schema_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vendrith_full_schema_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5433
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: vendrith_full_schema_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Prepare isolated Supabase auth compatibility
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-full-schema-bootstrap.sql
+      - name: Apply reconstructed schema without unavailable Supabase Vault extension
+        shell: bash
+        run: |
+          set -o pipefail
+          sed '/CREATE EXTENSION IF NOT EXISTS "supabase_vault"/d' supabase/migrations/20261003170000_remote_schema_baseline_reconstructed.sql | psql -v ON_ERROR_STOP=1
+      - name: Apply candidate RPC to disposable full-schema database
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql
+      - name: Create isolated test helpers and failure injection triggers
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-full-schema-support.sql
+      - name: Assert real RPC and schema integration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-full-schema-assertions.sql
+      - name: Assert full-schema concurrent save serialization
+        run: bash supabase/tests/atomic-save-slot-full-schema-concurrency.sh
