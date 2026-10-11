@@ -134,7 +134,7 @@ The following zero-cost, non-production checks are now implemented on `feat/vend
 - The isolated fixture and reconstructed full-schema PostgreSQL suites assert that rejecting an Interior-as-Exterior request leaves World versions, Exterior versions, and the slot row unchanged.
 - The candidate validated Load Slot RPC has regression coverage for an Exterior that declares `playableSpace: interior`.
 - The active client-side Game Save parser rejects an Exterior whose map ID equals the authoritative World ID; a Vitest regression covers the case.
-- Latest CI for this hardening batch: [run 38160876037](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38160876037). Check the final run conclusion before treating this batch as green.
+- The first run exposed malformed dollar-quote delimiters in the newly added SQL blocks; the tests were corrected to use named delimiters. Final CI run [38161030648](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38161030648) passed all three jobs on commit `5f989b7cb010f6c68940b3052dc4169b8208c7bf`, including typecheck, build, 851 Vitest tests, both SQL assertion suites, and reconstructed full-schema integration.
 
 These changes improve validation but do **not** close the release gates below. The two candidate RPCs remain unapplied to hosted Supabase, and the active UI still uses the legacy multi-RPC Save path and existing Load RPC plus client-side canonical version comparison. No hosted DB, paid Supabase branch, or new Git branch has been created. Do not wire the candidate RPCs into the active UI until hosted non-production authenticated integration and browser/session round-trip checks can be performed safely.
 
