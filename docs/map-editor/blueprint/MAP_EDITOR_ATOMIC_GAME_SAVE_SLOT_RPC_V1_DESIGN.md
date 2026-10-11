@@ -7,7 +7,7 @@
 
 ## 1. Why this contract is needed
 
-The current frontend `saveToSlot` can commit a World version, then an Exterior version, and only afterward call `map_editor_save_slot_v1`. That RPC performs a single-row upsert into `map_editor_save_slots`; it does not roll back prior RPC calls. A slot failure can therefore leave one or both authoritative map histories advanced while the requested slot still points to its previous snapshot.
+The current frontend `saveToSlot` can commit the World version through `map_editor_commit_merge_v1`, commit an Exterior identity version through `map_editor_commit_identity_v1`, and only afterward call `map_editor_save_slot_v1`. The Exterior identity history uses `editor_map_identity` / `editor_map_versions`, while the World Save Slot reference points to `maps` / `map_versions`. The slot RPC performs a single-row upsert into `map_editor_save_slots`; it cannot roll back either earlier RPC call. A slot failure can therefore leave one or both histories advanced while the requested slot still points to its previous snapshot.
 
 The existing `map_editor_commit_merge_v1` is optimistic and map-scoped: it locks one `maps` row, checks one expected version, inserts one immutable version and invokes reconciliation. It cannot make a later, separate Save Slot RPC part of the same transaction.
 
@@ -18,13 +18,13 @@ Proposed function name: `public.map_editor_save_game_slot_atomic_v1`.
 Inputs:
 - `p_world_map_id uuid`
 - `p_expected_world_version integer`
-- `p_world_snapshot jsonb`
+- `p_world_snapshot jsonb` (the canonical `vandrith.map-document` envelope used by `map_editor_commit_merge_v1`)
 - `p_exterior_map_id uuid` (nullable only when saving a World-only slot)
-- `p_expected_exterior_version integer` (required when exterior ID is supplied; 0 means no durable version yet)
-- `p_exterior_snapshot jsonb` (must be null when exterior ID is null)
+- `p_expected_exterior_version integer` (identity version number; required when exterior ID is supplied; 0 means no durable identity version yet)
+- `p_exterior_snapshot jsonb` (the canonical `vandrith.map-document` envelope used by `map_editor_commit_identity_v1`; must be null when exterior ID is null)
 - `p_slot_number smallint`
 - `p_label text`
-- `p_slot_snapshot jsonb` (canonical Game Save envelope containing the same World and optional Exterior snapshots)
+- `p_slot_snapshot jsonb` (canonical `vandrith.game-save` envelope whose `world` and `exterior` values are raw MapDocument objects matching the `document` members of the respective envelopes)
 
 Return a structured JSON result. Success must include the slot identity, World version ID/number, optional Exterior version ID/number, and projection outcomes. Conflict must return current version numbers without writing any version or slot row. Validation/auth/ownership failures must return stable error codes and write nothing.
 
@@ -36,13 +36,13 @@ All authoritative writes for this operation must occur in one PostgreSQL transac
 
 1. Require `auth.uid()`; validate slot range 1–12 and non-null expected World version.
 2. Validate envelope shape/schema and ensure the slot snapshot's World payload is equivalent to `p_world_snapshot`; if an Exterior is present, require it to match `p_exterior_snapshot`. Validate IDs and explicit map types using the canonical serializer contract (do not infer type from dimensions).
-3. Resolve both maps as owned by the authenticated user. Require World map type for the World ID and the allowed Exterior map type for the optional Exterior ID. Reject the same ID being used for both.
-4. Lock affected `maps` rows in deterministic UUID order to avoid deadlocks when two clients save the same pair in opposite orders.
-5. Read each current authoritative version while holding the map locks. Compare it to the supplied expected version. If either is stale, return conflict before any inserts.
-6. Insert a new `map_versions` row only for a snapshot that differs from its current canonical snapshot; otherwise reuse the existing version row. For a map with expected version 0 and no current version, only allow insertion if the identity and ownership checks pass.
-7. Upsert the Save Slot row, referencing the exact World version created/reused in step 6 and storing the validated combined `p_slot_snapshot`.
+3. Resolve the World map using the current `maps` / `map_versions` authority and require `map_type='world'` plus `map_editor_can_access_v1(p_world_map_id)`. Resolve the optional Exterior through `editor_map_identity` / `editor_map_versions` and require `created_by=auth.uid()` and the supported identity map type/parent relationship. Reject the same UUID for World and Exterior.
+4. Lock the World `maps` row and Exterior `editor_map_identity` row in a documented global order. The final order must be compatible with all code paths that acquire both locks; a wrapper must not assume `ORDER BY` alone is enough without a concurrent test.
+5. Read each latest version from its own authoritative history table. Compare both expected version numbers before writing. If either is stale, return conflict without writes.
+6. Reuse a current version when its canonical snapshot is unchanged; otherwise invoke the existing `map_editor_commit_merge_v1` for World and `map_editor_commit_identity_v1` for Exterior inside the same outer PostgreSQL transaction. Treat either inner RPC's `status='conflict'` as a conflict that rolls back all writes made earlier in the wrapper. Expected version 0 is valid only when the corresponding history is empty and identity/ownership checks pass.
+7. Upsert the Save Slot row in `map_editor_save_slots`, referencing the exact World `map_versions.id/version_number` and storing the validated combined `p_slot_snapshot`. Exterior identity version IDs are not currently represented in the slot table, so the combined snapshot remains the load/recovery source for Exterior.
 8. Keep authoritative version insertion and Save Slot upsert in the same transaction. Any error before this boundary completes must roll back all version and slot writes.
-9. Reconcile projections without changing the meaning of authoritative success. Projection errors must be captured as structured `projection_status=failed` results only if their side effects are isolated/rolled back; do not falsely report the authoritative transaction as rolled back if version and slot writes committed. The exact reconciliation behavior must be verified from the deployed function source before implementation.
+9. Preserve the current deployed contract: `map_editor_commit_merge_v1` catches projection exceptions and can return `status='committed'` with `projection_status='failed'` and `projection_error` while retaining the authoritative World version. The atomic wrapper must propagate that status while still making World version + optional Exterior identity version + slot row one atomic authoritative unit. A projection failure is not a version/slot conflict and must not be misreported as a rolled-back save. If the outer authoritative transaction fails, all authoritative writes must roll back.
 10. Return success only after the authoritative versions and slot row are committed.
 
 ### Important implementation details
@@ -114,6 +114,12 @@ Because reconciliation is called inside the same PostgreSQL function/transaction
 
 The historical `map_editor_save_slot_v1` validates authentication, slot range 1–12, map ownership, object-shaped snapshot, and the referenced version ID/map ID/version number/owner, then upserts one row in `map_editor_save_slots`. The function does not write World or Exterior versions. The frontend's preceding version commits are separate calls, so failure of this upsert cannot undo them.
 
+### Live production definitions inspected read-only — 2026-10-11
+
+The connected Supabase project `ojtmfokjcirvjvhnbnos` was queried read-only. The live `map_editor_commit_merge_v1` returns `projection_status` and `projection_error`; it inserts the World version and updates `maps.updated_at`, then wraps `map_editor_reconcile_after_merge_v1` in an inner exception block. Projection errors are captured and do not abort that function's authoritative version write. The live `map_editor_commit_identity_v1` writes to `editor_map_versions` with a lock on the owner-scoped `editor_map_identity` row and returns `projection_status='not_run'`. The live Save Slot RPC upserts `map_editor_save_slots` and validates the referenced World `map_versions` row.
+
+The World and Exterior therefore use different persistence authorities. The proposed atomic wrapper must call both existing commit paths within its own transaction and use a dedicated rollback boundary when either returns conflict after a prior write.
+
 ### Reconciliation behavior inspected from historical source
 
 The historical `map_editor_reconcile_after_merge_v1` implementation:
@@ -126,10 +132,10 @@ The function does not visibly branch by map type in the inspected historical bod
 
 ### Remaining blockers before implementation
 
-1. The historical migrations are not present at their historical paths on the active branch, and repository source does not prove current deployed function bodies or table constraints. Obtain/inspect the current deployed definitions and schema before writing a migration.
-2. Confirm whether one slot's combined snapshot is permitted to include an Exterior map ID different from the current open map, and what owner/map-type constraints the current schema enforces.
-3. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation.
+1. Confirm the identity table's allowed `map_type` values and parent/world relationship for the exact Exterior identity being saved; do not equate editor `MapDocument.mapType='playable'` with the database identity map type without checking the deployed identity contract.
+2. Design deterministic lock ordering across `maps` and `editor_map_identity` and test concurrent save calls.
+3. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation. The available Supabase connection currently exposes the active project only; no disposable database was created or mutated.
 
 ## 7. Current decision
 
-**Do not create or apply a production migration yet.** The deployed reconciliation implementation and a disposable database test environment have not been verified in this work session. This design is a reviewable contract, not evidence that atomicity has already been delivered. No database mutation or runtime/browser test was performed.
+**Do not create or apply a production migration yet.** Live function definitions and relevant table constraints have now been inspected read-only, but the exact identity map type/parent contract, concurrent lock ordering, and disposable-database test gate remain unresolved. This design is a reviewable contract, not evidence that atomicity has already been delivered. No database mutation or runtime/browser test was performed.
