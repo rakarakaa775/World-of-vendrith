@@ -1,3 +1,9 @@
+## 2026-10-11 — Diagonal water-depth gradient regression
+
+- Added a test for eight-way distance at diagonal positions around a single land cell, checking `water`, `brackish`, and `deepwater2` bands.
+- Test commit: `7dbd00f94b91b6408e9cda0bee8dc386fc22f509`; exact-commit CI pending verification.
+- This validates an existing terrain contract without changing the algorithm or production persistence.
+
 ## 2026-10-10 — V1 crash recovery fail-closed guards
 
 - Hardened active v1 recovery reads against inaccessible storage, malformed JSON, and a recovery envelope whose embedded MapDocument ID differs from the requested map ID.
