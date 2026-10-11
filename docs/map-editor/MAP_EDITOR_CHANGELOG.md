@@ -793,4 +793,11 @@
 - **Details:** Added `MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md` defining a proposed versioned RPC, stable lock ordering, expected-version checks, same-transaction World/Exterior version and slot writes, structured conflict/failure outcomes, rollback invariants, and SQL/application verification gates.
 - **Safety:** Design-only. No deployable migration created or applied, no production database changed, and no tests/CI/browser session claimed. The live reconciliation function must be verified and the new RPC tested against a disposable database before activation.
 - **Affected:** `docs/map-editor/blueprint/MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md`.
+## 2026-10-11 — Historical RPC transaction semantics inspected
+
+- **Type:** Persistence audit follow-up
+- **Details:** Inspected the historical source for `map_editor_commit_merge_v1`, `map_editor_save_slot_v1`, and `map_editor_reconcile_after_merge_v1`. The commit RPC locks the owned map row, checks the expected version, inserts the version, then reconciles projections in the same function transaction; an unhandled reconciliation error therefore aborts that commit. The separate slot RPC validates and upserts the slot row only, explaining why it cannot roll back earlier World/Exterior RPC calls.
+- **Projection note:** Historical reconciliation rebuilds `map_cells`, synchronizes object geometry, rebuilds navigation, and upserts the runtime snapshot. The current deployed definitions still require verification; historical migration source is not proof of current production state.
+- **Affected:** `MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md`.
+- **Safety:** No migration or database changes; no tests, CI, or browser round-trip claimed.
 
