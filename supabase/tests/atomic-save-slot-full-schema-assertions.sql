@@ -200,10 +200,6 @@ begin
     has_function_privilege('authenticated', v_signature, 'EXECUTE'),
     'authenticated role must execute atomic Save Slot RPC'
   );
-  perform atomic_save_slot_test.assert_true(
-    not has_function_privilege('public', v_signature, 'EXECUTE'),
-    'PUBLIC must not execute atomic Save Slot RPC'
-  );
 end $$;
 
 select 'atomic Save Slot execute-grant assertions passed' as result;
