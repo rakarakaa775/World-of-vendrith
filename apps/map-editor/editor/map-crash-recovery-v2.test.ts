@@ -149,6 +149,57 @@ describe("opt-in v2 crash recovery journal", () => {
     expect(journal.read("recovery-world")).toBeNull();
   });
 
+  it("rejects recovery when terrain semantics contain an invalid surface", () => {
+    const storage = createMemoryStorage();
+    const journal = createMapV2CrashRecoveryJournal(storage);
+    storage.setItem(
+      "vandrith.map-editor.recovery.v2.recovery-world",
+      JSON.stringify({
+        mapId: "recovery-world",
+        savedAt: new Date().toISOString(),
+        snapshot: JSON.stringify({
+          schema: "vandrith.map-document-v2",
+          version: 2,
+          document: state.document,
+          terrainSemantics: {
+            ...state.terrainSemantics,
+            cells: [{ x: 4, y: 4, surface: "lava" }],
+          },
+        }),
+      }),
+    );
+
+    expect(journal.read("recovery-world")).toBeNull();
+    expect(journal.has("recovery-world")).toBe(false);
+  });
+
+  it("rejects recovery when terrain semantics contain duplicate coordinates", () => {
+    const storage = createMemoryStorage();
+    const journal = createMapV2CrashRecoveryJournal(storage);
+    storage.setItem(
+      "vandrith.map-editor.recovery.v2.recovery-world",
+      JSON.stringify({
+        mapId: "recovery-world",
+        savedAt: new Date().toISOString(),
+        snapshot: JSON.stringify({
+          schema: "vandrith.map-document-v2",
+          version: 2,
+          document: state.document,
+          terrainSemantics: {
+            ...state.terrainSemantics,
+            cells: [
+              { x: 4, y: 4, surface: "land" },
+              { x: 4, y: 4, surface: "water" },
+            ],
+          },
+        }),
+      }),
+    );
+
+    expect(journal.read("recovery-world")).toBeNull();
+    expect(journal.has("recovery-world")).toBe(false);
+  });
+
   it("clears only the requested map's recovery entry", () => {
     const storage = createMemoryStorage();
     const journal = createMapV2CrashRecoveryJournal(storage);
