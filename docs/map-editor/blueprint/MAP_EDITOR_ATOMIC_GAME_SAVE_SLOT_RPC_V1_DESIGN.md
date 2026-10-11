@@ -132,9 +132,10 @@ The function does not visibly branch by map type in the inspected historical bod
 
 ### Remaining blockers before implementation
 
-1. Confirm the identity table's allowed `map_type` values and parent/world relationship for the exact Exterior identity being saved; do not equate editor `MapDocument.mapType='playable'` with the database identity map type without checking the deployed identity contract.
-2. Design deterministic lock ordering across `maps` and `editor_map_identity` and test concurrent save calls.
-3. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation. The available Supabase connection currently exposes the active project only; no disposable database was created or mutated.
+1. The live schema confirms `editor_map_identity.map_type` allows `world`, `region`, and `playable`; Exterior documents use `MapDocument.mapType='playable'` with `playableSpace='exterior'`. The RPC must validate the database identity type plus the snapshot's `playableSpace` and parent/world relationship.
+2. The live `map_editor_commit_merge_v1` ACL currently includes `PUBLIC`/`anon` execute grants, while its body rejects a null `auth.uid()`. This is not an immediate unauthenticated write path based on the inspected body, but it is broader than the other inspected save RPC grants. Add a separate reviewed privilege-hardening step; do not change grants as an incidental part of this feature.
+3. Design deterministic lock ordering across `maps` and `editor_map_identity` and test concurrent save calls.
+4. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation. The available Supabase connection currently exposes the active project only; no disposable database was created or mutated.
 
 ## 7. Current decision
 
