@@ -348,3 +348,5 @@
 
 
 | 2026-10-11 | Live identity inventory adds an Exterior persistence blocker | Phase 0 — Foundation Audit | Read-only live query found one `world` identity and zero `region`/`playable` identities in `editor_map_identity`. Atomic Save Slot cannot assume a local Exterior ID already has a durable identity row. Canonical identity-creation and parent/world linkage must be audited, or combined saves must remain disabled until that contract exists. No production DB changes. |
+
+| 2026-10-11 | Active Save Slot and identity caller audit | Phase 0 — Foundation Audit | Current branch confirms World Browser uses authenticated identity-creation RPCs, while active saveToSlot still performs World commit → Exterior identity commit → legacy Save Slot RPC as separate operations. The World ID and Exterior editor identity ID belong to different persistence tables. Documented why activation requires replacing the whole save sequence, not just its final RPC. Live child identity inventory remains zero; browser flow and isolated PostgreSQL rollback tests are still unverified. No database changes or paid branch. Design update commit d9a5cd08503359d4de4b993bc8562a748f8f75dd. |
