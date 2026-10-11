@@ -342,3 +342,6 @@
 
 
 | 2026-10-11 | Atomic Save Slot client adapter added behind activation gate | Phase 0 — Foundation Audit | Added a dormant one-RPC adapter plus focused tests for payload mapping, World-only saves, invalid slot/identity rejection, and RPC error propagation without fallback. Adapter is intentionally not wired into active Save Slot until the server RPC is implemented and tested in an isolated database. No production SQL/RPC/database changes. CI status must be verified before claiming tests/typecheck/build passed. |
+
+
+| 2026-10-11 | Save Slot adapter CI green; database integration gate remains | Phase 0 — Foundation Audit | GitHub Actions run 38144537519 passed TypeScript typecheck, Next.js build, and Vitest (165 files / 846 tests, including 5 atomic-adapter tests). Corrected terrain merge fixture to respect sparse-record deletion semantics. Atomic adapter remains dormant pending isolated PostgreSQL transaction/rollback/concurrency tests and reviewed migration. No Supabase branch or production DB mutation. |
