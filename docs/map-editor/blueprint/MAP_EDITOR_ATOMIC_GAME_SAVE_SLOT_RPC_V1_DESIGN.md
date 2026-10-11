@@ -1,6 +1,6 @@
 # Atomic Game Save Slot RPC v1 — Design and Activation Gate
 
-**Status:** Design only; not a deployable migration  
+**Status:** Design + candidate migration; not approved for deployment  
 **Date:** 2026-10-11  
 **Branch:** `feat/vendrith-ecc-v1`  
 **Production database:** Unchanged
@@ -11,9 +11,9 @@ The current frontend `saveToSlot` can commit the World version through `map_edit
 
 The existing `map_editor_commit_merge_v1` is optimistic and map-scoped: it locks one `maps` row, checks one expected version, inserts one immutable version and invokes reconciliation. It cannot make a later, separate Save Slot RPC part of the same transaction.
 
-## 2. Proposed server API (not yet implemented)
+## 2. Candidate server API (migration drafted; not hosted/applied)
 
-Proposed function name: `public.map_editor_save_game_slot_atomic_v1`.
+Candidate function implemented in `supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql`: `public.map_editor_save_game_slot_atomic_v1`. The migration has passed isolated PostgreSQL CI but has not been applied to any hosted Supabase database.
 
 Inputs:
 - `p_world_map_id uuid`
