@@ -190,10 +190,11 @@ select 'atomic Save Slot full-schema security assertions passed' as result;
 -- A slot owned by a different user must not be overwritten, even if the map is accessible.
 begin;
 select atomic_save_slot_test.seed_case();
+insert into auth.users(id) values ('cccccccc-cccc-cccc-cccc-cccccccccccc') on conflict (id) do nothing;
 update public.map_editor_save_slots
 set created_by='cccccccc-cccc-cccc-cccc-cccccccccccc'
 where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
-do $ 
+do $
 declare r jsonb;
 begin
   r := public.map_editor_save_game_slot_atomic_v1(
