@@ -1,3 +1,11 @@
+## 2026-10-11 — Atomic Save Slot security suite fully green
+
+- GitHub Actions run [38154020747](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38154020747) completed successfully on `feat/vendrith-ecc-v1` at code commit `30cb87f2249c598cd7a7b2f522b4fc81bf028ada`.
+- Both PostgreSQL jobs passed: isolated transaction/rollback and concurrency fixture, plus reconstructed full-schema integration using the actual candidate migration and World/identity commit RPCs. Security assertions cover unauthenticated rejection, malformed envelope rejection, World identity mismatch, non-owner denial, and `authenticated` execute / `anon` denied.
+- TypeScript typecheck and Next.js build passed; Vitest passed **166 files / 850 tests**.
+- This closes the zero-cost CI verification gate only. The full-schema baseline is reconstructed rather than a byte-for-byte production dump; Auth uses an isolated compatibility stub. Hosted non-production Supabase integration and authenticated browser E2E remain unverified.
+- The atomic migration is still not applied to hosted Supabase, and the active UI still uses the legacy multi-RPC Save Slot path. No production database changes, paid Supabase branch, new Git branch, or UI activation were performed.
+
 ## 2026-10-11 — Diagonal water-depth gradient regression
 
 - Added a test for eight-way distance at diagonal positions around a single land cell, checking `water`, `brackish`, and `deepwater2` bands.
