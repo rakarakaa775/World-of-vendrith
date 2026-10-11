@@ -14,6 +14,8 @@ on:
     paths:
       - "apps/map-editor/**"
       - "database/migrations/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
       - ".github/workflows/map-editor-ci.yml"
   workflow_dispatch:
 
