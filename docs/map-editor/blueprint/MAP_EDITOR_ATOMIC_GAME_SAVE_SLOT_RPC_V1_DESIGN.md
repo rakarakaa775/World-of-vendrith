@@ -212,3 +212,8 @@ This fixture uses isolated test doubles for the existing commit RPCs. It verifie
 Added `apps/map-editor/editor/game-save-slot-atomic-workflow.ts` and focused tests. The helper merges the current local document against the freshly loaded remote baseline without performing persistence writes, serializes World/Exterior envelopes, verifies terrain survives serialization round-trips, and builds the combined `vandrith.game-save` payload. It rejects mismatched/local-only IDs and supports World-only saves. This keeps the atomic request preparation independently testable while the adapter remains dormant.
 
 The current active UI still uses the legacy Save Slot sequence. This is intentional: the candidate RPC is not installed in a hosted non-production environment, and production must not call a function that is not deployed. Activation requires wiring the UI behind an explicit feature gate and confirming the migration against the real schema in a non-production environment; do not set the gate on production before that gate passes.
+
+
+## 10. Latest full CI result — 2026-10-11
+
+GitHub Actions run `38151231274` completed successfully: TypeScript typecheck, Next.js build, **166 Vitest files / 850 tests**, isolated PostgreSQL atomic-save assertions, and the two-session concurrency test all passed. The client preparation helper is included in that run. This is code/test readiness for review, not permission to deploy the migration or activate the UI. The active Save Slot UI is still on the legacy multi-RPC path, and the new RPC has not been applied to any hosted database.
