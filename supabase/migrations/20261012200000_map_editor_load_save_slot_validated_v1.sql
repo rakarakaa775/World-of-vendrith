@@ -92,8 +92,14 @@ begin
     end if;
     if not (v_slot.snapshot ? 'exterior')
        or (v_slot.snapshot->'exterior' <> 'null'::jsonb
-           and (jsonb_typeof(v_slot.snapshot->'exterior') is distinct from 'object'
-             or v_slot.snapshot->'exterior'->>'mapType' is distinct from 'playable')) then
+           and (
+             jsonb_typeof(v_slot.snapshot->'exterior') is distinct from 'object'
+             or v_slot.snapshot->'exterior'->>'id' is null
+             or v_slot.snapshot->'exterior'->>'id' = p_map_id::text
+             or v_slot.snapshot->'exterior'->>'mapType' is distinct from 'playable'
+             or (v_slot.snapshot->'exterior' ? 'playableSpace'
+               and v_slot.snapshot->'exterior'->>'playableSpace' is distinct from 'exterior')
+           )) then
       return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_INVALID');
     end if;
   elsif v_slot.snapshot->>'schema' = 'vandrith.map-document'
