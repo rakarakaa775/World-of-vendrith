@@ -303,6 +303,11 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
     const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
     setBusy(true); setStatus(`Saving World + Exterior to Slot ${slot}…`);
+    // The legacy path commits map versions before the slot row. Track that
+    // boundary so a later error never implies that every remote write rolled back.
+    let worldVersionWriteCommitted = false;
+    let exteriorVersionWriteCommitted = false;
+    let slotRpcStarted = false;
     try {
       const worldRemote = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
       if (!worldRemote.document || worldRemote.result.error) throw new Error(worldRemote.result.error || worldRemote.result.code || "WORLD_SNAPSHOT_UNAVAILABLE");
@@ -315,6 +320,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
         worldDocument = worldSaved.document;
         worldVersion = Number(worldSaved.version) || worldVersion;
+        worldVersionWriteCommitted = true;
         setMaps(cur => [worldDocument, ...cur.filter(m => m.mapType !== "world")]);
       }
 
@@ -339,11 +345,13 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
             if (exteriorSaved.status === "error") throw exteriorSaved.error;
             if (exteriorSaved.status !== "committed") throw new Error(`Exterior save ${exteriorSaved.status}`);
             exteriorDocument = exteriorSaved.document;
+            exteriorVersionWriteCommitted = true;
             setMaps(cur => cur.some(m => m.id === exteriorDocument!.id) ? cur.map(m => m.id === exteriorDocument!.id ? exteriorDocument! : m) : [...cur, exteriorDocument!]);
           }
         } else {
           const firstSave = await saveIdentityMapDocument(client, localExterior, 0, "map-editor-save");
           if (firstSave.status !== "committed") throw new Error(`Exterior save ${firstSave.status}`);
+          exteriorVersionWriteCommitted = true;
           exteriorDocument = localExterior;
         }
       }
@@ -352,6 +360,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       const vr = await client.from("map_versions").select("id").eq("map_id", AUTHORITATIVE_WORLD_MAP_ID).eq("version_number", worldVersion).single();
       if (vr.error) throw vr.error;
       const snapshot = serializeGameSaveSnapshot(worldDocument, exteriorDocument);
+      slotRpcStarted = true;
       const rpc = await client.rpc("map_editor_save_slot_v1", {
         p_map_id: AUTHORITATIVE_WORLD_MAP_ID,
         p_slot_number: slot,
@@ -365,7 +374,34 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
       setStatus(`Game saved to Slot ${slot} · World + Exterior`);
-    } catch (e) { setStatus(`Save Slot ${slot} failed: ${msg(e)}`); }
+    } catch (e) {
+      const message = msg(e);
+      if (worldVersionWriteCommitted || exteriorVersionWriteCommitted || slotRpcStarted) {
+        let slotsRefreshed = false;
+        try {
+          await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
+          slotsRefreshed = true;
+        } catch {
+          // Keep the original save error visible; reconciliation itself is best effort.
+        }
+        const priorWrites = worldVersionWriteCommitted || exteriorVersionWriteCommitted;
+        if (slotRpcStarted) {
+          setStatus(
+            `Save Slot ${slot} result is uncertain: ${message}. ` +
+            (priorWrites ? "World/Exterior version writes may already have persisted. " : "") +
+            (slotsRefreshed ? "Slot metadata was refreshed; verify the slot contents before retrying." : "Slot metadata could not be refreshed; verify the slot before retrying."),
+          );
+        } else {
+          setStatus(
+            `Save Slot ${slot} was not completed: ${message}. ` +
+            "World/Exterior version writes may already have persisted. " +
+            (slotsRefreshed ? "Slot metadata was refreshed; verify the slot contents before retrying." : "Slot metadata could not be refreshed; verify the slot before retrying."),
+          );
+        }
+      } else {
+        setStatus(`Save Slot ${slot} failed before any tracked write: ${message}`);
+      }
+    }
     finally { setBusy(false); }
   }, [active, maps, refreshSlots]);
 
