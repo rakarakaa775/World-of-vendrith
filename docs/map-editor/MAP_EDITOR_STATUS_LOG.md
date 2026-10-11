@@ -345,3 +345,6 @@
 
 
 | 2026-10-11 | Save Slot adapter CI green; database integration gate remains | Phase 0 — Foundation Audit | GitHub Actions run 38144537519 passed TypeScript typecheck, Next.js build, and Vitest (165 files / 846 tests, including 5 atomic-adapter tests). Corrected terrain merge fixture to respect sparse-record deletion semantics. Atomic adapter remains dormant pending isolated PostgreSQL transaction/rollback/concurrency tests and reviewed migration. No Supabase branch or production DB mutation. |
+
+
+| 2026-10-11 | Live identity inventory adds an Exterior persistence blocker | Phase 0 — Foundation Audit | Read-only live query found one `world` identity and zero `region`/`playable` identities in `editor_map_identity`. Atomic Save Slot cannot assume a local Exterior ID already has a durable identity row. Canonical identity-creation and parent/world linkage must be audited, or combined saves must remain disabled until that contract exists. No production DB changes. |
