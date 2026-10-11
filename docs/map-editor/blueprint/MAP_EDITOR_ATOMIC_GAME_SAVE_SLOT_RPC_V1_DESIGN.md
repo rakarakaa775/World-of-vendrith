@@ -140,3 +140,8 @@ The function does not visibly branch by map type in the inspected historical bod
 ## 7. Current decision
 
 **Do not create or apply a production migration yet.** Live function definitions and relevant table constraints have now been inspected read-only, but the exact identity map type/parent contract, concurrent lock ordering, and disposable-database test gate remain unresolved. This design is a reviewable contract, not evidence that atomicity has already been delivered. No database mutation or runtime/browser test was performed.
+
+
+### Test-environment gate — 2026-10-11
+
+A read-only check of Supabase development branches found one existing branch named `main` with status `MIGRATIONS_FAILED`; it is not a verified clean disposable environment. Supabase's cost quote for creating a new development branch in the linked organization is **$0.01344/hour**. A new branch has not been created because the cost must be explicitly acknowledged by the user first. Do not test this migration against production as a workaround.
