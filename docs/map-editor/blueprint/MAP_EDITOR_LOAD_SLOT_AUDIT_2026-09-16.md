@@ -130,3 +130,10 @@ Therefore the slot-row upsert is atomic by itself, but the complete World + Exte
 ### Verification status
 
 The existing frontend flow and historical SQL migration source were inspected through GitHub. No live database was changed, no browser/session mutation was performed, and no new tests were executed for this follow-up. The prior CI success cited above applies only to the run and commit named there, not to later commits.
+
+
+## Verification update — 2026-10-11
+
+The Atomic Save Slot candidate now has a green reconstructed full-schema CI run including a regression assertion that a slot owned by another user cannot be overwritten and that a rejected write rolls back the attempted World version mutation: [run 38155440561](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38155440561). The regression suite runs only in disposable PostgreSQL; it does not change or validate a hosted database.
+
+The Load Slot integrity gap remains open at the database boundary: `map_editor_load_save_slot_v1` returns the slot snapshot and version metadata without itself proving that the stored World snapshot matches the referenced canonical version. The active frontend currently performs the canonical version comparison before replacing editor state, but this is not a server-side guarantee. Next safe step is to design and test a separate versioned Load Slot validation contract against the reconstructed schema, including missing version, version-number mismatch, map identity mismatch, and snapshot mismatch. Do not replace the deployed RPC or activate an untested candidate in the active UI. Hosted non-production authenticated integration and browser/session round-trip remain unverified.
