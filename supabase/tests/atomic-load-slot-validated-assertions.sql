@@ -96,3 +96,51 @@ begin
   perform atomic_save_slot_test.assert_true(not (r ? 'snapshot'),'empty slot returns no snapshot');
 end $$;
 rollback;
+
+-- Exterior identity and map type are validated before a snapshot can be returned.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set snapshot=jsonb_set(snapshot,'{exterior,id}','"11111111-1111-1111-1111-111111111111"',false)
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='SLOT_SNAPSHOT_INVALID','Exterior cannot reuse World identity');
+end $$;
+rollback;
+
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set snapshot=jsonb_set(snapshot,'{exterior,mapType}','"world"',false)
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='SLOT_SNAPSHOT_INVALID','Exterior map type mismatch rejected');
+end $$;
+rollback;
+
+-- Authentication and slot-number checks return stable errors.
+begin;
+select set_config('request.jwt.claim.sub','',false);
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='AUTH_REQUIRED','unauthenticated Load Slot denied');
+end $$;
+rollback;
+
+begin;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',0::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='INVALID_SLOT','invalid slot number rejected');
+end $$;
+rollback;
