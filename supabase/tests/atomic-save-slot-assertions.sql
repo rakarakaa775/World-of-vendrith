@@ -11,7 +11,7 @@ begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111', 1, test_support.world_envelope('New World'),
     '22222222-2222-2222-2222-222222222222', 1, test_support.exterior_envelope('New Exterior'),
-    1, 'Atomic success', test_support.game_save('New World','New Exterior')
+    1::smallint, 'Atomic success', test_support.game_save('New World','New Exterior')
   );
   perform test_support.assert_true(r->>'ok'='true','combined save should succeed: '||r::text);
   perform test_support.assert_true((select count(*)=2 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'World history should advance exactly once');
@@ -28,7 +28,7 @@ begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111', 1, test_support.world_envelope('New World'),
     '22222222-2222-2222-2222-222222222222', 1, test_support.exterior_envelope('New Exterior'),
-    1, 'Injected Exterior failure', test_support.game_save('New World','New Exterior')
+    1::smallint, 'Injected Exterior failure', test_support.game_save('New World','New Exterior')
   );
   perform test_support.assert_true(r->>'ok'='false' and r->>'code'='ATOMIC_SAVE_FAILED','Exterior failure should be reported');
   perform test_support.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'World insert must roll back on Exterior failure');
@@ -45,7 +45,7 @@ begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111', 1, test_support.world_envelope('New World'),
     '22222222-2222-2222-2222-222222222222', 1, test_support.exterior_envelope('New Exterior'),
-    1, 'Injected slot failure', test_support.game_save('New World','New Exterior')
+    1::smallint, 'Injected slot failure', test_support.game_save('New World','New Exterior')
   );
   perform test_support.assert_true(r->>'ok'='false' and r->>'code'='ATOMIC_SAVE_FAILED','slot failure should be reported');
   perform test_support.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'World insert must roll back on slot failure');
@@ -62,7 +62,7 @@ begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111', 1, test_support.world_envelope('New World'),
     '22222222-2222-2222-2222-222222222222', 0, test_support.exterior_envelope('New Exterior'),
-    1, 'Stale Exterior', test_support.game_save('New World','New Exterior')
+    1::smallint, 'Stale Exterior', test_support.game_save('New World','New Exterior')
   );
   perform test_support.assert_true(r->>'ok'='false' and r->>'code'='VERSION_CONFLICT','stale Exterior must return conflict');
   perform test_support.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'stale Exterior must not advance World');
