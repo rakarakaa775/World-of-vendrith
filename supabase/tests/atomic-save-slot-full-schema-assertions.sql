@@ -187,6 +187,25 @@ select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 
 select 'atomic Save Slot full-schema security assertions passed' as result;
 
+-- A slot owned by a different user must not be overwritten, even if the map is accessible.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set created_by='cccccccc-cccc-cccc-cccc-cccccccccccc'
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $ 
+declare r jsonb;
+begin
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Must not overwrite'),
+    null,null,null,1::smallint,'Foreign slot',atomic_save_slot_test.game_save('Must not overwrite',null)
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='ATOMIC_SAVE_FAILED','foreign-owned slot must fail closed');
+  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'foreign slot owner failure rolls back World version');
+  perform atomic_save_slot_test.assert_true((select created_by='cccccccc-cccc-cccc-cccc-cccccccccccc' and version_number=1 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'foreign slot remains unchanged');
+end $;
+rollback;
+
 -- Verify the RPC's execute grants match the intended Supabase caller boundary.
 do $$
 declare
