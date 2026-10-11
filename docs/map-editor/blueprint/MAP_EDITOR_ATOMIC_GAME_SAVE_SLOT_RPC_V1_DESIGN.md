@@ -231,3 +231,9 @@ The baseline is reconstructed, not an exact production dump, and Supabase Auth i
 GitHub Actions run [38152187454](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38152187454) completed successfully. TypeScript typecheck and Next.js build passed; Vitest passed **166 files / 850 tests**; the isolated stub-fixture PostgreSQL job passed; and the reconstructed full-schema PostgreSQL job passed, including real commit RPC integration, injected rollback cases, and concurrency serialization.
 
 This closes the zero-cost reconstructed-schema test gate. It does **not** close hosted non-production Supabase or authenticated browser E2E. Because the user has prohibited production DB changes and a paid Supabase branch, do not apply the migration or activate the atomic Save Slot UI. The active UI remains on the legacy multi-RPC path until a safe hosted non-production integration target is available and explicitly approved.
+
+## 13. Security and malformed-request assertions — 2026-10-11
+
+The reconstructed-schema integration suite now also checks unauthenticated calls, malformed envelope rejection, World identity mismatch, and access denial for a non-owner on a non-shared test World. The fixture uses a World UUID distinct from the hard-coded shared-world ID recognized by the reconstructed `map_editor_can_access_v1`; this avoids falsely treating the intentionally shared World as an owner-only resource.
+
+Run [38152895700](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38152895700): both PostgreSQL jobs reported success, and the application TypeScript typecheck, Next.js build, and Vitest steps each reported success (166 files / 850 tests). The workflow run summary was still reporting `in_progress` at the last status read, so do not describe the overall run as finally completed until GitHub reports its terminal conclusion.
