@@ -1,3 +1,10 @@
+## 2026-10-11 — Reject invalid terrain semantics during v2 recovery
+
+- Added recovery-journal tests for invalid terrain surface values and duplicate semantic coordinates.
+- The recovery journal must fail closed: invalid v2 semantic payloads yield `read() === null` and `has() === false`.
+- Commit: `9f4323f68dde09fd37d016f43d843ac7c13f29ce`; [CI run 38141871787](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38141871787) was still running when this entry was written.
+- No active UI integration, RPC/database changes, or production data mutations.
+
 ## 2026-10-11 — Diagonal water-depth gradient regression
 
 - Added a focused regression for the documented eight-way distance rule: diagonal neighbors of land resolve to the shoreline `water` band, diagonal distance two resolves to `brackish`, and distance three resolves to `deepwater2`.
