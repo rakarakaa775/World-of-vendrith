@@ -154,3 +154,10 @@ Added `apps/map-editor/editor/game-save-slot-atomic-client.ts` and focused Vites
 **Activation remains blocked:** the adapter is not imported by the active editor and must remain dormant until the database function exists and passes rollback/concurrency tests in an isolated database. These unit tests verify the client contract only; they do not prove PostgreSQL transaction atomicity. No production SQL/RPC, database rows, or schema were changed.
 
 The available execution container has Node/npm but no checked-out repository, PostgreSQL client, or Docker executable, so this session cannot run the package locally or provide a disposable PostgreSQL test database. The GitHub Actions Map Editor workflow is the no-cost remote route for Vitest, typecheck, and build verification; its result must be checked for the latest commit before marking those checks passed.
+
+
+### CI verification after adapter and terrain fixture correction — 2026-10-11
+
+GitHub Actions run [38144537519](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38144537519) completed successfully on `feat/vendrith-ecc-v1` commit `e8f1dbb2ab14ff9814551a8858e43088dba50c03`: TypeScript typecheck passed, Next.js build passed, and Vitest passed **165 test files / 846 tests**, including all five `game-save-slot-atomic-client.test.ts` cases. The prior failure was a contradictory test fixture: it omitted a base cell from the remote sparse snapshot while expecting that cell not to be treated as deleted. The fixture now retains that cell on the remote side, preserving the documented deletion semantics.
+
+This CI result verifies the application adapter contract only. It does not verify PostgreSQL atomicity, RPC deployment, authenticated browser round-trip, or production schema state. The adapter remains intentionally unwired; no production database changes were made.
