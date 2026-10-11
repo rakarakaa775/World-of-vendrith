@@ -137,3 +137,20 @@ The existing frontend flow and historical SQL migration source were inspected th
 The Atomic Save Slot candidate now has a green reconstructed full-schema CI run including a regression assertion that a slot owned by another user cannot be overwritten and that a rejected write rolls back the attempted World version mutation: [run 38155440561](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38155440561). The regression suite runs only in disposable PostgreSQL; it does not change or validate a hosted database.
 
 The Load Slot integrity gap remains open at the database boundary: `map_editor_load_save_slot_v1` returns the slot snapshot and version metadata without itself proving that the stored World snapshot matches the referenced canonical version. The active frontend currently performs the canonical version comparison before replacing editor state, but this is not a server-side guarantee. Next safe step is to design and test a separate versioned Load Slot validation contract against the reconstructed schema, including missing version, version-number mismatch, map identity mismatch, and snapshot mismatch. Do not replace the deployed RPC or activate an untested candidate in the active UI. Hosted non-production authenticated integration and browser/session round-trip remain unverified.
+
+
+## Candidate server validation contract — 2026-10-12
+
+A separate candidate RPC has been added at `supabase/migrations/20261012200000_map_editor_load_save_slot_validated_v1.sql`: `map_editor_load_save_slot_validated_v1(uuid, smallint)`. It does not replace or alter the existing `map_editor_load_save_slot_v1` contract, and it is not wired into the active editor UI.
+
+The candidate validates:
+- authenticated owner access to the requested World Map and Save Slot;
+- slot `version_id` and `version_number` against an owner-scoped canonical `map_versions` row;
+- canonical World snapshot schema, ID, and map type;
+- Game Save v1 embedded World identity and equality with the canonical World document;
+- legacy single-map snapshot equality with the canonical version envelope;
+- basic Exterior payload shape for current Game Save snapshots.
+
+Disposable PostgreSQL contract tests were added in `supabase/tests/atomic-load-slot-validated-assertions.sql` for valid current and legacy slots, missing version references, version-number mismatch, snapshot tampering, wrong World identity, and empty slots. The Map Editor CI workflow now applies the candidate migration and assertions only in its reconstructed disposable PostgreSQL job. Run [38158584541](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38158584541) was queued when this entry was authored; do not treat the candidate as verified until CI completes successfully.
+
+The active UI continues to use the existing RPC plus its frontend canonical-version validation. No hosted database was changed, no paid Supabase branch was created, and no browser/session E2E or hosted non-production authenticated integration has been performed. The candidate remains review-only until CI and those remaining integration checks are complete.
