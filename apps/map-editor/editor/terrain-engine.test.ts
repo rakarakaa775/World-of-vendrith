@@ -110,6 +110,41 @@ describe("water depth gradient", () => {
     expect(JSON.stringify(firstGround.cells)).toBe(JSON.stringify(secondGround.cells));
   });
 
+  it("uses eight-way distance so diagonal shoreline cells stay in the first water band", () => {
+    const base = createMap("world");
+    const width = 7;
+    const height = 7;
+    const landX = 3;
+    const landY = 3;
+    const document = {
+      ...base,
+      width,
+      height,
+      layers: base.layers.map(layer =>
+        layer.id === "ground"
+          ? {
+              ...layer,
+              cells: Array.from({ length: width * height }, (_, index) =>
+                index === landY * width + landX
+                  ? { tileId: "grass" }
+                  : { tileId: "deepwater" },
+              ),
+            }
+          : layer,
+      ),
+    };
+
+    const result = applyWaterDepthGradient(document, "ground");
+    const cells = result.layers.find(layer => layer.id === "ground")!.cells;
+    const at = (x: number, y: number) => cells[y * width + x].tileId;
+
+    expect(at(3, 3)).toBe("grass");
+    expect(at(4, 3)).toBe("water");
+    expect(at(4, 4)).toBe("water");
+    expect(at(5, 5)).toBe("brackish");
+    expect(at(6, 6)).toBe("deepwater2");
+  });
+
   it("rebuilds water bands from the nearest land cell", () => {
     const base = createMap("world");
     const ground = base.layers.find(layer => layer.id === "ground")!;
