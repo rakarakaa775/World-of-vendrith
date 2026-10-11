@@ -195,7 +195,7 @@ The current feat/vendrith-ecc-v1 source was inspected directly (not inferred fro
 
 ### Next safe implementation gate
 
-Before adding production SQL, build a zero-cost isolated PostgreSQL/Supabase test harness from the repository migrations and seed fixtures. The test must execute the actual candidate function and inject failures after each authoritative write. If the required schema cannot be reconstructed reproducibly in CI, stop at design-only and do not wire the client or apply production SQL. The existing Supabase main branch is not a clean test target and no paid branch should be created.
+A zero-cost PostgreSQL 17 CI job now applies the reconstructed Vendrith schema baseline (with only the unavailable Supabase Vault extension statement omitted), then applies and exercises the actual candidate RPC and existing World/identity commit functions. This is stronger than the isolated stub fixture, but the baseline explicitly says it is reconstructed from catalogs rather than a byte-for-byte pg_dump. The remaining gate is an authenticated non-production Supabase integration and explicit rollout review. The current production project is not a safe test target and no paid branch should be created. Do not wire or enable the client path until the remaining gate passes.
 
 
 ## 8. Candidate RPC and isolated PostgreSQL verification — 2026-10-11
@@ -217,3 +217,10 @@ The current active UI still uses the legacy Save Slot sequence. This is intentio
 ## 10. Latest full CI result — 2026-10-11
 
 GitHub Actions run `38151231274` completed successfully: TypeScript typecheck, Next.js build, **166 Vitest files / 850 tests**, isolated PostgreSQL atomic-save assertions, and the two-session concurrency test all passed. The client preparation helper is included in that run. This is code/test readiness for review, not permission to deploy the migration or activate the UI. The active Save Slot UI is still on the legacy multi-RPC path, and the new RPC has not been applied to any hosted database.
+
+
+## 11. Reconstructed full-schema integration — 2026-10-11
+
+GitHub Actions run [38152187454](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38152187454) passed the full-schema PostgreSQL integration job: the reconstructed schema baseline applied in disposable PostgreSQL 17, the candidate migration applied, and the real existing World and identity commit RPCs passed combined-save, unchanged-snapshot reuse, World-only save, stale-version conflict, injected World/Playable/Save Slot rollback, and concurrent-save serialization assertions. The original stub-fixture job also passed in the same run. TypeScript typecheck passed; the application build and Vitest jobs were still running when this entry was written.
+
+The baseline is reconstructed, not an exact production dump, and Supabase Auth is represented by a minimal isolated compatibility stub. Therefore this result validates the RPC against the repository's reconstructed schema and real function definitions, but it does not certify the hosted Supabase deployment or authenticated browser flow. The candidate migration remains unapplied to hosted Supabase; the active UI remains on the legacy multi-RPC path. No production database mutation and no paid Supabase branch were used.
