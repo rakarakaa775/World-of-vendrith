@@ -375,3 +375,6 @@
 
 
 | 2026-10-11 | Atomic Save Slot owner-isolation assertions green | Phase 0 — Foundation Audit | Added a foreign-owner slot overwrite regression check and fixed the SQL test fixture/dollar quoting discovered by CI. Run [38155440561](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38155440561) passed on commit `9c24681141eebc894b8f933155ad29f084016a80`. Candidate migration remains unapplied to hosted Supabase; active UI remains on the legacy multi-RPC flow. No production DB changes or paid Supabase branch. |
+
+
+| 2026-10-12 | Candidate validated Load Slot RPC and disposable SQL contract tests added | Phase 0 — Foundation Audit | Added a new versioned candidate `map_editor_load_save_slot_validated_v1` RPC, leaving the existing Load Slot RPC and active UI unchanged. Tests cover valid Game Save and legacy snapshots, missing version reference, mismatched version number, snapshot tampering, wrong World identity, and empty slot. CI run [38158584541](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38158584541) was queued at checkpoint; verification is pending. Migration is applied only in disposable CI PostgreSQL, not hosted Supabase. No production DB changes, no paid Supabase branch, no new branch.
