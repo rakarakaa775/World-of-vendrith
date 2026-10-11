@@ -48,3 +48,36 @@ jobs:
 
       - name: Run Vitest
         run: npm test
+  atomic-save-slot-sql:
+    name: Atomic Save Slot PostgreSQL contract tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vendrith_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vendrith_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: vendrith_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create isolated schema fixture
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-fixture.sql
+      - name: Apply candidate RPC to disposable database only
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql
+      - name: Assert atomic success and rollback behavior
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-assertions.sql
