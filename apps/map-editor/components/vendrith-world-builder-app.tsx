@@ -16,6 +16,7 @@ import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnecti
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { assertSlotWorldMatchesCanonicalVersion, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from "../editor/game-save";
+import { prepareRefreshThenCommit } from "../editor/load-slot-commit-boundary";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
 
@@ -449,56 +450,68 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load Slot failed: Supabase unavailable"); return; }
     setBusy(true);
     try {
-      const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
-      if (rpc.error) throw rpc.error;
-      const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-      if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
+      await prepareRefreshThenCommit(
+        async () => {
+          const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
+          if (rpc.error) throw rpc.error;
+          const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+          if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
 
-      const parsed = parseGameSaveSlotSnapshot(result.snapshot, AUTHORITATIVE_WORLD_MAP_ID);
-      if (typeof result.version_id !== "string" || !result.version_id.trim()) {
-        throw new Error("LOAD_SLOT_VERSION_MISMATCH: referenced World version id is missing or inconsistent");
-      }
-      const canonicalVersionQuery = await client
-        .from("map_versions")
-        .select("id,map_id,version_number,snapshot")
-        .eq("id", result.version_id)
-        .eq("map_id", AUTHORITATIVE_WORLD_MAP_ID)
-        .single();
-      if (canonicalVersionQuery.error) throw canonicalVersionQuery.error;
-      const canonicalVersion = canonicalVersionQuery.data;
-      if (!canonicalVersion?.snapshot || canonicalVersion.map_id !== AUTHORITATIVE_WORLD_MAP_ID) {
-        throw new Error("LOAD_SLOT_VERSION_MISMATCH: canonical World version is unavailable");
-      }
-      const canonicalWorld = parseMapDocument(
-        typeof canonicalVersion.snapshot === "string" ? canonicalVersion.snapshot : JSON.stringify(canonicalVersion.snapshot),
-        AUTHORITATIVE_WORLD_MAP_ID,
+          const parsed = parseGameSaveSlotSnapshot(result.snapshot, AUTHORITATIVE_WORLD_MAP_ID);
+          if (typeof result.version_id !== "string" || !result.version_id.trim()) {
+            throw new Error("LOAD_SLOT_VERSION_MISMATCH: referenced World version id is missing or inconsistent");
+          }
+          const canonicalVersionQuery = await client
+            .from("map_versions")
+            .select("id,map_id,version_number,snapshot")
+            .eq("id", result.version_id)
+            .eq("map_id", AUTHORITATIVE_WORLD_MAP_ID)
+            .single();
+          if (canonicalVersionQuery.error) throw canonicalVersionQuery.error;
+          const canonicalVersion = canonicalVersionQuery.data;
+          if (!canonicalVersion?.snapshot || canonicalVersion.map_id !== AUTHORITATIVE_WORLD_MAP_ID) {
+            throw new Error("LOAD_SLOT_VERSION_MISMATCH: canonical World version is unavailable");
+          }
+          const canonicalWorld = parseMapDocument(
+            typeof canonicalVersion.snapshot === "string" ? canonicalVersion.snapshot : JSON.stringify(canonicalVersion.snapshot),
+            AUTHORITATIVE_WORLD_MAP_ID,
+          );
+          assertSlotWorldMatchesCanonicalVersion({
+            slotWorld: parsed.world,
+            canonicalWorld,
+            slotVersionId: result.version_id,
+            canonicalVersionId: canonicalVersion.id,
+            slotVersionNumber: Number(result.version_number),
+            canonicalVersionNumber: Number(canonicalVersion.version_number),
+          });
+          const worldDocument = normalizeWorldCanvas(parsed.world);
+          if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID) {
+            throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
+          }
+          return {
+            worldDocument,
+            exteriorDocument: parsed.exterior,
+            label: result.label || `Save Slot ${slot}`,
+            loadedVersion: Number(result.version_number) || 1,
+          };
+        },
+        // Slot metadata refresh is part of the pre-commit gate. A failure here
+        // must not replace the user's currently edited World or Exterior.
+        () => refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID),
+        ({ worldDocument, exteriorDocument, label, loadedVersion }) => {
+          setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
+          setActiveMapId(worldDocument.id);
+          setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
+          setBaseDocument(worldDocument);
+          setVersion(loadedVersion);
+          setLoadRevision(v => v + 1);
+          setShowSlots(false);
+          setStatus(`Loaded ${label} · ${exteriorDocument ? "World + Exterior" : "World only"}`);
+        },
       );
-      assertSlotWorldMatchesCanonicalVersion({
-        slotWorld: parsed.world,
-        canonicalWorld,
-        slotVersionId: result.version_id,
-        canonicalVersionId: canonicalVersion.id,
-        slotVersionNumber: Number(result.version_number),
-        canonicalVersionNumber: Number(canonicalVersion.version_number),
-      });
-      const worldDocument = normalizeWorldCanvas(parsed.world);
-      if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID) {
-        throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
-      }
-      const exteriorDocument = parsed.exterior;
-      // Refresh can fail; complete it before committing the loaded document to UI state.
-      await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
-      setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
-      setActiveMapId(worldDocument.id);
-      setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
-      setBaseDocument(worldDocument);
-      setVersion(Number(result.version_number) || 1);
-      setLoadRevision(v => v + 1);
-      setShowSlots(false);
-      setStatus(`Loaded ${result.label || `Save Slot ${slot}`} · ${exteriorDocument ? "World + Exterior" : "World only"}`);
     } catch (e) { setStatus(`Load Slot ${slot} failed: ${msg(e)}`); }
     finally { setBusy(false); }
-  }, [refreshSlots]);
+  }, [normalizeWorldCanvas, refreshSlots]);
 
   // Do not mount the editor against the generated seed while the authoritative
   // World Map connection is still being resolved. The editor owns its own history,
