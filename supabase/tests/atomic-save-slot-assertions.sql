@@ -81,7 +81,7 @@ declare r jsonb;
 begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111', 1, test_support.world_envelope('World Only'),
-    null, null, null, 1, 'World only', test_support.game_save('World Only',null)
+    null, null, null, 1::smallint, 'World only', test_support.game_save('World Only',null)
   );
   perform test_support.assert_true(r->>'ok'='true','World-only save should succeed: '||r::text);
   perform test_support.assert_true((select count(*)=2 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'World-only save should add one World version');
@@ -97,7 +97,7 @@ declare r jsonb;
 begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111', 1, test_support.world_envelope('World Insert Failure'),
-    null, null, null, 1, 'World failure', test_support.game_save('World Insert Failure',null)
+    null, null, null, 1::smallint, 'World failure', test_support.game_save('World Insert Failure',null)
   );
   perform test_support.assert_true(r->>'ok'='false' and r->>'code'='ATOMIC_SAVE_FAILED','World insert failure should be reported');
   perform test_support.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'failed World insert must roll back');
