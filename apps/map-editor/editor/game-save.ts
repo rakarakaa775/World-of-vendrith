@@ -66,8 +66,10 @@ export function parseGameSaveSlotSnapshot(
   if (world.mapType !== 'world') {
     throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: World snapshot is not a World Map');
   }
-  if (exterior && (exterior.mapType !== 'playable' || (exterior.playableSpace ?? 'exterior') !== 'exterior')) {
-    throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not an exterior playable map');
+  if (exterior && (exterior.id === world.id
+      || exterior.mapType !== 'playable'
+      || (exterior.playableSpace ?? 'exterior') !== 'exterior')) {
+    throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not a distinct exterior playable map');
   }
 
   return { format, world, exterior };
