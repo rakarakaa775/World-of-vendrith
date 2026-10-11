@@ -106,4 +106,28 @@ describe("mergeTerrainSemanticsThreeWay", () => {
 
     expect(result.terrainSemantics.cells.map(({ x, y }) => [x, y])).toEqual([[0, 0], [1, 0], [2, 1]]);
   });
+  it("compares normalized cell values independent of input property order", () => {
+    const base = section([{ x: 0, y: 0, surface: "land", feature: "shoreline" }]);
+    const local = section([{ feature: "shoreline", surface: "land", y: 0, x: 0 }]);
+    const remote = section([{ x: 1, y: 0, surface: "water", depth: "shallow" }]);
+    const result = mergeTerrainSemanticsThreeWay(3, 2, base, local, remote);
+
+    expect(result.conflicts).toEqual([]);
+    expect(result.terrainSemantics.cells).toEqual([
+      { x: 0, y: 0, surface: "land", feature: "shoreline" },
+      { x: 1, y: 0, surface: "water", depth: "shallow" },
+    ]);
+  });
+
+  it("rejects unsupported terrain schema or version on any merge input", () => {
+    const valid = section([{ x: 0, y: 0, surface: "land" }]);
+    const wrongSchema = { ...valid, schema: "unknown.terrain" } as unknown as TerrainSemanticsSection;
+    const wrongVersion = { ...valid, version: 99 } as unknown as TerrainSemanticsSection;
+
+    expect(() => mergeTerrainSemanticsThreeWay(2, 2, wrongSchema, valid, valid))
+      .toThrow("Unsupported terrain semantics schema");
+    expect(() => mergeTerrainSemanticsThreeWay(2, 2, valid, wrongVersion, valid))
+      .toThrow("Unsupported terrain semantics version");
+  });
+
 });
