@@ -161,3 +161,16 @@ The available execution container has Node/npm but no checked-out repository, Po
 GitHub Actions run [38144537519](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38144537519) completed successfully on `feat/vendrith-ecc-v1` commit `e8f1dbb2ab14ff9814551a8858e43088dba50c03`: TypeScript typecheck passed, Next.js build passed, and Vitest passed **165 test files / 846 tests**, including all five `game-save-slot-atomic-client.test.ts` cases. The prior failure was a contradictory test fixture: it omitted a base cell from the remote sparse snapshot while expecting that cell not to be treated as deleted. The fixture now retains that cell on the remote side, preserving the documented deletion semantics.
 
 This CI result verifies the application adapter contract only. It does not verify PostgreSQL atomicity, RPC deployment, authenticated browser round-trip, or production schema state. The adapter remains intentionally unwired; no production database changes were made.
+
+
+### Read-only live schema recheck — 2026-10-11
+
+A fresh read-only query against the active Supabase project reconfirmed the storage split and constraints; no SQL writes or migrations were run.
+
+- `maps.map_type` is constrained to `world | exterior | interior`; `maps.created_by` is nullable, so the RPC must reject null/nonmatching ownership explicitly rather than assume the column is always populated.
+- `map_versions` is uniquely keyed by `(map_id, version_number)`, requires `version_number > 0`, and its `created_by` is nullable.
+- `editor_map_identity.map_type` is constrained to `world | region | playable`; it has `world_id`, nullable `parent_editor_map_id`, and non-null `created_by`. Parent and world foreign keys are restrictive; self-parenting is prohibited.
+- `editor_map_versions` has unique `(editor_map_id, version_number)`, requires positive version numbers, and stores non-null JSONB snapshots.
+- `map_editor_save_slots` has unique `(map_id, slot_number)`, a 1–12 slot check, a JSON-object snapshot check, a foreign key to World `map_versions`, and no dedicated Exterior-version foreign key.
+
+These facts reinforce why the migration must validate the World and Exterior identity models separately, check the parent/world relationship using live data, and preserve the combined snapshot as the Exterior recovery source. The migration remains unimplemented until a zero-cost isolated PostgreSQL harness can execute rollback and concurrency tests; do not deploy a wrapper based solely on this schema inspection.
