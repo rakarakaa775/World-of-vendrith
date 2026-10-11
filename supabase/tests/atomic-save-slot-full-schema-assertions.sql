@@ -160,7 +160,8 @@ begin
   r := public.map_editor_save_game_slot_atomic_v1(
     '11111111-1111-1111-1111-111111111111',1,
     jsonb_set(atomic_save_slot_test.world_envelope('Wrong ID'),'{document,id}','"99999999-9999-9999-9999-999999999999"'::jsonb),
-    null,null,null,1::smallint,'Wrong ID',atomic_save_slot_test.game_save('Wrong ID',null)
+    null,null,null,1::smallint,'Wrong ID',
+    jsonb_set(atomic_save_slot_test.game_save('Wrong ID',null),'{world,id}','"99999999-9999-9999-9999-999999999999"'::jsonb)
   );
   perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='WORLD_IDENTITY_MISMATCH','World identity mismatch must be rejected');
   perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'invalid requests cannot add World versions');
