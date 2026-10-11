@@ -145,3 +145,12 @@ The function does not visibly branch by map type in the inspected historical bod
 ### Test-environment gate — 2026-10-11
 
 A read-only check of Supabase development branches found one existing branch named `main` with status `MIGRATIONS_FAILED`; it is not a verified clean disposable environment. Supabase's cost quote for creating a new development branch in the linked organization is **$0.01344/hour**. A new branch has not been created because the cost must be explicitly acknowledged by the user first. Do not test this migration against production as a workaround.
+
+
+### No-cost application-side adapter — 2026-10-11
+
+Added `apps/map-editor/editor/game-save-slot-atomic-client.ts` and focused Vitest coverage in `apps/map-editor/editor/game-save-slot-atomic-client.test.ts`. The adapter validates the request envelope's basic slot/version/identity invariants and submits exactly one `map_editor_save_game_slot_atomic_v1` RPC call. It propagates RPC errors and intentionally has no legacy multi-RPC fallback.
+
+**Activation remains blocked:** the adapter is not imported by the active editor and must remain dormant until the database function exists and passes rollback/concurrency tests in an isolated database. These unit tests verify the client contract only; they do not prove PostgreSQL transaction atomicity. No production SQL/RPC, database rows, or schema were changed.
+
+The available execution container has Node/npm but no checked-out repository, PostgreSQL client, or Docker executable, so this session cannot run the package locally or provide a disposable PostgreSQL test database. The GitHub Actions Map Editor workflow is the no-cost remote route for Vitest, typecheck, and build verification; its result must be checked for the latest commit before marking those checks passed.
