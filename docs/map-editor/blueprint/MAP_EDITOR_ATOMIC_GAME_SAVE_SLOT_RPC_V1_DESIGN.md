@@ -95,6 +95,32 @@ All authoritative writes for this operation must occur in one PostgreSQL transac
 6. Activate the frontend RPC only after the non-production test gate passes; retain a documented rollback path.
 7. Do not activate Terrain Semantics v2 as part of this work.
 
-## 6. Current decision
+## 6. Source inspection findings — 2026-10-11
 
-**Do not create or apply a production migration yet.** The active deployed reconciliation implementation and a disposable database test environment have not been verified in this work session. This design is the reviewable boundary for the next implementation step, not evidence that atomicity has already been delivered.
+The historical repository migration source was inspected at commit `ffb9d5b987c16264b33e45a1b36d8239604b4300`. It is historical source evidence, not proof that the active production database still has precisely these definitions.
+
+### Existing authoritative commit behavior
+
+The historical `map_editor_commit_merge_v1` implementation:
+- authenticates via `auth.uid()` and selects the owned `maps` row `FOR UPDATE`;
+- compares the caller's expected version to `max(map_versions.version_number)` and returns `conflict` before inserting when stale;
+- inserts the next immutable `map_versions` row and calls `map_editor_reconcile_after_merge_v1` inside the same PL/pgSQL call;
+- updates `maps.updated_at` and returns `committed` only after reconciliation returns;
+- catches `unique_violation` and returns a conflict response.
+
+Because reconciliation is called inside the same PostgreSQL function/transaction and other reconciliation exceptions are not swallowed by this function, an unhandled reconciliation error aborts that commit transaction, including its inserted version. This is different from the separate frontend Save Slot call: that later RPC cannot roll back the earlier successful commit RPC.
+
+### Existing Save Slot behavior
+
+The historical `map_editor_save_slot_v1` validates authentication, slot range 1–12, map ownership, object-shaped snapshot, and the referenced version ID/map ID/version number/owner, then upserts one row in `map_editor_save_slots`. The function does not write World or Exterior versions. The frontend's preceding version commits are separate calls, so failure of this upsert cannot undo them.
+
+### Remaining blockers before implementation
+
+1. The historical migrations are not present at their historical paths on the active branch, and repository source does not prove current deployed function bodies or table constraints. Obtain/inspect the current deployed definitions and schema before writing a migration.
+2. Confirm how `map_editor_reconcile_after_merge_v1` chooses projection behavior for World versus playable Exterior maps, and whether calling it twice in one new transaction is correct and idempotent.
+3. Confirm whether one slot's combined snapshot is permitted to include an Exterior map ID different from the current open map, and what owner/map-type constraints the current schema enforces.
+4. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation.
+
+## 7. Current decision
+
+**Do not create or apply a production migration yet.** The deployed reconciliation implementation and a disposable database test environment have not been verified in this work session. This design is a reviewable contract, not evidence that atomicity has already been delivered. No database mutation or runtime/browser test was performed.
