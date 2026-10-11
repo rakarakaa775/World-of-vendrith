@@ -1,3 +1,9 @@
+## 2026-10-11 — Diagonal water-depth gradient regression
+
+- Added a focused regression for the documented eight-way distance rule: diagonal neighbors of land resolve to the shoreline `water` band, diagonal distance two resolves to `brackish`, and distance three resolves to `deepwater2`.
+- Test commit: `7dbd00f94b91b6408e9cda0bee8dc386fc22f509`. Exact-commit CI must pass before this test is considered verified.
+- Test-only change. No water algorithm, Save/Load path, database, RPC, or production data changed.
+
 ## 2026-10-10 — Harden v1 crash recovery reads
 
 - **Type:** Recovery integrity and availability hardening.
