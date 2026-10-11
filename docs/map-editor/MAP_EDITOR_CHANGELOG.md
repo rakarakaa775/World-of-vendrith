@@ -785,3 +785,12 @@
 - **Affected:** apps/map-editor/editor/game-save.ts, apps/map-editor/editor/game-save.contract.test.ts, apps/map-editor/components/vendrith-world-builder-app.tsx, docs/map-editor/blueprint/MAP_EDITOR_LOAD_SLOT_AUDIT_2026-09-16.md.
 - **Verification:** CI run 38061931743 passed TypeScript, Next.js build, and Vitest for canonical version validation. The later key-order changes are tracked by CI run 38062605643; check that run before claiming the latest commit passed.
 - **Safety:** No production DB/RPC changes. Atomic Save Slot transaction and live browser round-trip remain unverified.
+
+## 2026-10-11 — Atomic Game Save Slot RPC design
+
+- **Type:** Architecture / persistence contract
+- **Reason:** The existing Save Slot flow can commit World and Exterior versions before the separate slot RPC; later failure can leave partial authoritative progress.
+- **Details:** Added `MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md` defining a proposed versioned RPC, stable lock ordering, expected-version checks, same-transaction World/Exterior version and slot writes, structured conflict/failure outcomes, rollback invariants, and SQL/application verification gates.
+- **Safety:** Design-only. No deployable migration created or applied, no production database changed, and no tests/CI/browser session claimed. The live reconciliation function must be verified and the new RPC tested against a disposable database before activation.
+- **Affected:** `docs/map-editor/blueprint/MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md`.
+
