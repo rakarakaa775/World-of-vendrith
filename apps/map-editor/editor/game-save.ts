@@ -69,7 +69,7 @@ export function parseGameSaveSlotSnapshot(
   if (exterior && (exterior.id === world.id
       || exterior.mapType !== 'playable'
       || (exterior.playableSpace ?? 'exterior') !== 'exterior')) {
-    throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not a distinct exterior playable map');
+    throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not an exterior playable map');
   }
 
   return { format, world, exterior };
