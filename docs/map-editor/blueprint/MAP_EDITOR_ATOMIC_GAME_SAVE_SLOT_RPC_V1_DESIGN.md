@@ -196,3 +196,12 @@ The current feat/vendrith-ecc-v1 source was inspected directly (not inferred fro
 ### Next safe implementation gate
 
 Before adding production SQL, build a zero-cost isolated PostgreSQL/Supabase test harness from the repository migrations and seed fixtures. The test must execute the actual candidate function and inject failures after each authoritative write. If the required schema cannot be reconstructed reproducibly in CI, stop at design-only and do not wire the client or apply production SQL. The existing Supabase main branch is not a clean test target and no paid branch should be created.
+
+
+## 8. Candidate RPC and isolated PostgreSQL verification — 2026-10-11
+
+A candidate migration now exists at `supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql`. It is **not applied to hosted Supabase**. It validates the World and optional Playable/Exterior identity domains separately, checks the `vandrith.map-document` and `vandrith.game-save` envelopes, checks both optimistic version baselines before writes, reuses unchanged versions, calls the existing World/identity commit RPCs inside one outer transaction, and upserts the slot within that same transaction. Exceptions inside the write block roll back the block and return a structured failure. The RPC is executable by `authenticated` only.
+
+A disposable PostgreSQL 17 fixture and CI job were added under `supabase/tests/` and `.github/workflows/map-editor-ci.yml`. SQL contract tests cover combined success, World-only success, stale Exterior conflict, rollback after World insert failure, rollback after Exterior insert failure, rollback after slot upsert failure, and concurrent requests with the same baselines. On workflow run `38150967568`, the PostgreSQL contract job passed, including the concurrent-save check. The complete Map Editor CI run was still in progress when this note was written; its final status must be checked before claiming the entire workflow is green.
+
+This fixture uses isolated test doubles for the existing commit RPCs. It verifies the wrapper's transaction boundary and conflict behavior, but it is not a full replay of the reconstructed 1 MB production-schema baseline and does not replace an authenticated non-production Supabase integration test. The active UI still uses the legacy multi-RPC path, and the atomic adapter remains dormant. Do not enable or deploy the new client path until the migration has been reviewed and installed in a non-production database; do not apply it to production as part of this work.
