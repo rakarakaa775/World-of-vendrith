@@ -137,6 +137,17 @@ describe('game save slot loading contract', () => {
       .toThrow('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not an exterior playable map');
   });
 
+
+  it('rejects an Exterior that reuses the authoritative World identity', () => {
+    const world = map(worldId);
+    const duplicateIdentityExterior = map(worldId, 'playable');
+
+    expect(() => parseGameSaveSlotSnapshot(
+      serializeGameSaveSnapshot(world, duplicateIdentityExterior),
+      worldId,
+    )).toThrow('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not a distinct exterior playable map');
+  });
+
   it('rejects malformed and unsupported slot snapshots', () => {
     expect(() => parseGameSaveSlotSnapshot(null, worldId))
       .toThrow('Save Slot snapshot must be an object');
