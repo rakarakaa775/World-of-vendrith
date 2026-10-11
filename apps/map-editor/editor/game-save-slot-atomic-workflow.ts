@@ -35,7 +35,7 @@ export function prepareAtomicGameSaveSlot(
   if (input.remoteWorldDocument.id !== input.worldMapId || input.remoteWorldDocument.mapType !== 'world') {
     throw new Error('ATOMIC_SAVE_INVALID: remote World identity does not match the authoritative map');
   }
-  if (input.localWorldDocument && input.localWorldDocument.id !== input.worldMapId) {
+  if (input.localWorldDocument && (input.localWorldDocument.id !== input.worldMapId || input.localWorldDocument.mapType !== 'world')) {
     throw new Error('ATOMIC_SAVE_INVALID: local World identity does not match the authoritative map');
   }
   if (input.exteriorMapId === null) {
@@ -43,6 +43,9 @@ export function prepareAtomicGameSaveSlot(
       throw new Error('ATOMIC_SAVE_INVALID: Exterior documents/version require an Exterior identity');
     }
   } else {
+    if (input.exteriorMapId === input.worldMapId) {
+      throw new Error('ATOMIC_SAVE_INVALID: World and Exterior IDs must differ');
+    }
     if (!input.localExteriorDocument || input.localExteriorDocument.id !== input.exteriorMapId
       || input.localExteriorDocument.mapType !== 'playable'
       || (input.localExteriorDocument.playableSpace ?? 'exterior') !== 'exterior') {
@@ -52,7 +55,9 @@ export function prepareAtomicGameSaveSlot(
       || input.expectedExteriorVersion < 0) {
       throw new Error('ATOMIC_SAVE_INVALID: expected Exterior version is required');
     }
-    if (input.remoteExteriorDocument && input.remoteExteriorDocument.id !== input.exteriorMapId) {
+    if (input.remoteExteriorDocument && (input.remoteExteriorDocument.id !== input.exteriorMapId
+      || input.remoteExteriorDocument.mapType !== 'playable'
+      || (input.remoteExteriorDocument.playableSpace ?? 'exterior') !== 'exterior')) {
       throw new Error('ATOMIC_SAVE_INVALID: remote Exterior identity mismatch');
     }
   }
