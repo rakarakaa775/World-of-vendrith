@@ -174,3 +174,10 @@ A fresh read-only query against the active Supabase project reconfirmed the stor
 - `map_editor_save_slots` has unique `(map_id, slot_number)`, a 1–12 slot check, a JSON-object snapshot check, a foreign key to World `map_versions`, and no dedicated Exterior-version foreign key.
 
 These facts reinforce why the migration must validate the World and Exterior identity models separately, check the parent/world relationship using live data, and preserve the combined snapshot as the Exterior recovery source. The migration remains unimplemented until a zero-cost isolated PostgreSQL harness can execute rollback and concurrency tests; do not deploy a wrapper based solely on this schema inspection.
+
+
+### Live identity inventory check — 2026-10-11
+
+A read-only aggregate of `editor_map_identity` currently returns **one `world` identity and zero `region` or `playable` identities**; the existing world identity is linked to a legacy map, has no parent, and has a non-null owner. No database state was changed.
+
+This is an additional activation blocker: the current Save Slot UI can hold a local Exterior document, but the live identity store presently has no persisted Exterior/Playable identity to lock and version. The atomic RPC must not silently assume that a local document ID already has a row. Before implementing its Exterior branch, the project must either (a) establish and audit the canonical identity-creation flow and its parent/world linkage, or (b) explicitly scope the first atomic RPC to World-only saves and keep combined World+Exterior Save Slot disabled until identity creation is persisted. Do not create identity rows implicitly as a side effect of saving a slot without a separate reviewed contract.
