@@ -334,3 +334,6 @@
 - Remaining: RPC-side validation and atomic World+Exterior+slot save require isolated DB tests and explicit approval; no production database changes. Real browser/session round-trip remains open.
 
 | 2026-10-11 | Save Slot transaction boundary re-audited | Phase 0 — Foundation Audit | Confirmed the historical `map_editor_save_slot_v1` RPC atomically upserts only the slot row, while the frontend may commit World/Exterior versions before calling it. Documented the multi-step partial-commit gap and safe design requirements for a future server-side transaction. No production database or migration changed; no new tests or browser/session run claimed. Frontend avoids an unnecessary Exterior version write when the serialized snapshot is unchanged. Commit `e19c7b7023979001299f740a30ae49fafb9e7341`; audit note commit follows. |
+
+| 2026-10-11 | Atomic Game Save Slot RPC contract designed | Phase 0 — Foundation Audit | Added a design-only contract for one transaction covering validated World/Exterior versions and the Save Slot row, including lock ordering, optimistic conflicts, rollback tests, projection outcome semantics, and rollout gates. No migration was applied, no production database changed, and test/CI/browser verification remains pending. Design commit `41fb9e687207bfc13dbe22139076ea3a6859a170`. |
+
