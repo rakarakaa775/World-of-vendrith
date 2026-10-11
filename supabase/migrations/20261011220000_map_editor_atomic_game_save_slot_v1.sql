@@ -37,6 +37,7 @@ declare
   v_projection_error text;
   v_conflict_world integer := 0;
   v_conflict_exterior integer := 0;
+  v_rows integer := 0;
 begin
   if v_uid is null then return jsonb_build_object('ok', false, 'code', 'AUTH_REQUIRED'); end if;
   if p_world_map_id is null or p_expected_world_version is null or p_expected_world_version < 0 then
@@ -87,6 +88,7 @@ begin
   from public.maps m
   where m.id = p_world_map_id
     and m.map_type = 'world'
+    and m.created_by = v_uid
     and public.map_editor_can_access_v1(m.id)
   for update;
   if not found then return jsonb_build_object('ok', false, 'code', 'WORLD_ACCESS_DENIED'); end if;
@@ -189,7 +191,13 @@ begin
           version_id = excluded.version_id,
           version_number = excluded.version_number,
           snapshot = excluded.snapshot,
-          updated_at = now();
+          updated_at = now()
+      where public.map_editor_save_slots.created_by = v_uid;
+
+    get diagnostics v_rows = row_count;
+    if v_rows <> 1 then
+      raise exception using errcode = 'PZ002', message = 'SAVE_SLOT_OWNER_MISMATCH';
+    end if;
 
   exception
     when sqlstate 'PZ001' then
