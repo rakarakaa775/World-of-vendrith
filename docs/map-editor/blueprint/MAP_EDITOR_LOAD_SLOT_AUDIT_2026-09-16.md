@@ -101,3 +101,32 @@ The document comparison sorts object keys recursively, avoiding false mismatches
 - Database RPC still does not enforce the snapshot/version relationship itself. Frontend checks reduce risk but cannot replace server-side integrity validation.
 - `saveToSlot` currently commits World/Exterior versions before calling the Save Slot RPC. If the slot RPC fails, those canonical versions may already have changed. True all-or-nothing save requires a reviewed, tested server-side transaction; do not apply a production migration without isolated DB tests and explicit approval.
 - No real browser/session round-trip or live slot mutation was performed during this source/CI work.
+
+## Save transaction follow-up — 2026-10-11
+
+The migration source for `map_editor_save_slot_v1` was located in the repository history and inspected. The function itself performs one owner-scoped upsert into `map_editor_save_slots`; PostgreSQL makes that single function call transactional. However, it does **not** create or update World/Exterior `map_versions` rows. The active frontend calls map-version persistence first and calls this slot RPC only afterward.
+
+### Confirmed boundary
+
+```text
+frontend saveToSlot
+  → optionally commit World version
+  → optionally commit Exterior version
+  → resolve canonical World version ID
+  → map_editor_save_slot_v1 (single slot-row transaction)
+```
+
+Therefore the slot-row upsert is atomic by itself, but the complete World + Exterior + slot workflow is not one transaction. If a later step fails, earlier map-version commits are not rolled back. The latest frontend change avoids creating an unnecessary Exterior version when its normalized serialized snapshot is unchanged; it does not close the general partial-commit gap.
+
+### Safe next implementation boundary
+
+- Do not edit or apply a production migration as part of this source audit.
+- Design a new versioned server-side Save Slot transaction contract that accepts validated World/Exterior snapshots plus expected version numbers and the requested slot metadata.
+- The server operation must validate ownership, identities, map types, snapshot shape, and expected versions before writes; lock/check the relevant map/version state to prevent races; and commit changed versions plus the slot row in one PostgreSQL transaction.
+- If projections are updated by the existing version-commit RPC, inspect whether they can be separated from the authoritative transaction. Projection failure must not be reported as a total rollback unless the transaction really rolls back every write.
+- Add isolated SQL tests for stale versions, invalid identity, slot upsert failure, World/Exterior validation failure, concurrent save attempts, and rollback after an injected failure. Only then prepare a migration for explicit review; do not deploy it automatically.
+- Keep the current RPC as the compatibility path until the new transaction is implemented, tested, and deliberately activated.
+
+### Verification status
+
+The existing frontend flow and historical SQL migration source were inspected through GitHub. No live database was changed, no browser/session mutation was performed, and no new tests were executed for this follow-up. The prior CI success cited above applies only to the run and commit named there, not to later commits.
