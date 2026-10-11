@@ -83,6 +83,58 @@ describe('prepareAtomicGameSaveSlot', () => {
     })).toThrow('ATOMIC_SAVE_INVALID: local Exterior document does not match its persisted Playable identity');
   });
 
+
+  it('rejects an Exterior identity that duplicates the authoritative World ID', () => {
+    const sameIdExterior = { ...exterior('Wrong identity'), id: WORLD_ID };
+    expect(() => prepareAtomicGameSaveSlot({
+      worldMapId: WORLD_ID,
+      expectedWorldVersion: 1,
+      remoteWorldDocument: world('World'),
+      localWorldDocument: null,
+      exteriorMapId: WORLD_ID,
+      expectedExteriorVersion: 1,
+      remoteExteriorDocument: sameIdExterior,
+      localExteriorDocument: sameIdExterior,
+      slotNumber: 1,
+      label: 'Invalid',
+    })).toThrow('ATOMIC_SAVE_INVALID: World and Exterior IDs must differ');
+  });
+
+  it('rejects a remote Interior document supplied as the persisted Exterior baseline', () => {
+    const remoteInterior = {
+      ...exterior('Interior baseline'),
+      playableSpace: 'interior' as const,
+    };
+    expect(() => prepareAtomicGameSaveSlot({
+      worldMapId: WORLD_ID,
+      expectedWorldVersion: 1,
+      remoteWorldDocument: world('World'),
+      localWorldDocument: null,
+      exteriorMapId: EXTERIOR_ID,
+      expectedExteriorVersion: 1,
+      remoteExteriorDocument: remoteInterior,
+      localExteriorDocument: exterior('Exterior'),
+      slotNumber: 1,
+      label: 'Invalid',
+    })).toThrow('ATOMIC_SAVE_INVALID: remote Exterior identity mismatch');
+  });
+
+  it('rejects a local document with the authoritative World ID but the wrong map type', () => {
+    const wrongTypeWorld = { ...world('Wrong type'), mapType: 'playable' as const };
+    expect(() => prepareAtomicGameSaveSlot({
+      worldMapId: WORLD_ID,
+      expectedWorldVersion: 1,
+      remoteWorldDocument: world('World'),
+      localWorldDocument: wrongTypeWorld,
+      exteriorMapId: null,
+      expectedExteriorVersion: null,
+      remoteExteriorDocument: null,
+      localExteriorDocument: null,
+      slotNumber: 1,
+      label: 'Invalid',
+    })).toThrow('ATOMIC_SAVE_INVALID: local World identity does not match the authoritative map');
+  });
+
   it('rejects a local World document that is not the authoritative World identity', () => {
     expect(() => prepareAtomicGameSaveSlot({
       worldMapId: WORLD_ID,
