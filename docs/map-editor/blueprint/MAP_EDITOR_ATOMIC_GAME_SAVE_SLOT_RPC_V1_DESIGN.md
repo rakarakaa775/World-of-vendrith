@@ -114,12 +114,21 @@ Because reconciliation is called inside the same PostgreSQL function/transaction
 
 The historical `map_editor_save_slot_v1` validates authentication, slot range 1–12, map ownership, object-shaped snapshot, and the referenced version ID/map ID/version number/owner, then upserts one row in `map_editor_save_slots`. The function does not write World or Exterior versions. The frontend's preceding version commits are separate calls, so failure of this upsert cannot undo them.
 
+### Reconciliation behavior inspected from historical source
+
+The historical `map_editor_reconcile_after_merge_v1` implementation:
+- validates authenticated ownership of the map, the version ID/map relationship, and the snapshot object shape;
+- deletes and rebuilds `map_cells` from the snapshot's ground layer, recording the source version in row metadata;
+- removes orphan `map_object_geometry` rows, synchronizes geometry for objects in the target map, rebuilds navigation projection, and upserts the runtime snapshot for the committed version;
+- returns counts and navigation/runtime status in a JSON result.
+
+The function does not visibly branch by map type in the inspected historical body. It performs several projection mutations, including orphan-geometry cleanup, so the atomic RPC must test these side effects and confirm that two sequential reconciliations in one transaction are safe. An unhandled exception from any of these operations should abort the containing transaction; do not add exception-swallowing that could make the RPC report success with a partially reconciled map.
+
 ### Remaining blockers before implementation
 
 1. The historical migrations are not present at their historical paths on the active branch, and repository source does not prove current deployed function bodies or table constraints. Obtain/inspect the current deployed definitions and schema before writing a migration.
-2. Confirm how `map_editor_reconcile_after_merge_v1` chooses projection behavior for World versus playable Exterior maps, and whether calling it twice in one new transaction is correct and idempotent.
-3. Confirm whether one slot's combined snapshot is permitted to include an Exterior map ID different from the current open map, and what owner/map-type constraints the current schema enforces.
-4. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation.
+2. Confirm whether one slot's combined snapshot is permitted to include an Exterior map ID different from the current open map, and what owner/map-type constraints the current schema enforces.
+3. Build and test the new RPC against a disposable database with the same schema/functions; do not infer successful SQL compilation from documentation.
 
 ## 7. Current decision
 
