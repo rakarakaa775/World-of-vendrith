@@ -325,11 +325,21 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       if (localExterior) {
         const remoteExterior = await loadIdentityMapDocument(client, localExterior.id);
         if (remoteExterior.document) {
-          const exteriorSaved = await saveIdentityWithConflictDetection(client, localExterior, remoteExterior.document, remoteExterior.version);
-          if (exteriorSaved.status === "error") throw exteriorSaved.error;
-          if (exteriorSaved.status !== "committed") throw new Error(`Exterior save ${exteriorSaved.status}`);
-          exteriorDocument = exteriorSaved.document;
-          setMaps(cur => cur.some(m => m.id === exteriorDocument!.id) ? cur.map(m => m.id === exteriorDocument!.id ? exteriorDocument! : m) : [...cur, exteriorDocument!]);
+          // Avoid creating a new authoritative Exterior version when the slot
+          // captures exactly the already-persisted document. This reduces
+          // unnecessary partial writes if the later Save Slot RPC fails.
+          const exteriorIsUnchanged =
+            JSON.stringify(serializeResolvedMapSnapshot(localExterior)) ===
+            JSON.stringify(serializeResolvedMapSnapshot(remoteExterior.document));
+          if (exteriorIsUnchanged) {
+            exteriorDocument = remoteExterior.document;
+          } else {
+            const exteriorSaved = await saveIdentityWithConflictDetection(client, localExterior, remoteExterior.document, remoteExterior.version);
+            if (exteriorSaved.status === "error") throw exteriorSaved.error;
+            if (exteriorSaved.status !== "committed") throw new Error(`Exterior save ${exteriorSaved.status}`);
+            exteriorDocument = exteriorSaved.document;
+            setMaps(cur => cur.some(m => m.id === exteriorDocument!.id) ? cur.map(m => m.id === exteriorDocument!.id ? exteriorDocument! : m) : [...cur, exteriorDocument!]);
+          }
         } else {
           const firstSave = await saveIdentityMapDocument(client, localExterior, 0, "map-editor-save");
           if (firstSave.status !== "committed") throw new Error(`Exterior save ${firstSave.status}`);
