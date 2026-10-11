@@ -109,7 +109,12 @@ describe("mergeTerrainSemanticsThreeWay", () => {
   it("compares normalized cell values independent of input property order", () => {
     const base = section([{ x: 0, y: 0, surface: "land", feature: "shoreline" }]);
     const local = section([{ feature: "shoreline", surface: "land", y: 0, x: 0 }]);
-    const remote = section([{ x: 1, y: 0, surface: "water", depth: "shallow" }]);
+    // Keep the base cell in the remote snapshot: absence is a semantic
+    // deletion in this sparse model, not an implicit "unchanged" value.
+    const remote = section([
+      { x: 0, y: 0, surface: "land", feature: "shoreline" },
+      { x: 1, y: 0, surface: "water", depth: "shallow" },
+    ]);
     const result = mergeTerrainSemanticsThreeWay(3, 2, base, local, remote);
 
     expect(result.conflicts).toEqual([]);
