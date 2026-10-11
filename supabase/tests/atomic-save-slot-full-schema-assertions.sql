@@ -128,3 +128,60 @@ rollback;
 select set_config('test.fail_at','',false);
 
 select 'atomic Save Slot full-schema assertions passed' as result;
+
+-- Reject unauthenticated requests before touching any persisted state.
+begin;
+select atomic_save_slot_test.seed_case();
+select set_config('request.jwt.claim.sub','',false);
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('No Auth'),
+    null,null,null,1::smallint,'No Auth',atomic_save_slot_test.game_save('No Auth',null)
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='AUTH_REQUIRED','unauthenticated request must be rejected');
+  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'unauthenticated request cannot add a World version');
+end $$;
+rollback;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+
+-- Reject malformed envelope and identity mismatch before any writes.
+begin;
+select atomic_save_slot_test.seed_case();
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,'{"schema":"wrong","version":1,"document":{}}'::jsonb,
+    null,null,null,1::smallint,'Malformed',atomic_save_slot_test.game_save('Malformed',null)
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='INVALID_WORLD_SNAPSHOT','malformed World envelope must be rejected');
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,
+    jsonb_set(atomic_save_slot_test.world_envelope('Wrong ID'),'{document,id}','"99999999-9999-9999-9999-999999999999"'::jsonb),
+    null,null,null,1::smallint,'Wrong ID',atomic_save_slot_test.game_save('Wrong ID',null)
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='WORLD_IDENTITY_MISMATCH','World identity mismatch must be rejected');
+  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'invalid requests cannot add World versions');
+end $$;
+rollback;
+
+-- A different authenticated owner must not save another user's World.
+begin;
+select atomic_save_slot_test.seed_case();
+select set_config('request.jwt.claim.sub','cccccccc-cccc-cccc-cccc-cccccccccccc',false);
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Wrong Owner'),
+    null,null,null,1::smallint,'Wrong Owner',atomic_save_slot_test.game_save('Wrong Owner',null)
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='WORLD_ACCESS_DENIED','other owner must not save World');
+  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'other owner cannot add World versions');
+end $$;
+rollback;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+
+select 'atomic Save Slot full-schema security assertions passed' as result;
