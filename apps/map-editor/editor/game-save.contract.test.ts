@@ -36,8 +36,27 @@ describe('game save contract', () => {
     const firstSave = serializeGameSaveSnapshot(world, exterior);
     const loaded = parseGameSaveSlotSnapshot(firstSave, world.id);
 
-    // Save the loaded documents again, as the editor does after a successful load.
-    const secondSave = serializeGameSaveSnapshot(loaded.world, loaded.exterior);
+    // Mirror the active UI's map adoption: stale World/Exterior maps must be
+    // removed while unrelated map categories remain available.
+    const region = map('region-retained');
+    region.mapType = 'region';
+    const reconciled = reconcileGameSaveSlotMaps(
+      [map('stale-world'), map('stale-exterior', 'playable'), region],
+      loaded.world,
+      loaded.exterior,
+    );
+    expect(reconciled.map(document => document.id)).toEqual([
+      'region-retained',
+      'world-round-trip',
+      'exterior-round-trip',
+    ]);
+
+    // Save the adopted documents again, as the editor does after a successful load.
+    const adoptedWorld = reconciled.find(document => document.mapType === 'world')!;
+    const adoptedExterior = reconciled.find(
+      document => document.mapType === 'playable' && (document.playableSpace ?? 'exterior') === 'exterior',
+    )!;
+    const secondSave = serializeGameSaveSnapshot(adoptedWorld, adoptedExterior);
     const restored = parseGameSaveSlotSnapshot(secondSave, world.id);
 
     expect(restored.world).toEqual(world);
