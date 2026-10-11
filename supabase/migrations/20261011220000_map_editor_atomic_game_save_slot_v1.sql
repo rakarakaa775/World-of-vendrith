@@ -78,7 +78,9 @@ begin
        or jsonb_typeof(p_exterior_snapshot->'document') <> 'object'
        or p_slot_snapshot->'exterior' is distinct from p_exterior_snapshot->'document'
        or p_exterior_snapshot->'document'->>'id' is distinct from p_exterior_map_id::text
-       or p_exterior_snapshot->'document'->>'mapType' is distinct from 'playable' then
+       or p_exterior_snapshot->'document'->>'mapType' is distinct from 'playable'
+       or (p_exterior_snapshot->'document' ? 'playableSpace'
+           and p_exterior_snapshot->'document'->>'playableSpace' is distinct from 'exterior') then
       return jsonb_build_object('ok', false, 'code', 'INVALID_EXTERIOR_REQUEST');
     end if;
   end if;
