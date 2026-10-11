@@ -800,4 +800,12 @@
 - **Projection note:** Historical reconciliation rebuilds `map_cells`, synchronizes object geometry, rebuilds navigation, and upserts the runtime snapshot. The current deployed definitions still require verification; historical migration source is not proof of current production state.
 - **Affected:** `MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md`.
 - **Safety:** No migration or database changes; no tests, CI, or browser round-trip claimed.
+## 2026-10-11 — Live Save/Load RPC audit
+
+- **Type:** Read-only production schema/function audit
+- **Details:** Queried the connected Supabase project for live definitions of `map_editor_commit_merge_v1`, `map_editor_reconcile_after_merge_v1`, `map_editor_save_slot_v1`, `map_editor_load_save_slot_v1`, and the identity persistence RPCs. Confirmed World uses `maps/map_versions`, while Exterior identity history uses `editor_map_identity/editor_map_versions`; Save Slot stores a World `map_versions` reference plus the combined snapshot.
+- **Important correction:** Live World commit captures projection failures and may return `committed` with `projection_status='failed'`; it does not roll back the authoritative version for that projection failure. The atomic wrapper must preserve this contract while making authoritative World + Exterior identity + slot writes atomic.
+- **Security note:** Live ACL inspection shows `map_editor_commit_merge_v1` includes PUBLIC/anon execute grants, though its body rejects missing `auth.uid()`. Privilege hardening is a separate reviewed item; no grants were changed.
+- **Safety:** Read-only queries only. No production writes, migrations, tests, CI or browser round-trip were performed. No disposable Supabase database was created.
+- **Affected:** `MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md`.
 
