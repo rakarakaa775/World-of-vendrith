@@ -154,3 +154,12 @@ The candidate validates:
 Disposable PostgreSQL contract tests were added in `supabase/tests/atomic-load-slot-validated-assertions.sql` for valid current and legacy slots, missing version references, version-number mismatch, snapshot tampering, wrong World identity, and empty slots. The Map Editor CI workflow now applies the candidate migration and assertions only in its reconstructed disposable PostgreSQL job. Run [38158584541](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38158584541) was queued when this entry was authored; do not treat the candidate as verified until CI completes successfully.
 
 The active UI continues to use the existing RPC plus its frontend canonical-version validation. No hosted database was changed, no paid Supabase branch was created, and no browser/session E2E or hosted non-production authenticated integration has been performed. The candidate remains review-only until CI and those remaining integration checks are complete.
+
+
+### CI verification — 2026-10-12
+
+The candidate Load Slot contract passed the reconstructed full-schema PostgreSQL CI job on [run 38158660099](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38158660099), including all initial cases for valid current/legacy snapshots, foreign-owner version reference, version-number mismatch, snapshot mismatch, wrong World identity, and empty slot. The same run's Map Editor TypeScript/build/Vitest job and the existing Atomic Save Slot PostgreSQL jobs also completed successfully.
+
+A follow-up hardening pass now additionally rejects an Exterior payload that reuses the World ID, has the wrong map type, or declares a non-Exterior playable space; it also tests unauthenticated access and invalid slot numbers. Those expanded assertions are in the next CI run [38159076750](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38159076750), which was queued at the time of this update. The previous green run does not validate these newly added assertions.
+
+The candidate remains dormant: active UI still uses `map_editor_load_save_slot_v1` with its existing client-side canonical version check. Hosted non-production authenticated integration and browser/session E2E remain open; no hosted database was changed.
