@@ -4,6 +4,7 @@ select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 select set_config('test.fail_at','',false);
 
 -- Successful World + Exterior save advances both histories and the slot together.
+select set_config('test.fail_at','',false);
 select test_support.seed_case();
 do $$
 declare r jsonb;
@@ -20,6 +21,7 @@ begin
 end $$;
 
 -- Failure after the Exterior version insert must roll back the earlier World insert too.
+select set_config('test.fail_at','',false);
 select test_support.seed_case();
 select set_config('test.fail_at','identity_after_insert',false);
 do $$
@@ -37,6 +39,7 @@ begin
 end $$;
 
 -- Failure after slot upsert starts must roll back both version inserts and the slot mutation.
+select set_config('test.fail_at','',false);
 select test_support.seed_case();
 select set_config('test.fail_at','slot_after_upsert',false);
 do $$
@@ -54,6 +57,7 @@ begin
 end $$;
 
 -- Stale Exterior baseline must reject the request before writing the World.
+select set_config('test.fail_at','',false);
 select test_support.seed_case();
 select set_config('test.fail_at','',false);
 do $$
@@ -70,6 +74,7 @@ begin
 end $$;
 
 -- World-only legacy-compatible save must work and keep exterior explicitly null.
+select set_config('test.fail_at','',false);
 select test_support.seed_case();
 do $$
 declare r jsonb;
@@ -84,6 +89,7 @@ begin
 end $$;
 
 -- Failure immediately after World insert must not leave a partial version.
+select set_config('test.fail_at','',false);
 select test_support.seed_case();
 select set_config('test.fail_at','world_after_insert',false);
 do $$
