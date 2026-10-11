@@ -83,3 +83,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql
       - name: Assert atomic success and rollback behavior
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-assertions.sql
+      - name: Assert concurrent saves serialize and conflict
+        run: bash supabase/tests/atomic-save-slot-concurrency.sh
