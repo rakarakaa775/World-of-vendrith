@@ -186,3 +186,24 @@ rollback;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
 
 select 'atomic Save Slot full-schema security assertions passed' as result;
+
+-- Verify the RPC's execute grants match the intended Supabase caller boundary.
+do $$
+declare
+  v_signature constant text := 'public.map_editor_save_game_slot_atomic_v1(uuid, integer, jsonb, uuid, integer, jsonb, smallint, text, jsonb)';
+begin
+  perform atomic_save_slot_test.assert_true(
+    not has_function_privilege('anon', v_signature, 'EXECUTE'),
+    'anon role must not execute atomic Save Slot RPC'
+  );
+  perform atomic_save_slot_test.assert_true(
+    has_function_privilege('authenticated', v_signature, 'EXECUTE'),
+    'authenticated role must execute atomic Save Slot RPC'
+  );
+  perform atomic_save_slot_test.assert_true(
+    not has_function_privilege('public', v_signature, 'EXECUTE'),
+    'PUBLIC must not execute atomic Save Slot RPC'
+  );
+end $$;
+
+select 'atomic Save Slot execute-grant assertions passed' as result;
