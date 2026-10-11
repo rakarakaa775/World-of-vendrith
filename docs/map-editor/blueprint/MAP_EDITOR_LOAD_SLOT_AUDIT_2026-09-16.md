@@ -163,3 +163,12 @@ The candidate Load Slot contract passed the reconstructed full-schema PostgreSQL
 A follow-up hardening pass now additionally rejects an Exterior payload that reuses the World ID, has the wrong map type, or declares a non-Exterior playable space; it also tests unauthenticated access and invalid slot numbers. Those expanded assertions are in the next CI run [38159076750](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38159076750), which was queued at the time of this update. The previous green run does not validate these newly added assertions.
 
 The candidate remains dormant: active UI still uses `map_editor_load_save_slot_v1` with its existing client-side canonical version check. Hosted non-production authenticated integration and browser/session E2E remain open; no hosted database was changed.
+
+## Verification update — 2026-10-12 (latest)
+
+- Candidate validated Load Slot RPC and Atomic Save Slot RPC passed disposable reconstructed-schema PostgreSQL integration, including ownership, version reference, snapshot agreement, malformed Exterior, Interior-as-Exterior, failure rollback, and concurrency assertions.
+- Latest full CI run [38161197872](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38161197872) passed: TypeScript typecheck, Next.js build, 166 test files / 854 Vitest tests, isolated fixture SQL, reconstructed full-schema SQL, and concurrent-save serialization.
+- Active Load Slot remains on `map_editor_load_save_slot_v1`, with frontend canonical version verification completed before editor state adoption. Any error in RPC retrieval, parsing, canonical version lookup/comparison, or slot refresh exits before `setMaps`, `setActiveMapId`, `setBaseDocument`, `setVersion`, or `setLoadRevision`; thus the existing document is retained on a failed Load Slot.
+- Active Save Slot remains on the legacy multi-RPC sequence. The candidate atomic Save RPC and validated Load RPC are not wired into the UI and have not been applied to hosted Supabase.
+- Remaining release gates: authenticated integration against a hosted non-production schema and browser/session Save → Load → Save round-trip. These cannot be claimed from reconstructed-schema CI alone. Production database remains unchanged; no paid Supabase branch or new Git branch was created.
+
