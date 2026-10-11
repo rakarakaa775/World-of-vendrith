@@ -131,7 +131,7 @@ select set_config('test.fail_at','',false);
 -- A playable Interior must never be accepted as the Exterior portion of a Game Save.
 begin;
 select atomic_save_slot_test.seed_case();
-do $
+do $interior_full_schema$
 declare
   r jsonb;
   v_exterior jsonb := jsonb_set(atomic_save_slot_test.exterior_envelope('Interior masquerading as Exterior'), '{document,playableSpace}', '"interior"'::jsonb, true);
@@ -147,7 +147,7 @@ begin
   perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'Interior rejection cannot add a World version');
   perform atomic_save_slot_test.assert_true((select count(*)=1 from public.editor_map_versions where editor_map_id='22222222-2222-2222-2222-222222222222'),'Interior rejection cannot add an Exterior version');
   perform atomic_save_slot_test.assert_true((select version_number=1 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'Interior rejection leaves the slot untouched');
-end $;
+end $interior_full_schema$;
 rollback;
 
 select 'atomic Save Slot full-schema assertions passed' as result;
