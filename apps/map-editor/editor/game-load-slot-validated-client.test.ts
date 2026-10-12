@@ -75,6 +75,20 @@ describe('loadGameSlotValidated', () => {
       .rejects.toThrow(/missing validated slot fields/);
   });
 
+  it('rejects empty canonical version IDs and non-positive version numbers', async () => {
+    const emptyVersionId = client({ ...success, version_id: '  ' });
+    await expect(loadGameSlotValidated(emptyVersionId, 'world-1', 2))
+      .rejects.toThrow(/missing validated slot fields/);
+
+    const zeroVersion = client({ ...success, version_number: 0 });
+    await expect(loadGameSlotValidated(zeroVersion, 'world-1', 2))
+      .rejects.toThrow(/missing validated slot fields/);
+
+    const negativeVersion = client({ ...success, version_number: -1 });
+    await expect(loadGameSlotValidated(negativeVersion, 'world-1', 2))
+      .rejects.toThrow(/missing validated slot fields/);
+  });
+
   it('rejects malformed failure responses without an error code', async () => {
     const rpcClient = client({ ok: false });
 
