@@ -97,3 +97,13 @@ Source commits:
 - `c81c50b5830df717f2ddc3d19f11ba8d3413c0ad` — full-schema snapshot-provenance regression.
 
 These assertions have been authored but not executed in a confirmed green CI run. Hosted Supabase and active UI remain unchanged.
+
+### Client-side validated Load Slot adapter
+
+The repository now includes an isolated client adapter, `apps/map-editor/editor/game-load-slot-validated-client.ts`, and Vitest contract tests. It calls only `map_editor_load_save_slot_validated_v1`, validates the response shape, returns explicit server-declared error codes, and propagates transport errors without attempting direct table reads or a legacy fallback.
+
+Source commits:
+- `c842a1cbe56986d157cecd63a59b461992f80e42` — validated Load Slot client adapter.
+- `fb4f98fe8283ed0b677e2a6db24297b63461fceb` — client contract tests.
+
+This adapter is not wired to the active editor. Tests have been authored but are not confirmed green because the current GitHub status endpoint is returning no check results for recent commits.
