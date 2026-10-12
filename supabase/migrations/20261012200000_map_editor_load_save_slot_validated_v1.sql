@@ -13,6 +13,9 @@ declare
   v_uid uuid := auth.uid();
   v_slot public.map_editor_save_slots%rowtype;
   v_version public.map_versions%rowtype;
+  v_world public.maps%rowtype;
+  v_exterior_identity public.editor_map_identity%rowtype;
+  v_exterior_parent public.editor_map_identity%rowtype;
   v_canonical_document jsonb;
   v_slot_world jsonb;
 begin
@@ -26,10 +29,10 @@ begin
     return jsonb_build_object('ok',false,'code','INVALID_SLOT');
   end if;
 
-  if not exists (
-    select 1 from public.maps m
-    where m.id = p_map_id and m.created_by = v_uid and m.map_type = 'world'
-  ) then
+  select m.* into v_world
+  from public.maps m
+  where m.id = p_map_id and m.created_by = v_uid and m.map_type = 'world';
+  if not found then
     return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED');
   end if;
 
@@ -101,6 +104,30 @@ begin
                and v_slot.snapshot->'exterior'->>'playableSpace' is distinct from 'exterior')
            )) then
       return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_INVALID');
+    end if;
+
+    -- A structurally plausible Exterior is not trusted until its persisted identity
+    -- is verified as an owner-scoped Playable in this World, beneath a valid Region.
+    if v_slot.snapshot->'exterior' <> 'null'::jsonb then
+      select e.* into v_exterior_identity
+      from public.editor_map_identity e
+      where e.editor_map_id::text = v_slot.snapshot->'exterior'->>'id'
+        and e.created_by = v_uid
+        and e.map_type = 'playable'
+        and e.world_id = v_world.world_id;
+      if not found or v_exterior_identity.parent_editor_map_id is null then
+        return jsonb_build_object('ok',false,'code','EXTERIOR_IDENTITY_NOT_ACCESSIBLE');
+      end if;
+
+      select p.* into v_exterior_parent
+      from public.editor_map_identity p
+      where p.editor_map_id = v_exterior_identity.parent_editor_map_id
+        and p.created_by = v_uid
+        and p.map_type = 'region'
+        and p.world_id = v_world.world_id;
+      if not found then
+        return jsonb_build_object('ok',false,'code','EXTERIOR_PARENT_INVALID');
+      end if;
     end if;
   elsif v_slot.snapshot->>'schema' = 'vandrith.map-document'
         and v_slot.snapshot->>'version' = '1' then
