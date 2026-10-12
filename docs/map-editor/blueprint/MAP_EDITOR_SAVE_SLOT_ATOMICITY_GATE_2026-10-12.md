@@ -193,3 +193,13 @@ The adapter remains intentionally unwired to the active UI. CI proves the isolat
 - This is a database-locking change tested by CI's isolated fixtures and reconstructed full-schema database only. It does not mean the migration has been applied to hosted Supabase or that authenticated browser flows have passed.
 
 Release gates remain unchanged: no hosted migration, no paid Supabase branch, no production database changes, and no activation of the candidate UI path. Keep PR #16 as draft until hosted non-production and authenticated browser validation are completed.
+
+## Parent Region lock regression test — exact CI verification
+
+- Commit: `e2e139e1b089f018f27859dbd72543dd47830d3a` (`test(map-editor): verify atomic save locks region parent`).
+- GitHub Actions run [#918](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38251333346) completed with **success**.
+- All three jobs passed: isolated PostgreSQL fixture contract tests, reconstructed full-schema integration, and Map Editor tests.
+- The full-schema concurrency script now holds a successful Save Slot transaction open, attempts an update to the parent Region with a short PostgreSQL `lock_timeout`, and asserts that the update is blocked by the expected lock timeout before proceeding to the stale-baseline concurrent save assertion.
+- This verifies the parent Region `FOR SHARE` lock in the disposable CI database. It is not evidence of a hosted Supabase migration or authenticated browser run.
+
+Safety boundary remains: no paid Supabase branch, no hosted migration, no production DB changes, no candidate UI activation; PR #16 remains draft.
