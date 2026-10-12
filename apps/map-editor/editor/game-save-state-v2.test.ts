@@ -62,6 +62,26 @@ describe("atomic game save state v2", () => {
     expect(parseGameSaveStateV2(payload)).toBeNull();
   });
 
+  it("reads version 1 game saves without inferring Terrain v2 semantics", () => {
+    const legacyPayload = {
+      schema: "vandrith.game-save",
+      version: 1,
+      world: worldDocument,
+      exterior: null,
+    };
+
+    const parsed = parseGameSaveStateV2(legacyPayload);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.version).toBe(2);
+    expect(parsed?.world.kind).toBe("legacy");
+    if (parsed?.world.kind === "legacy") {
+      expect(parsed.world.terrainSemantics).toBeNull();
+    } else {
+      throw new Error("Expected legacy world state");
+    }
+  });
+
   it("enforces the authoritative world identity after parsing", () => {
     const serialized = serializeGameSaveStateV2(initializedWorld, null);
 
