@@ -58,8 +58,10 @@ function parseResult(value: unknown): ValidatedLoadSlotResult {
     || !Number.isInteger(value.slot_number)
     || typeof value.label !== 'string'
     || typeof value.version_id !== 'string'
+    || value.version_id.trim() === ''
     || typeof value.version_number !== 'number'
     || !Number.isInteger(value.version_number)
+    || value.version_number < 1
     || !isRecord(value.snapshot)
   ) {
     throw new Error('LOAD_SLOT_INVALID_RESPONSE: success response is missing validated slot fields');
