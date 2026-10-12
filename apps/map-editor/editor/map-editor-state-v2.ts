@@ -1,73 +1,47 @@
 import type { MapDocument } from "./map-document";
-import { parseMapDocument, serializeMapDocument } from "./map-serialization";
+import type { MapDocumentV2State } from "./map-history-v2";
 import { parseMapSnapshot, serializeMapDocumentV2 } from "./map-snapshot-v2";
-import {
-  resizeTerrainSemantics,
-  validateTerrainSemantics,
-  type TerrainSemanticsSection,
-} from "./terrain-semantics";
+import { resizeTerrainSemantics, validateTerrainSemantics, type TerrainSemanticsSection } from "./terrain-semantics";
 
 /**
- * Opt-in unified state boundary for the terrain v2 migration.
- * Legacy v1 maps intentionally carry no terrain semantics.
+ * Transitional state explicitly distinguishes v1 data from initialized v2.
+ * Legacy documents never acquire fabricated semantic terrain records.
  */
-export type MapEditorState =
-  | Readonly<{ kind: "legacy"; document: MapDocument; terrainSemantics: null }>
-  | Readonly<{ kind: "initialized"; document: MapDocument; terrainSemantics: TerrainSemanticsSection }>;
+export type MapEditorStateV2 =
+  | Readonly<{ format: "legacy-uninitialized"; document: MapDocument; terrainSemantics: null }>
+  | Readonly<{ format: "v2"; state: MapDocumentV2State }>;
 
-function canonicalDocument(document: MapDocument): MapDocument {
-  return parseMapDocument(serializeMapDocument(document));
-}
-
-function legacyState(document: MapDocument): MapEditorState {
-  return { kind: "legacy", document: canonicalDocument(document), terrainSemantics: null };
-}
-
-function initializedState(document: MapDocument, terrainSemantics: unknown): MapEditorState {
-  const canonical = canonicalDocument(document);
-  return {
-    kind: "initialized",
-    document: canonical,
-    terrainSemantics: validateTerrainSemantics(canonical.width, canonical.height, terrainSemantics),
-  };
-}
-
-/** Parse v1 without fabricating semantics; parse and validate v2 atomically. */
-export function parseMapEditorState(input: string | unknown, requestedMapId?: string): MapEditorState {
+export function adoptMapSnapshotV2(input: string | unknown, requestedMapId?: string): MapEditorStateV2 {
   const parsed = parseMapSnapshot(input, requestedMapId);
-  if (parsed.format === "v1") return legacyState(parsed.document);
-  return initializedState(parsed.state.document, parsed.state.terrainSemantics);
-}
-
-/** Legacy state cannot accidentally be serialized as an initialized v2 snapshot. */
-export function serializeInitializedMapEditorState(state: MapEditorState): string {
-  if (state.kind !== "initialized") {
-    throw new Error("Cannot serialize legacy state as v2 before terrain semantics are initialized");
-  }
-  return serializeMapDocumentV2({ document: state.document, terrainSemantics: state.terrainSemantics });
-}
-
-/** Explicit transition; no semantics are inferred from tiles or map type. */
-export function initializeTerrainSemantics(
-  state: MapEditorState,
-  semantics: TerrainSemanticsSection,
-): MapEditorState {
-  return initializedState(state.document, semantics);
+  return parsed.format === "v1"
+    ? { format: "legacy-uninitialized", document: parsed.document, terrainSemantics: null }
+    : { format: "v2", state: parsed.state };
 }
 
 /**
- * Validates the document before returning a new state. Map identity changes
- * clear semantics; same-map resize clips out-of-bounds records and invents none.
+ * Apply a document-only edit while preserving the explicit initialization
+ * status. Same-map dimension changes clip records on shrink and never invent
+ * records on expansion. Map identity changes require a fresh adoption.
  */
-export function replaceMapEditorDocument(state: MapEditorState, nextDocument: MapDocument): MapEditorState {
-  const next = canonicalDocument(nextDocument);
-  if (next.id !== state.document.id) return legacyState(next);
-  if (state.kind === "legacy") return legacyState(next);
+export function applyDocumentChangeV2(current: MapEditorStateV2, nextDocument: MapDocument): MapEditorStateV2 {
+  const currentDocument = current.format === "v2" ? current.state.document : current.document;
+  if (nextDocument.id !== currentDocument.id) {
+    throw new Error("Map identity changed; adopt a new snapshot instead of applying a document change");
+  }
+  if (current.format === "legacy-uninitialized") {
+    return { format: "legacy-uninitialized", document: nextDocument, terrainSemantics: null };
+  }
+  const terrainSemantics = currentDocument.width === nextDocument.width && currentDocument.height === nextDocument.height
+    ? validateTerrainSemantics(nextDocument.width, nextDocument.height, current.state.terrainSemantics)
+    : resizeTerrainSemantics(current.state.terrainSemantics, nextDocument.width, nextDocument.height);
+  return { format: "v2", state: { document: nextDocument, terrainSemantics } };
+}
 
-  const nextSemantics =
-    next.width === state.document.width && next.height === state.document.height
-      ? state.terrainSemantics
-      : resizeTerrainSemantics(state.terrainSemantics, next.width, next.height);
-
-  return initializedState(next, nextSemantics);
+/** Initialize only when a caller deliberately supplies a semantic section. */
+export function initializeTerrainSemanticsV2(document: MapDocument, terrainSemantics: TerrainSemanticsSection): MapEditorStateV2 {
+  const validated = validateTerrainSemantics(document.width, document.height, terrainSemantics);
+  const serialized = serializeMapDocumentV2({ document, terrainSemantics: validated });
+  const parsed = parseMapSnapshot(serialized, document.id);
+  if (parsed.format !== "v2") throw new Error("Terrain v2 initialization failed");
+  return { format: "v2", state: parsed.state };
 }
