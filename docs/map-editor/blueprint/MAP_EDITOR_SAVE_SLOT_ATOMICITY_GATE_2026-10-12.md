@@ -43,11 +43,13 @@ This is useful automated evidence, but it is not equivalent to a byte-for-byte p
 
 The candidate migration no longer dereferences optional `projection_status` / `projection_error` fields directly from the dynamic record returned by `map_editor_commit_merge_v1`. It now reads those values through `to_jsonb(v_world_result)`; when the authoritative RPC does not expose projection metadata, the Save Slot result reports `projection_status: not_run` rather than failing after entering the atomic save block. When the metadata exists, its values are preserved.
 
-The full-schema integration success case now asserts that the atomic RPC always returns an explicit supported projection outcome. Source commits:
+The full-schema integration success case asserts that the atomic RPC always returns an explicit supported projection outcome. The isolated stub fixture now deliberately models the historical four-column World merge RPC and asserts that the atomic Save Slot result falls back to `not_run`; the reconstructed full-schema job continues to exercise the current six-column response shape. Source commits:
 - `549abc24d1d3974843eecf8b31bf09cb51f51682` — compatibility-safe projection metadata read.
-- `4a54b2ab9484787252f36cfb64b488654c4b3f00` — integration assertion.
+- `4a54b2ab9484787252f36cfb64b488654c4b3f00` — full-schema projection outcome assertion.
+- `b295124c5db8f2b174de35ced709557a5b6aae5c` — legacy four-column RPC fixture.
+- `7a0471222c6ac5bbe85b94dbf73e4f526ce88770` — legacy fallback regression assertion.
 
-This is a compatibility hardening, not proof that every hosted deployment has the expected authoritative RPC. At the time of this update, no CI checks were yet visible for the newest commit. A dedicated fixture that recreates the legacy four-column merge RPC return shape is still desirable; the current full-schema fixture tests the reconstructed current schema.
+This is a compatibility hardening, not proof that every hosted deployment has the expected authoritative RPC. CI results for these latest commits still need to be checked; no checks were visible immediately after the writes.
 
 ## Historical signature context
 
