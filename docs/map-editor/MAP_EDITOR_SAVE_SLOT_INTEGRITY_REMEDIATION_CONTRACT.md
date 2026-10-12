@@ -152,3 +152,11 @@ The Save → Load → Save contract test now exercises map adoption as well as s
 GitHub Actions run [38186234611](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38186234611) passed all three jobs on commit `13eee66a758fda1f764808f4ba5757314685947b`: Map Editor typecheck, Next.js build and Vitest; isolated PostgreSQL fixture contract tests; and reconstructed full-schema candidate RPC integration/concurrency checks.
 
 This is automated CI evidence, not authenticated hosted integration or browser/session E2E. The active UI remains on the legacy Save/Load RPC path. Candidate atomic-save and validated-load migrations are not applied to hosted Supabase and must not be wired into the active UI until the non-production authenticated integration and browser/session gates can be completed safely. No production database changes or paid Supabase branch were used.
+
+## Legacy World-only save migration regression — 2026-10-12
+
+The frontend contract test now exercises the explicit compatibility path: parse a legacy `vandrith.map-document` v1 World-only slot, reconcile it without fabricating an Exterior, serialize it into the current `vandrith.game-save` v1 envelope, and parse the result back with `exterior: null`. This ensures a user who loads an old World-only slot and saves it again does not accidentally create or attach an Exterior.
+
+GitHub Actions run [38187243966](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38187243966) passed all three jobs on commit `a791d163013898335166b796c4e235981f15e007`: Map Editor typecheck/build/Vitest, isolated PostgreSQL fixture contract tests, and reconstructed full-schema candidate RPC integration/concurrency tests.
+
+This does not change the release boundary: active Save Slot UI still uses the legacy multi-RPC save path and legacy Load RPC with client-side canonical version checks. Candidate atomic Save and validated Load RPC migrations remain unapplied to hosted Supabase. Hosted non-production authenticated integration and browser/session E2E remain required before activating those candidate RPCs. No production database changes or paid Supabase branch were used.
