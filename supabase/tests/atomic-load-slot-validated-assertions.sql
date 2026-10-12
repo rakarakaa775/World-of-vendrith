@@ -191,12 +191,16 @@ end
 $exterior_identity_missing$;
 rollback;
 
--- An Exterior owned by another user cannot be smuggled into this owner's slot.
+-- Simulate a pre-existing/corrupt foreign-owner identity row so the RPC's
+-- owner filter is tested independently of the table's normal invariant trigger.
+-- This runs only in the disposable superuser-owned CI database and rolls back.
 begin;
 select atomic_save_slot_test.seed_case();
 insert into auth.users(id) values('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+set local session_replication_role = replica;
 update public.editor_map_identity set created_by='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 where editor_map_id='22222222-2222-2222-2222-222222222222';
+set local session_replication_role = origin;
 do $exterior_identity_foreign$
 declare r jsonb;
 begin
