@@ -17,6 +17,7 @@ import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadGameSlotValidated } from "../editor/game-load-slot-validated-client";
+import { saveGameSlotAtomically } from "../editor/game-save-slot-atomic-client";
 import { prepareRefreshThenCommit } from "../editor/load-slot-commit-boundary";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
@@ -301,28 +302,28 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
   }, [active, activeMapId, baseDocument, bootstrap, ensureConnection, isNewMap, maps, refreshSlots, update, version]);
 
   const saveToSlot = useCallback(async (slot: number, requestedLabel: string) => {
-    const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
-    const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`); if (label === null) return;
-    setBusy(true); setStatus(`Saving World + Exterior to Slot ${slot}…`);
-    // The legacy path commits map versions before the slot row. Track that
-    // boundary so a later error never implies that every remote write rolled back.
-    let worldVersionWriteCommitted = false;
-    let exteriorVersionWriteCommitted = false;
-    let slotRpcStarted = false;
+    const client = createMapEditorSupabaseClient();
+    if (!client) { setStatus("Save Slot failed: Supabase unavailable"); return; }
+    const label = window.prompt(`Nama untuk Save Slot ${slot}`, requestedLabel || `Save Slot ${slot}`);
+    if (label === null) return;
+
+    setBusy(true);
+    setStatus(`Saving World + Exterior atomically to Slot ${slot}…`);
+    let atomicRpcStarted = false;
     try {
+      // Read canonical baselines first. No map/version/slot writes happen until
+      // the one atomic RPC has validated both baselines and all snapshot identities.
       const worldRemote = await loadMapDocumentSnapshot(client, AUTHORITATIVE_WORLD_MAP_ID);
-      if (!worldRemote.document || worldRemote.result.error) throw new Error(worldRemote.result.error || worldRemote.result.code || "WORLD_SNAPSHOT_UNAVAILABLE");
-      let worldDocument = worldRemote.document;
-      let worldVersion = Number(worldRemote.result.version_number) || 0;
+      if (!worldRemote.document || worldRemote.result.error) {
+        throw new Error(worldRemote.result.error || worldRemote.result.code || "WORLD_SNAPSHOT_UNAVAILABLE");
+      }
+      const expectedWorldVersion = Number(worldRemote.result.version_number) || 0;
+      if (expectedWorldVersion < 1) throw new Error("WORLD_VERSION_UNAVAILABLE");
 
       const localWorld = resolveAuthoritativeWorldForSlot(maps, active, AUTHORITATIVE_WORLD_MAP_ID);
-      if (localWorld && JSON.stringify(serializeResolvedMapSnapshot(localWorld)) !== JSON.stringify(serializeResolvedMapSnapshot(worldDocument))) {
-        const worldSaved = await saveWithConflictDetection(client, localWorld, worldDocument, worldVersion);
-        if (worldSaved.status !== "committed") throw new Error(`World save ${worldSaved.status}`);
-        worldDocument = worldSaved.document;
-        worldVersion = Number(worldSaved.version) || worldVersion;
-        worldVersionWriteCommitted = true;
-        setMaps(cur => [worldDocument, ...cur.filter(m => m.mapType !== "world")]);
+      const worldDocument = localWorld ?? worldRemote.document;
+      if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID || worldDocument.mapType !== "world") {
+        throw new Error("WORLD_IDENTITY_MISMATCH");
       }
 
       const localExterior = active.mapType === "playable" && active.playableSpace !== "interior"
@@ -330,80 +331,78 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         : maps.find(m => m.mapType === "playable" && m.playableSpace !== "interior") || null;
 
       let exteriorDocument: MapDocument | null = null;
+      let expectedExteriorVersion: number | null = null;
       if (localExterior) {
         const remoteExterior = await loadIdentityMapDocument(client, localExterior.id);
-        if (remoteExterior.document) {
-          // Avoid creating a new authoritative Exterior version when the slot
-          // captures exactly the already-persisted document. This reduces
-          // unnecessary partial writes if the later Save Slot RPC fails.
-          const exteriorIsUnchanged =
-            JSON.stringify(serializeResolvedMapSnapshot(localExterior)) ===
-            JSON.stringify(serializeResolvedMapSnapshot(remoteExterior.document));
-          if (exteriorIsUnchanged) {
-            exteriorDocument = remoteExterior.document;
-          } else {
-            const exteriorSaved = await saveIdentityWithConflictDetection(client, localExterior, remoteExterior.document, remoteExterior.version);
-            if (exteriorSaved.status === "error") throw exteriorSaved.error;
-            if (exteriorSaved.status !== "committed") throw new Error(`Exterior save ${exteriorSaved.status}`);
-            exteriorDocument = exteriorSaved.document;
-            exteriorVersionWriteCommitted = true;
-            setMaps(cur => cur.some(m => m.id === exteriorDocument!.id) ? cur.map(m => m.id === exteriorDocument!.id ? exteriorDocument! : m) : [...cur, exteriorDocument!]);
-          }
-        } else {
-          const firstSave = await saveIdentityMapDocument(client, localExterior, 0, "map-editor-save");
-          if (firstSave.status !== "committed") throw new Error(`Exterior save ${firstSave.status}`);
-          exteriorVersionWriteCommitted = true;
-          exteriorDocument = localExterior;
+        // Atomic Save must not bootstrap an identity in a separate transaction.
+        // A new/unpersisted Exterior must first receive its durable identity through
+        // the normal map-creation flow; fail closed rather than reintroduce partial saves.
+        if (!remoteExterior.document) {
+          throw new Error("EXTERIOR_IDENTITY_UNAVAILABLE: save the Exterior identity before creating a Game Save Slot");
         }
+        if (remoteExterior.document.id !== localExterior.id
+            || remoteExterior.document.mapType !== "playable"
+            || (remoteExterior.document.playableSpace ?? "exterior") !== "exterior") {
+          throw new Error("EXTERIOR_IDENTITY_MISMATCH");
+        }
+        exteriorDocument = localExterior;
+        expectedExteriorVersion = remoteExterior.version;
       }
 
-      if (worldVersion < 1) throw new Error("WORLD_VERSION_UNAVAILABLE");
-      const vr = await client.from("map_versions").select("id").eq("map_id", AUTHORITATIVE_WORLD_MAP_ID).eq("version_number", worldVersion).single();
-      if (vr.error) throw vr.error;
-      const snapshot = serializeGameSaveSnapshot(worldDocument, exteriorDocument);
-      slotRpcStarted = true;
-      const rpc = await client.rpc("map_editor_save_slot_v1", {
-        p_map_id: AUTHORITATIVE_WORLD_MAP_ID,
-        p_slot_number: slot,
-        p_label: label.trim() || `Save Slot ${slot}`,
-        p_version_id: vr.data?.id || null,
-        p_version_number: worldVersion,
-        p_snapshot: snapshot,
+      const slotSnapshot = serializeGameSaveSnapshot(worldDocument, exteriorDocument);
+      atomicRpcStarted = true;
+      const result = await saveGameSlotAtomically(client, {
+        worldMapId: AUTHORITATIVE_WORLD_MAP_ID,
+        expectedWorldVersion,
+        worldSnapshot: serializeResolvedMapSnapshot(worldDocument),
+        exteriorMapId: exteriorDocument?.id ?? null,
+        expectedExteriorVersion,
+        exteriorSnapshot: exteriorDocument ? serializeResolvedMapSnapshot(exteriorDocument) : null,
+        slotNumber: slot,
+        label: label.trim() || `Save Slot ${slot}`,
+        slotSnapshot: slotSnapshot as unknown as Record<string, unknown>,
       });
-      if (rpc.error) throw rpc.error;
-      const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-      if (!result?.ok) throw new Error(result?.code || "SAVE_SLOT_FAILED");
+      if (!result.ok) {
+        const details = result.code === "VERSION_CONFLICT"
+          ? `VERSION_CONFLICT · current World v${result.current_world_version ?? "?"}`
+            + (result.current_exterior_version === undefined ? "" : ` · Exterior v${result.current_exterior_version ?? "none"}`)
+          : result.code;
+        throw new Error(details || "ATOMIC_SAVE_FAILED");
+      }
+
+      // The RPC has committed World, Exterior, and slot as one database transaction.
+      // Adopt the committed documents before the separate metadata refresh so a
+      // refresh failure cannot make the in-memory editor pretend the save never happened.
+      setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
+      setActiveMapId(worldDocument.id);
+      setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
+      setBaseDocument(worldDocument);
+      setVersion(result.world_version_number);
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
-      setStatus(`Game saved to Slot ${slot} · World + Exterior`);
+      setStatus(`Game saved atomically to Slot ${slot} · World v${result.world_version_number}`
+        + (result.exterior_version_number === null ? " · World only" : ` + Exterior v${result.exterior_version_number}`));
     } catch (e) {
       const message = msg(e);
-      if (worldVersionWriteCommitted || exteriorVersionWriteCommitted || slotRpcStarted) {
+      if (atomicRpcStarted) {
         let slotsRefreshed = false;
         try {
           await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
           slotsRefreshed = true;
         } catch {
-          // Keep the original save error visible; reconciliation itself is best effort.
+          // Keep the original RPC/refresh failure visible.
         }
-        const priorWrites = worldVersionWriteCommitted || exteriorVersionWriteCommitted;
-        if (slotRpcStarted) {
-          setStatus(
-            `Save Slot ${slot} result is uncertain: ${message}. ` +
-            (priorWrites ? "World/Exterior version writes may already have persisted. " : "") +
-            (slotsRefreshed ? "Slot metadata was refreshed; verify the slot contents before retrying." : "Slot metadata could not be refreshed; verify the slot before retrying."),
-          );
-        } else {
-          setStatus(
-            `Save Slot ${slot} was not completed: ${message}. ` +
-            "World/Exterior version writes may already have persisted. " +
-            (slotsRefreshed ? "Slot metadata was refreshed; verify the slot contents before retrying." : "Slot metadata could not be refreshed; verify the slot before retrying."),
-          );
-        }
+        setStatus(
+          `Atomic Save Slot ${slot} did not return a confirmed success: ${message}. `
+          + (slotsRefreshed
+            ? "Slot metadata refreshed; inspect the slot before retrying."
+            : "Slot metadata refresh failed; inspect the slot before retrying."),
+        );
       } else {
-        setStatus(`Save Slot ${slot} failed before any tracked write: ${message}`);
+        setStatus(`Save Slot ${slot} failed before the atomic write: ${message}`);
       }
+    } finally {
+      setBusy(false);
     }
-    finally { setBusy(false); }
   }, [active, maps, refreshSlots]);
 
   const loadLatest = useCallback(async () => {
