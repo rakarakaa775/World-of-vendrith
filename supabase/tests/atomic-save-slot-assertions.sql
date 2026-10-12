@@ -15,6 +15,7 @@ begin
     1::smallint, 'Atomic success', test_support.game_save('New World','New Exterior')
   );
   perform test_support.assert_true(r->>'ok'='true','combined save should succeed: '||r::text);
+  perform test_support.assert_true(r->>'projection_status'='not_run','legacy four-column World merge RPC must fall back to not_run projection status: '||r::text);
   perform test_support.assert_true((select count(*)=2 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'World history should advance exactly once');
   perform test_support.assert_true((select count(*)=2 from public.editor_map_versions where editor_map_id='22222222-2222-2222-2222-222222222222'),'Exterior history should advance exactly once');
   perform test_support.assert_true((select version_number=2 and snapshot=test_support.game_save('New World','New Exterior') from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'slot should reference the committed World and combined snapshot');
