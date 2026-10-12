@@ -159,8 +159,11 @@ begin
       end if;
       v_world_version_id := v_world_result.version_id;
       v_world_version_number := v_world_result.version_number;
-      v_projection_status := v_world_result.projection_status;
-      v_projection_error := v_world_result.projection_error;
+      -- Read optional projection metadata through JSON so this RPC remains compatible
+      -- with deployments whose authoritative commit RPC still exposes the legacy four-column
+      -- result. Missing projection metadata is reported honestly as not_run, not as a failed save.
+      v_projection_status := coalesce(nullif(to_jsonb(v_world_result)->>'projection_status', ''), 'not_run');
+      v_projection_error := to_jsonb(v_world_result)->>'projection_error';
     end if;
 
     if p_exterior_map_id is not null then
