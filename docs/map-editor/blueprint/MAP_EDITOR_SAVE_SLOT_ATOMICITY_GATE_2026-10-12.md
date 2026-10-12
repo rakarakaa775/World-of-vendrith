@@ -130,3 +130,16 @@ Do not simply replace the RPC name: the validated candidate returns a different 
 - CI workflow review confirms the disposable full-schema job applies both candidate Save Slot and validated Load Slot migrations, then runs `atomic-load-slot-validated-assertions.sql` and `atomic-save-slot-full-schema-assertions.sql`. The isolated stub fixture job does not apply the validated Load Slot migration, by design.
 - The current GitHub connector reports no commit status entries and no workflow runs for the latest commit; this is **not evidence of a passing test run**. PostgreSQL execution, typecheck, build, and Vitest remain unverified for this latest revision until an Actions run result is available.
 - No hosted migration was applied and the active UI still uses the legacy Load Slot path. Keep activation blocked until full-schema PostgreSQL CI passes and the client/UI integration is reviewed and tested.
+
+## CI verification result — 2026-10-12
+
+Latest verified workflow run: [Map Editor CI #908](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38239104195), commit `cbd91e07a5e01f1330db45cf2f5c489cf0420731`.
+
+All three jobs passed:
+- Map Editor tests: TypeScript typecheck, Next.js production build, and Vitest.
+- Atomic Save Slot PostgreSQL fixture contract tests, including concurrent save serialization.
+- Reconstructed full-schema PostgreSQL integration: validated Load Slot integrity assertions, real RPC/schema assertions, and full-schema concurrent-save serialization.
+
+The test suite exposed fixture mutations that were correctly blocked by the reconstructed schema's `editor_map_identity` invariant trigger. Those negative tests now bypass that trigger only inside their disposable test transaction to simulate already-corrupt historical rows; each case rolls back. No hosted Supabase branch or production migration was created/applied.
+
+**Activation remains gated:** the validated Load Slot RPC is verified against the reconstructed disposable schema, but the hosted production schema and authenticated browser Save -> Load -> Save flow have not been verified. The active UI therefore intentionally remains on the legacy Load Slot path until those two checks can be completed safely.
