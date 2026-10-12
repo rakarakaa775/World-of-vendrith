@@ -310,3 +310,36 @@ begin
 end
 $exterior_snapshot_mismatch$;
 rollback;
+
+-- Load Slot must reject a Region parent that belongs to another World.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.editor_map_identity
+set world_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+where editor_map_id='33333333-3333-3333-3333-333333333333';
+do $exterior_parent_world_mismatch$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='EXTERIOR_PARENT_INVALID','Exterior parent from another World must be rejected');
+end
+$exterior_parent_world_mismatch$;
+rollback;
+
+-- Verify Load Slot is callable only by authenticated sessions, not anon/public.
+do $load_slot_grants$
+declare
+  v_signature constant text := 'public.map_editor_load_save_slot_validated_v1(uuid, smallint)';
+begin
+  perform atomic_save_slot_test.assert_true(
+    not has_function_privilege('anon', v_signature, 'EXECUTE'),
+    'anon role must not execute validated Load Slot RPC'
+  );
+  perform atomic_save_slot_test.assert_true(
+    has_function_privilege('authenticated', v_signature, 'EXECUTE'),
+    'authenticated role must execute validated Load Slot RPC'
+  );
+end
+$load_slot_grants$;
+
+select 'validated Load Slot parent-scope and execute-grant assertions passed' as result;
