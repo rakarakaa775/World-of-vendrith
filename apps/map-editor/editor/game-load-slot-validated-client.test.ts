@@ -54,6 +54,20 @@ describe('loadGameSlotValidated', () => {
     expect(rpcClient.rpc).not.toHaveBeenCalled();
   });
 
+  it('rejects a valid-shaped success for a different World', async () => {
+    const rpcClient = client({ ...success, map_id: 'another-world' });
+
+    await expect(loadGameSlotValidated(rpcClient, 'world-1', 2))
+      .rejects.toThrow(/response World ID does not match/);
+  });
+
+  it('rejects a valid-shaped success for a different slot', async () => {
+    const rpcClient = client({ ...success, slot_number: 3 });
+
+    await expect(loadGameSlotValidated(rpcClient, 'world-1', 2))
+      .rejects.toThrow(/response slot number does not match/);
+  });
+
   it('rejects malformed success responses instead of passing unvalidated data through', async () => {
     const rpcClient = client({ ok: true, snapshot: [] });
 
