@@ -15,7 +15,8 @@ import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
-import { assertSlotWorldMatchesCanonicalVersion, parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from "../editor/game-save";
+import { parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from "../editor/game-save";
+import { loadGameSlotValidated } from "../editor/game-load-slot-validated-client";
 import { prepareRefreshThenCommit } from "../editor/load-slot-commit-boundary";
 import { loadEnvironmentRuntimeValidation, type EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { assertSaveIdentity, formatTerrainTrace, traceTerrain } from "../editor/map-save-trace";
@@ -488,38 +489,13 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     try {
       await prepareRefreshThenCommit(
         async () => {
-          const rpc = await client.rpc("map_editor_load_save_slot_v1", { p_map_id: AUTHORITATIVE_WORLD_MAP_ID, p_slot_number: slot });
-          if (rpc.error) throw rpc.error;
-          const result = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-          if (!result?.ok || !result.snapshot) throw new Error(result?.code || "SLOT_EMPTY");
+          // The server validates ownership, canonical World version/snapshot,
+          // and any Exterior identity/version before returning slot contents.
+          // Do not fall back to the legacy RPC or client-side table reads.
+          const result = await loadGameSlotValidated(client, AUTHORITATIVE_WORLD_MAP_ID, slot);
+          if (!result.ok) throw new Error(result.code || "SLOT_EMPTY");
 
           const parsed = parseGameSaveSlotSnapshot(result.snapshot, AUTHORITATIVE_WORLD_MAP_ID);
-          if (typeof result.version_id !== "string" || !result.version_id.trim()) {
-            throw new Error("LOAD_SLOT_VERSION_MISMATCH: referenced World version id is missing or inconsistent");
-          }
-          const canonicalVersionQuery = await client
-            .from("map_versions")
-            .select("id,map_id,version_number,snapshot")
-            .eq("id", result.version_id)
-            .eq("map_id", AUTHORITATIVE_WORLD_MAP_ID)
-            .single();
-          if (canonicalVersionQuery.error) throw canonicalVersionQuery.error;
-          const canonicalVersion = canonicalVersionQuery.data;
-          if (!canonicalVersion?.snapshot || canonicalVersion.map_id !== AUTHORITATIVE_WORLD_MAP_ID) {
-            throw new Error("LOAD_SLOT_VERSION_MISMATCH: canonical World version is unavailable");
-          }
-          const canonicalWorld = parseMapDocument(
-            typeof canonicalVersion.snapshot === "string" ? canonicalVersion.snapshot : JSON.stringify(canonicalVersion.snapshot),
-            AUTHORITATIVE_WORLD_MAP_ID,
-          );
-          assertSlotWorldMatchesCanonicalVersion({
-            slotWorld: parsed.world,
-            canonicalWorld,
-            slotVersionId: result.version_id,
-            canonicalVersionId: canonicalVersion.id,
-            slotVersionNumber: Number(result.version_number),
-            canonicalVersionNumber: Number(canonicalVersion.version_number),
-          });
           const worldDocument = normalizeWorldCanvas(parsed.world);
           if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID) {
             throw new Error("LOAD_SLOT_IDENTITY_MISMATCH: World snapshot id does not match authoritative map");
@@ -528,7 +504,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
             worldDocument,
             exteriorDocument: parsed.exterior,
             label: result.label || `Save Slot ${slot}`,
-            loadedVersion: Number(result.version_number) || 1,
+            loadedVersion: result.version_number,
           };
         },
         // Slot metadata refresh is part of the pre-commit gate. A failure here
