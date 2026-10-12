@@ -14,6 +14,22 @@ begin
 end $$;
 rollback;
 
+-- World-only Game Saves preserve an explicit null Exterior and remain loadable.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set snapshot=atomic_save_slot_test.game_save('Old World',null)
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $null_exterior_load$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='true','World-only Game Save remains loadable: '||r::text);
+  perform atomic_save_slot_test.assert_true(r->'snapshot'->'exterior'='null'::jsonb,'World-only Game Save preserves explicit null Exterior');
+end
+$null_exterior_load$;
+rollback;
+
 -- A version owned by another user cannot satisfy this owner's canonical version reference.
 begin;
 select atomic_save_slot_test.seed_case();
