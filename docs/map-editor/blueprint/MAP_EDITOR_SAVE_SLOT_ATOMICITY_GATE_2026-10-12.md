@@ -224,3 +224,19 @@ Do not run `supabase link`, `supabase db push`, or any hosted migration as part 
 ### Activation gate unchanged
 
 The candidate RPC adapters remain unwired in `vendrith-world-builder-app.tsx`. The active handlers still use the legacy multi-write Save Slot sequence and legacy Load Slot RPC/direct canonical-version read. That known limitation is intentionally not hidden behind a superficial RPC-name change. No production data was modified, no paid Supabase branch was created, and PR #16 remains draft.
+
+
+## Latest validated Load Slot response hardening — 2026-10-12
+
+The client adapter now rejects a nominally successful validated Load Slot response if its canonical World version ID is blank or its version number is zero/negative. These are malformed server responses, not empty slots, and must fail closed before the editor can adopt the snapshot.
+
+Regression tests:
+- blank canonical `version_id`;
+- `version_number: 0`;
+- negative `version_number`.
+
+Exact CI verification:
+- Adapter change commit: `35288d5a95f2f3c68f9176d0559f447fbefd59f0`; [Actions run #919](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38275185488) — all three jobs passed.
+- Regression test commit / current verified code head: `c6750aa7ab92d3368ca0766bfdf241c263a60921`; [Actions run #920](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38275207573) — all three jobs passed, including TypeScript, Next.js build, Vitest, isolated PostgreSQL contract tests, and reconstructed full-schema integration/concurrency tests.
+
+This remains repository-side validation only. The hosted candidate migrations are still unapplied, the active UI still uses the legacy Save Slot and Load Slot paths, and authenticated browser Save → Load → Save remains unverified. No paid Supabase branch or production database changes were made. Do not activate or merge the candidate release until hosted non-production and authenticated browser gates can be run safely.
