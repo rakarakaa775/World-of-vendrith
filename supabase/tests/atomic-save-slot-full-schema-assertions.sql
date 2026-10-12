@@ -14,6 +14,10 @@ begin
     1::smallint,'Full schema success',atomic_save_slot_test.game_save('New World','New Exterior')
   );
   perform atomic_save_slot_test.assert_true(r->>'ok'='true','combined save should succeed: '||r::text);
+  perform atomic_save_slot_test.assert_true(
+    r->>'projection_status' in ('committed','failed','not_run','reused'),
+    'projection outcome must be explicit even when the underlying merge RPC omits optional metadata: '||r::text
+  );
   perform atomic_save_slot_test.assert_true((select count(*)=2 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'World history advances once');
   perform atomic_save_slot_test.assert_true((select count(*)=2 from public.editor_map_versions where editor_map_id='22222222-2222-2222-2222-222222222222'),'Playable history advances once');
   perform atomic_save_slot_test.assert_true((select version_number=2 and snapshot=atomic_save_slot_test.game_save('New World','New Exterior') from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'slot and committed snapshots agree');
