@@ -40,7 +40,7 @@ export type AtomicRpcClient = {
   rpc: (
     name: string,
     args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: unknown | null }>;
+  ) => PromiseLike<{ data: unknown; error: unknown | null }>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
