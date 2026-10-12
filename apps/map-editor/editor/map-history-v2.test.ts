@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMap } from "./map-document";
 import {
   commitHistoryV2,
+  continueHistoryGestureV2,
   createHistoryV2,
   MAP_HISTORY_V2_MAX_ENTRIES,
   redoHistoryV2,
@@ -37,6 +38,32 @@ describe("combined v2 map history", () => {
     expect(afterCommit.present).toEqual(changed);
     expect(undoHistoryV2(afterCommit).present).toEqual(initial);
     expect(redoHistoryV2(undoHistoryV2(afterCommit)).present).toEqual(changed);
+  });
+
+  it("treats repeated gesture updates as one undoable combined state", () => {
+    const initial = stateWithTerrain(1);
+    const firstGestureUpdate = stateWithTerrain(2);
+    const finalGestureUpdate = stateWithTerrain(3);
+    const started = commitHistoryV2(createHistoryV2(initial), firstGestureUpdate);
+    const final = continueHistoryGestureV2(started, finalGestureUpdate);
+
+    expect(final.past).toEqual([initial]);
+    expect(final.present).toEqual(finalGestureUpdate);
+    expect(undoHistoryV2(final).present).toEqual(initial);
+    expect(redoHistoryV2(undoHistoryV2(final)).present).toEqual(finalGestureUpdate);
+  });
+
+  it("rejects a cross-map gesture continuation without mutating prior history", () => {
+    const initial = stateWithTerrain(1);
+    const history = commitHistoryV2(createHistoryV2(initial), stateWithTerrain(2));
+    const otherMap: MapDocumentV2State = {
+      ...stateWithTerrain(3),
+      document: { ...stateWithTerrain(3).document, id: "another-world" },
+    };
+
+    expect(() => continueHistoryGestureV2(history, otherMap)).toThrow(/identity changed/);
+    expect(history.present).toEqual(stateWithTerrain(2));
+    expect(history.past).toEqual([initial]);
   });
 
   it("returns the same history when committing the current state reference", () => {
