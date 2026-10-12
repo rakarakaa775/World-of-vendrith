@@ -48,3 +48,66 @@ export function initializeTerrainSemanticsV2(document: MapDocument, terrainSeman
   if (parsed.format !== "v2") throw new Error("Terrain v2 initialization failed");
   return { format: "v2", state: parsed.state };
 }
+
+
+/**
+ * Stable adapter contract used by Save/Load and combined editor history.
+ * This is kept alongside the newer format-tagged transition API so the
+ * persistence adapter can migrate independently from the live editor.
+ */
+export type MapEditorState =
+  | Readonly<{ kind: "legacy"; document: MapDocument; terrainSemantics: null }>
+  | Readonly<{ kind: "initialized"; document: MapDocument; terrainSemantics: TerrainSemanticsSection }>;
+
+export function parseMapEditorState(input: string | unknown): MapEditorState {
+  const parsed = parseMapSnapshot(input);
+  return parsed.format === "v1"
+    ? { kind: "legacy", document: parsed.document, terrainSemantics: null }
+    : {
+        kind: "initialized",
+        document: parsed.state.document,
+        terrainSemantics: parsed.state.terrainSemantics,
+      };
+}
+
+export function serializeInitializedMapEditorState(state: MapEditorState): string {
+  if (state.kind !== "initialized") {
+    throw new Error("Only initialized map editor states can be serialized as Terrain v2");
+  }
+  return serializeMapDocumentV2({
+    document: state.document,
+    terrainSemantics: state.terrainSemantics,
+  });
+}
+
+/** Explicitly initialize semantics; legacy input remains legacy until called. */
+export function initializeTerrainSemantics(
+  state: MapEditorState,
+  terrainSemantics: TerrainSemanticsSection,
+): MapEditorState {
+  const initialized = initializeTerrainSemanticsV2(state.document, terrainSemantics);
+  if (initialized.format !== "v2") throw new Error("Terrain v2 initialization failed");
+  return {
+    kind: "initialized",
+    document: initialized.state.document,
+    terrainSemantics: initialized.state.terrainSemantics,
+  };
+}
+
+/** Apply a document edit without losing the initialization status. */
+export function replaceMapEditorDocument(
+  state: MapEditorState,
+  nextDocument: MapDocument,
+): MapEditorState {
+  const transitional: MapEditorStateV2 = state.kind === "legacy"
+    ? { format: "legacy-uninitialized", document: state.document, terrainSemantics: null }
+    : { format: "v2", state: { document: state.document, terrainSemantics: state.terrainSemantics } };
+  const changed = applyDocumentChangeV2(transitional, nextDocument);
+  return changed.format === "legacy-uninitialized"
+    ? { kind: "legacy", document: changed.document, terrainSemantics: null }
+    : {
+        kind: "initialized",
+        document: changed.state.document,
+        terrainSemantics: changed.state.terrainSemantics,
+      };
+}
