@@ -65,20 +65,20 @@ as $$ select exists(select 1 from public.maps m where m.id=p_map_id and (m.creat
 
 create or replace function public.map_editor_commit_merge_v1(
   p_map_id uuid, p_expected_version integer, p_snapshot jsonb, p_label text default 'merge'
-) returns table(status text, version_id uuid, version_number integer, current_version integer, projection_status text, projection_error text)
+) returns table(status text, version_id uuid, version_number integer, current_version integer)
 language plpgsql
-as $$
+as $
 declare cur integer; nextv integer; vid uuid;
 begin
   perform 1 from public.maps where id=p_map_id for update;
   select coalesce(max(v.version_number),0) into cur from public.map_versions v where v.map_id=p_map_id;
-  if p_expected_version <> cur then return query select 'conflict',null::uuid,null::integer,cur,'not_run',null::text; return; end if;
+  if p_expected_version <> cur then return query select 'conflict',null::uuid,null::integer,cur; return; end if;
   nextv := cur + 1;
   insert into public.map_versions(map_id,version_number,label,snapshot,created_by)
     values(p_map_id,nextv,p_label,p_snapshot,auth.uid()) returning id into vid;
   update public.maps set updated_at=now() where id=p_map_id;
   if current_setting('test.fail_at',true) = 'world_after_insert' then raise exception 'injected world failure'; end if;
-  return query select 'committed',vid,nextv,nextv,'committed',null::text;
+  return query select 'committed',vid,nextv,nextv;
 end $$;
 
 create or replace function public.map_editor_commit_identity_v1(
