@@ -203,3 +203,18 @@ begin
 end
 $exterior_parent_invalid$;
 rollback;
+
+-- A valid Exterior identity cannot be paired with content absent from its version history.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set snapshot=jsonb_set(snapshot,'{exterior,name}','"Forged Exterior"',false)
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $exterior_snapshot_mismatch$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='EXTERIOR_VERSION_SNAPSHOT_MISMATCH','unpersisted Exterior content must be rejected');
+end
+$exterior_snapshot_mismatch$;
+rollback;
