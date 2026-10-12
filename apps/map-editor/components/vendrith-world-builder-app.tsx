@@ -14,7 +14,7 @@ import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "..
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
-import { loadIdentityMapDocument, saveIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
+import { loadIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
 import { parseGameSaveSlotSnapshot, reconcileGameSaveSlotMaps, resolveAuthoritativeWorldForSlot, serializeGameSaveSnapshot } from "../editor/game-save";
 import { loadGameSlotValidated } from "../editor/game-load-slot-validated-client";
 import { saveGameSlotAtomically } from "../editor/game-save-slot-atomic-client";
