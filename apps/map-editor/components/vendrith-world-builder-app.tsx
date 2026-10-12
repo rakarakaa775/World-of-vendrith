@@ -321,9 +321,23 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       if (expectedWorldVersion < 1) throw new Error("WORLD_VERSION_UNAVAILABLE");
 
       const localWorld = resolveAuthoritativeWorldForSlot(maps, active, AUTHORITATIVE_WORLD_MAP_ID);
-      const worldDocument = localWorld ?? worldRemote.document;
-      if (worldDocument.id !== AUTHORITATIVE_WORLD_MAP_ID || worldDocument.mapType !== "world") {
-        throw new Error("WORLD_IDENTITY_MISMATCH");
+      let worldDocument = worldRemote.document;
+      if (localWorld) {
+        if (localWorld.id !== AUTHORITATIVE_WORLD_MAP_ID || localWorld.mapType !== "world") {
+          throw new Error("WORLD_IDENTITY_MISMATCH");
+        }
+        const localWorldJson = JSON.stringify(serializeResolvedMapSnapshot(localWorld));
+        const remoteWorldJson = JSON.stringify(serializeResolvedMapSnapshot(worldRemote.document));
+        if (localWorldJson !== remoteWorldJson) {
+          // Never silently overwrite a newer canonical World version with an
+          // editor document whose baseline has not been proven to match it.
+          const baselineMatchesRemote = baseDocument?.id === localWorld.id
+            && JSON.stringify(serializeResolvedMapSnapshot(baseDocument)) === remoteWorldJson;
+          if (!baselineMatchesRemote) {
+            throw new Error("VERSION_CONFLICT: World changed remotely; reload the authoritative World before saving this slot");
+          }
+          worldDocument = localWorld;
+        }
       }
 
       const localExterior = active.mapType === "playable" && active.playableSpace !== "interior"
@@ -345,7 +359,18 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
             || (remoteExterior.document.playableSpace ?? "exterior") !== "exterior") {
           throw new Error("EXTERIOR_IDENTITY_MISMATCH");
         }
-        exteriorDocument = localExterior;
+        const localExteriorJson = JSON.stringify(serializeResolvedMapSnapshot(localExterior));
+        const remoteExteriorJson = JSON.stringify(serializeResolvedMapSnapshot(remoteExterior.document));
+        if (localExteriorJson !== remoteExteriorJson) {
+          const baselineMatchesRemote = baseDocument?.id === localExterior.id
+            && JSON.stringify(serializeResolvedMapSnapshot(baseDocument)) === remoteExteriorJson;
+          if (!baselineMatchesRemote) {
+            throw new Error("VERSION_CONFLICT: Exterior changed remotely or its baseline is unavailable; reload it before saving this slot");
+          }
+          exteriorDocument = localExterior;
+        } else {
+          exteriorDocument = remoteExterior.document;
+        }
         expectedExteriorVersion = remoteExterior.version;
       }
 
