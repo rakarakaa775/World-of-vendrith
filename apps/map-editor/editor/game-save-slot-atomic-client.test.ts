@@ -84,6 +84,23 @@ describe('saveGameSlotAtomically client contract', () => {
     expect(rpcClient.rpc).not.toHaveBeenCalled();
   });
 
+  it('rejects invalid version baselines and non-object snapshots before writing', async () => {
+    const rpcClient = client();
+
+    await expect(saveGameSlotAtomically(rpcClient, request({ expectedWorldVersion: -1 })))
+      .rejects.toThrow(/expectedWorldVersion/);
+    await expect(saveGameSlotAtomically(rpcClient, request({ expectedExteriorVersion: 1.5 })))
+      .rejects.toThrow(/expectedExteriorVersion/);
+    await expect(saveGameSlotAtomically(rpcClient, request({ worldSnapshot: [] as unknown as Record<string, unknown> })))
+      .rejects.toThrow(/worldSnapshot/);
+    await expect(saveGameSlotAtomically(rpcClient, request({ slotSnapshot: null as unknown as Record<string, unknown> })))
+      .rejects.toThrow(/slotSnapshot/);
+    await expect(saveGameSlotAtomically(rpcClient, request({ exteriorSnapshot: null })))
+      .rejects.toThrow(/exteriorSnapshot/);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+  });
+
   it('propagates RPC errors without retrying or falling back to legacy writes', async () => {
     const failure = new Error('slot write failed');
     const rpcClient = client(null, failure);
