@@ -143,3 +143,31 @@ All three jobs passed:
 The test suite exposed fixture mutations that were correctly blocked by the reconstructed schema's `editor_map_identity` invariant trigger. Those negative tests now bypass that trigger only inside their disposable test transaction to simulate already-corrupt historical rows; each case rolls back. No hosted Supabase branch or production migration was created/applied.
 
 **Activation remains gated:** the validated Load Slot RPC is verified against the reconstructed disposable schema, but the hosted production schema and authenticated browser Save -> Load -> Save flow have not been verified. The active UI therefore intentionally remains on the legacy Load Slot path until those two checks can be completed safely.
+
+
+## Latest exact-commit verification — 2026-10-12 11:02 UTC
+
+The previous verification notes above describe the state at the time they were written. The latest branch head has since been tested:
+
+- Commit: `be2eefce0e06055c1e166f1a74c7fc164baca7b6` (`test(map-editor): reject mismatched validated load identities`).
+- GitHub Actions run [#914](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38240080433) completed with **success**.
+- `Map Editor tests`: TypeScript typecheck, Next.js build, and Vitest all passed.
+- `Atomic Save Slot PostgreSQL fixture contract tests`: isolated RPC, rollback, and concurrent-save checks passed.
+- `Atomic Save Slot reconstructed full-schema integration`: validated Load Slot integrity assertions, RPC/schema integration, and concurrent-save serialization passed.
+
+The validated Load Slot client adapter now additionally rejects a successful RPC payload if its `map_id` differs from the requested World ID or its `slot_number` differs from the requested slot. Regression tests cover both mismatches. These checks are covered by the exact-commit CI run above.
+
+## Active UI audit after CI
+
+The active `loadSlot` callback in `apps/map-editor/components/vendrith-world-builder-app.tsx` still calls legacy `map_editor_load_save_slot_v1`, then reads `map_versions` directly to verify the referenced canonical World version. The validated adapter is not yet wired into the UI. This is intentional: changing only the RPC name would not remove the old direct-read dependency or establish the full authenticated session behavior.
+
+The current UI keeps `prepareRefreshThenCommit` as a pre-commit boundary: it parses and validates the candidate slot, checks the canonical World version, refreshes slot metadata, and only then replaces editor state. Any future validated-RPC integration must preserve that all-fallible-work-before-state-commit property and must define how canonical World/version consistency is guaranteed by the server response, rather than reintroducing a client-side direct table read.
+
+## Remaining release gates (current)
+
+1. Run authenticated non-production Save -> Load -> Save, conflict, injected-failure, and concurrent-save checks.
+2. Run those flows in a real authenticated browser session.
+3. Verify the migration and grants against an available hosted non-production Supabase project.
+4. Only after those gates pass, prepare a release plan and obtain explicit approval before applying any hosted migration or activating the new UI path.
+
+No hosted migration has been applied, no paid Supabase branch has been created, and the active Save/Load UI remains unchanged. Keep PR #16 as draft; do not merge it as a release.
