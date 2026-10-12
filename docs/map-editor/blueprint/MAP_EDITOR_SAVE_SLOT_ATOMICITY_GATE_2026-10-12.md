@@ -107,3 +107,13 @@ Source commits:
 - `fb4f98fe8283ed0b677e2a6db24297b63461fceb` — client contract tests.
 
 This adapter is not wired to the active editor. Tests have been authored but are not confirmed green because the current GitHub status endpoint is returning no check results for recent commits.
+
+### Concurrency hardening and scope regression
+
+The Load Slot candidate now takes shared row locks while validating the owner-scoped World, Exterior identity, Region parent, and matching Exterior version. This narrows the window in which those authoritative records could change between validation and response. A full-schema regression assertion also rejects an Exterior parent assigned to a different World and verifies that the Load Slot RPC is executable by `authenticated` but not `anon`.
+
+Source commits:
+- `bde60d99c754193042122f5f19359b012cb8c0a0` — lock rows used for Load Slot validation.
+- `148481362e38a7f70c3cf321621dff07161f859d` — test cross-World parent and execute grants.
+
+The checks are source-level additions only until CI executes them. Shared locks do not replace the need for integration testing against the reconstructed schema.
