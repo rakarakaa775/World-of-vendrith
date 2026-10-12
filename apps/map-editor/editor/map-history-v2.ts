@@ -60,6 +60,28 @@ export function commitHistoryV2(
   };
 }
 
+/**
+ * Replace the present snapshot while a single pointer/paint gesture is already
+ * in progress. The first gesture update should use commitHistoryV2; subsequent
+ * updates use this helper so undo returns to the pre-gesture state instead of
+ * recording every pointer movement as a separate step.
+ */
+export function continueHistoryGestureV2(
+  history: MapHistoryV2,
+  next: MapDocumentV2State,
+): MapHistoryV2 {
+  if (next === history.present) return history;
+  validateState(next);
+  if (next.document.id !== history.present.document.id) {
+    throw new Error("Map identity changed; reset map history v2 instead of continuing a gesture");
+  }
+  return {
+    past: history.past,
+    present: next,
+    future: [],
+  };
+}
+
 export function undoHistoryV2(history: MapHistoryV2): MapHistoryV2 {
   const previous = history.past.at(-1);
   if (!previous) return history;
