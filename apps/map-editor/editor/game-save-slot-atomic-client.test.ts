@@ -16,18 +16,30 @@ function request(overrides: Partial<AtomicGameSaveSlotRequest> = {}): AtomicGame
   };
 }
 
-function client(data: unknown = { status: 'committed' }, error: unknown | null = null) {
+const committed = {
+  ok: true,
+  slot_number: 2,
+  world_version_id: 'world-version-4',
+  world_version_number: 4,
+  exterior_version_id: 'exterior-version-3',
+  exterior_version_number: 3,
+  projection_status: 'not_run',
+  projection_error: null,
+};
+
+function client(data: unknown = committed, error: unknown | null = null) {
   return { rpc: vi.fn().mockResolvedValue({ data, error }) };
 }
 
 describe('saveGameSlotAtomically client contract', () => {
-  it('sends World, Exterior and slot as one RPC request', async () => {
-    const rpcClient = client({ status: 'committed', slot_number: 2 });
+  it('sends World, Exterior and slot as one RPC request and parses the SQL success shape', async () => {
+    const rpcClient = client(committed);
     const input = request();
 
     const result = await saveGameSlotAtomically(rpcClient, input);
 
-    expect(result).toEqual({ status: 'committed', slot_number: 2 });
+    expect(result).toEqual(committed);
+    expect(result).toMatchObject({ ok: true, slot_number: 2, world_version_number: 4, exterior_version_number: 3 });
     expect(rpcClient.rpc).toHaveBeenCalledTimes(1);
     expect(rpcClient.rpc).toHaveBeenCalledWith('map_editor_save_game_slot_atomic_v1', {
       p_world_map_id: 'world-1',
@@ -42,8 +54,15 @@ describe('saveGameSlotAtomically client contract', () => {
     });
   });
 
-  it('supports a World-only slot with all Exterior fields null', async () => {
-    const rpcClient = client();
+  it('supports a World-only slot and requires null Exterior version fields', async () => {
+    const rpcClient = client({
+      ok: true,
+      slot_number: 2,
+      world_version_id: 'world-version-4',
+      world_version_number: 4,
+      exterior_version_id: null,
+      exterior_version_number: null,
+    });
     await saveGameSlotAtomically(rpcClient, request({
       exteriorMapId: null,
       expectedExteriorVersion: null,
@@ -58,6 +77,32 @@ describe('saveGameSlotAtomically client contract', () => {
       p_exterior_snapshot: null,
       p_label: 'Save Slot 2',
     }));
+  });
+
+  it('returns a server-declared conflict without treating it as a successful save', async () => {
+    const rpcClient = client({
+      ok: false,
+      code: 'VERSION_CONFLICT',
+      current_world_version: 4,
+      current_exterior_version: 3,
+    });
+
+    await expect(saveGameSlotAtomically(rpcClient, request())).resolves.toEqual({
+      ok: false,
+      code: 'VERSION_CONFLICT',
+      current_world_version: 4,
+      current_exterior_version: 3,
+    });
+    expect(rpcClient.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a successful response for a different slot or malformed success data', async () => {
+    await expect(saveGameSlotAtomically(client({ ...committed, slot_number: 3 }), request()))
+      .rejects.toThrow(/mismatched World\/slot identity/);
+    await expect(saveGameSlotAtomically(client({ ok: true, slot_number: 2 }), request()))
+      .rejects.toThrow(/mismatched World\/slot identity/);
+    await expect(saveGameSlotAtomically(client({ ok: false }), request()))
+      .rejects.toThrow(/failure response must include a code/);
   });
 
   it('rejects invalid slot numbers before making any RPC call', async () => {
@@ -101,7 +146,7 @@ describe('saveGameSlotAtomically client contract', () => {
     expect(rpcClient.rpc).not.toHaveBeenCalled();
   });
 
-  it('propagates RPC errors without retrying or falling back to legacy writes', async () => {
+  it('propagates transport errors without retrying or falling back to legacy writes', async () => {
     const failure = new Error('slot write failed');
     const rpcClient = client(null, failure);
 
