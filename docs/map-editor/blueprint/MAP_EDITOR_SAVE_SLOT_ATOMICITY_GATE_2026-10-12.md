@@ -39,9 +39,13 @@ The branch status log records GitHub Actions run [38187243966](https://github.co
 
 This is useful automated evidence, but it is not equivalent to a byte-for-byte production schema, hosted non-production authenticated integration, or browser/session E2E. The reconstructed SQL fixture has documented limits, including test stubs for some existing RPC behavior.
 
+## Additional signature compatibility check (must close before activation)
+
+The candidate RPC reads `projection_status` and `projection_error` from the record returned by `map_editor_commit_merge_v1`. The historical repository migration `20260912023000_map_editor_commit_merge_security_definer_v1.sql` declares only four output columns: `status, version_id, version_number, current_version`. Later project notes say the live function contract was extended to expose projection outcome, but the exact migration/source that establishes that signature must be verified against the current branch and the disposable full-schema fixture. Do not infer that the historical migration alone is sufficient. If the actual callable function returns only four columns, a changed-World Save Slot call can fail when the candidate reads `projection_status`, and the candidate's exception subtransaction should roll back the attempted writes. Add a regression that applies the exact authoritative current function definition and tests both projection success and projection failure before activation.
+
 ## Remaining release gates
 
-1. Review the candidate migration and test fixtures against the actual deployed function signatures, schema, constraints, and grants.
+1. Resolve the return-shape check above and review the candidate migration and test fixtures against the actual deployed function signatures, schema, constraints, and grants.
 2. Run authenticated integration tests against a disposable/non-production Supabase project when one is available; do not enable a paid branch or change production as a workaround.
 3. Exercise Save → Load → Save and failure/conflict cases in the browser with a real authenticated session.
 4. Only after those gates pass, prepare an explicit migration/release plan. Production application is outside the current authorization.
