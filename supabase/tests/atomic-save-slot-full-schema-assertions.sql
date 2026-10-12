@@ -288,8 +288,11 @@ rollback;
 -- The persisted parent of an Exterior must resolve to an owner-scoped Region in this World.
 begin;
 select atomic_save_slot_test.seed_case();
+-- Bypass only the invariant trigger to model a corrupt pre-existing parent row.
+set local session_replication_role = replica;
 update public.editor_map_identity set map_type='playable'
 where editor_map_id='33333333-3333-3333-3333-333333333333';
+set local session_replication_role = origin;
 do $exterior_parent_invalid$
 declare r jsonb;
 begin
