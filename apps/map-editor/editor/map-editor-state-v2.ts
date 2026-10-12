@@ -1,4 +1,5 @@
 import type { MapDocument } from "./map-document";
+import { parseMapDocument, serializeMapDocument } from "./map-serialization";
 import type { MapDocumentV2State } from "./map-history-v2";
 import { parseMapSnapshot, serializeMapDocumentV2 } from "./map-snapshot-v2";
 import { resizeTerrainSemantics, validateTerrainSemantics, type TerrainSemanticsSection } from "./terrain-semantics";
@@ -24,17 +25,19 @@ export function adoptMapSnapshotV2(input: string | unknown, requestedMapId?: str
  * records on expansion. Map identity changes require a fresh adoption.
  */
 export function applyDocumentChangeV2(current: MapEditorStateV2, nextDocument: MapDocument): MapEditorStateV2 {
+  // Validate the incoming document before using its dimensions to clip semantics.
+  const validatedDocument = parseMapDocument(serializeMapDocument(nextDocument), nextDocument.id);
   const currentDocument = current.format === "v2" ? current.state.document : current.document;
-  if (nextDocument.id !== currentDocument.id) {
+  if (validatedDocument.id !== currentDocument.id) {
     throw new Error("Map identity changed; adopt a new snapshot instead of applying a document change");
   }
   if (current.format === "legacy-uninitialized") {
-    return { format: "legacy-uninitialized", document: nextDocument, terrainSemantics: null };
+    return { format: "legacy-uninitialized", document: validatedDocument, terrainSemantics: null };
   }
-  const terrainSemantics = currentDocument.width === nextDocument.width && currentDocument.height === nextDocument.height
-    ? validateTerrainSemantics(nextDocument.width, nextDocument.height, current.state.terrainSemantics)
-    : resizeTerrainSemantics(current.state.terrainSemantics, nextDocument.width, nextDocument.height);
-  return { format: "v2", state: { document: nextDocument, terrainSemantics } };
+  const terrainSemantics = currentDocument.width === validatedDocument.width && currentDocument.height === validatedDocument.height
+    ? validateTerrainSemantics(validatedDocument.width, validatedDocument.height, current.state.terrainSemantics)
+    : resizeTerrainSemantics(current.state.terrainSemantics, validatedDocument.width, validatedDocument.height);
+  return { format: "v2", state: { document: validatedDocument, terrainSemantics } };
 }
 
 /** Initialize only when a caller deliberately supplies a semantic section. */
