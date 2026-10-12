@@ -320,9 +320,12 @@ rollback;
 -- Load Slot must reject a Region parent that belongs to another World.
 begin;
 select atomic_save_slot_test.seed_case();
+-- Model a corrupt cross-World parent row so the RPC's world-scope check is exercised.
+set local session_replication_role = replica;
 update public.editor_map_identity
 set world_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 where editor_map_id='33333333-3333-3333-3333-333333333333';
+set local session_replication_role = origin;
 do $exterior_parent_world_mismatch$
 declare r jsonb;
 begin
