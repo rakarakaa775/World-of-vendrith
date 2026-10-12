@@ -310,6 +310,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     setBusy(true);
     setStatus(`Saving World + Exterior atomically to Slot ${slot}…`);
     let atomicRpcStarted = false;
+    let atomicSaveConfirmed = false;
     try {
       // Read canonical baselines first. No map/version/slot writes happen until
       // the one atomic RPC has validated both baselines and all snapshot identities.
@@ -398,6 +399,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       // The RPC has committed World, Exterior, and slot as one database transaction.
       // Adopt the committed documents before the separate metadata refresh so a
       // refresh failure cannot make the in-memory editor pretend the save never happened.
+      atomicSaveConfirmed = true;
       setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
       setActiveMapId(worldDocument.id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
@@ -417,10 +419,13 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           // Keep the original RPC/refresh failure visible.
         }
         setStatus(
-          `Atomic Save Slot ${slot} did not return a confirmed success: ${message}. `
-          + (slotsRefreshed
-            ? "Slot metadata refreshed; inspect the slot before retrying."
-            : "Slot metadata refresh failed; inspect the slot before retrying."),
+          atomicSaveConfirmed
+            ? `Save Slot ${slot} was committed atomically, but metadata refresh failed: ${message}. `
+              + (slotsRefreshed ? "Slot metadata refreshed." : "Slot metadata could not be refreshed.")
+            : `Atomic Save Slot ${slot} did not return a confirmed success: ${message}. `
+              + (slotsRefreshed
+                ? "Slot metadata refreshed; inspect the slot before retrying."
+                : "Slot metadata refresh failed; inspect the slot before retrying."),
         );
       } else {
         setStatus(`Save Slot ${slot} failed before the atomic write: ${message}`);
