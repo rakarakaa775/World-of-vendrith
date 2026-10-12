@@ -504,7 +504,7 @@ export function EditorShell({
           </div>
 
           <div style={{ display: "grid", gap: 6 }}>
-            {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).map(tile => (
+            {tileOptions.filter(isPaintableTerrainTile).map(tile => (
               <button key={tile.id} type="button" onClick={() => chooseTerrain(tile)} aria-pressed={selectedTile === tile.id}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, textAlign: "left", borderRadius: 7, border: "1px solid var(--map-editor-border)", background: selectedTile === tile.id ? "var(--map-editor-terrain-selected)" : "var(--map-editor-button)", color: "#fff" }}>
                 <span style={{ width: 28, height: 28, borderRadius: 4, background: ({
