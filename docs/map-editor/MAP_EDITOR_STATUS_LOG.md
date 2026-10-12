@@ -1,4 +1,11 @@
-| 2026-10-12 | Save Slot legacy World RPC compatibility hardened | Phase 0 — Foundation Audit | Changed the candidate atomic Save Slot RPC to read optional projection fields via JSON, with an explicit `not_run` fallback for the legacy four-column World merge contract. Updated the isolated fixture to model that four-column contract and assert fallback behavior; added a full-schema projection-outcome assertion. Commits: `549abc24d1d3974843eecf8b31bf09cb51f51682`, `4a54b2ab9484787252f36cfb64b488654c4b3f00`, `b295124c5db8f2b174de35ced709557a5b6aae5c`, `7a0471222c6ac5bbe85b94dbf73e4f526ce88770`, `35fa9a6899dce348789e38e943294b927b5b5486`. Latest CI status was not available through the connected GitHub status endpoints; previous run `38187243966` predates these changes. No hosted migration or production data changes. Browser and authenticated non-production integration remain pending. |
+## 2026-10-12 — Save Slot legacy World RPC compatibility hardened
+
+- Changed the candidate atomic Save Slot RPC to read optional projection metadata through JSON and fall back to `not_run` when the World merge RPC exposes only the historical four-column return contract.
+- The isolated PostgreSQL fixture now deliberately uses that four-column return shape and asserts the fallback. The reconstructed full-schema integration asserts an explicit supported projection outcome.
+- Commits: `549abc24d1d3974843eecf8b31bf09cb51f51682`, `4a54b2ab9484787252f36cfb64b488654c4b3f00`, `b295124c5db8f2b174de35ced709557a5b6aae5c`, `7a0471222c6ac5bbe85b94dbf73e4f526ce88770`, `35fa9a6899dce348789e38e943294b927b5b5486`.
+- Previous CI run `38187243966` passed before these changes. The connected GitHub status endpoints have not exposed a run/check result for the latest commits; the new regression remains unverified until the exact-commit CI run is green.
+- Candidate migrations remain unapplied to hosted Supabase, active UI remains on the legacy path, and no production data/schema or paid branch was changed. Authenticated non-production integration and browser/session E2E remain release blockers.
+
 ## 2026-10-11 — Atomic Save Slot security suite fully green
 
 - GitHub Actions run [38154020747](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38154020747) completed successfully on `feat/vendrith-ecc-v1` at code commit `30cb87f2249c598cd7a7b2f522b4fc81bf028ada`.
