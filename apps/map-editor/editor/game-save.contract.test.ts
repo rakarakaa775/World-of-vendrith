@@ -198,6 +198,15 @@ describe('game save slot map reconciliation', () => {
     expect(loaded.format).toBe('legacy-map-document-v1');
     expect(loaded.exterior).toBeNull();
 
+    // If the user saves after loading this legacy slot, write the current
+    // Game Save envelope while preserving the explicit World-only semantics.
+    const migratedSave = serializeGameSaveSnapshot(loaded.world, loaded.exterior);
+    expect(parseGameSaveSlotSnapshot(migratedSave, restoredWorld.id)).toEqual({
+      format: 'game-save-v1',
+      world: restoredWorld,
+      exterior: null,
+    });
+
     expect(reconcileGameSaveSlotMaps(
       [currentWorld, staleExterior, region, interior],
       loaded.world,
