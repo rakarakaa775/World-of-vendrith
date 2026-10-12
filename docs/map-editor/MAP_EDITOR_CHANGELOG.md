@@ -1,3 +1,11 @@
+## 2026-10-12 — Save Slot legacy World RPC compatibility hardening
+
+- **Type:** Atomic Save Slot migration compatibility and SQL regression coverage.
+- **Details:** The candidate atomic Save Slot RPC now reads optional World projection metadata from the dynamic merge result as JSON. If a deployed/legacy World merge RPC returns only `status, version_id, version_number, current_version`, the Save Slot operation remains atomic and reports `projection_status: not_run` instead of failing on a missing record field. The isolated SQL fixture now uses that legacy four-column contract and asserts the fallback. The reconstructed full-schema integration continues to assert an explicit supported projection outcome.
+- **Commits:** `549abc24d1d3974843eecf8b31bf09cb51f51682`, `4a54b2ab9484787252f36cfb64b488654c4b3f00`, `b295124c5db8f2b174de35ced709557a5b6aae5c`, `7a0471222c6ac5bbe85b94dbf73e4f526ce88770`, `35fa9a6899dce348789e38e943294b927b5b5486`.
+- **Verification:** Previous CI run `38187243966` passed before this compatibility change. No CI status/run was visible for the latest commits at the time of this update; do not mark the new regression as passed until the exact commit's workflow finishes.
+- **Safety:** Candidate migration remains unapplied to hosted Supabase; active UI remains on the legacy Save Slot path. No production data/schema was changed. Browser and authenticated non-production integration gates remain open.
+
 ## 2026-10-11 — Reject invalid terrain semantics during v2 recovery
 
 - Added recovery-journal tests for invalid terrain surface values and duplicate semantic coordinates.
