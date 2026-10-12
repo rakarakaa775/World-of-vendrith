@@ -428,7 +428,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     } finally {
       setBusy(false);
     }
-  }, [active, maps, refreshSlots]);
+  }, [active, baseDocument, maps, refreshSlots]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
