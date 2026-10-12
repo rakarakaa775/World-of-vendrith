@@ -67,7 +67,7 @@ create or replace function public.map_editor_commit_merge_v1(
   p_map_id uuid, p_expected_version integer, p_snapshot jsonb, p_label text default 'merge'
 ) returns table(status text, version_id uuid, version_number integer, current_version integer)
 language plpgsql
-as $
+as $legacy$
 declare cur integer; nextv integer; vid uuid;
 begin
   perform 1 from public.maps where id=p_map_id for update;
@@ -79,7 +79,7 @@ begin
   update public.maps set updated_at=now() where id=p_map_id;
   if current_setting('test.fail_at',true) = 'world_after_insert' then raise exception 'injected world failure'; end if;
   return query select 'committed',vid,nextv,nextv;
-end $$;
+end $legacy$;
 
 create or replace function public.map_editor_commit_identity_v1(
   p_editor_map_id uuid, p_expected_version integer, p_snapshot jsonb, p_label text default 'map-editor-save'
