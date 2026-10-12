@@ -99,5 +99,12 @@ export async function loadGameSlotValidated(
     p_slot_number: slotNumber,
   });
   if (error) throw error;
-  return parseResult(data);
+  const result = parseResult(data);
+  if (result.ok && result.map_id !== worldMapId) {
+    throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: response World ID does not match the requested World');
+  }
+  if (result.ok && result.slot_number !== slotNumber) {
+    throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: response slot number does not match the requested slot');
+  }
+  return result;
 }
