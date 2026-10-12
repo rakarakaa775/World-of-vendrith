@@ -17,6 +17,17 @@ describe('resolveWaterTraversal', () => {
     )).toBe('blocked');
   });
 
+  it('allows explicitly designated shallow lake water to be walked', () => {
+    expect(resolveWaterTraversal(
+      { surface: 'water', feature: 'lake', depth: 'shallow', shallowWalkable: true },
+      {},
+    )).toBe('walk');
+    expect(resolveWaterTraversal(
+      { surface: 'water', feature: 'lake', depth: 'shallow' },
+      {},
+    )).toBe('blocked');
+  });
+
   it('blocks water whose gameplay feature is missing or none', () => {
     expect(resolveWaterTraversal({ surface: 'water' }, { canSwim: true })).toBe('blocked');
     expect(resolveWaterTraversal({ surface: 'water', feature: 'none' }, {})).toBe('blocked');
