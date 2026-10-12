@@ -16,6 +16,7 @@ declare
   v_world public.maps%rowtype;
   v_exterior_identity public.editor_map_identity%rowtype;
   v_exterior_parent public.editor_map_identity%rowtype;
+  v_exterior_version public.editor_map_versions%rowtype;
   v_canonical_document jsonb;
   v_slot_world jsonb;
 begin
@@ -31,7 +32,8 @@ begin
 
   select m.* into v_world
   from public.maps m
-  where m.id = p_map_id and m.created_by = v_uid and m.map_type = 'world';
+  where m.id = p_map_id and m.created_by = v_uid and m.map_type = 'world'
+  for share;
   if not found then
     return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED');
   end if;
@@ -114,7 +116,8 @@ begin
       where e.editor_map_id::text = v_slot.snapshot->'exterior'->>'id'
         and e.created_by = v_uid
         and e.map_type = 'playable'
-        and e.world_id = v_world.world_id;
+        and e.world_id = v_world.world_id
+      for share;
       if not found or v_exterior_identity.parent_editor_map_id is null then
         return jsonb_build_object('ok',false,'code','EXTERIOR_IDENTITY_NOT_ACCESSIBLE');
       end if;
@@ -124,23 +127,26 @@ begin
       where p.editor_map_id = v_exterior_identity.parent_editor_map_id
         and p.created_by = v_uid
         and p.map_type = 'region'
-        and p.world_id = v_world.world_id;
+        and p.world_id = v_world.world_id
+      for share;
       if not found then
         return jsonb_build_object('ok',false,'code','EXTERIOR_PARENT_INVALID');
       end if;
 
       -- The slot's Exterior payload must also correspond to a persisted version
       -- of this exact identity; valid IDs alone do not make arbitrary content trusted.
-      if not exists (
-        select 1
-        from public.editor_map_versions ev
-        where ev.editor_map_id = v_exterior_identity.editor_map_id
-          and ev.created_by = v_uid
-          and jsonb_typeof(ev.snapshot) = 'object'
-          and ev.snapshot->>'schema' = 'vandrith.map-document'
-          and ev.snapshot->>'version' = '1'
-          and ev.snapshot->'document' = v_slot.snapshot->'exterior'
-      ) then
+      select ev.* into v_exterior_version
+      from public.editor_map_versions ev
+      where ev.editor_map_id = v_exterior_identity.editor_map_id
+        and ev.created_by = v_uid
+        and jsonb_typeof(ev.snapshot) = 'object'
+        and ev.snapshot->>'schema' = 'vandrith.map-document'
+        and ev.snapshot->>'version' = '1'
+        and ev.snapshot->'document' = v_slot.snapshot->'exterior'
+      order by ev.version_number desc
+      limit 1
+      for share;
+      if not found then
         return jsonb_build_object('ok',false,'code','EXTERIOR_VERSION_SNAPSHOT_MISMATCH');
       end if;
     end if;
