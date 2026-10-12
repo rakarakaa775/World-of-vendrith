@@ -183,3 +183,13 @@ No hosted migration has been applied, no paid Supabase branch has been created, 
 - The intermediate client-only commit `2b51c1cc650d82ed272cbe6b8d656a4362d65324` had a failing CI run because the test fixture still reflected the old response contract. The follow-up test commit above updates the fixture and is the latest verified green state.
 
 The adapter remains intentionally unwired to the active UI. CI proves the isolated and reconstructed disposable-database contract only; it does not prove the hosted Supabase schema or authenticated browser Save -> Load -> Save flow. Do not apply hosted migrations or activate the new UI path without those release gates. No paid Supabase branch was created and no production database was changed.
+
+## Atomic Save Slot Region-lock hardening — exact CI verification
+
+- Commit: `9682e67a4bd133f5caa5803a0e6ed7a9c17ec6ad` (`fix(map-editor): lock region parent during atomic save`).
+- GitHub Actions run [#917](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38249873391) completed with **success**.
+- All three jobs passed: Atomic Save Slot PostgreSQL fixture contract tests, reconstructed full-schema integration, and Map Editor tests.
+- The atomic Save Slot RPC now selects the validated parent Region with `FOR SHARE`, complementing the World and Exterior locks. This prevents a concurrent transaction from modifying/deleting the parent Region row while this save transaction is validating the Exterior-to-Region relationship.
+- This is a database-locking change tested by CI's isolated fixtures and reconstructed full-schema database only. It does not mean the migration has been applied to hosted Supabase or that authenticated browser flows have passed.
+
+Release gates remain unchanged: no hosted migration, no paid Supabase branch, no production database changes, and no activation of the candidate UI path. Keep PR #16 as draft until hosted non-production and authenticated browser validation are completed.
