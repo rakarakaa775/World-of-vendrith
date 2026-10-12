@@ -250,3 +250,34 @@ begin
 end $$;
 
 select 'atomic Save Slot execute-grant assertions passed' as result;
+
+
+-- Load Slot must reject a plausible Exterior document whose persisted identity is missing.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set snapshot=jsonb_set(snapshot,'{exterior,id}','"44444444-4444-4444-4444-444444444444"',false)
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $exterior_identity_missing$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='EXTERIOR_IDENTITY_NOT_ACCESSIBLE','unknown Exterior identity must be rejected on full schema');
+end
+$exterior_identity_missing$;
+rollback;
+
+-- A foreign-owner Exterior identity cannot be returned through this user's World slot.
+begin;
+select atomic_save_slot_test.seed_case();
+insert into auth.users(id) values('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+update public.editor_map_identity set created_by='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+where editor_map_id='22222222-2222-2222-2222-222222222222';
+do $exterior_identity_foreign$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='EXTERIOR_IDENTITY_NOT_ACCESSIBLE','foreign-owner Exterior identity must be rejected on full schema');
+end
+$exterior_identity_foreign$;
+rollback;
