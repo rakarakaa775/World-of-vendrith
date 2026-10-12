@@ -189,3 +189,17 @@ begin
 end
 $exterior_identity_foreign$;
 rollback;
+
+-- An Exterior identity whose parent is not a Region must not be returned.
+begin;
+select atomic_save_slot_test.seed_case();
+update public.editor_map_identity set map_type='playable'
+where editor_map_id='33333333-3333-3333-3333-333333333333';
+do $exterior_parent_invalid$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='EXTERIOR_PARENT_INVALID','Exterior with non-Region parent must be rejected');
+end
+$exterior_parent_invalid$;
+rollback;
