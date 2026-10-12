@@ -138,3 +138,17 @@ The following zero-cost, non-production checks are now implemented on `feat/vend
 
 These changes improve validation but do **not** close the release gates below. The two candidate RPCs remain unapplied to hosted Supabase, and the active UI still uses the legacy multi-RPC Save path and existing Load RPC plus client-side canonical version comparison. No hosted DB, paid Supabase branch, or new Git branch has been created. Do not wire the candidate RPCs into the active UI until hosted non-production authenticated integration and browser/session round-trip checks can be performed safely.
 
+
+
+## Round-trip regression verification — 2026-10-12
+
+The Save → Load → Save contract test now exercises map adoption as well as serialization:
+
+- Loading a combined slot removes stale World and Exterior maps from the editor's open-map list.
+- Unrelated Region maps are retained.
+- The loaded authoritative World and Exterior are serialized again and parsed back with their content preserved.
+- A separate legacy World-only reconciliation test confirms stale Exterior maps are removed and no Exterior is fabricated, while Region and Interior documents remain available.
+
+GitHub Actions run [38186234611](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38186234611) passed all three jobs on commit `13eee66a758fda1f764808f4ba5757314685947b`: Map Editor typecheck, Next.js build and Vitest; isolated PostgreSQL fixture contract tests; and reconstructed full-schema candidate RPC integration/concurrency checks.
+
+This is automated CI evidence, not authenticated hosted integration or browser/session E2E. The active UI remains on the legacy Save/Load RPC path. Candidate atomic-save and validated-load migrations are not applied to hosted Supabase and must not be wired into the active UI until the non-production authenticated integration and browser/session gates can be completed safely. No production database changes or paid Supabase branch were used.
