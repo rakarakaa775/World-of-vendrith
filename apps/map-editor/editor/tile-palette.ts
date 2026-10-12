@@ -97,3 +97,12 @@ export async function loadTerrainTiles(): Promise<TileOption[]> {
         };
   });
 }
+
+/**
+ * Water surfaces are generated from terrain semantics/projection rather than
+ * painted as ordinary starter tiles. Keep this rule centralized so palette
+ * visibility, selection fallback, and eyedropper cannot drift apart.
+ */
+export function isPaintableTerrainTile(tile: Pick<TileOption, "terrain">): boolean {
+  return !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain);
+}
