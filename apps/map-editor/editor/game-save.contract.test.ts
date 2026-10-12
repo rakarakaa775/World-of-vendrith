@@ -179,7 +179,7 @@ describe('game save slot loading contract', () => {
 
 
 describe('game save slot map reconciliation', () => {
-  it('removes stale world and exterior maps when loading a legacy world-only slot', () => {
+  it('loads a legacy World-only slot and removes stale World/Exterior maps without fabricating an Exterior', () => {
     const currentWorld = map('world-current');
     const staleExterior = map('exterior-stale', 'playable');
     const region = map('region-keep');
@@ -189,10 +189,19 @@ describe('game save slot map reconciliation', () => {
     interior.id = 'interior-keep';
 
     const restoredWorld = map('world-restored');
+    const legacySlot = {
+      schema: 'vandrith.map-document',
+      version: 1,
+      document: restoredWorld,
+    };
+    const loaded = parseGameSaveSlotSnapshot(legacySlot, restoredWorld.id);
+    expect(loaded.format).toBe('legacy-map-document-v1');
+    expect(loaded.exterior).toBeNull();
+
     expect(reconcileGameSaveSlotMaps(
       [currentWorld, staleExterior, region, interior],
-      restoredWorld,
-      null,
+      loaded.world,
+      loaded.exterior,
     )).toEqual([region, interior, restoredWorld]);
   });
 
