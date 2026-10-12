@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PixiMapCanvas } from "./pixi-map-canvas";
 import { createMap, type MapDocument } from "../editor/map-document";
-import { loadTerrainTiles, STARTER_TILES, type TileOption } from "../editor/tile-palette";
+import { loadTerrainTiles, STARTER_TILES, isPaintableTerrainTile, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
 import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers, createLayerGroup, updateLayerGroup, assignLayerToGroup, deleteLayerGroup, createLayerTemplate, applyLayerTemplate, deleteLayerTemplate } from "../editor/layer-state";
@@ -160,7 +160,7 @@ export function EditorShell({
     void loadTerrainTiles().then(tiles => {
       if (cancelled) return;
       setTileOptions(tiles);
-      const visibleTiles = tiles.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain));
+      const visibleTiles = tiles.filter(isPaintableTerrainTile);
       setSelectedTile(current => visibleTiles.some(tile => tile.id === current) ? current : visibleTiles[0]?.id ?? current);
     });
     return () => { cancelled = true; };
@@ -384,7 +384,7 @@ export function EditorShell({
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(tile => !["water", "brackish", "deepwater2", "deepwater"].includes(tile.terrain)).length} BASIC</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(isPaintableTerrainTile).length} BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
           {hasDebugOverlay && <div role="note" aria-label="Diagnostic legend" style={{ marginBottom: 10, padding: 8, border: "1px solid var(--map-editor-border)", borderRadius: 7, fontSize: 10, lineHeight: 1.45, color: "#cbd5e1" }}>
@@ -554,7 +554,7 @@ export function EditorShell({
             onCellInspect={() => {}}
             onTerrainPick={(tileId) => {
               const picked = tileOptions.find(tile => tile.id === tileId);
-              if (!picked || ["water", "brackish", "deepwater2", "deepwater"].includes(picked.terrain)) {
+              if (!picked || !isPaintableTerrainTile(picked)) {
                 setPaintDiagnostic(`eyedropper: ${picked?.terrain ?? tileId} tidak dapat dipilih (water adalah derived)`);
                 return;
               }
