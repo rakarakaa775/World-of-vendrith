@@ -112,7 +112,8 @@ begin
     where p.editor_map_id = v_exterior.parent_editor_map_id
       and p.map_type = 'region'
       and p.world_id = v_world.world_id
-      and p.created_by = v_uid;
+      and p.created_by = v_uid
+    for share;
     if not found then return jsonb_build_object('ok', false, 'code', 'EXTERIOR_PARENT_INVALID'); end if;
   end if;
 
