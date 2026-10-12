@@ -180,4 +180,4 @@ revoke all on function public.map_editor_load_save_slot_validated_v1(uuid,smalli
 grant execute on function public.map_editor_load_save_slot_validated_v1(uuid,smallint) to authenticated;
 
 comment on function public.map_editor_load_save_slot_validated_v1(uuid,smallint) is
-'Candidate owner-scoped Load Slot gateway. Validates the slot version reference, canonical World identity, and slot/canonical snapshot agreement before returning a snapshot. Not wired into active UI.';
+'Owner-scoped Load Slot gateway used by the editor. Validates the slot version reference, canonical World identity, and slot/canonical snapshot agreement before returning a snapshot.';
