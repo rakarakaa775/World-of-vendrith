@@ -20,7 +20,34 @@ SQL
 ) &
 first_pid=$!
 
-sleep 0.25
+# Wait until the first RPC has returned success and is holding its transaction open.
+# Its parent Region FOR SHARE lock must prevent a concurrent UPDATE until COMMIT.
+for attempt in $(seq 1 100); do
+  if grep -q '"ok": true' /tmp/atomic-full-first.log; then break; fi
+  sleep 0.05
+done
+if ! grep -q '"ok": true' /tmp/atomic-full-first.log; then
+  cat /tmp/atomic-full-first.log
+  echo "first full-schema concurrent save did not reach the lock-hold window" >&2
+  exit 1
+fi
+
+if psql -X -v ON_ERROR_STOP=1 -q > /tmp/atomic-full-parent-lock.log 2>&1 <<'SQL'
+set lock_timeout = '300ms';
+update public.editor_map_identity
+set map_type = 'region'
+where editor_map_id = '33333333-3333-3333-3333-333333333333';
+SQL
+then
+  echo "concurrent parent Region UPDATE unexpectedly succeeded while Save Slot held FOR SHARE" >&2
+  exit 1
+fi
+if ! grep -qi 'lock timeout' /tmp/atomic-full-parent-lock.log; then
+  cat /tmp/atomic-full-parent-lock.log
+  echo "parent Region UPDATE failed for a reason other than the expected lock timeout" >&2
+  exit 1
+fi
+
 psql -X -v ON_ERROR_STOP=1 -qAt > /tmp/atomic-full-second.log <<'SQL'
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
 select set_config('test.fail_at','',false);
