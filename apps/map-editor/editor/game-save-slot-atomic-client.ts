@@ -1,10 +1,7 @@
 /**
- * Client adapter for the future single-transaction Game Save Slot RPC.
- *
- * Deliberately not wired into the active editor until
- * map_editor_save_game_slot_atomic_v1 exists and passes isolated database tests.
- * Never add a legacy multi-RPC fallback here: that would restore the partial-save
- * failure mode this adapter is intended to prevent.
+ * Client adapter for the single-transaction Game Save Slot RPC.
+ * The active editor uses this adapter for Save Slot writes. Keep it fail-closed:
+ * never add a legacy multi-RPC fallback that could restore partial-save failures.
  */
 
 export type AtomicGameSaveSlotRequest = {
