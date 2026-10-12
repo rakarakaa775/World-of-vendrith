@@ -8,7 +8,7 @@ export type ValidatedLoadSlotRpcClient = {
   rpc: (
     name: string,
     args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: unknown | null }>;
+  ) => PromiseLike<{ data: unknown; error: unknown | null }>;
 };
 
 export type ValidatedLoadSlotSuccess = {
