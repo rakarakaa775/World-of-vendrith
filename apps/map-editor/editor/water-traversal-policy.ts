@@ -51,7 +51,14 @@ export function resolveWaterTraversal(
   // water; the author is responsible for marking only validated crossings.
   if (cell.bridge === true || cell.crossingPoint === true) return 'walk';
 
-  if (cell.feature === 'shoreline' && cell.depth === 'shallow' && cell.shallowWalkable === true) {
+  // Explicitly designated shallow water is walkable even when it is a
+  // lake or another non-river water feature. Rivers remain subject to their
+  // current-safety rules below; deep ocean/sea was handled above.
+  if (
+    cell.feature !== 'river'
+    && cell.depth === 'shallow'
+    && cell.shallowWalkable === true
+  ) {
     return 'walk';
   }
 
