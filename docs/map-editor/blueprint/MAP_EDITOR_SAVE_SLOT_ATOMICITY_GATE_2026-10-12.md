@@ -80,5 +80,7 @@ Source commits:
 - `48d619eebfb3baf41e859d7a02a013a14b66ef81` — owner-scoped Exterior identity and parent validation in candidate Load Slot RPC.
 - `4494d6855c80c1f9c054b32349349eba8cbe9ec7` — isolated Load Slot regression tests.
 - `2e250e2d47e2e76d709d0a891cfb184a75cb95aa` — full-schema Load Slot regression tests.
+- `101fcad1f13cf7f972d1bab5a590cac83d4f41a2` — isolated invalid-parent regression.
+- `02372458a4d6a2b4141d5cf7389909d6f06d4f6b` — full-schema invalid-parent regression.
 
 These are source changes only. The SQL tests have not yet been confirmed green on GitHub Actions, and the candidate RPC remains unapplied to hosted Supabase and unwired from the active UI.
