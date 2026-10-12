@@ -171,3 +171,15 @@ The current UI keeps `prepareRefreshThenCommit` as a pre-commit boundary: it par
 4. Only after those gates pass, prepare a release plan and obtain explicit approval before applying any hosted migration or activating the new UI path.
 
 No hosted migration has been applied, no paid Supabase branch has been created, and the active Save/Load UI remains unchanged. Keep PR #16 as draft; do not merge it as a release.
+
+
+## Atomic Save Slot client response contract — exact CI verification
+
+- Commit: `2bedf151bb268be8ea93f09c6efcebfe681316b0` (`test(map-editor): cover atomic save RPC response contract`).
+- GitHub Actions run [#916](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38249200253) completed with **success**.
+- All three jobs passed: Map Editor tests (typecheck, Next.js build, Vitest), isolated PostgreSQL fixture contract tests, and reconstructed full-schema PostgreSQL integration.
+- The client adapter now parses the SQL contract explicitly: `{ ok: true, slot_number, world_version_id, world_version_number, exterior_version_id, exterior_version_number }` on success, and `{ ok: false, code, ... }` on server-declared failure. It rejects malformed success responses and responses whose slot number does not match the request. World-only saves require null Exterior version fields.
+- Regression tests cover one-RPC request shape, trimmed/default labels, World-only save, explicit version conflict, malformed or mismatched responses, invalid input rejected before the RPC, and transport failure without retries or legacy fallback.
+- The intermediate client-only commit `2b51c1cc650d82ed272cbe6b8d656a4362d65324` had a failing CI run because the test fixture still reflected the old response contract. The follow-up test commit above updates the fixture and is the latest verified green state.
+
+The adapter remains intentionally unwired to the active UI. CI proves the isolated and reconstructed disposable-database contract only; it does not prove the hosted Supabase schema or authenticated browser Save -> Load -> Save flow. Do not apply hosted migrations or activate the new UI path without those release gates. No paid Supabase branch was created and no production database was changed.
