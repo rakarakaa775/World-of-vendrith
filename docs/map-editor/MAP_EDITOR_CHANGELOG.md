@@ -817,3 +817,8 @@
 - **Safety:** Read-only queries only. No production writes, migrations, tests, CI or browser round-trip were performed. No disposable Supabase database was created.
 - **Affected:** `MAP_EDITOR_ATOMIC_GAME_SAVE_SLOT_RPC_V1_DESIGN.md`.
 
+## 2026-10-12 — Candidate Load Slot integrity
+
+- Hardened validated Load Slot against unknown/foreign Exterior identities, invalid Region ancestry, and forged Exterior content not present in version history.
+- Added validated Load Slot client adapter and tests; deliberately not connected to the active UI until disposable-database and authenticated browser gates pass.
+- CI for the latest source has not been confirmed green; no hosted Supabase changes were made.
