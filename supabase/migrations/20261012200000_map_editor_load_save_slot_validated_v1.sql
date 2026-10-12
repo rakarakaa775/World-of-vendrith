@@ -128,6 +128,21 @@ begin
       if not found then
         return jsonb_build_object('ok',false,'code','EXTERIOR_PARENT_INVALID');
       end if;
+
+      -- The slot's Exterior payload must also correspond to a persisted version
+      -- of this exact identity; valid IDs alone do not make arbitrary content trusted.
+      if not exists (
+        select 1
+        from public.editor_map_versions ev
+        where ev.editor_map_id = v_exterior_identity.editor_map_id
+          and ev.created_by = v_uid
+          and jsonb_typeof(ev.snapshot) = 'object'
+          and ev.snapshot->>'schema' = 'vandrith.map-document'
+          and ev.snapshot->>'version' = '1'
+          and ev.snapshot->'document' = v_slot.snapshot->'exterior'
+      ) then
+        return jsonb_build_object('ok',false,'code','EXTERIOR_VERSION_SNAPSHOT_MISMATCH');
+      end if;
     end if;
   elsif v_slot.snapshot->>'schema' = 'vandrith.map-document'
         and v_slot.snapshot->>'version' = '1' then
