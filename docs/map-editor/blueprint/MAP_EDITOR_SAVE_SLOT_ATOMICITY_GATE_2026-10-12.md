@@ -39,7 +39,20 @@ The branch status log records GitHub Actions run [38187243966](https://github.co
 
 This is useful automated evidence, but it is not equivalent to a byte-for-byte production schema, hosted non-production authenticated integration, or browser/session E2E. The reconstructed SQL fixture has documented limits, including test stubs for some existing RPC behavior.
 
-## Additional signature compatibility check (must close before activation)
+## Signature compatibility hardening (source change committed; CI pending)
+
+The candidate migration no longer dereferences optional `projection_status` / `projection_error` fields directly from the dynamic record returned by `map_editor_commit_merge_v1`. It now reads those values through `to_jsonb(v_world_result)`; when the authoritative RPC does not expose projection metadata, the Save Slot result reports `projection_status: not_run` rather than failing after entering the atomic save block. When the metadata exists, its values are preserved.
+
+The full-schema integration success case now asserts that the atomic RPC always returns an explicit supported projection outcome. Source commits:
+- `549abc24d1d3974843eecf8b31bf09cb51f51682` — compatibility-safe projection metadata read.
+- `4a54b2ab9484787252f36cfb64b488654c4b3f00` — integration assertion.
+
+This is a compatibility hardening, not proof that every hosted deployment has the expected authoritative RPC. At the time of this update, no CI checks were yet visible for the newest commit. A dedicated fixture that recreates the legacy four-column merge RPC return shape is still desirable; the current full-schema fixture tests the reconstructed current schema.
+
+## Historical signature context
+
+The historical repository migration `20260912023000_map_editor_commit_merge_security_definer_v1.sql` declares only four output columns: `status, version_id, version_number, current_version`. Later project notes say the live function contract was extended to expose projection outcome, but the exact migration/source that establishes that signature was not located in the active branch during this audit. The compatibility-safe JSON access prevents an absent optional field from causing a runtime record-field error. Do not infer that the historical migration alone represents the current hosted function.
+
 
 The candidate RPC reads `projection_status` and `projection_error` from the record returned by `map_editor_commit_merge_v1`. The historical repository migration `20260912023000_map_editor_commit_merge_security_definer_v1.sql` declares only four output columns: `status, version_id, version_number, current_version`. Later project notes say the live function contract was extended to expose projection outcome, but the exact migration/source that establishes that signature must be verified against the current branch and the disposable full-schema fixture. Do not infer that the historical migration alone is sufficient. If the actual callable function returns only four columns, a changed-World Save Slot call can fail when the candidate reads `projection_status`, and the candidate's exception subtransaction should roll back the attempted writes. Add a regression that applies the exact authoritative current function definition and tests both projection success and projection failure before activation.
 
