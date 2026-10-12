@@ -1,9 +1,7 @@
 /**
- * Client adapter for the candidate server-validated Load Slot RPC.
- *
- * This adapter is intentionally not wired into the active editor until the
- * candidate migration and authenticated Save -> Load -> Save tests pass.
- * It does not read the save-slot table directly or fall back to legacy reads.
+ * Client adapter for the server-validated Load Slot RPC.
+ * The active editor uses this adapter for Load Slot reads. It does not query the
+ * save-slot table directly or fall back to legacy reads.
  */
 
 export type ValidatedLoadSlotRpcClient = {
