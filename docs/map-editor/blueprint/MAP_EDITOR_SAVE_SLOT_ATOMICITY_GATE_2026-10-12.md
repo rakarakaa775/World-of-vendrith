@@ -63,3 +63,22 @@ The reconstructed SQL baseline is not a byte-for-byte production schema, and the
 ## Current decision
 
 Do not wire the active UI to the candidate RPC yet. Continue with repository-side validation without applying hosted migrations, creating a paid Supabase branch, or modifying production data. Terrain V2 remains unactivated.
+
+## Validated Load Slot hardening (2026-10-12)
+
+A further source review found that the candidate validated Load Slot RPC checked the embedded Exterior document's shape and map type, but did not prove that its ID referred to an owner-accessible persisted Playable identity. That could allow a structurally plausible but unregistered or foreign-owned Exterior payload to be returned to the client.
+
+The candidate RPC now also:
+- loads the authorized World row and uses its authoritative `world_id`;
+- verifies a non-null Exterior ID against `editor_map_identity` for the same owner, World, and `playable` map type;
+- requires the Exterior to have a parent Region owned by the same user and in the same World;
+- rejects unknown/foreign Exterior identities before returning any slot snapshot.
+
+Regression assertions were added to both the isolated Load Slot SQL contract and reconstructed full-schema assertion set for unknown and foreign-owned Exterior identities.
+
+Source commits:
+- `48d619eebfb3baf41e859d7a02a013a14b66ef81` — owner-scoped Exterior identity and parent validation in candidate Load Slot RPC.
+- `4494d6855c80c1f9c054b32349349eba8cbe9ec7` — isolated Load Slot regression tests.
+- `2e250e2d47e2e76d709d0a891cfb184a75cb95aa` — full-schema Load Slot regression tests.
+
+These are source changes only. The SQL tests have not yet been confirmed green on GitHub Actions, and the candidate RPC remains unapplied to hosted Supabase and unwired from the active UI.
