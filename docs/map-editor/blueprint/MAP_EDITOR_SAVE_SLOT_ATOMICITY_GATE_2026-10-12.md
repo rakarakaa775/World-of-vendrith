@@ -203,3 +203,24 @@ Release gates remain unchanged: no hosted migration, no paid Supabase branch, no
 - This verifies the parent Region `FOR SHARE` lock in the disposable CI database. It is not evidence of a hosted Supabase migration or authenticated browser run.
 
 Safety boundary remains: no paid Supabase branch, no hosted migration, no production DB changes, no candidate UI activation; PR #16 remains draft.
+
+
+## Next no-cost validation step — local authenticated stack
+
+The repository contains `supabase/config.toml` configured for local PostgreSQL 17, local Auth, and the local API. This gives a no-paid-branch path for the next integration stage, provided Docker and the Supabase CLI are available on the developer machine. It does not require linking the project to hosted Supabase.
+
+Recommended order:
+
+1. Check local prerequisites only: `docker --version`, `supabase --version`, and confirm ports 54320–54324 are free.
+2. Start the local stack with `supabase start`; record the local API URL and anon key printed by the CLI. Do not use production credentials.
+3. Reset/apply migrations only to the local database, after reviewing the full migration sequence and seed behavior. The reconstructed CI schema is currently a test harness, not proof that every repository migration is locally replayable.
+4. Run `npm install`, `npm run typecheck`, `npm test`, and `npm run build` from `apps/map-editor`.
+5. Create a throwaway local Auth user and owner-scoped World/Region/Exterior fixtures. Exercise the candidate Save and Load RPCs directly with that authenticated session before enabling UI wiring.
+6. Verify Save → Load → Save, World-only save, stale-version conflict, transaction rollback on injected failure, concurrent saves, and preservation of current editor state when load validation or slot refresh fails.
+7. Only after the RPC/session checks pass, add a browser test harness. The current `apps/map-editor/package.json` does not include Playwright or another browser E2E runner, so a real browser flow is not currently part of CI.
+
+Do not run `supabase link`, `supabase db push`, or any hosted migration as part of this local-only step. Do not point local scripts at production environment variables. If Docker/CLI are unavailable, stop at the existing disposable PostgreSQL CI evidence rather than substituting unverified manual claims.
+
+### Activation gate unchanged
+
+The candidate RPC adapters remain unwired in `vendrith-world-builder-app.tsx`. The active handlers still use the legacy multi-write Save Slot sequence and legacy Load Slot RPC/direct canonical-version read. That known limitation is intentionally not hidden behind a superficial RPC-name change. No production data was modified, no paid Supabase branch was created, and PR #16 remains draft.
