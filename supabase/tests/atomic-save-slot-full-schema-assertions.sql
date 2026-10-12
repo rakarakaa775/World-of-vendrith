@@ -271,8 +271,11 @@ rollback;
 begin;
 select atomic_save_slot_test.seed_case();
 insert into auth.users(id) values('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+-- Model a corrupt legacy row to exercise the RPC owner filter independently.
+set local session_replication_role = replica;
 update public.editor_map_identity set created_by='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 where editor_map_id='22222222-2222-2222-2222-222222222222';
+set local session_replication_role = origin;
 do $exterior_identity_foreign$
 declare r jsonb;
 begin
