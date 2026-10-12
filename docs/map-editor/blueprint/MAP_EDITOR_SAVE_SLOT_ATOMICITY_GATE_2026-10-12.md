@@ -123,3 +123,10 @@ The checks are source-level additions only until CI executes them. Shared locks 
 A fresh inspection of `apps/map-editor/components/vendrith-world-builder-app.tsx` confirms that the active Load Slot handler still calls the legacy `map_editor_load_save_slot_v1` RPC and then performs a client-side read of `map_versions` before restoring editor state. The candidate `map_editor_load_save_slot_validated_v1` client remains intentionally unused.
 
 Do not simply replace the RPC name: the validated candidate returns a different trust contract, and the active handler's extra canonical-version query must be removed or re-designed on the validated path so there is no accidental direct-read fallback. Integrate only after the disposable full-schema job and authenticated browser test pass. The existing `prepareRefreshThenCommit` boundary must remain intact so a failed validation or slot metadata refresh cannot partially replace the current editor state.
+
+## Follow-up verification — 2026-10-12
+
+- Added an explicit full-schema Load Slot assertion for a World-only Game Save with `exterior: null`. It verifies the validated RPC returns success and preserves JSON null rather than inventing or dropping Exterior state.
+- CI workflow review confirms the disposable full-schema job applies both candidate Save Slot and validated Load Slot migrations, then runs `atomic-load-slot-validated-assertions.sql` and `atomic-save-slot-full-schema-assertions.sql`. The isolated stub fixture job does not apply the validated Load Slot migration, by design.
+- The current GitHub connector reports no commit status entries and no workflow runs for the latest commit; this is **not evidence of a passing test run**. PostgreSQL execution, typecheck, build, and Vitest remain unverified for this latest revision until an Actions run result is available.
+- No hosted migration was applied and the active UI still uses the legacy Load Slot path. Keep activation blocked until full-schema PostgreSQL CI passes and the client/UI integration is reviewed and tested.
