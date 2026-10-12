@@ -1,48 +1,51 @@
 # Save Slot Atomicity — Implementation Gate (2026-10-12)
 
-## Status
-
-Audit-only checkpoint. No production database calls, migrations, deployments, or paid Supabase features were used.
+## Current state
 
 Target branch: `feat/vendrith-ecc-v1`.
 
-## Confirmed failure boundary
+The candidate atomic RPC and its tests already exist in the branch:
 
-The current Save Slot UI writes in this order:
+- Candidate migration: `supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql`
+- RPC: `public.map_editor_save_game_slot_atomic_v1`
+- Client adapter: `apps/map-editor/editor/game-save-slot-atomic-client.ts`
+- Pure preparation/identity validation: `apps/map-editor/editor/game-save-slot-atomic-workflow.ts`
+- Regression tests include identity boundaries, World-only legacy compatibility, save/load/save round-trip, SQL rollback, stale-version conflicts, and concurrent slot writes.
 
-1. Read the latest authoritative World snapshot.
-2. If the local World differs, call `map_editor_commit_merge_v1` through `saveWithConflictDetection`. That RPC inserts the next `map_versions` row and invokes `map_editor_reconcile_after_merge_v1` in its transaction.
-3. If an Exterior document exists and differs, call `map_editor_commit_identity_v1` (or its initial version path), which inserts into `editor_map_versions`.
-4. Read the World `map_versions.id`.
-5. Call `map_editor_save_slot_v1`, which validates the existing World version and upserts only the `map_editor_save_slots` row.
+The candidate migration is intentionally **not applied to hosted Supabase**. The active UI is still on the legacy Save Slot path. This is deliberate: no live UI call should target an RPC that has not been installed and verified in an authenticated non-production environment.
 
-Each RPC is transactional on its own. The sequence across these calls is not one transaction. If step 5 fails, successful World and/or Exterior version commits from steps 2–3 are not rolled back. The current UI correctly warns about possible prior writes, but warning is not atomicity.
+## Confirmed legacy failure boundary
 
-## Required server contract
+The current active Save Slot UI may commit a World version, then an Exterior identity version, and only afterward call `map_editor_save_slot_v1`. That RPC atomically upserts the slot row but does not include those prior commits in its transaction. A failure at the final stage can therefore leave earlier version commits behind.
 
-A replacement transaction boundary must accept the expected World version, World snapshot, optional Exterior identity + expected version + snapshot, slot number/label, and the combined game-save snapshot. Inside one PostgreSQL function transaction it must:
+## Candidate transaction behavior
 
-- require an authenticated owner and validate slot range and all input shapes;
-- lock the owned World row and compare the expected World version before inserting anything;
-- if Exterior is present, lock the owned `editor_map_identity` row and compare its expected version before inserting anything;
-- validate that the combined slot snapshot's World/Exterior documents agree with the separately committed documents;
-- insert the World immutable version and run the existing World reconciliation primitive;
-- insert the optional Exterior immutable identity version;
-- upsert the slot row pointing at the newly created World version;
-- let unexpected errors propagate so PostgreSQL rolls back all changes in the function transaction;
-- return explicit conflict results before writes if either expected version is stale;
-- revoke public/anon execution and grant only to authenticated users.
+The candidate RPC is intended to own the whole Save Slot operation in one server-side transaction:
 
-The implementation must preserve legacy World-only slots (Exterior = null) and must not reinterpret the existing editor identity map types as legacy `maps.map_type`.
+- authenticate and validate the World/Exterior/slot payloads;
+- lock the authoritative World row, then the optional Exterior identity row in a consistent order;
+- verify World and Exterior ownership, parent linkage, map type, and expected versions before writes;
+- reuse unchanged canonical versions and commit changed versions through the existing World/identity commit RPCs;
+- validate that the combined Game Save envelope matches the World and optional Exterior snapshots;
+- upsert the Save Slot row with the World version reference;
+- roll back all writes inside the guarded subtransaction on an unexpected failure;
+- grant execution only to `authenticated`, not `public` or `anon`.
 
-## Verification gate before wiring the UI
+Legacy World-only saves must remain valid with `exterior: null`. The candidate must not treat editor identity IDs as legacy `maps` IDs.
 
-- PostgreSQL integration tests with transaction rollback assertions for failures after World insert, after Exterior insert, and during slot upsert.
-- Stale World and stale Exterior expected-version tests; simultaneous saves to the same slot; owner/auth/invalid-slot/invalid-snapshot tests.
-- World-only and World+Exterior save/load round-trip tests; existing slot compatibility tests.
-- Typecheck, focused Save Slot tests, full Vitest suite, and build.
-- Review generated SQL and test results before any deployment. Production migration remains explicitly out of scope until the user authorizes it.
+## Automated verification already recorded
+
+The branch status log records GitHub Actions run [38187243966](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38187243966) passing three jobs on commit `a791d163013898335166b796c4e235981f15e007`: TypeScript typecheck, Next.js build and Vitest; isolated PostgreSQL fixture contract tests; and reconstructed full-schema candidate RPC integration/concurrency tests.
+
+This is useful automated evidence, but it is not equivalent to a byte-for-byte production schema, hosted non-production authenticated integration, or browser/session E2E. The reconstructed SQL fixture has documented limits, including test stubs for some existing RPC behavior.
+
+## Remaining release gates
+
+1. Review the candidate migration and test fixtures against the actual deployed function signatures, schema, constraints, and grants.
+2. Run authenticated integration tests against a disposable/non-production Supabase project when one is available; do not enable a paid branch or change production as a workaround.
+3. Exercise Save → Load → Save and failure/conflict cases in the browser with a real authenticated session.
+4. Only after those gates pass, prepare an explicit migration/release plan. Production application is outside the current authorization.
 
 ## Current decision
 
-Do not wire the UI to a new RPC until the migration has a tested contract and the user can safely apply it. Leaving the current multi-RPC flow in place is a known limitation; it is not to be described as atomic. Terrain V2 remains unactivated.
+Do not wire the active UI to the candidate RPC yet. Continue reviewing and strengthening the repository-side migration and disposable-database tests without applying any hosted migration. Terrain V2 remains unactivated.
