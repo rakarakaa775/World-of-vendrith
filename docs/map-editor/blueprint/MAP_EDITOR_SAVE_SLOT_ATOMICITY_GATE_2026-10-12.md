@@ -84,3 +84,16 @@ Source commits:
 - `02372458a4d6a2b4141d5cf7389909d6f06d4f6b` — full-schema invalid-parent regression.
 
 These are source changes only. The SQL tests have not yet been confirmed green on GitHub Actions, and the candidate RPC remains unapplied to hosted Supabase and unwired from the active UI.
+
+### Additional Load Slot snapshot provenance check
+
+A second review found that validating an Exterior's persisted identity and Region parent alone would still permit a forged document to reuse a legitimate Exterior ID while changing its content. The candidate Load Slot RPC now requires the returned Exterior document to exactly match the `document` stored in at least one owner-scoped `editor_map_versions` record for that identity. This preserves valid historical slot snapshots while rejecting content that was never persisted as a version.
+
+Regression assertions now mutate only the embedded Exterior name while leaving its ID intact, and expect `EXTERIOR_VERSION_SNAPSHOT_MISMATCH` in both isolated and reconstructed full-schema suites.
+
+Source commits:
+- `9f8d3038f658106751f4d0bc2793c4068f2606b4` — verify Exterior payload against persisted version history.
+- `57b4c61c0c3783b798a0e40dcf500296d1aa4922` — isolated snapshot-provenance regression.
+- `c81c50b5830df717f2ddc3d19f11ba8d3413c0ad` — full-schema snapshot-provenance regression.
+
+These assertions have been authored but not executed in a confirmed green CI run. Hosted Supabase and active UI remain unchanged.
