@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMap } from "./map-document";
+import { createMap, resizeMapDocument } from "./map-document";
 import { adoptMapSnapshotV2, applyDocumentChangeV2, initializeTerrainSemanticsV2 } from "./map-editor-state-v2";
 import { serializeMapDocument } from "./map-serialization";
 import { TERRAIN_SEMANTICS_SCHEMA, TERRAIN_SEMANTICS_VERSION } from "./terrain-semantics";
@@ -35,10 +35,10 @@ describe("explicit Terrain v2 editor state", () => {
       ...semantics,
       cells: [semantics.cells[0], { x: 7, y: 7, surface: "land" as const }],
     });
-    const shrunk = applyDocumentChangeV2(state, { ...document, width: 4, height: 4 });
+    const shrunk = applyDocumentChangeV2(state, resizeMapDocument(document, 4, 4));
     expect(shrunk.format).toBe("v2");
     if (shrunk.format === "v2") expect(shrunk.state.terrainSemantics.cells).toEqual([semantics.cells[0]]);
-    const expanded = applyDocumentChangeV2(shrunk, { ...document, width: 12, height: 12 });
+    const expanded = applyDocumentChangeV2(shrunk, resizeMapDocument(shrunk.format === "v2" ? shrunk.state.document : document, 12, 12));
     expect(expanded.format).toBe("v2");
     if (expanded.format === "v2") expect(expanded.state.terrainSemantics.cells).toEqual([semantics.cells[0]]);
   });
