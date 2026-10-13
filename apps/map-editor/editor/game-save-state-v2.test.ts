@@ -83,6 +83,50 @@ describe("atomic game save state v2", () => {
   });
 
 
+
+  it("preserves initialized World and Exterior semantics through Save → Load → Save → Load", () => {
+    const exteriorDocument = {
+      ...createMap("playable", worldDocument.id, "exterior", null, 8, 8),
+      id: "save-state-exterior-roundtrip",
+    };
+    const legacyExterior = {
+      kind: "legacy" as const,
+      document: exteriorDocument,
+      terrainSemantics: null,
+    };
+    const initializedExterior = initializeTerrainSemantics(legacyExterior, {
+      schema: TERRAIN_SEMANTICS_SCHEMA,
+      version: TERRAIN_SEMANTICS_VERSION,
+      cells: [
+        { x: 4, y: 5, surface: "water" as const, feature: "coast" as const, depth: "shallow" as const },
+      ],
+    });
+
+    const firstSave = serializeGameSaveStateV2(initializedWorld, initializedExterior);
+    const firstLoad = parseGameSaveStateV2(firstSave);
+    expect(firstLoad).not.toBeNull();
+    if (!firstLoad) throw new Error("First Load failed");
+
+    const secondSave = serializeGameSaveStateV2(firstLoad.world, firstLoad.exterior);
+    const secondLoad = parseGameSaveStateV2(secondSave);
+
+    expect(secondLoad).toEqual(firstLoad);
+    expect(secondLoad?.world).toEqual(initializedWorld);
+    expect(secondLoad?.exterior).toEqual(initializedExterior);
+  });
+
+  it("does not silently downgrade initialized terrain when a v2 save is parsed", () => {
+    const serialized = serializeGameSaveStateV2(initializedWorld, null);
+    const parsed = parseGameSaveStateV2(serialized);
+
+    expect(parsed?.world.kind).toBe("initialized");
+    if (parsed?.world.kind === "initialized") {
+      expect(parsed.world.terrainSemantics.cells).toEqual(initializedWorld.terrainSemantics.cells);
+    } else {
+      throw new Error("Initialized terrain was downgraded");
+    }
+  });
+
   it("rejects an Exterior that reuses the authoritative World identity", () => {
     const exteriorDocument = {
       ...createMap("playable", worldDocument.id, "exterior", null, 8, 8),
