@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMap, resizeMapDocument } from "./map-document";
 import {
   commitMapEditorStateHistory,
+  continueMapEditorStateGestureHistory,
   createMapEditorStateHistory,
   MAP_EDITOR_STATE_HISTORY_MAX_ENTRIES,
   redoMapEditorStateHistory,
@@ -38,6 +39,46 @@ describe("combined editor state history v2", () => {
     expect(history.present.document.name).toBe("Renamed");
     expect(undoMapEditorStateHistory(history).present).toEqual(first);
     expect(redoMapEditorStateHistory(undoMapEditorStateHistory(history)).present).toEqual(second);
+  });
+
+  it("groups repeated paint gesture updates into one atomic undo step", () => {
+    const first = initialized(1);
+    const gestureStart = replaceMapEditorDocument(first, {
+      ...first.document,
+      name: "Paint started",
+    });
+    const started = commitMapEditorStateHistory(createMapEditorStateHistory(first), gestureStart);
+    const gestureNext = replaceMapEditorDocument(gestureStart, {
+      ...gestureStart.document,
+      name: "Paint continued",
+    });
+    const continued = continueMapEditorStateGestureHistory(started, gestureNext);
+
+    expect(continued.past).toEqual(started.past);
+    expect(continued.present).toEqual(gestureNext);
+    expect(undoMapEditorStateHistory(continued).present).toEqual(first);
+  });
+
+  it("clears redo during a gesture and rejects cross-map continuation", () => {
+    const first = initialized(1);
+    const second = replaceMapEditorDocument(first, { ...first.document, name: "Second" });
+    const third = replaceMapEditorDocument(second, { ...second.document, name: "Third" });
+    const history = commitMapEditorStateHistory(
+      commitMapEditorStateHistory(createMapEditorStateHistory(first), second),
+      third,
+    );
+    const undone = undoMapEditorStateHistory(history);
+    const branch = replaceMapEditorDocument(undone.present, {
+      ...undone.present.document,
+      name: "Gesture branch",
+    });
+    const continued = continueMapEditorStateGestureHistory(undone, branch);
+    expect(continued.future).toEqual([]);
+
+    const otherMap = parseMapEditorState(serializeMapDocument({
+      ...createMap("world", null, "exterior", null, 32, 32), id: "world-other", name: "Other",
+    }));
+    expect(() => continueMapEditorStateGestureHistory(continued, otherMap)).toThrow(/identity changed/);
   });
 
   it("supports legacy states without fabricating semantics", () => {
