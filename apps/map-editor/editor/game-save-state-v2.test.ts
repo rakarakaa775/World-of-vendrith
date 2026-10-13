@@ -91,7 +91,7 @@ describe("atomic game save state v2", () => {
     const exterior = { kind: "legacy" as const, document: exteriorDocument, terrainSemantics: null };
     const serialized = serializeGameSaveStateV2(legacyWorld, exterior);
     const duplicateIdentityPayload = JSON.parse(serialized);
-    duplicateIdentityPayload.exterior.id = worldDocument.id;
+    duplicateIdentityPayload.exterior.document.id = worldDocument.id;
 
     expect(parseGameSaveStateV2(duplicateIdentityPayload)).toBeNull();
     expect(() => serializeGameSaveStateV2(legacyWorld, {
