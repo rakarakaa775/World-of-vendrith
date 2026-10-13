@@ -40,7 +40,11 @@ function parseNestedMapState(input: unknown): MapEditorState {
 
 function isValidPair(world: MapEditorState, exterior: MapEditorState | null): boolean {
   return world.document.mapType === "world" &&
-    (!exterior || (exterior.document.mapType === "playable" && exterior.document.playableSpace === "exterior"));
+    (!exterior || (
+      exterior.document.id !== world.document.id &&
+      exterior.document.mapType === "playable" &&
+      exterior.document.playableSpace === "exterior"
+    ));
 }
 
 export function serializeGameSaveStateV2(
