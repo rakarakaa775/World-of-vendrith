@@ -5,7 +5,9 @@ import { PixiMapCanvas } from "./pixi-map-canvas";
 import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, isPaintableTerrainTile, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
-import { createHistory, commitHistory, undoHistory, redoHistory, type MapHistory } from "../editor/map-history";
+import { commitMapEditorStateHistory, continueMapEditorStateGestureHistory, createMapEditorStateHistory, redoMapEditorStateHistory, resetMapEditorStateHistory, undoMapEditorStateHistory, type MapEditorStateHistory } from "../editor/map-editor-state-history-v2";
+import { parseMapEditorState, replaceMapEditorDocument } from "../editor/map-editor-state-v2";
+import { serializeMapDocument } from "../editor/map-serialization";
 import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers, createLayerGroup, updateLayerGroup, assignLayerToGroup, deleteLayerGroup, createLayerTemplate, applyLayerTemplate, deleteLayerTemplate } from "../editor/layer-state";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import type { Selection } from "../editor/selection";
@@ -71,8 +73,8 @@ export function EditorShell({
   const [debugViews, setDebugViews] = useState(DEFAULT_DEBUG_VIEW_STATE);
   const [isolatedLayerId, setIsolatedLayerId] = useState<string | null>(null);
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
-  const [history, setHistory] = useState<MapHistory>(() => createHistory(initialDocument));
-  const document = history.present;
+  const [history, setHistory] = useState<MapEditorStateHistory>(() => createMapEditorStateHistory(parseMapEditorState(serializeMapDocument(initialDocument))));
+  const document = history.present.document;
   // Keep the latest editor-owned document available to toolbar handlers even while
   // the parent mirror is catching up. Save/Load must operate on EditorShell state.
   const documentRef = useRef<MapDocument>(document);
@@ -88,7 +90,7 @@ export function EditorShell({
   const terrainLayer = document.layers.find(layer => layer.kind === "ground")?.id ?? "ground";
 
   useEffect(() => {
-    setHistory(createHistory(initialDocument));
+    setHistory(resetMapEditorStateHistory(parseMapEditorState(serializeMapDocument(initialDocument))));
   }, [initialDocument.id, initialDocumentRevision]);
 
   useEffect(() => {
@@ -101,7 +103,7 @@ export function EditorShell({
     // still kept for normal synchronization, but Save must never observe the
     // previous history.present during the tiny render/effect gap after Paint.
     documentRef.current = next;
-    setHistory(current => commitHistory(current, next));
+    setHistory(current => commitMapEditorStateHistory(current, replaceMapEditorDocument(current.present, next)));
   }, [document]);
 
   useEffect(() => {
@@ -145,10 +147,10 @@ export function EditorShell({
       if (!modifier) return;
       if (event.key.toLowerCase() === "z") {
         event.preventDefault();
-        setHistory(current => event.shiftKey ? redoHistory(current) : undoHistory(current));
+        setHistory(current => event.shiftKey ? redoMapEditorStateHistory(current) : undoMapEditorStateHistory(current));
       } else if (event.key.toLowerCase() === "y") {
         event.preventDefault();
-        setHistory(current => redoHistory(current));
+        setHistory(current => redoMapEditorStateHistory(current));
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -177,9 +179,9 @@ export function EditorShell({
     );
     if (gestureId !== undefined && paintGestureRef.current === gestureId) {
       documentRef.current = result.document;
-      setHistory(current => current.present === result.document
+      setHistory(current => current.present.document === result.document
         ? current
-        : { ...current, present: result.document, future: [] });
+        : continueMapEditorStateGestureHistory(current, replaceMapEditorDocument(current.present, result.document)));
     } else {
       if (gestureId !== undefined) paintGestureRef.current = gestureId;
       commit(result.document);
@@ -192,7 +194,7 @@ export function EditorShell({
         setPaintDiagnostic("history: UNDO unavailable (no previous state)");
         return current;
       }
-      const next = undoHistory(current);
+      const next = undoMapEditorStateHistory(current);
       setPaintDiagnostic(`history: UNDO applied · past=${next.past.length} future=${next.future.length}`);
       return next;
     });
@@ -204,7 +206,7 @@ export function EditorShell({
         setPaintDiagnostic("history: REDO unavailable (no future state)");
         return current;
       }
-      const next = redoHistory(current);
+      const next = redoMapEditorStateHistory(current);
       setPaintDiagnostic(`history: REDO applied · past=${next.past.length} future=${next.future.length}`);
       return next;
     });
