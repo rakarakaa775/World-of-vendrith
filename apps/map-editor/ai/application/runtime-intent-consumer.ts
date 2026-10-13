@@ -20,6 +20,9 @@ function asRuntimeAction(value: unknown): RuntimeAction | null {
   return c as unknown as RuntimeAction;
 }
 function contextMapType(type: RuntimeIntentRecord["contextType"]) { return type === "world" ? "world" : type === "region" ? "region" : "playable"; }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
 /** Consumes an approved intent only through an injected authoritative runtime executor. */
 export function createRuntimeIntentConsumer(client: SupabaseClient, executor: RuntimeIntentExecutor) {
@@ -34,8 +37,22 @@ export function createRuntimeIntentConsumer(client: SupabaseClient, executor: Ru
         contextType: d.context_type as RuntimeIntentRecord["contextType"], contextId: String(d.context_id),
         runtimeSurface: d.runtime_surface as RuntimeIntentRecord["runtimeSurface"], action: d.action as Record<string, unknown>,
       };
-      const finish = async (status: "consumed" | "rejected" | "failed", result: Record<string, unknown>) =>
-        client.rpc("finish_vendrith_runtime_intent_v1", { p_intent_id: intent.intentId, p_status: status, p_result: result });
+      const finish = async (status: "consumed" | "rejected" | "failed", result: Record<string, unknown>) => {
+        const response = await client.rpc("finish_vendrith_runtime_intent_v1", {
+          p_intent_id: intent.intentId,
+          p_status: status,
+          p_result: result,
+        });
+        if (response.error) {
+          throw new Error("RUNTIME_INTENT_FINISH_ERROR: " + response.error.message);
+        }
+        if (!isRecord(response.data) || response.data.ok !== true) {
+          const code = isRecord(response.data) && typeof response.data.code === "string"
+            ? response.data.code
+            : "FINISH_NOT_CONFIRMED";
+          throw new Error("RUNTIME_INTENT_FINISH_REJECTED: " + code);
+        }
+      };
       try {
         const resolved = await resolveAuthoritativeMap(client, intent.contextId, contextMapType(intent.contextType));
         const action = asRuntimeAction(intent.action.runtimeAction);
@@ -54,8 +71,30 @@ export function createRuntimeIntentConsumer(client: SupabaseClient, executor: Ru
         await finish(status, execution.result);
         return { ok: execution.ok, status, result: execution.result };
       } catch (error) {
-        const result = { code: "RUNTIME_INTENT_EXECUTION_ERROR", detail: error instanceof Error ? error.message : String(error) };
-        await finish("failed", result); return { ok: false, status: "failed", result };
+        const detail = error instanceof Error ? error.message : String(error);
+        if (detail.startsWith("RUNTIME_INTENT_FINISH")) {
+          return {
+            ok: false,
+            status: "failed",
+            result: { code: "RUNTIME_INTENT_FINISH_ERROR", detail, reconciliationRequired: true },
+          };
+        }
+        const result = { code: "RUNTIME_INTENT_EXECUTION_ERROR", detail };
+        try {
+          await finish("failed", result);
+        } catch (finishError) {
+          return {
+            ok: false,
+            status: "failed",
+            result: {
+              code: "RUNTIME_INTENT_FINISH_ERROR",
+              detail: finishError instanceof Error ? finishError.message : String(finishError),
+              executionError: detail,
+              reconciliationRequired: true,
+            },
+          };
+        }
+        return { ok: false, status: "failed", result };
       }
     },
   };

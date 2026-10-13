@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runToolLoop } from "./tool-loop";
 import type { ModelProviderPort } from "../ports/model-provider";
 import { createToolRouter, hasStringArgument } from "../ports/tool-router";
@@ -82,6 +82,64 @@ describe("tool loop", () => {
     expect(result.iterations).toBe(6);
     expect(result.toolResults).toHaveLength(5);
     expect(result.response.content).toBe("Inspection complete.");
+  });
+
+  it("rejects a tool-call batch over budget before executing any tool", async () => {
+    const execute = vi.fn(async () => "executed");
+    const provider: ModelProviderPort = {
+      async generate() {
+        return {
+          content: "request two tools",
+          toolCalls: [
+            { id: "call-1", name: "inspect", arguments: { query: "one" } },
+            { id: "call-2", name: "inspect", arguments: { query: "two" } },
+          ],
+          provider: "fake",
+        };
+      },
+    };
+    const router = createToolRouter([{
+      name: "inspect",
+      description: "inspect read-only context",
+      access: "read-only",
+      parameters: { type: "object" },
+      validate: hasStringArgument("query"),
+      execute,
+    }]);
+
+    await expect(runToolLoop(
+      provider,
+      router,
+      { messages: [{ role: "user", content: "inspect" }] },
+      { mode: "plan", requestId: "req-budget" },
+      { maxToolCalls: 1 },
+    )).rejects.toThrow("maximum tool calls (1); recent tools: inspect, inspect");
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("propagates provider failures without executing tools", async () => {
+    const provider: ModelProviderPort = {
+      async generate() {
+        throw new Error("provider unavailable");
+      },
+    };
+    const execute = vi.fn(async () => "executed");
+    const router = createToolRouter([{
+      name: "inspect",
+      description: "inspect read-only context",
+      access: "read-only",
+      parameters: { type: "object" },
+      validate: hasStringArgument("query"),
+      execute,
+    }]);
+
+    await expect(runToolLoop(
+      provider,
+      router,
+      { messages: [{ role: "user", content: "inspect" }] },
+      { mode: "plan", requestId: "req-provider-failure" },
+    )).rejects.toThrow("provider unavailable");
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it("bounds the number of model/tool iterations and reports recent tool names", async () => {

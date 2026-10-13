@@ -43,7 +43,11 @@ export async function runToolLoop(
     }
 
     if (toolCallCount + response.toolCalls.length > maxToolCalls) {
-      throw new Error(`Tool loop exceeded maximum tool calls (${maxToolCalls}); recent tools: ${recentToolNames.slice(-4).join(", ") || "none"}`);
+      const attemptedToolNames = [
+        ...recentToolNames,
+        ...response.toolCalls.map((call) => call.name),
+      ].slice(-4);
+      throw new Error(`Tool loop exceeded maximum tool calls (${maxToolCalls}); recent tools: ${attemptedToolNames.join(", ") || "none"}`);
     }
     toolCallCount += response.toolCalls.length;
     recentToolNames.push(...response.toolCalls.map((call) => call.name));

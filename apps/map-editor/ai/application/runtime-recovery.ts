@@ -79,7 +79,11 @@ export function applyRuntimeRecoveryRecords(
       throw new Error("RUNTIME_RECOVERY_CHECKPOINT_TICK_MISMATCH");
     }
     const checkpointHash = runtimeStateHash(snapshot);
-    if (snapshot.entities.length > 0 && checkpoint.stateHash !== checkpointHash) {
+    const checkpointStoresCanonicalSnapshot =
+      isRecord(checkpoint.state) &&
+      isRecord(checkpoint.state.state) &&
+      Array.isArray(checkpoint.state.entities);
+    if (checkpointStoresCanonicalSnapshot && checkpoint.stateHash !== checkpointHash) {
       throw new Error("RUNTIME_RECOVERY_CHECKPOINT_HASH_MISMATCH");
     }
   }

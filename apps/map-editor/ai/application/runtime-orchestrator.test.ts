@@ -84,10 +84,13 @@ describe("Vendrith runtime orchestrator", () => {
       risk: "high-risk",
       reason: "Override a world rule.",
     };
-    const result = await createRuntimeOrchestrator(createPorts(action)).run(request);
+    const ports = createPorts(action);
+    const execute = vi.spyOn(ports.action, "execute");
+    const result = await createRuntimeOrchestrator(ports).run(request);
     expect(result.executions[0]).toMatchObject({
       actionId: "action-high-risk", ok: false, executed: false,
     });
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it("rejects an observation from a different runtime surface", async () => {

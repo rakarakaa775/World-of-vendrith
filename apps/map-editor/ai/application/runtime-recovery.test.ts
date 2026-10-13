@@ -47,6 +47,59 @@ describe("runtime recovery", () => {
     expect(recovered.snapshot).toEqual(nextSnapshot);
   });
 
+  it("produces the same state hash when object keys are reordered", () => {
+    const snapshot = base(10);
+    const reordered = {
+      entities: [{
+        position: { y: 0, x: 10 },
+        mapId: "map-1",
+        kind: "npc",
+        id: "npc-1",
+      }],
+      state: {
+        stateVersion: "state:10",
+        activeEventIds: [],
+        clock: { season: "spring", minute: 0, hour: 0, day: 1, tick: 10 },
+        worldId: "world-1",
+      },
+    } as unknown as RuntimeWorldSnapshot;
+
+    expect(runtimeStateHash(reordered)).toBe(runtimeStateHash(snapshot));
+  });
+
+  it("fails closed when a checkpoint state hash does not match its snapshot", () => {
+    const snapshot = base(10);
+    const checkpoint: RuntimeRecoveryCheckpoint = {
+      sequence: 10,
+      tick: 10,
+      stateVersion: snapshot.state.stateVersion,
+      stateHash: "tampered-checkpoint-hash",
+      state: snapshot,
+    };
+
+    expect(() => applyRuntimeRecoveryRecords(checkpoint, [])).toThrow(
+      "RUNTIME_RECOVERY_CHECKPOINT_HASH_MISMATCH",
+    );
+  });
+
+  it("verifies checkpoint hashes even when a canonical snapshot has no entities", () => {
+    const snapshot: RuntimeWorldSnapshot = {
+      state: base(10).state,
+      entities: [],
+    };
+    const checkpoint: RuntimeRecoveryCheckpoint = {
+      sequence: 10,
+      tick: 10,
+      stateVersion: snapshot.state.stateVersion,
+      stateHash: "tampered-empty-world-hash",
+      state: snapshot,
+    };
+
+    expect(() => applyRuntimeRecoveryRecords(checkpoint, [])).toThrow(
+      "RUNTIME_RECOVERY_CHECKPOINT_HASH_MISMATCH",
+    );
+  });
+
   it("fails closed on a sequence gap", () => {
     const checkpointSnapshot = base(10);
     const mutationSnapshot = base(12);
