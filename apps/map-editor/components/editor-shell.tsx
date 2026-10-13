@@ -6,7 +6,7 @@ import { createMap, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, isPaintableTerrainTile, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { commitMapEditorStateHistory, continueMapEditorStateGestureHistory, createMapEditorStateHistory, redoMapEditorStateHistory, resetMapEditorStateHistory, undoMapEditorStateHistory, type MapEditorStateHistory } from "../editor/map-editor-state-history-v2";
-import { parseMapEditorState, replaceMapEditorDocument } from "../editor/map-editor-state-v2";
+import { parseMapEditorState, replaceMapEditorDocument, type MapEditorState } from "../editor/map-editor-state-v2";
 import { serializeMapDocument } from "../editor/map-serialization";
 import { setActiveLayer, updateLayer, reorderLayer, duplicateLayer, mergeLayers, createLayerGroup, updateLayerGroup, assignLayerToGroup, deleteLayerGroup, createLayerTemplate, applyLayerTemplate, deleteLayerTemplate } from "../editor/layer-state";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
@@ -20,6 +20,9 @@ import { deleteObject, duplicateObjects, placePaletteAsset, scatterPaletteAssets
 type Props = {
   initialDocument?: MapDocument;
   initialDocumentRevision?: number;
+  /** Optional canonical combined state supplied by Save/Load; legacy callers remain supported. */
+  initialEditorState?: MapEditorState;
+  onEditorStateChange?: (state: MapEditorState) => void;
   onDocumentChange?: (document: MapDocument) => void;
   onSave?: (document: MapDocument) => void | Promise<void>;
   onSaveLoad?: () => void | Promise<void>;
@@ -49,6 +52,8 @@ const BRUSH_PRESETS = [
 export function EditorShell({
   initialDocument = createMap("world"),
   initialDocumentRevision = 0,
+  initialEditorState,
+  onEditorStateChange,
   onDocumentChange,
   onSave,
   onSaveLoad,
@@ -73,7 +78,7 @@ export function EditorShell({
   const [debugViews, setDebugViews] = useState(DEFAULT_DEBUG_VIEW_STATE);
   const [isolatedLayerId, setIsolatedLayerId] = useState<string | null>(null);
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
-  const [history, setHistory] = useState<MapEditorStateHistory>(() => createMapEditorStateHistory(parseMapEditorState(serializeMapDocument(initialDocument))));
+  const [history, setHistory] = useState<MapEditorStateHistory>(() => createMapEditorStateHistory(initialEditorState ?? parseMapEditorState(serializeMapDocument(initialDocument))));
   const document = history.present.document;
   // Keep the latest editor-owned document available to toolbar handlers even while
   // the parent mirror is catching up. Save/Load must operate on EditorShell state.
@@ -90,12 +95,13 @@ export function EditorShell({
   const terrainLayer = document.layers.find(layer => layer.kind === "ground")?.id ?? "ground";
 
   useEffect(() => {
-    setHistory(resetMapEditorStateHistory(parseMapEditorState(serializeMapDocument(initialDocument))));
+    setHistory(resetMapEditorStateHistory(initialEditorState ?? parseMapEditorState(serializeMapDocument(initialDocument))));
   }, [initialDocument.id, initialDocumentRevision]);
 
   useEffect(() => {
     onDocumentChange?.(document);
-  }, [document, onDocumentChange]);
+    onEditorStateChange?.(history.present);
+  }, [document, history.present, onDocumentChange, onEditorStateChange]);
 
   const commit = useCallback((next: MapDocument) => {
     if (next === document) return;
