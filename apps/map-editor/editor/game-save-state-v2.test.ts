@@ -98,7 +98,7 @@ describe("atomic game save state v2", () => {
       schema: TERRAIN_SEMANTICS_SCHEMA,
       version: TERRAIN_SEMANTICS_VERSION,
       cells: [
-        { x: 4, y: 5, surface: "water" as const, feature: "coast" as const, depth: "shallow" as const },
+        { x: 4, y: 5, surface: "water" as const, feature: "shoreline" as const, depth: "shallow" as const },
       ],
     });
 
