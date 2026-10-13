@@ -59,6 +59,27 @@ export function resetMapEditorStateHistory(state: MapEditorState): MapEditorStat
   return createMapEditorStateHistory(state);
 }
 
+/**
+ * Continue an in-progress pointer/paint gesture without creating another undo
+ * entry. The first gesture update must be committed normally; subsequent
+ * updates replace that gesture's present snapshot and keep the original past.
+ */
+export function continueMapEditorStateGestureHistory(
+  history: MapEditorStateHistory,
+  next: MapEditorState,
+): MapEditorStateHistory {
+  if (next === history.present) return history;
+  validateState(next);
+  if (next.document.id !== history.present.document.id) {
+    throw new Error("Map identity changed; reset map editor state history instead of continuing a gesture");
+  }
+  return {
+    past: history.past,
+    present: next,
+    future: [],
+  };
+}
+
 export function undoMapEditorStateHistory(history: MapEditorStateHistory): MapEditorStateHistory {
   const previous = history.past.at(-1);
   if (!previous) return history;
