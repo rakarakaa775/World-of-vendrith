@@ -103,6 +103,28 @@ describe('game save contract', () => {
       exterior: null,
     })).toBeNull();
   });
+
+  it('refuses Terrain v2 Save Slot payloads rather than silently dropping semantics', () => {
+    const world = map('world-1');
+    const terrainV2 = {
+      schema: 'vandrith.game-save',
+      version: 2,
+      world: {
+        schema: 'vandrith.map-editor-state',
+        version: 2,
+        document: world,
+        terrainSemantics: {
+          schema: 'vandrith.terrain-semantics',
+          version: 1,
+          cells: [{ x: 1, y: 1, surface: 'water', depth: 'deep' }],
+        },
+      },
+      exterior: null,
+    };
+
+    expect(() => parseGameSaveSlotSnapshot(terrainV2, world.id))
+      .toThrow('Unsupported Game Save snapshot version');
+  });
 });
 
 
