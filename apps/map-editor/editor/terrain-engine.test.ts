@@ -64,51 +64,56 @@ describe("water depth gradient", () => {
     expect(JSON.stringify(document)).toBe(before);
   });
 
-  it("handles a large water body deterministically without leaving invalid cells", () => {
-    const base = createMap("world");
-    const width = 64;
-    const height = 64;
-    const center = Math.floor(width / 2) + Math.floor(height / 2) * width;
-    const document = {
-      ...base,
-      width,
-      height,
-      layers: base.layers.map(layer =>
-        layer.id === "ground"
-          ? {
-              ...layer,
-              cells: Array.from({ length: width * height }, (_, index) =>
-                index === center ? { tileId: "grass" } : { tileId: "deepwater" },
-              ),
-            }
-          : layer,
-      ),
-    };
+  it.each([32, 64, 128])(
+    "handles a large water body deterministically without invalid cells on %i-square maps",
+    (width) => {
+      const height = width;
+      const base = createMap("world", null, "exterior", null, width, height);
+      const center = Math.floor(width / 2) + Math.floor(height / 2) * width;
+      const document = {
+        ...base,
+        width,
+        height,
+        layers: base.layers.map(layer =>
+          layer.id === "ground"
+            ? {
+                ...layer,
+                cells: Array.from({ length: width * height }, (_, index) =>
+                  index === center ? { tileId: "grass" } : { tileId: "deepwater" },
+                ),
+              }
+            : layer,
+        ),
+      };
 
-    const first = applyWaterDepthGradient(document, "ground");
-    const second = applyWaterDepthGradient(document, "ground");
-    const firstGround = first.layers.find(layer => layer.id === "ground")!;
-    const secondGround = second.layers.find(layer => layer.id === "ground")!;
-    const terrainCounts = new Map<string, number>();
+      const first = applyWaterDepthGradient(document, "ground");
+      const second = applyWaterDepthGradient(document, "ground");
+      const firstGround = first.layers.find(layer => layer.id === "ground")!;
+      const secondGround = second.layers.find(layer => layer.id === "ground")!;
+      const terrainCounts = new Map<string, number>();
 
-    for (const cell of firstGround.cells) {
-      terrainCounts.set(cell.tileId, (terrainCounts.get(cell.tileId) ?? 0) + 1);
-    }
+      for (const cell of firstGround.cells) {
+        terrainCounts.set(cell.tileId, (terrainCounts.get(cell.tileId) ?? 0) + 1);
+      }
 
-    expect(firstGround.cells).toHaveLength(width * height);
-    expect(firstGround.cells[center].tileId).toBe("grass");
-    expect(firstGround.cells.every(cell => cell.tileId === "grass" || [
-      "water",
-      "brackish",
-      "deepwater2",
-      "deepwater",
-    ].includes(cell.tileId))).toBe(true);
-    expect(terrainCounts.get("water")).toBeGreaterThan(0);
-    expect(terrainCounts.get("brackish")).toBeGreaterThan(0);
-    expect(terrainCounts.get("deepwater2")).toBeGreaterThan(0);
-    expect(terrainCounts.get("deepwater")).toBeGreaterThan(0);
-    expect(JSON.stringify(firstGround.cells)).toBe(JSON.stringify(secondGround.cells));
-  });
+      expect(firstGround.cells).toHaveLength(width * height);
+      expect(firstGround.cells[center].tileId).toBe("grass");
+      expect(firstGround.cells.every(cell => cell.tileId === "grass" || [
+        "water",
+        "brackish",
+        "deepwater2",
+        "deepwater",
+      ].includes(cell.tileId))).toBe(true);
+      expect(terrainCounts.get("water")).toBeGreaterThan(0);
+      expect(terrainCounts.get("brackish")).toBeGreaterThan(0);
+      expect(terrainCounts.get("deepwater2")).toBeGreaterThan(0);
+      expect(terrainCounts.get("deepwater")).toBeGreaterThan(0);
+      expect(JSON.stringify(firstGround.cells)).toBe(JSON.stringify(secondGround.cells));
+      expect(first.width).toBe(width);
+      expect(first.height).toBe(height);
+      expect(first.layers.every(layer => layer.cells.length === width * height)).toBe(true);
+    },
+  );
 
   it("uses eight-way distance so diagonal shoreline cells stay in the first water band", () => {
     const base = createMap("world");
