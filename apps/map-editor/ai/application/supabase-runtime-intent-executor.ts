@@ -190,12 +190,7 @@ export function createSupabaseRuntimeIntentExecutor(
         p_tick: after.state.clock.tick,
         p_state_version: after.state.stateVersion,
         p_state_hash: String(journalRow?.state_hash ?? mutation.state_hash),
-        p_state: {
-          ...after,
-          worldId: after.state.worldId,
-          stateVersion: after.state.stateVersion,
-          tick: after.state.clock.tick,
-        },
+        p_state: after,
         p_lease_token: leaseToken,
       });
 

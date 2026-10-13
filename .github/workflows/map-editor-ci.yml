@@ -135,3 +135,41 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-full-schema-assertions.sql
       - name: Assert full-schema concurrent save serialization
         run: bash supabase/tests/atomic-save-slot-full-schema-concurrency.sh
+
+  runtime-persistence-sql:
+    name: AI Runtime Persistence PostgreSQL contract tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vendrith_runtime_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vendrith_runtime_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5434
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: vendrith_runtime_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create isolated runtime auth and map fixture
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/runtime-persistence-fixture.sql
+      - name: Apply prior mutation lookup migration
+        run: psql -v ON_ERROR_STOP=1 -f database/migrations/20261009015100_vendrith_runtime_mutation_lookup_v1.sql
+      - name: Apply runtime persistence migration to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f database/migrations/20261009015200_vendrith_runtime_persistence_v1.sql
+      - name: Assert lease, ownership, idempotency, rollback, checkpoint, and recovery reads
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/runtime-persistence-assertions.sql
+      - name: Assert concurrent appends serialize sequence allocation
+        run: bash supabase/tests/runtime-persistence-concurrency.sh

@@ -2,7 +2,7 @@
 
 **Audit date:** 2026-10-13
 **Branch:** `feat/vendrith-ecc-v1`
-**Status:** P2 in progress — runtime persistence contract still requires implementation and local PostgreSQL verification.
+**Status:** P2 in progress — candidate runtime persistence migration and isolated PostgreSQL tests are implemented; finish-failure reconciliation and database-backed session/approval tests remain open.
 
 ## Scope
 
@@ -20,9 +20,9 @@ This audit reviews the AI core contract, runtime orchestration, tool-call limits
 
 ## P2 gaps that remain open
 
-### 1. Runtime mutation journal, leases, and checkpoints lack tracked SQL definitions
+### 1. Runtime persistence SQL was missing; candidate migration and isolated tests now exist
 
-The TypeScript runtime calls these RPCs:
+The new candidate migration `database/migrations/20261009015200_vendrith_runtime_persistence_v1.sql` defines the mutation journal, lease table, monotonic checkpoint table, and these RPCs:
 
 - `acquire_world_runtime_lease_v1`
 - `renew_world_runtime_lease_v1`
@@ -30,10 +30,11 @@ The TypeScript runtime calls these RPCs:
 - `save_world_runtime_checkpoint_v1`
 - `read_latest_world_runtime_checkpoint_v1`
 - `read_world_runtime_mutations_v1`
+- `read_world_runtime_mutation_by_id_v1`
 
-A tracked SQL definition for these functions was not found in `database/migrations` or `supabase` SQL files. The existing migration `database/migrations/20261009015100_vendrith_runtime_mutation_lookup_v1.sql` references `public.world_runtime_mutation_log`, but no tracked `CREATE TABLE` definition for that table was found.
+Writes are RPC-only, each function checks ownership through `maps.created_by`, lease-token writes are serialized on the lease row, mutation IDs are idempotent but reject conflicting reuse, batches are transaction-atomic, and checkpoints must exactly match the committed journal snapshot and cannot move backwards.
 
-This means code-level replay tests do not prove that durable runtime persistence works against a database built solely from tracked migrations. P2 must add a reviewed migration and disposable-PostgreSQL contract tests before this subsystem can be considered verified.
+Isolated PostgreSQL fixtures and assertions now live in `supabase/tests/runtime-persistence-fixture.sql`, `runtime-persistence-assertions.sql`, and `runtime-persistence-concurrency.sh`; a dedicated CI job applies the prior lookup migration and candidate migration to a disposable PostgreSQL 17 service. Local disposable-PostgreSQL assertions and concurrent append checks passed. This is not evidence that the migration has been applied to hosted Supabase or that authenticated browser/session E2E has passed.
 
 ### 2. Intent finish failures need reconciliation
 
@@ -49,12 +50,11 @@ The consumer no longer reports success when a finish RPC fails. However, a faile
 
 ## Next required work
 
-1. Design and implement the missing runtime persistence migration: mutation journal, latest checkpoint, lease acquisition/renewal, atomic append, validated checkpoint save, and ordered reads.
-2. Add local PostgreSQL assertions for ownership, lease expiry/concurrency, atomic rollback, mutation idempotency, sequence monotonicity, checkpoint monotonicity, and read/replay behavior. Never apply this migration to production during these tests.
-3. Add a reconciliation path for finish failures and prove it cannot duplicate a runtime mutation.
-4. Add database-backed session and approval/audit tests using disposable fixtures.
-5. Run full tests, typecheck, build, SQL assertions, `git diff --check`, and CI for the final commit. Keep authenticated browser/session E2E in a nonproduction environment as a separate release gate.
+1. Complete the full local PostgreSQL assertions and CI job for the candidate runtime persistence migration; do not apply it to production during these tests.
+2. Add a reconciliation path for finish failures and prove it cannot duplicate a runtime mutation.
+3. Add database-backed session and approval/audit tests using disposable fixtures.
+4. Run full tests, typecheck, build, SQL assertions, `git diff --check`, and CI for the final commit. Keep authenticated browser/session E2E in a nonproduction environment as a separate release gate.
 
 ## Current test evidence
 
-Final local verification for the current code changes: 169 test files passed, 884 tests passed, and `npm run typecheck` exited with code 0. Targeted runtime guardrail tests also passed. The new changes still require the post-push CI result. This document intentionally does not claim P2 is complete.
+Final local verification for the current code changes: 169 test files passed, 884 tests passed; `npm run typecheck` completed without errors; Next.js build compiled successfully and generated all 24 static pages (with the existing non-fatal Autoprefixer warning). The candidate runtime migration applied successfully to disposable PostgreSQL 17; runtime SQL assertions passed for lease acquisition/renewal, ownership, idempotency/conflict, batch rollback, checkpoint integrity/monotonicity, ordered reads, and concurrent sequence allocation. `git diff --check` passed. Post-push CI is still required. This document intentionally does not claim P2 is complete.
