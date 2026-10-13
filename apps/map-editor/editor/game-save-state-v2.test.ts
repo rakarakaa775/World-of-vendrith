@@ -115,6 +115,68 @@ describe("atomic game save state v2", () => {
     expect(secondLoad?.exterior).toEqual(initializedExterior);
   });
 
+  it.each([32, 64, 128])(
+    "preserves World and Exterior terrain semantics across repeated saves on %i-square maps",
+    (size) => {
+      const worldDoc = {
+        ...createMap("world", null, "exterior", null, size, size),
+        id: `roundtrip-world-${size}`,
+      };
+      const world = initializeTerrainSemantics(
+        { kind: "legacy" as const, document: worldDoc, terrainSemantics: null },
+        {
+          schema: TERRAIN_SEMANTICS_SCHEMA,
+          version: TERRAIN_SEMANTICS_VERSION,
+          cells: [
+            { x: 0, y: 0, surface: "land" as const },
+            {
+              x: size - 1,
+              y: size - 1,
+              surface: "water" as const,
+              feature: "river" as const,
+              depth: "shallow" as const,
+              current: "calm" as const,
+              shallowWalkable: true,
+            },
+          ],
+        },
+      );
+      const exteriorDoc = {
+        ...createMap("playable", worldDoc.id, "exterior", null, size, size),
+        id: `roundtrip-exterior-${size}`,
+      };
+      const exterior = initializeTerrainSemantics(
+        { kind: "legacy" as const, document: exteriorDoc, terrainSemantics: null },
+        {
+          schema: TERRAIN_SEMANTICS_SCHEMA,
+          version: TERRAIN_SEMANTICS_VERSION,
+          cells: [{
+            x: Math.floor(size / 2),
+            y: Math.floor(size / 2),
+            surface: "water" as const,
+            feature: "shoreline" as const,
+            depth: "shallow" as const,
+            shallowWalkable: true,
+          }],
+        },
+      );
+
+      const firstLoad = parseGameSaveStateV2(serializeGameSaveStateV2(world, exterior));
+      expect(firstLoad).not.toBeNull();
+      if (!firstLoad) throw new Error("First Load failed");
+
+      const secondLoad = parseGameSaveStateV2(
+        serializeGameSaveStateV2(firstLoad.world, firstLoad.exterior),
+      );
+
+      expect(secondLoad).toEqual(firstLoad);
+      expect(secondLoad?.world.document.width).toBe(size);
+      expect(secondLoad?.world.document.height).toBe(size);
+      expect(secondLoad?.world).toEqual(world);
+      expect(secondLoad?.exterior).toEqual(exterior);
+    },
+  );
+
   it("does not silently downgrade initialized terrain when a v2 save is parsed", () => {
     const serialized = serializeGameSaveStateV2(initializedWorld, null);
     const parsed = parseGameSaveStateV2(serialized);
