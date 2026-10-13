@@ -82,6 +82,24 @@ describe("atomic game save state v2", () => {
     }
   });
 
+
+  it("rejects an Exterior that reuses the authoritative World identity", () => {
+    const exteriorDocument = {
+      ...createMap("playable", worldDocument.id, "exterior", null, 8, 8),
+      id: "save-state-exterior",
+    };
+    const exterior = { kind: "legacy" as const, document: exteriorDocument, terrainSemantics: null };
+    const serialized = serializeGameSaveStateV2(legacyWorld, exterior);
+    const duplicateIdentityPayload = JSON.parse(serialized);
+    duplicateIdentityPayload.exterior.id = worldDocument.id;
+
+    expect(parseGameSaveStateV2(duplicateIdentityPayload)).toBeNull();
+    expect(() => serializeGameSaveStateV2(legacyWorld, {
+      ...exterior,
+      document: { ...exteriorDocument, id: worldDocument.id },
+    })).toThrow("Game save map types are invalid");
+  });
+
   it("enforces the authoritative world identity after parsing", () => {
     const serialized = serializeGameSaveStateV2(initializedWorld, null);
 
