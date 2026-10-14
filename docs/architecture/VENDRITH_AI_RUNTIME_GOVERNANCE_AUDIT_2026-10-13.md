@@ -2,7 +2,7 @@
 
 **Audit date:** 2026-10-13
 **Branch:** `feat/vendrith-ecc-v1`
-**Status:** P2 in progress — candidate runtime persistence migration and isolated PostgreSQL tests are implemented; finish-failure reconciliation and database-backed session/approval tests remain open.
+**Status:** P2 implementation complete on `feat/vendrith-ecc-v1`; local disposable-PostgreSQL contracts and GitHub Actions are green. Hosted Supabase application and authenticated browser/session E2E remain unverified release gates (P3).
 
 ## Scope
 
@@ -40,13 +40,13 @@ Isolated PostgreSQL fixtures and assertions now live in `supabase/tests/runtime-
 
 The consumer no longer reports success when a finish RPC fails. However, a failed finish may leave an intent in `processing`, while the current retry migration only retries `failed` intents. The recovery/reconciliation path for an ambiguous finish result therefore remains an explicit design task; do not treat `reconciliationRequired` as an automatic retry.
 
-### 3. Generic approval state versus persisted development approvals
+### 3. Approval authority boundary — decision recorded
 
-`ai/domain/approval.ts` is an in-memory state machine. The separate development-action proposal path has persisted approval and execution audit tables/functions, but this audit did not establish that every generic high-risk approval transition is durably recorded. Scope and ownership of the durable approval/audit boundary need to be made explicit.
+`ai/domain/approval.ts` is a request-scoped orchestration state machine, not a durable authorization source and not proof that a write was approved. The Web/Creator API accepts only `explain` and `plan`; it rejects `execute`/`high-risk` and requires a persisted proposal for mutation. The Development AI endpoint also rejects `execute`/`high-risk` until its approved execution workflow is connected. Actual Development AI approval/execution bindings are persisted through the proposal, approval, and execution-audit tables/RPCs; Creator map mutations use persisted Creator proposals and the authenticated approval RPC. Runtime AI has its own surface/risk gate, and the regression test confirms a high-risk action without approval never reaches the action executor. Therefore the in-memory state machine is workflow metadata only; it must never be accepted by a server or database mutation boundary as authorization.
 
-### 4. Session persistence needs database-backed integration coverage
+### 4. Session persistence — disposable database contract added
 
-`ai/application/persistent-ai-session.test.ts` currently tests policy constants and allowed context types; it does not exercise create/load/append behavior, ownership/RLS, message ordering, or write-failure recovery against a disposable database fixture.
+The dedicated `ai-session-approval-sql` CI job now applies the session and development approval migrations to an isolated PostgreSQL 17 service and asserts session/message ownership isolation, the 100-message cap, approval persistence, approval audit, approval-ID consumption after successful execution, and execution audit. The same contract passed locally against a disposable PostgreSQL 17 container. These checks do not claim authenticated browser/session E2E or hosted Supabase migration application.
 
 ## Next required work
 
@@ -64,5 +64,7 @@ The consumer no longer reports success when a finish RPC fails. However, a faile
 - Authenticated browser/session E2E and nonproduction deployment verification remain separate release gates; CI success alone does not establish them.
 
 ## Current test evidence
+
+On 2026-10-14, GitHub Actions run [#964](https://github.com/rakarakaa775/World-of-vendrith/actions/runs/38571463579) passed all six jobs for commit `1252cbca`, including Map Editor typecheck/build/Vitest, Save Slot SQL integration, runtime persistence/reconciliation SQL, and the new AI session/approval SQL contract. The local session/approval SQL contract also passed against disposable PostgreSQL 17.
 
 Final local verification for the current code changes: 169 test files passed, 884 tests passed; `npm run typecheck` completed without errors; Next.js build compiled successfully and generated all 24 static pages (with the existing non-fatal Autoprefixer warning). The candidate runtime migration applied successfully to disposable PostgreSQL 17; runtime SQL assertions passed for lease acquisition/renewal, ownership, idempotency/conflict, batch rollback, checkpoint integrity/monotonicity, ordered reads, and concurrent sequence allocation. `git diff --check` passed. Post-push CI is still required. This document intentionally does not claim P2 is complete.
