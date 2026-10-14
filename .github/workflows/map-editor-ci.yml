@@ -174,6 +174,38 @@ jobs:
       - name: Assert concurrent appends serialize sequence allocation
         run: bash supabase/tests/runtime-persistence-concurrency.sh
 
+  ai-session-approval-sql:
+    name: AI session ownership and approval audit PostgreSQL contract tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vendrith_ai_session_test
+        ports:
+          - 5436:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vendrith_ai_session_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5436
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: vendrith_ai_session_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create isolated auth fixture
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/ai-session-approval-fixture.sql
+      - name: Assert session ownership and durable approval/audit contracts
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/ai-session-approval-assertions.sql
+
   runtime-intent-reconciliation-sql:
     name: AI Runtime Intent Reconciliation PostgreSQL contract tests
     runs-on: ubuntu-latest

@@ -55,6 +55,14 @@ The consumer no longer reports success when a finish RPC fails. However, a faile
 3. Add database-backed session and approval/audit tests using disposable fixtures.
 4. Run full tests, typecheck, build, SQL assertions, `git diff --check`, and CI for the final commit. Keep authenticated browser/session E2E in a nonproduction environment as a separate release gate.
 
+## Follow-up verification — 2026-10-14
+
+- Added `supabase/tests/ai-session-approval-fixture.sql` and `supabase/tests/ai-session-approval-assertions.sql`, wired into a dedicated disposable PostgreSQL 17 CI job. The assertions cover session/message ownership isolation, persisted context, approval persistence, approval audit, approval-binding consumption after successful execution, and execution audit.
+- Running the new contract against disposable PostgreSQL exposed an ambiguous `status` reference in `approve_vendrith_development_action_v1`; the update now qualifies the proposal table alias. The final-audit `finalize_vendrith_development_action_v1` update is also explicitly qualified to prevent the same PL/pgSQL output-parameter ambiguity.
+- Local disposable PostgreSQL 17 execution of the new session/approval fixture and assertions passed. This database was created for the test and stopped afterward; no hosted/production database was accessed.
+- The remaining governance question is whether the generic in-memory runtime approval state machine needs its own durable audit record, or whether it is intentionally scoped to a single execution request while durable approvals remain exclusive to Development AI proposals. Record and test that boundary before declaring P2 complete.
+- Authenticated browser/session E2E and nonproduction deployment verification remain separate release gates; CI success alone does not establish them.
+
 ## Current test evidence
 
 Final local verification for the current code changes: 169 test files passed, 884 tests passed; `npm run typecheck` completed without errors; Next.js build compiled successfully and generated all 24 static pages (with the existing non-fatal Autoprefixer warning). The candidate runtime migration applied successfully to disposable PostgreSQL 17; runtime SQL assertions passed for lease acquisition/renewal, ownership, idempotency/conflict, batch rollback, checkpoint integrity/monotonicity, ordered reads, and concurrent sequence allocation. `git diff --check` passed. Post-push CI is still required. This document intentionally does not claim P2 is complete.

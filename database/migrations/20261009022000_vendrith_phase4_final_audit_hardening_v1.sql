@@ -87,7 +87,7 @@ begin
     raise exception 'approval binding mismatch';
   end if;
 
-  update public.vendrith_development_action_proposals
+  update public.vendrith_development_action_proposals as proposal
      set status = case when p_status = 'failed' then 'failed' else 'approved' end,
          approval_id = case when p_status = 'succeeded' then null else p_approval_id end,
          result = case
@@ -96,10 +96,10 @@ begin
            else p_result
          end,
          updated_at = now()
-   where id = p_proposal_id
-     and user_id = auth.uid()
-     and status = 'approved'
-     and approval_id = p_approval_id;
+   where proposal.id = p_proposal_id
+     and proposal.user_id = auth.uid()
+     and proposal.status = 'approved'
+     and proposal.approval_id = p_approval_id;
 
   if not found then
     raise exception 'development proposal update race';

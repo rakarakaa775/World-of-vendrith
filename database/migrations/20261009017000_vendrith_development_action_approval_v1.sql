@@ -68,7 +68,7 @@ begin
 
   v_approval_id := gen_random_uuid();
 
-  update public.vendrith_development_action_proposals
+  update public.vendrith_development_action_proposals as proposal
      set status = 'approved',
          approval_id = v_approval_id,
          result = jsonb_build_object(
@@ -77,9 +77,9 @@ begin
            'execution', 'not_connected'
          ),
          updated_at = now()
-   where id = v_proposal.id
-     and user_id = v_user_id
-     and status = 'pending';
+   where proposal.id = v_proposal.id
+     and proposal.user_id = v_user_id
+     and proposal.status = 'pending';
 
   if not found then
     raise exception 'proposal approval race detected';
