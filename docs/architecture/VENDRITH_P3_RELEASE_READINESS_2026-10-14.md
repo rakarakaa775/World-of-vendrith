@@ -32,3 +32,22 @@
 ## Next action
 
 Connect or identify the intended Vercel **preview/nonproduction** project and provide a way to authenticate a test user in that environment. Then verify the deployment commit, run browser smoke tests and the two-client stale-save scenario, and only then decide whether P3 can be signed off.
+
+## Hosted Vercel preview check — 2026-10-14
+
+The Vercel connection became available after the initial local-only pass. Read-only checks now confirm:
+
+- The Vercel project `rakarakaa775-world-of-vendrith` is linked to GitHub repository `rakarakaa775/World-of-vendrith`.
+- Latest deployment `dpl_E2pmg7e9LWbAwjiSHVoXUmazrCPb` is `READY`, from branch `feat/vendrith-ecc-v1`, commit `b4280645720c0ace399e6d4dc10bbc9723b3b28e`.
+- The deployment serves HTTP 200 for `/`, `/world-builder`, `/vendrith-ai`, `/preview`, and `/asset-library` when fetched remotely.
+- `GET /api/vendrith-runtime-intents` returns HTTP 405, consistent with the route's POST-only contract.
+- Vercel's grouped runtime-error view reports no runtime errors for the last 24 hours. A separate warning/error log query for 30 minutes returned no matching logs. A detailed 24-hour runtime-log query is not available on this Hobby plan due to retention limits; that failure is not evidence of no logs.
+- The project environment-variable listing shows entries for `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `GEMINI_API_KEY` targeting Preview and Production. Values were not decrypted or inspected, so actual validity/connectivity is not established.
+
+### Remaining release gates
+
+The remote HTTP checks validate server delivery and route rendering only; they do not execute client-side JavaScript or prove that login/session hydration completes. Authenticated browser E2E and the two-client stale-save scenario remain unverified. Hosted Supabase migration/schema status remains unverified; no migration or production mutation was performed. Therefore P3 is still **open**, not signed off.
+
+## Next action
+
+Open the preview URL in a real browser, sign in with a nonproduction test account, and confirm whether the app gets past its account-checking screen. Then run authenticated smoke checks and the two-client stale-save scenario before considering P3 sign-off.
