@@ -110,37 +110,51 @@ export class DirectModelProvider implements ModelProviderPort {
   async generate(request: ModelRequest): Promise<ModelResponse> {
     const apiKey = resolveApiKey(this.options);
     const isGemini = Boolean(process.env.GEMINI_API_KEY?.trim()) && !process.env.OPENAI_API_KEY?.trim() && !process.env.VENDRITH_AI_API_KEY?.trim();
-    const baseUrl =
-      this.options.baseUrl ??
-      process.env.VENDRITH_AI_BASE_URL ??
+    const configuredBaseUrl = this.options.baseUrl?.trim() || process.env.VENDRITH_AI_BASE_URL?.trim();
+    const baseUrl = configuredBaseUrl ??
       (isGemini ? "https://generativelanguage.googleapis.com/v1beta/openai" : "https://api.openai.com/v1");
-    const model =
-      this.options.model ??
-      process.env.VENDRITH_AI_MODEL ??
-      (isGemini ? "gemini-3.6-flash" : "gpt-5");
+    const configuredModel = this.options.model?.trim() || process.env.VENDRITH_AI_MODEL?.trim() || undefined;
+    const initialModel = configuredModel ?? (isGemini ? "gemini-3.6-flash" : "gpt-5");
+    // Keep explicit operator model choices intact. Only the implicit Gemini default
+    // may fall back to another documented Flash model after a sustained 503.
+    const models = isGemini && !configuredModel
+      ? [initialModel, "gemini-3.8-flash", "gemini-3.5-flash-lite"].filter((value, index, all) => all.indexOf(value) === index)
+      : [initialModel];
+    let model = initialModel;
+    let response: Response | undefined;
 
-    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: toMessages(request.messages),
-        tools: request.tools?.map((tool) => ({
-          type: "function",
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.parameters,
+    for (const candidate of models) {
+      model = candidate;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
           },
-        })),
-        tool_choice: request.tools?.length ? "auto" : undefined,
-        stream: false,
-      }),
-    });
+          body: JSON.stringify({
+            model,
+            messages: toMessages(request.messages),
+            tools: request.tools?.map((tool) => ({
+              type: "function",
+              function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.parameters,
+              },
+            })),
+            tool_choice: request.tools?.length ? "auto" : undefined,
+            stream: false,
+          }),
+        });
+        if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status) || attempt === 2) break;
+        // Transient provider failures get bounded exponential backoff (0.8s, 1.6s).
+        await new Promise((resolve) => setTimeout(resolve, 800 * (2 ** attempt)));
+      }
+      if (response?.ok || response?.status !== 503) break;
+    }
 
+    if (!response) throw new Error("Direct AI provider did not return a response.");
     const responseText = await response.text();
     let body: OpenAiCompatibleResponse;
     try {
