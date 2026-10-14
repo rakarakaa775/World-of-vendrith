@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RuntimeAction, RuntimeAiRequest } from "../domain/runtime";
 import { resolveAuthoritativeMap } from "../../editor/map-authoritative-resolver";
+import { reconcileSupabaseRuntimeIntent, type RuntimeIntentReconciliationResult } from "./supabase-runtime-intent-reconciliation";
 
 export interface RuntimeIntentRecord {
   intentId: string; proposalId: string;
@@ -27,6 +28,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** Consumes an approved intent only through an injected authoritative runtime executor. */
 export function createRuntimeIntentConsumer(client: SupabaseClient, executor: RuntimeIntentExecutor) {
   return {
+    async reconcile(intentId: string): Promise<RuntimeIntentReconciliationResult> {
+      return reconcileSupabaseRuntimeIntent(client, intentId);
+    },
     async consume(intentId: string) {
       const claimed = await client.rpc("claim_vendrith_runtime_intent_v1", { p_intent_id: intentId });
       if (claimed.error) throw new Error("RUNTIME_INTENT_CLAIM_ERROR: " + claimed.error.message);

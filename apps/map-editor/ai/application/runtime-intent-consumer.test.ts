@@ -60,4 +60,19 @@ describe("runtime intent consumer", () => {
     expect(result).toMatchObject({ ok: false, status: "rejected", result: { code: "RUNTIME_ACTION_REQUIRED" } });
     expect(executor.execute).not.toHaveBeenCalled();
   });
+
+  it("exposes explicit journal-backed reconciliation for interrupted intents", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: { ok: true, status: "consumed", reconciled: true, verified: true },
+      error: null,
+    });
+    const consumer = createRuntimeIntentConsumer({ rpc } as never, { execute: vi.fn() });
+
+    await expect(consumer.reconcile("intent-recovery")).resolves.toMatchObject({
+      ok: true, status: "consumed", reconciled: true, verified: true,
+    });
+    expect(rpc).toHaveBeenCalledWith("reconcile_vendrith_runtime_intent_v1", {
+      p_intent_id: "intent-recovery",
+    });
+  });
 });
