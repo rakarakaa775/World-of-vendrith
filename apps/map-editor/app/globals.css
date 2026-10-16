@@ -202,6 +202,54 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 }
 
 
+/* Blood Moon Forest — agreed Vendrith home direction */
+.vandrith-home-console{isolation:isolate;background:#08090d;color:#f2e9df;font-family:Georgia,"Times New Roman",serif}
+.vandrith-home-console:before{z-index:-2;background:radial-gradient(ellipse at 72% 23%,rgba(119,19,31,.23),transparent 32%),linear-gradient(180deg,#090a10 0%,#101016 48%,#06080b 100%)}
+.vandrith-console-stars{z-index:-1;opacity:.38}
+.vandrith-console-stars i{background:#f2d6ce;box-shadow:0 0 8px rgba(245,198,184,.7)}
+.vandrith-console-horizon{opacity:.18;filter:blur(1px)}
+.vandrith-bloodmoon-scene{position:absolute;z-index:-1;inset:68px 0 0;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,rgba(8,8,13,.04),rgba(7,9,11,.36) 46%,rgba(5,7,9,.92) 100%)}
+.vandrith-bloodmoon{position:absolute;top:5%;right:clamp(7%,15vw,22%);width:clamp(105px,16vw,205px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 38% 32%,#e76b69 0,#bd303d 37%,#751b2b 70%,#39131e 100%);box-shadow:0 0 35px rgba(201,37,53,.35),0 0 115px rgba(154,22,43,.26),0 0 230px rgba(121,18,36,.13);opacity:.9}
+.vandrith-bloodmoon:after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at 30% 45%,rgba(53,12,25,.2) 0 9%,transparent 10%),radial-gradient(ellipse at 65% 30%,rgba(58,11,23,.26) 0 13%,transparent 14%),radial-gradient(ellipse at 56% 68%,rgba(45,10,19,.28) 0 10%,transparent 11%);box-shadow:inset -18px -9px 28px rgba(28,6,14,.42)}
+.vandrith-forest-ridge{position:absolute;left:-8%;right:-8%;bottom:0;transform-origin:bottom;clip-path:polygon(0 72%,4% 53%,7% 70%,12% 35%,17% 67%,21% 48%,25% 75%,31% 39%,36% 69%,42% 50%,47% 77%,53% 36%,58% 66%,64% 45%,70% 76%,76% 38%,82% 65%,88% 46%,94% 70%,100% 51%,100% 100%,0 100%)}
+.ridge-back{height:57%;background:linear-gradient(180deg,rgba(48,23,35,.8),rgba(14,18,23,.95));opacity:.78}
+.ridge-mid{height:44%;background:linear-gradient(180deg,#111c1b,#08100f);transform:scaleX(1.12);opacity:.96;clip-path:polygon(0 66%,5% 38%,10% 68%,15% 25%,21% 64%,26% 44%,31% 73%,37% 30%,43% 65%,48% 40%,54% 74%,60% 26%,66% 61%,72% 38%,77% 73%,83% 28%,89% 65%,95% 42%,100% 64%,100% 100%,0 100%)}
+.ridge-front{height:32%;background:linear-gradient(180deg,#0a1411,#050809);opacity:1;clip-path:polygon(0 58%,6% 31%,12% 69%,18% 23%,23% 61%,29% 39%,35% 73%,41% 26%,47% 65%,53% 37%,59% 75%,65% 21%,72% 63%,78% 34%,84% 72%,90% 29%,96% 60%,100% 44%,100% 100%,0 100%)}
+.vandrith-forest-ridge:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(84deg,transparent 0 42px,rgba(127,35,43,.16) 43px 45px,transparent 46px 78px);opacity:.6}
+.vandrith-forest-path{position:absolute;bottom:-8%;left:50%;width:min(42vw,560px);height:63%;transform:translateX(-50%);clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);background:linear-gradient(180deg,rgba(124,38,43,.16),rgba(112,63,49,.32) 42%,rgba(76,58,45,.52));filter:drop-shadow(0 0 30px rgba(170,43,53,.16))}
+.vandrith-forest-path:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(221,85,77,.18));clip-path:polygon(48% 0,52% 0,63% 100%,37% 100%)}
+.vandrith-forest-mist{position:absolute;width:55%;height:15%;border-radius:50%;filter:blur(26px);background:rgba(130,42,53,.15)}
+.mist-left{left:-8%;bottom:25%;transform:rotate(-9deg)}.mist-right{right:-12%;bottom:34%;transform:rotate(8deg)}
+.vandrith-console-header{border-bottom-color:rgba(190,103,93,.2);background:rgba(7,8,12,.56)}
+.vandrith-console-mark{border-color:rgba(213,164,113,.6);color:#e5bd8a;box-shadow:0 0 24px rgba(190,56,61,.13)}
+.vandrith-console-brand strong{font-family:Georgia,"Times New Roman",serif;letter-spacing:.24em}
+.vandrith-console-brand span{color:#b18a82}
+.vandrith-console-main{padding-top:clamp(27px,4vw,48px)}
+.vandrith-console-intro{max-width:760px;text-shadow:0 3px 22px rgba(0,0,0,.8)}
+.vandrith-console-kicker{color:#d79b87;letter-spacing:.32em}
+.vandrith-console-intro h1{font-family:Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.025em;text-shadow:0 8px 35px rgba(0,0,0,.7)}
+.vandrith-console-intro h1 em{color:#e2b6a5;font-style:italic}
+.vandrith-console-intro>p:last-child{color:#c0aaa4;max-width:560px}
+.vandrith-console-section-heading{margin-top:clamp(24px,3vw,38px);border-bottom-color:rgba(196,112,99,.2)}
+.vandrith-console-section-heading span{color:#ddb78b}
+.vandrith-engine-grid{gap:9px}
+.vandrith-engine-card{min-height:92px;padding:12px 14px;border-color:rgba(196,136,112,.22);border-radius:7px;background:linear-gradient(135deg,rgba(24,23,25,.9),rgba(8,13,13,.88));box-shadow:0 10px 26px rgba(0,0,0,.25),inset 0 1px rgba(255,220,188,.035);backdrop-filter:blur(8px)}
+.vandrith-engine-card:before{background:linear-gradient(180deg,#e6bd83,#a3323e)}
+.vandrith-engine-card:not(:disabled):hover{border-color:rgba(226,178,128,.68);background:linear-gradient(135deg,rgba(54,30,34,.94),rgba(12,16,16,.95));box-shadow:0 15px 32px rgba(0,0,0,.38),0 0 22px rgba(132,34,44,.12)}
+.vandrith-engine-card.featured{min-height:112px;background:linear-gradient(135deg,rgba(66,31,38,.83),rgba(12,17,17,.94));border-color:rgba(207,119,105,.36)}
+.vandrith-engine-card.primary{min-height:112px;border-color:rgba(219,174,119,.43);background:linear-gradient(135deg,rgba(65,43,35,.76),rgba(12,17,17,.95))}
+.vandrith-engine-index{color:#9b7c73}
+.vandrith-engine-icon{border-color:rgba(218,159,117,.26);background:rgba(92,35,42,.15);color:#e0b486}
+.vandrith-engine-copy strong{font-family:Georgia,"Times New Roman",serif;font-size:15px;font-weight:600}
+.vandrith-engine-copy small{color:#b5a39d}
+.vandrith-engine-state{color:#b8a6a0}
+.vandrith-engine-state span{color:#e2b77f}
+.vandrith-console-footer{border-top-color:rgba(190,103,93,.17);color:#85716d}
+.vandrith-console-auth{border-color:rgba(196,136,112,.3);background:rgba(11,12,15,.83);box-shadow:0 22px 70px rgba(0,0,0,.32);backdrop-filter:blur(14px)}
+.vandrith-console-section-label{color:#ddb78b}
+@media(max-width:720px){.vandrith-bloodmoon-scene{inset:58px 0 0}.vandrith-bloodmoon{top:7%;right:8%;width:clamp(90px,27vw,145px);opacity:.7}.ridge-back{height:43%}.ridge-mid{height:32%}.ridge-front{height:24%}.vandrith-forest-path{width:76vw;height:43%;bottom:-5%}.vandrith-console-main{padding-top:26px}.vandrith-console-section-heading{margin-top:28px}.vandrith-engine-card,.vandrith-engine-card.featured,.vandrith-engine-card.primary{min-height:86px}}
+@media(prefers-reduced-motion:reduce){.vandrith-console-stars i{animation:none}.vandrith-engine-card{transition:none}}
+
 /* Preview Engine workspace */
 .vandrith-preview{min-height:100vh;background:#060d11;color:#e8eee9;font-family:Arial,Helvetica,sans-serif;display:grid;grid-template-rows:58px 42px minmax(0,1fr) 52px;overflow:hidden}
 .vandrith-preview-loading{min-height:100vh;display:grid;place-items:center;background:#060d11;color:#82918d}

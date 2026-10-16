@@ -60,6 +60,15 @@ export default function HomePage() {
         ))}
       </div>
       <div className="vandrith-console-horizon" aria-hidden="true" />
+      <div className="vandrith-bloodmoon-scene" aria-hidden="true">
+        <div className="vandrith-bloodmoon" />
+        <div className="vandrith-forest-ridge ridge-back" />
+        <div className="vandrith-forest-ridge ridge-mid" />
+        <div className="vandrith-forest-ridge ridge-front" />
+        <div className="vandrith-forest-path" />
+        <div className="vandrith-forest-mist mist-left" />
+        <div className="vandrith-forest-mist mist-right" />
+      </div>
 
       <header className="vandrith-console-header">
         <div className="vandrith-console-brand">
