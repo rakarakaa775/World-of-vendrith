@@ -386,6 +386,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 /* Blood Moon Forest refinement: match the approved two-column fantasy dashboard */
 .vandrith-home-console:before{background:radial-gradient(ellipse at 77% 20%,rgba(190,24,45,.3),transparent 34%),radial-gradient(ellipse at 48% 65%,rgba(111,19,37,.2),transparent 48%),linear-gradient(180deg,#08070c 0%,#120b12 45%,#05070a 100%)}
 .vandrith-bloodmoon-scene{background:radial-gradient(ellipse at 77% 16%,rgba(173,26,43,.2),transparent 30%),linear-gradient(180deg,rgba(8,8,13,.02),rgba(7,9,11,.16) 34%,rgba(5,7,9,.9) 100%)}
+.vandrith-bloodmoon-scene{background-image:linear-gradient(180deg,rgba(6,6,10,.12),rgba(7,8,12,.16) 35%,rgba(5,7,9,.76) 100%),url("/images/blood-moon-forest.svg");background-size:cover;background-position:center 38%;background-repeat:no-repeat}
 .vandrith-bloodmoon{background:radial-gradient(circle at 36% 28%,#ff9b83 0,#ed4b50 24%,#b61f36 55%,#52101f 83%,#230b14 100%);box-shadow:0 0 38px rgba(225,43,58,.55),0 0 100px rgba(188,23,47,.35),0 0 210px rgba(121,18,36,.22)}
 .vandrith-forest-path{background:linear-gradient(180deg,rgba(159,30,42,.25),rgba(149,55,47,.36) 42%,rgba(63,46,39,.58));filter:drop-shadow(0 0 36px rgba(210,37,51,.24))}
 .vandrith-console-main{width:min(1280px,calc(100% - 44px));padding-top:clamp(30px,4vw,50px)}
