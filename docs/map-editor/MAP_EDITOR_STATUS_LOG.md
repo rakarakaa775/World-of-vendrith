@@ -1,3 +1,11 @@
+## 2026-10-17 — Four-resource audit and engineering rules recorded
+
+- Audited Open Higgsfield AI, Ornith-1 repository, Ornith-1.5 research article, and Developer Roadmap.
+- Rules and adoption decisions: `docs/architecture/EXTERNAL_RESOURCE_AUDIT_AND_ENGINEERING_RULES_V1.md`.
+- Map Editor continuation target: Phase 2F Object / Asset Placement. Existing roadmap reports browser verification still pending for several prior phases and partial completion for object placement; no claim that the Map Editor is complete.
+- Desktop Commander devices were offline. No code, database, RPC, production data, or deployment was changed in this audit.
+- Documentation commit: `b493d09e87b3239a3849ebfd65d60f28a68b6a00`.
+
 ## 2026-10-12 — Save Slot legacy World RPC compatibility hardened
 
 - Changed the candidate atomic Save Slot RPC to read optional projection metadata through JSON and fall back to `not_run` when the World merge RPC exposes only the historical four-column return contract.
