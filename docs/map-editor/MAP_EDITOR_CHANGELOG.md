@@ -1,3 +1,11 @@
+## 2026-10-17 — Four-resource engineering audit and rules
+
+- **Type:** Documentation / workflow governance.
+- **Details:** Audited Open Higgsfield AI, Ornith-1 repository, Ornith-1.5 research article, and Developer Roadmap. Recorded adoption decisions, security/cost cautions, mandatory engineering rules, and Map Editor Phase 2F acceptance criteria in `docs/architecture/EXTERNAL_RESOURCE_AUDIT_AND_ENGINEERING_RULES_V1.md`.
+- **Decision:** Reuse provider abstraction, typed async job patterns, evaluation fixtures, structured metadata, and explicit phase gates only where they fit Vendrith. Do not copy client-side API-key storage, require an expensive model, introduce self-training, or copy external roadmap content/media.
+- **Verification:** Documentation-only audit. No application code, database, RPC, asset binaries, or deployment changed. Desktop Commander devices were offline; local/browser verification was not available.
+- **Commit:** `b493d09e87b3239a3849ebfd65d60f28a68b6a00`.
+
 ## 2026-10-12 — Save Slot legacy World RPC compatibility hardening
 
 - **Type:** Atomic Save Slot migration compatibility and SQL regression coverage.
