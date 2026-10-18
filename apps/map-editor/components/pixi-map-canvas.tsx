@@ -55,13 +55,32 @@ type Props = {
 };
 
 const DEEP_WATER_ASSET_ID = "5587526c-093a-4e3a-8813-aeaa348060eb";
-// Local base-terrain fallback: source sheets use 16px LPC cells. This deliberately
-// selects a single source cell rather than stretching the complete atlas over a tile.
+// Local base-terrain fallback. These 16×16 cells were selected from the bundled
+// LPC sheets only where the source cell is fully opaque; do not reuse one guessed
+// atlas coordinate for every terrain family because the sheets have different layouts.
+const LOCAL_TERRAIN_CELLS: Record<string, { x: number; y: number }> = {
+  grass: { x: 48, y: 0 },
+  grassalt: { x: 32, y: 16 },
+  sand: { x: 96, y: 112 },
+  redsand: { x: 48, y: 0 },
+  dirt: { x: 48, y: 0 },
+  dirt2: { x: 48, y: 0 },
+  water: { x: 96, y: 0 },
+  deepwater: { x: 0, y: 0 },
+  deepwater2: { x: 0, y: 0 },
+  brackish: { x: 96, y: 0 },
+  tallgrass: { x: 80, y: 128 },
+  hole: { x: 96, y: 0 },
+  holek: { x: 96, y: 0 },
+  holemid: { x: 96, y: 0 },
+  lava: { x: 96, y: 0 },
+  lavarock: { x: 48, y: 0 },
+};
 const LOCAL_TERRAIN_ASSETS: Record<string, { assetId: string; url: string; region: { x: number; y: number; width: number; height: number } }> = Object.fromEntries(
-  ["grass", "grassalt", "sand", "redsand", "dirt", "dirt2", "pavement", "water", "deepwater", "deepwater2", "brackish", "tallgrass", "hole", "holek", "holemid", "lava", "lavarock"].map(terrain => [terrain, {
+  Object.entries(LOCAL_TERRAIN_CELLS).map(([terrain, cell]) => [terrain, {
     assetId: `local-terrain:${terrain}`,
     url: `/assets/terrain/lpc_terrain__${terrain}.png`,
-    region: { x: 32, y: 0, width: 16, height: 16 },
+    region: { ...cell, width: 16, height: 16 },
   }]),
 );
 
