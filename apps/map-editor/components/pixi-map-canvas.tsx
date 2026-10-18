@@ -55,6 +55,15 @@ type Props = {
 };
 
 const DEEP_WATER_ASSET_ID = "5587526c-093a-4e3a-8813-aeaa348060eb";
+// Local base-terrain fallback: source sheets use 16px LPC cells. This deliberately
+// selects a single source cell rather than stretching the complete atlas over a tile.
+const LOCAL_TERRAIN_ASSETS: Record<string, { assetId: string; url: string; region: { x: number; y: number; width: number; height: number } }> = Object.fromEntries(
+  ["grass", "grassalt", "sand", "redsand", "dirt", "dirt2", "pavement", "water", "deepwater", "deepwater2", "brackish", "tallgrass", "hole", "holek", "holemid", "lava", "lavarock"].map(terrain => [terrain, {
+    assetId: `local-terrain:${terrain}`,
+    url: `/assets/terrain/lpc_terrain__${terrain}.png`,
+    region: { x: 32, y: 0, width: 16, height: 16 },
+  }]),
+);
 
 const COLORS: Record<string, number> = {
   grass: 0x4f9d50,
@@ -362,6 +371,9 @@ export function PixiMapCanvas(props: Props) {
 
       const textureRequests = new Set<string>();
       textureRequests.add(DEEP_WATER_ASSET_ID);
+      // Always request bundled local base textures. They are a visual fallback,
+      // not a promotion of unverified autotile/transition bindings.
+      for (const asset of Object.values(LOCAL_TERRAIN_ASSETS)) textureRequests.add(asset.assetId);
       for (const terrain of ["grass", "sand", "dirt", "pavement", "water"] as const) {
         const binding = getTerrainAssetBinding(terrainBindings, terrain, 255);
         if (binding) textureRequests.add(binding.assetId);
@@ -401,12 +413,16 @@ export function PixiMapCanvas(props: Props) {
       // Render the logical map immediately. Remote asset I/O must never sit on
       // the critical path of a paint edit.
       void Promise.allSettled([...textureRequests].map(async assetId => {
+        const localAsset = Object.values(LOCAL_TERRAIN_ASSETS).find(asset => asset.assetId === assetId);
         const asset = assetRecords.get(assetId);
-        const url = asset ? resolveAssetUrl(asset) : null;
+        const url = localAsset?.url ?? (asset ? resolveAssetUrl(asset) : null);
         if (!url) return;
         try {
           const texture = await mapEditorTextureCache.load(url, Assets);
-          if (texture) loadedTextures.set(assetId, texture);
+          if (texture) {
+            loadedTextures.set(assetId, texture);
+            if (!cancelled && worldRef.current === world) setTextureRevision(revision => revision + 1);
+          }
         } catch {
           // Missing/slow texture is a valid fallback state for the editor.
         }
@@ -444,18 +460,14 @@ export function PixiMapCanvas(props: Props) {
                 const y = Math.floor(i / document.width);
                 const point = { x, y };
                 const resolved = resolveTerrainRenderCell(renderDocument, layer.id, point, terrainBindings);
-                const binding = terrain === "deepwater"
-                  ? { assetId: DEEP_WATER_ASSET_ID, region: { x: 0, y: 0, width: 16, height: 16 } }
-                  : resolved?.assetId
-                    ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask)
-                    : null;
+                const approvedBinding = resolved?.assetId
+                  ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask)
+                  : null;
+                const localAsset = LOCAL_TERRAIN_ASSETS[terrain];
+                const binding = approvedBinding ?? (localAsset ? { assetId: localAsset.assetId, region: localAsset.region } : null);
                 const texture = binding ? loadedTextures.get(binding.assetId) : null;
                 if (!texture || !binding) continue;
-                const renderTexture = textureForTerrainBinding(
-                  texture,
-                  binding.assetId,
-                  binding.region,
-                );
+                const renderTexture = textureForTerrainBinding(texture, binding.assetId, binding.region);
                 const sprite = new Sprite(renderTexture);
                 sprite.x = x * document.tileSize;
                 sprite.y = y * document.tileSize;
