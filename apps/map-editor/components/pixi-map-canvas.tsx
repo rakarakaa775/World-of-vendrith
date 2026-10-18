@@ -419,8 +419,12 @@ export function PixiMapCanvas(props: Props) {
         void resolveAssetRecords(client, [...textureRequests])
           .then(records => {
             if (!cancelled && worldRef.current === world) {
-              // Cache the records on the component instance for the next render.
+              // Cache the records and trigger a second pass: the first scene is
+              // intentionally rendered before metadata lookup completes, so
+              // without this revision change remote approved terrain bindings
+              // would never enter textureRequests for the active canvas.
               assetRecordsRef.current = records;
+              setTextureRevision(revision => revision + 1);
             }
           })
           .catch(error => console.warn("Map editor asset metadata lookup failed", error));
