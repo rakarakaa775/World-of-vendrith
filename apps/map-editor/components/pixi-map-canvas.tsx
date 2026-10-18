@@ -417,6 +417,14 @@ export function PixiMapCanvas(props: Props) {
         const asset = assetRecords.get(assetId);
         const url = localAsset?.url ?? (asset ? resolveAssetUrl(asset) : null);
         if (!url) return;
+        // The per-render map is recreated whenever the scene redraws. Rehydrate
+        // it from the shared cache first; otherwise a successfully loaded texture
+        // is lost on the next render and the canvas falls back to flat colors.
+        const cachedTexture = mapEditorTextureCache.get(url);
+        if (cachedTexture) {
+          loadedTextures.set(assetId, cachedTexture);
+          return;
+        }
         try {
           const texture = await mapEditorTextureCache.load(url, Assets);
           if (texture) {
