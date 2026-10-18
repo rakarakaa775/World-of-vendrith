@@ -16,6 +16,7 @@ _extract_d48/
 node_modules/
 dist/
 build/
+.next/
 
 # Logs
 *.log

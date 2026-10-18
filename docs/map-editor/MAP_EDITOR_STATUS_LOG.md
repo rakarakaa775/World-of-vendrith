@@ -1,11 +1,3 @@
-## 2026-10-17 — Four-resource audit and engineering rules recorded
-
-- Audited Open Higgsfield AI, Ornith-1 repository, Ornith-1.5 research article, and Developer Roadmap.
-- Rules and adoption decisions: `docs/architecture/EXTERNAL_RESOURCE_AUDIT_AND_ENGINEERING_RULES_V1.md`.
-- Map Editor continuation target: Phase 2F Object / Asset Placement. Existing roadmap reports browser verification still pending for several prior phases and partial completion for object placement; no claim that the Map Editor is complete.
-- Desktop Commander devices were offline. No code, database, RPC, production data, or deployment was changed in this audit.
-- Documentation commit: `b493d09e87b3239a3849ebfd65d60f28a68b6a00`.
-
 ## 2026-10-12 — Save Slot legacy World RPC compatibility hardened
 
 - Changed the candidate atomic Save Slot RPC to read optional projection metadata through JSON and fall back to `not_run` when the World merge RPC exposes only the historical four-column return contract.
@@ -419,3 +411,20 @@
 - Added isolated/full-schema SQL regression assertions and a typed client adapter with Vitest contract coverage.
 - Verification remains blocked at the evidence stage: latest commit status and PR-triggered workflow endpoint return no checks/runs. No hosted migration or active UI wiring performed.
 - Current verification commit: `f755e571c43ee88a3064a9ecf4931c347198fa23`.
+
+
+## 2026-10-17 — Map Editor drag/drop implementation checkpoint
+
+- Implemented initial native HTML drag/drop from the temporary semantic object palette to the Pixi canvas. The canvas translates client coordinates through its existing viewport/grid conversion, rejects out-of-bounds drops, rejects unknown palette IDs, and does not accept drops in read-only mode.
+- Placement delegates to `placePaletteAsset`, preserving existing object-layer visibility/lock, bounds, and occupied-cell guards. Cleanup removes the added event listeners.
+- Verification: `npm run typecheck` passed; `npm test -- --reporter=dot` passed (173 files / 899 tests); `npm run build` passed (24 static pages generated, with an existing Autoprefixer warning in `app/globals.css`); `git diff --check` passed.
+- Still open: browser interaction verification and regression coverage specifically for drop behavior; connect the approved registry-backed catalog/previews (current palette remains temporary); verify Save→Load→Save after a drop; reconcile local branch divergence before commit/push.
+- Safety: no database or Supabase changes, no new branch, no commit/push, no deployment.
+
+### 2026-10-17 — Asset catalog connected to EditorShell
+- Added the authenticated read-only catalog load to the World Builder and passed the verified catalog to the editor.
+- Object palette, selected asset and drag/drop resolve against the current map level and use approved physical registry assets when available; temporary semantic fallback remains explicitly available.
+- Validation: `npm run typecheck` passed; `npx vitest run editor/map-asset-loader.test.ts editor/object-state.test.ts --reporter=dot` passed (2 files, 24 tests).
+- Added preview thumbnails to the draggable palette and propagated the approved asset preview URL into placed object `assetUrl`, allowing the existing Pixi texture path to render it.
+- Validation: TypeScript passed; focused Asset Loader + object-state tests passed (24 tests); full Map Editor suite passed (173 files / 901 tests); production Next.js build passed (CSS autoprefixer warning in `app/globals.css`, unrelated to this change).
+- Still open: authenticated browser drag/drop verification, full Save→Load→Save for registry-backed placement, and local/remote Git reconciliation.

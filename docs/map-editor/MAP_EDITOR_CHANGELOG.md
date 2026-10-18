@@ -1,11 +1,3 @@
-## 2026-10-17 — Four-resource engineering audit and rules
-
-- **Type:** Documentation / workflow governance.
-- **Details:** Audited Open Higgsfield AI, Ornith-1 repository, Ornith-1.5 research article, and Developer Roadmap. Recorded adoption decisions, security/cost cautions, mandatory engineering rules, and Map Editor Phase 2F acceptance criteria in `docs/architecture/EXTERNAL_RESOURCE_AUDIT_AND_ENGINEERING_RULES_V1.md`.
-- **Decision:** Reuse provider abstraction, typed async job patterns, evaluation fixtures, structured metadata, and explicit phase gates only where they fit Vendrith. Do not copy client-side API-key storage, require an expensive model, introduce self-training, or copy external roadmap content/media.
-- **Verification:** Documentation-only audit. No application code, database, RPC, asset binaries, or deployment changed. Desktop Commander devices were offline; local/browser verification was not available.
-- **Commit:** `b493d09e87b3239a3849ebfd65d60f28a68b6a00`.
-
 ## 2026-10-12 — Save Slot legacy World RPC compatibility hardening
 
 - **Type:** Atomic Save Slot migration compatibility and SQL regression coverage.
@@ -830,3 +822,17 @@
 - Hardened validated Load Slot against unknown/foreign Exterior identities, invalid Region ancestry, and forged Exterior content not present in version history.
 - Added validated Load Slot client adapter and tests; deliberately not connected to the active UI until disposable-database and authenticated browser gates pass.
 - CI for the latest source has not been confirmed green; no hosted Supabase changes were made.
+
+
+## 2026-10-17 — Initial Map Editor asset drag/drop wiring
+
+- **Type:** Map Editor object placement
+- **Details:** Added native drag/drop from the temporary semantic object palette to the canvas. Drops use the existing client-to-grid transform, reject unknown asset IDs, respect read-only mode and map bounds, and route placement through `placePaletteAsset` so existing layer, bounds, and occupied-cell checks remain authoritative. Event listeners are removed on cleanup.
+- **Verification:** TypeScript typecheck passed; Vitest passed (173 files / 899 tests); Next.js production build passed (24 static pages generated; existing Autoprefixer warning in `app/globals.css`); `git diff --check` passed. Browser interaction, drag/drop-specific regression tests, approved registry integration, and persistent Save→Load→Save verification remain open.
+- **Safety:** No commit/push, no database changes, no new branch. Existing branch divergence (ahead 1 / behind 4) is intentionally unresolved pending safe reconciliation.
+
+### 2026-10-17 — Approved asset catalog wiring
+- Connected the existing read-only `loadMapAssetCatalog` result from the authenticated editor session to `EditorShell`.
+- Object palette and drag/drop now use registry-backed assets with verified license rights when the catalog is available; the temporary semantic palette remains as a fallback if the read-only query fails or returns no compatible assets.
+- Physical asset placement persists the registry UUID as `assetId` and the verified preview URL as `assetUrl`; the palette shows available thumbnails and the Pixi canvas can load the preview texture.
+- Validation: TypeScript passed; focused Asset Loader + object-state tests passed (24 tests); full Map Editor suite passed (173 files / 901 tests); production Next.js build passed with one pre-existing CSS autoprefixer warning. Browser-level drag/drop and authenticated Save→Load→Save remain open.

@@ -64,6 +64,43 @@ describe('game save contract', () => {
     expect(restored.format).toBe('game-save-v1');
   });
 
+  it('preserves approved registry asset identity and preview URL through Save → Load → Save', () => {
+    const world = map('world-registry-round-trip');
+    const objectsLayer = world.layers.find(layer => layer.kind === 'objects')!;
+    const registryAsset = {
+      id: 'placed-registry-oak-4-3',
+      kind: 'decoration' as const,
+      category: 'tree-oak',
+      x: 4,
+      y: 3,
+      width: 1,
+      height: 1,
+      assetId: 'a1b2c3d4-e5f6-4789-8abc-0123456789ab',
+      assetName: 'Oak Tree',
+      assetUrl: 'https://assets.example.invalid/approved/oak.png',
+      rotation: 0,
+      zIndex: 0,
+      collision: false,
+    };
+    world.layers = world.layers.map(layer => layer.id === objectsLayer.id
+      ? { ...layer, objects: [registryAsset] }
+      : layer);
+
+    const firstSave = serializeGameSaveSnapshot(world, null);
+    const loaded = parseGameSaveSlotSnapshot(firstSave, world.id);
+    const loadedObject = loaded.world.layers.find(layer => layer.kind === 'objects')!.objects[0];
+    expect(loadedObject).toMatchObject({
+      id: registryAsset.id,
+      assetId: registryAsset.assetId,
+      assetName: registryAsset.assetName,
+      assetUrl: registryAsset.assetUrl,
+    });
+
+    const secondSave = serializeGameSaveSnapshot(loaded.world, loaded.exterior);
+    const restored = parseGameSaveSlotSnapshot(secondSave, world.id);
+    expect(restored.world.layers.find(layer => layer.kind === 'objects')!.objects).toEqual([registryAsset]);
+  });
+
   it('rejects a slot snapshot with an invalid world document', () => {
     const snapshot = {
       schema: 'vandrith.game-save',

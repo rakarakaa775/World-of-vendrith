@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditorShell } from "./editor-shell";
 import { WorldBrowser } from "./world-browser";
 import { SaveSlotsPanel, type SaveSlot } from "./save-slots-panel";
-import { createMap, resizeMapDocument, type MapDocument } from "../editor/map-document";
+import { createMap, type MapDocument } from "../editor/map-document";
 import { createMapEditorSupabaseClient } from "../editor/supabase-client";
 import { loadMapDocumentSnapshot } from "../editor/map-persistence";
 import { saveWithConflictDetection } from "../editor/map-conflict-save-controller";
@@ -12,6 +12,8 @@ import { normalizeMergeCommitResponse } from "../editor/map-merge-persistence";
 import { parseMapDocument } from "../editor/map-serialization";
 import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
+import { loadMapAssetCatalog } from "../editor/map-asset-loader";
+import type { MapAssetDefinition } from "../editor/map-tool-registry";
 import { resolveMapNavigationPersistence, resolveSaveDocument, type SaveConnection } from "../editor/map-save-state";
 import { resolveAuthoritativeMap } from "../editor/map-authoritative-resolver";
 import { loadIdentityMapDocument, saveIdentityWithConflictDetection } from "../editor/map-identity-persistence";
@@ -47,13 +49,14 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   const [showSlots, setShowSlots] = useState(false);
   const [terrainBindings, setTerrainBindings] = useState<TerrainAssetBindingMap>({});
+  const [assetCatalog, setAssetCatalog] = useState<MapAssetDefinition[]>([]);
   const [terrainStatus, setTerrainStatus] = useState(`Loading terrain bindings… · ${BUILD_MARKER}`);
   const [isNewMap, setIsNewMap] = useState(startMode === "create");
   const [environmentValidation, setEnvironmentValidation] = useState<EnvironmentRuntimeValidation | null>(null);
   const active = maps.find(m => m.id === activeMapId) || maps[0];
   const normalizeWorldCanvas = useCallback((document: MapDocument) => {
     if (document.mapType !== "world") return document;
-    const resized = resizeMapDocument(document, 128, 128);
+    const resized = document;
     const ground = resized.layers.find(layer => layer.id === "ground" && layer.kind === "ground");
     if (!ground) return resized;
     // World ground is an ocean baseline: persisted null cells are not empty
@@ -217,6 +220,13 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         throw new Error("AUTH_REQUIRED: Please sign in before opening the Vendrith World Builder.");
       }
       if (cancelled) return;
+      void loadMapAssetCatalog(client).then(catalog => {
+        if (!cancelled) setAssetCatalog(catalog);
+      }).catch(() => {
+        // Keep the editor usable with its clearly temporary semantic palette if
+        // the read-only physical registry is unavailable under the current session.
+        if (!cancelled) setAssetCatalog([]);
+      });
       void loadEnvironmentRuntimeValidation(client).then(result => {
         if (!cancelled) setEnvironmentValidation(result);
       });
@@ -593,6 +603,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           initialDocument={active}
           initialDocumentRevision={loadRevision}
           terrainBindings={terrainBindings}
+          assetCatalog={assetCatalog}
           terrainStatus={terrainStatus}
           environmentValidation={environmentValidation}
           onDocumentChange={update}

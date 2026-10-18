@@ -36,6 +36,7 @@ type Props = {
   onInputDiagnostic?: (message: string) => void;
   onStamp: (point: GridPoint) => void;
   onObjectPlace: (point: GridPoint) => void;
+  onAssetDrop?: (point: GridPoint, assetId: string) => void;
   onObjectMove: (objectId: string, point: GridPoint) => void;
   selectedObjectIds: string[];
   onObjectSelectionChange: (objectIds: string[]) => void;
@@ -134,6 +135,8 @@ export function PixiMapCanvas(props: Props) {
   const brushPreviewRef = useRef<Graphics | null>(null);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  // Rebuild the scene when an asynchronously loaded object preview becomes available.
+  const [textureRevision, setTextureRevision] = useState(0);
   propsRef.current = props;
 
   useEffect(() => {
@@ -469,7 +472,11 @@ export function PixiMapCanvas(props: Props) {
             if (o.assetUrl) {
               objectTexture = mapEditorTextureCache.get(o.assetUrl);
               if (!objectTexture) {
-                void mapEditorTextureCache.load(o.assetUrl, Assets);
+                void mapEditorTextureCache.load(o.assetUrl, Assets).then(texture => {
+                  if (texture && !cancelled) setTextureRevision(revision => revision + 1);
+                }).catch(() => {
+                  // Keep the deterministic placeholder when an asset preview cannot load.
+                });
               }
             }
             if (objectTexture) {
@@ -555,7 +562,7 @@ export function PixiMapCanvas(props: Props) {
       setInitError(message || "Canvas scene render failed");
     });
     return () => { cancelled = true; };
-  }, [ready, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.runtimeEntities, props.environmentRuntime, props.showGrid, props.debugViews, props.layerIsolationId]);
+  }, [ready, textureRevision, props.document, props.activeLayerId, props.selectedObjectId, props.selectedObjectIds, props.selection, props.terrainBindings, props.runtimeEntities, props.environmentRuntime, props.showGrid, props.debugViews, props.layerIsolationId]);
 
   useEffect(() => {
     if (!ready) return;
@@ -652,7 +659,7 @@ export function PixiMapCanvas(props: Props) {
     // Use native pointer events at the host boundary for editing input. This
     // keeps touch input deterministic on mobile browsers while preserving the
     // existing Pixi scene/rendering and persistence foundation.
-    const pointAt = (e: PointerEvent): GridPoint => {
+    const pointAt = (e: Pick<PointerEvent, "clientX" | "clientY">): GridPoint => {
       const { document } = propsRef.current;
       const rect = host.getBoundingClientRect();
       const zoom = viewportRef.current.zoom || 1;
@@ -663,6 +670,18 @@ export function PixiMapCanvas(props: Props) {
     const valid = (p: GridPoint) => {
       const { document } = propsRef.current;
       return p.x >= 0 && p.y >= 0 && p.x < document.width && p.y < document.height;
+    };
+    const onDragOver = (event: DragEvent) => {
+      if (!event.dataTransfer?.types.includes("application/x-vendrith-asset")) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    };
+    const onDrop = (event: DragEvent) => {
+      const assetId = event.dataTransfer?.getData("application/x-vendrith-asset");
+      if (!assetId || !propsRef.current.onAssetDrop || propsRef.current.readonly) return;
+      event.preventDefault();
+      const point = pointAt(event);
+      if (valid(point)) propsRef.current.onAssetDrop(point, assetId);
     };
     const hit = (p: GridPoint) => {
       const { document } = propsRef.current;
@@ -846,6 +865,8 @@ export function PixiMapCanvas(props: Props) {
     const keyup = (e: KeyboardEvent) => { if (e.code === "Space") spaceHeld = false; };
 
     host.addEventListener("pointerleave", leaveBrushPreview);
+    host.addEventListener("dragover", onDragOver);
+    host.addEventListener("drop", onDrop);
     const pointerOptions: AddEventListenerOptions = { capture: true, passive: false };
     host.addEventListener("pointerdown", down, pointerOptions);
     host.addEventListener("pointermove", move, pointerOptions);
@@ -857,6 +878,8 @@ export function PixiMapCanvas(props: Props) {
     window.addEventListener("keyup", keyup);
     return () => {
       host.removeEventListener("pointerleave", leaveBrushPreview);
+      host.removeEventListener("dragover", onDragOver);
+      host.removeEventListener("drop", onDrop);
       host.removeEventListener("pointerdown", down, pointerOptions);
       host.removeEventListener("pointermove", move, pointerOptions);
       host.removeEventListener("pointerup", up, pointerOptions);

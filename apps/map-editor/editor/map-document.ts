@@ -49,6 +49,12 @@ export function resizeMapDocument(document: MapDocument, width: number, height: 
           ? layer.cells[y * document.width + x] ?? { tileId: null }
           : { tileId: null };
       }),
+      // Objects must fit completely inside the resized canvas.
+      objects: layer.objects.filter(object =>
+        object.x >= 0 && object.y >= 0 &&
+        object.x + object.width <= width &&
+        object.y + object.height <= height
+      ),
     })),
   };
 }

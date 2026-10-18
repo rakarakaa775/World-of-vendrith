@@ -90,7 +90,6 @@ begin
   from public.maps m
   where m.id = p_world_map_id
     and m.map_type = 'world'
-    and m.created_by = v_uid
     and public.map_editor_can_access_v1(m.id)
   for update;
   if not found then return jsonb_build_object('ok', false, 'code', 'WORLD_ACCESS_DENIED'); end if;
@@ -192,7 +191,7 @@ begin
       coalesce(nullif(btrim(p_label), ''), format('Save Slot %s', p_slot_number)),
       v_world_version_id, v_world_version_number, p_slot_snapshot, v_uid
     )
-    on conflict (map_id, slot_number) do update
+    on conflict (map_id, created_by, slot_number) do update
       set label = excluded.label,
           version_id = excluded.version_id,
           version_number = excluded.version_number,

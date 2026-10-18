@@ -45,7 +45,7 @@ create or replace function atomic_save_slot_test.seed_case()
 returns void language plpgsql as $$
 declare
   v_user constant uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-  v_world constant uuid := '4695d0b0-788e-42fa-9345-cc3197d0c94d';
+  v_world constant uuid := '3695d0b0-788e-42fa-9345-cc3197d0c94d';
   v_map constant uuid := '11111111-1111-1111-1111-111111111111';
   v_region constant uuid := '33333333-3333-3333-3333-333333333333';
   v_playable constant uuid := '22222222-2222-2222-2222-222222222222';

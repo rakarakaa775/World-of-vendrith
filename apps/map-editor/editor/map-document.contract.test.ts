@@ -82,4 +82,40 @@ describe('MapDocument contract', () => {
     expect(resized.height).toBe(2);
     expect(resized.layers.every(layer => layer.cells.length === 4)).toBe(true);
   });
+
+  it('preserves authored cells and complete objects across preset-size resize and save/load', () => {
+    let document = createMap('playable', null, 'exterior', null, 128, 128);
+    document = {
+      ...document,
+      layers: document.layers.map((layer, index) => index === 0
+        ? { ...layer, cells: layer.cells.map((cell, cellIndex) => cellIndex === 0 || cellIndex === 63 * 128 + 63 ? { tileId: 'grass' } : cell) }
+        : index === 1
+          ? { ...layer, objects: [
+              { id: 'inside', kind: 'building' as const, category: 'house', x: 4, y: 4, width: 2, height: 2, assetId: 'house-1', rotation: 0, zIndex: 1, collision: true },
+              { id: 'outside', kind: 'decoration' as const, category: 'tree', x: 70, y: 70, width: 2, height: 2, assetId: 'tree-1', rotation: 0, zIndex: 1, collision: false },
+              { id: 'crossing-edge', kind: 'decoration' as const, category: 'rock', x: 31, y: 31, width: 2, height: 2, assetId: 'rock-1', rotation: 0, zIndex: 1, collision: false },
+            ] }
+          : layer),
+    };
+
+    const resized64 = resizeMapDocument(document, 64, 64);
+    expect(resized64.layers[0].cells[0]).toEqual({ tileId: 'grass' });
+    expect(resized64.layers[0].cells[63 * 64 + 63]).toEqual({ tileId: 'grass' });
+    expect(resized64.layers[1].objects.map(object => object.id)).toEqual(['inside', 'crossing-edge']);
+
+    const resized32 = resizeMapDocument(resized64, 32, 32);
+    expect(resized32.layers.every(layer => layer.cells.length === 32 * 32)).toBe(true);
+    expect(resized32.layers[1].objects.map(object => object.id)).toEqual(['inside']);
+    const loaded = parseMapDocument(serializeMapDocument(resized32), resized32.id);
+    expect(loaded.width).toBe(32);
+    expect(loaded.height).toBe(32);
+    expect(loaded.layers[1].objects.map(object => object.id)).toEqual(['inside']);
+
+    const expanded128 = resizeMapDocument(loaded, 128, 128);
+    const reloaded = parseMapDocument(serializeMapDocument(expanded128), expanded128.id);
+    expect(reloaded.width).toBe(128);
+    expect(reloaded.height).toBe(128);
+    expect(reloaded.layers.every(layer => layer.cells.length === 128 * 128)).toBe(true);
+    expect(reloaded.layers[1].objects.map(object => object.id)).toEqual(['inside']);
+  });
 });

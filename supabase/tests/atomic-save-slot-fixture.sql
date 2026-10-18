@@ -56,7 +56,7 @@ create table public.map_editor_save_slots (
   created_by uuid not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(map_id, slot_number)
+  unique(map_id, created_by, slot_number)
 );
 
 create or replace function public.map_editor_can_access_v1(p_map_id uuid) returns boolean

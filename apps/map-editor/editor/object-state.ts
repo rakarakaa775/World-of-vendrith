@@ -222,7 +222,7 @@ export function distributeObjects(document: MapDocument, layerId: string, object
 }
 
 
-export type PaletteAssetPlacement = { id: string; label: string; family: string; registryId?: string };
+export type PaletteAssetPlacement = { id: string; label: string; family: string; registryId?: string; previewUrl?: string };
 
 export function canPlacePaletteAsset(document: MapDocument, layerId: string, point: GridPoint, asset: PaletteAssetPlacement): boolean {
   const layer = document.layers.find(l => l.id === layerId);
@@ -242,7 +242,7 @@ export function placePaletteAsset(document: MapDocument, layerId: string, point:
     // The target cell and layer make placement IDs stable across replays.
     id: `asset-${safeLayerId}-${safeAssetId}-${point.x}-${point.y}`,
     kind, category: asset.id, x: point.x, y: point.y, width: 1, height: 1,
-    assetId: asset.registryId ?? asset.id, assetName: asset.label, rotation: 0, zIndex: 0, collision,
+    assetId: asset.registryId ?? asset.id, assetName: asset.label, assetUrl: asset.previewUrl, rotation: 0, zIndex: 0, collision,
   };
   return { ...document, layers: document.layers.map(l => l.id === layerId ? { ...l, objects: [...l.objects, placed] } : l) };
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PixiMapCanvas } from "./pixi-map-canvas";
-import { createMap, type MapDocument } from "../editor/map-document";
+import { createMap, MAP_SIZES, resizeMapDocument, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, isPaintableTerrainTile, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
 import { commitMapEditorStateHistory, continueMapEditorStateGestureHistory, createMapEditorStateHistory, redoMapEditorStateHistory, resetMapEditorStateHistory, undoMapEditorStateHistory, type MapEditorStateHistory } from "../editor/map-editor-state-history-v2";
@@ -16,6 +16,7 @@ import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
 import { deleteObject, duplicateObjects, placePaletteAsset, scatterPaletteAssets, updateObjectTransform, updateObjectsTransform, type PaletteAssetPlacement } from "../editor/object-state";
+import type { MapAssetDefinition } from "../editor/map-tool-registry";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -32,6 +33,8 @@ type Props = {
   terrainBindings?: TerrainAssetBindingMap;
   terrainStatus?: string;
   environmentValidation?: EnvironmentRuntimeValidation | null;
+  /** Read-only, license-verified physical assets loaded from the approved registry. */
+  assetCatalog?: MapAssetDefinition[];
 };
 
 const TOOLS = ["Select", "Paint", "Erase", "Line", "Rectangle", "Flood", "Eyedropper", "Building"] as const;
@@ -62,6 +65,7 @@ export function EditorShell({
   busy = false,
   terrainBindings = {},
   terrainStatus = "Terrain runtime unavailable",
+  assetCatalog = [],
 }: Props) {
   const [activeTool, setActiveTool] = useState<string>("Select");
   const [tileOptions, setTileOptions] = useState<TileOption[]>(STARTER_TILES);
@@ -93,6 +97,21 @@ export function EditorShell({
   // World Map UI has no terrain-layer picker and must never silently discard a
   // Paint/Erase request because of that persisted active flag.
   const terrainLayer = document.layers.find(layer => layer.kind === "ground")?.id ?? "ground";
+  const objectPalette = useMemo<PaletteAssetPlacement[]>(() => {
+    const level = document.mapType === "playable" && (document.playableSpace ?? "exterior") === "interior"
+      ? "interior"
+      : document.mapType;
+    const physical = assetCatalog
+      .filter(asset => asset.levels.includes(level) && asset.family !== "macro-terrain")
+      .map(asset => ({ id: asset.id, label: asset.label, family: asset.family, registryId: asset.registryId, previewUrl: asset.previewUrl }));
+    return physical.length ? physical : OBJECT_PALETTE;
+  }, [assetCatalog, document.mapType, document.playableSpace]);
+
+  useEffect(() => {
+    if (objectPalette.length && !objectPalette.some(asset => asset.id === selectedObjectAssetId)) {
+      setSelectedObjectAssetId(objectPalette[0].id);
+    }
+  }, [objectPalette, selectedObjectAssetId]);
 
   useEffect(() => {
     setHistory(resetMapEditorStateHistory(initialEditorState ?? parseMapEditorState(serializeMapDocument(initialDocument))));
@@ -225,7 +244,7 @@ export function EditorShell({
 
   const activeObjectLayer = document.layers.find(layer => layer.id === activeLayer && layer.kind === "objects")
     ?? document.layers.find(layer => layer.kind === "objects");
-  const selectedObjectAsset = OBJECT_PALETTE.find(asset => asset.id === selectedObjectAssetId) ?? OBJECT_PALETTE[0];
+  const selectedObjectAsset = objectPalette.find(asset => asset.id === selectedObjectAssetId) ?? objectPalette[0] ?? OBJECT_PALETTE[0];
   const handleObjectPlace = useCallback((point: GridPoint) => {
     const current = documentRef.current;
     const target = current.layers.find(layer => layer.id === activeLayer && layer.kind === "objects")
@@ -243,6 +262,30 @@ export function EditorShell({
     setSelectedObjectIds([next.layers.find(layer => layer.id === target.id)!.objects.at(-1)!.id]);
     setPaintDiagnostic(`object placed: ${selectedObjectAsset.label} @ ${point.x}:${point.y}`);
   }, [activeLayer, selectedObjectAsset, commit]);
+
+  const handleAssetDrop = useCallback((point: GridPoint, assetId: string) => {
+    const asset = objectPalette.find(candidate => candidate.id === assetId);
+    if (!asset) {
+      setPaintDiagnostic(`asset drop rejected: unknown asset id=${assetId}`);
+      return;
+    }
+    const current = documentRef.current;
+    const target = current.layers.find(layer => layer.id === activeLayer && layer.kind === "objects")
+      ?? current.layers.find(layer => layer.kind === "objects");
+    if (!target) {
+      setPaintDiagnostic("asset drop blocked: no object layer exists");
+      return;
+    }
+    const next = placePaletteAsset(current, target.id, point, asset);
+    if (next === current) {
+      setPaintDiagnostic(`asset drop blocked: ${asset.label} @ ${point.x}:${point.y} (occupied, hidden, locked, or out of bounds)`);
+      return;
+    }
+    commit(next);
+    setSelectedObjectAssetId(asset.id);
+    setSelectedObjectIds([next.layers.find(layer => layer.id === target.id)!.objects.at(-1)!.id]);
+    setPaintDiagnostic(`asset dropped: ${asset.label} @ ${point.x}:${point.y}`);
+  }, [activeLayer, commit, objectPalette]);
 
   const handleScatterObjects = () => {
     const current = documentRef.current;
@@ -341,6 +384,30 @@ export function EditorShell({
   };
 
   const selectTool = (tool: string) => setActiveTool(tool);
+  const handleCanvasSizeChange = (value: string) => {
+    const size = Number(value);
+    if (!(MAP_SIZES as readonly number[]).includes(size)) return;
+    const current = documentRef.current;
+    if (current.width === size && current.height === size) return;
+    const shrinking = size < current.width || size < current.height;
+    const hasContentOutside = shrinking && current.layers.some(layer => {
+      for (let y = 0; y < current.height; y += 1) {
+        for (let x = 0; x < current.width; x += 1) {
+          if (x < size && y < size) continue;
+          const cell = layer.cells[y * current.width + x];
+          if (cell?.tileId && !(current.mapType === "world" && cell.tileId === "deepwater")) return true;
+        }
+      }
+      return layer.objects.some(object => object.x + object.width > size || object.y + object.height > size);
+    });
+    if (hasContentOutside && typeof window !== "undefined" &&
+        !window.confirm(`Changing to ${size} × ${size} will remove content outside the new canvas. Continue?`)) return;
+    const next = resizeMapDocument(current, size, size);
+    commit(next);
+    setSelection(null);
+    setSelectedObjectIds([]);
+    setPaintDiagnostic(`canvas resized: ${size} × ${size}`);
+  };
   const cycleLayerIsolation = () => {
     const layers = document.layers;
     if (!layers.length) return;
@@ -357,7 +424,22 @@ export function EditorShell({
   return (
     <main className="map-editor-shell" style={{ width: "100%", height: "100%", display: "grid", gridTemplateRows: "auto 1fr", background: "var(--map-editor-bg)", color: "var(--map-editor-text)" }}>
       <header style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderBottom: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", flexWrap: "wrap" }}>
-        <strong style={{ marginRight: 8 }}>World Map</strong>
+        <strong style={{ marginRight: 8 }}>{document.name || "Map"}</strong>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          Canvas
+          <select
+            aria-label="Canvas size"
+            value={MAP_SIZES.includes(document.width as typeof MAP_SIZES[number]) && document.width === document.height ? String(document.width) : "custom"}
+            onChange={event => handleCanvasSizeChange(event.target.value)}
+            disabled={busy}
+            style={{ padding: "5px 7px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: "var(--map-editor-button)", color: "inherit" }}
+          >
+            {!MAP_SIZES.includes(document.width as typeof MAP_SIZES[number]) || document.width !== document.height
+              ? <option value="custom">{document.width} × {document.height} (custom)</option>
+              : null}
+            {MAP_SIZES.map(size => <option key={size} value={String(size)}>{size} × {size}</option>)}
+          </select>
+        </label>
         {TOOLS.map(tool => (
           <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
             style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: activeTool === tool ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
@@ -452,10 +534,26 @@ export function EditorShell({
             <label style={{ display: "grid", gap: 4, fontSize: 11, marginBottom: 6 }}>
               Asset
               <select value={selectedObjectAssetId} onChange={event => setSelectedObjectAssetId(event.target.value)} aria-label="Object asset">
-                {OBJECT_PALETTE.map(asset => <option key={asset.id} value={asset.id}>{asset.label}</option>)}
+                {objectPalette.map(asset => <option key={asset.id} value={asset.id}>{asset.label}</option>)}
               </select>
             </label>
             <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Target: {activeObjectLayer?.name ?? "No object layer"}</div>
+            <div aria-label="Draggable asset palette" style={{ display: "grid", gap: 4, marginBottom: 8 }}>
+              {objectPalette.map(asset => (
+                <button key={asset.id} type="button" draggable={!busy && !!activeObjectLayer && !activeObjectLayer.locked && activeObjectLayer.visible}
+                  onDragStart={event => {
+                    if (!activeObjectLayer || activeObjectLayer.locked || !activeObjectLayer.visible || busy) { event.preventDefault(); return; }
+                    event.dataTransfer.setData("application/x-vendrith-asset", asset.id);
+                    event.dataTransfer.setData("text/plain", asset.label);
+                    event.dataTransfer.effectAllowed = "copy";
+                  }}
+                  onClick={() => setSelectedObjectAssetId(asset.id)} aria-pressed={selectedObjectAssetId === asset.id}
+                  style={{ textAlign: "left", padding: "5px 7px", border: "1px solid var(--map-editor-border)", borderRadius: 5, background: selectedObjectAssetId === asset.id ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff", cursor: "grab" }}>
+                  {asset.previewUrl ? <img src={asset.previewUrl} alt="" aria-hidden="true" loading="lazy" style={{ width: 28, height: 28, objectFit: "contain", verticalAlign: "middle", marginRight: 7, imageRendering: "pixelated" }} /> : null}
+                  ↗ {asset.label}
+                </button>
+              ))}
+            </div>
             <button type="button" onClick={() => setActiveTool("Building")} aria-pressed={activeTool === "Building"} disabled={!activeObjectLayer || activeObjectLayer.locked || !activeObjectLayer.visible} style={{ width: "100%", marginBottom: 8 }}>
               {activeTool === "Building" ? "Click map to place ✓" : "Place selected asset"}
             </button>
@@ -573,6 +671,7 @@ export function EditorShell({
             onInputDiagnostic={setPaintDiagnostic}
             onStamp={() => {}}
             onObjectPlace={handleObjectPlace}
+            onAssetDrop={handleAssetDrop}
             onObjectMove={() => {}}
             selectedObjectId={null}
             selectedObjectIds={selectedObjectIds}

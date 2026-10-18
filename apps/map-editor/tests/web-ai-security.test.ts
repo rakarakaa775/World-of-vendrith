@@ -29,6 +29,26 @@ describe("web AI security budget", () => {
     expect(result.retryAfterSeconds).toBe(0);
   });
 
+  it("calls the distributed rate limiter without a caller-controlled timestamp", async () => {
+    let rpcCall: { functionName: string; args: Record<string, unknown> } | undefined;
+    const client = {
+      rpc: async (functionName: string, args: Record<string, unknown>) => {
+        rpcCall = { functionName, args };
+        return {
+          data: { allowed: true, remaining: 19, retryAfterSeconds: 0 },
+          error: null,
+        };
+      },
+    };
+
+    await consumeWebAiRequestBudget(client, "user-budget");
+
+    expect(rpcCall).toEqual({
+      functionName: "consume_vendrith_web_ai_rate_limit_v1",
+      args: { p_user_id: "user-budget" },
+    });
+  });
+
   it("returns a distributed 429 budget decision without local process state", async () => {
     const client = createRateLimitClient({
       allowed: false,

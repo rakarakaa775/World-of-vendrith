@@ -195,44 +195,53 @@ begin
 end $$;
 rollback;
 
--- A different authenticated owner must not save another user's World.
+-- A different authenticated user may save a private slot on the shared canonical World.
+-- Slot ownership is per user; canonical World access is governed by map_editor_can_access_v1.
 begin;
 select atomic_save_slot_test.seed_case();
+insert into auth.users(id) values ('cccccccc-cccc-cccc-cccc-cccccccccccc') on conflict (id) do nothing;
 select set_config('request.jwt.claim.sub','cccccccc-cccc-cccc-cccc-cccccccccccc',false);
 do $$
 declare r jsonb;
 begin
   r := public.map_editor_save_game_slot_atomic_v1(
-    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Wrong Owner'),
-    null,null,null,1::smallint,'Wrong Owner',atomic_save_slot_test.game_save('Wrong Owner',null)
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Private Slot User C'),
+    null,null,null,1::smallint,'User C Slot',atomic_save_slot_test.game_save('Private Slot User C',null)
   );
-  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='WORLD_ACCESS_DENIED','other owner must not save World');
-  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'other owner cannot add World versions');
+  perform atomic_save_slot_test.assert_true(r->>'ok'='true','authorized non-owner must save a private slot on shared canonical World: '||r::text);
+  perform atomic_save_slot_test.assert_true((select count(*)=2 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'shared World history should advance once');
+  perform atomic_save_slot_test.assert_true((select created_by='cccccccc-cccc-cccc-cccc-cccccccccccc' and snapshot=atomic_save_slot_test.game_save('Private Slot User C',null) from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1 and created_by='cccccccc-cccc-cccc-cccc-cccccccccccc'),'new slot must be owned by the requesting user');
+end $$;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
+do $$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(r->>'ok'='true' and r->'snapshot'=atomic_save_slot_test.game_save('Old World','Old Exterior'),'user A must still load only A private slot');
 end $$;
 rollback;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
 
 select 'atomic Save Slot full-schema security assertions passed' as result;
 
--- A slot owned by a different user must not be overwritten, even if the map is accessible.
+-- Slot numbers are private per user: the same slot number may coexist on the shared World.
 begin;
 select atomic_save_slot_test.seed_case();
 insert into auth.users(id) values ('cccccccc-cccc-cccc-cccc-cccccccccccc') on conflict (id) do nothing;
-update public.map_editor_save_slots
-set created_by='cccccccc-cccc-cccc-cccc-cccccccccccc'
-where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+select set_config('request.jwt.claim.sub','cccccccc-cccc-cccc-cccc-cccccccccccc',false);
 do $slot_owner$
 declare r jsonb;
 begin
   r := public.map_editor_save_game_slot_atomic_v1(
-    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Must not overwrite'),
-    null,null,null,1::smallint,'Foreign slot',atomic_save_slot_test.game_save('Must not overwrite',null)
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('User C Slot One'),
+    null,null,null,1::smallint,'User C Slot One',atomic_save_slot_test.game_save('User C Slot One',null)
   );
-  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='ATOMIC_SAVE_FAILED','foreign-owned slot must fail closed');
-  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'foreign slot owner failure rolls back World version');
-  perform atomic_save_slot_test.assert_true((select created_by='cccccccc-cccc-cccc-cccc-cccccccccccc' and version_number=1 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'foreign slot remains unchanged');
+  perform atomic_save_slot_test.assert_true(r->>'ok'='true','another user may own the same slot number on a shared World: '||r::text);
+  perform atomic_save_slot_test.assert_true((select count(*)=2 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1),'slot number must coexist once per owner');
+  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1 and created_by='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and snapshot=atomic_save_slot_test.game_save('Old World','Old Exterior')),'user C save must not alter user A slot');
 end $slot_owner$;
 rollback;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',false);
 
 -- Verify the RPC's execute grants match the intended Supabase caller boundary.
 do $$
@@ -352,3 +361,28 @@ end
 $load_slot_grants$;
 
 select 'validated Load Slot parent-scope and execute-grant assertions passed' as result;
+
+
+-- RLS must show each authenticated user only their own slot rows, even on shared canonical World.
+begin;
+select atomic_save_slot_test.seed_case();
+insert into auth.users(id) values ('cccccccc-cccc-cccc-cccc-cccccccccccc') on conflict (id) do nothing;
+insert into public.map_editor_save_slots(map_id,slot_number,label,version_id,version_number,snapshot,created_by)
+values ('11111111-1111-1111-1111-111111111111',1,'User C private slot','aaaaaaaa-1111-1111-1111-111111111111',1,atomic_save_slot_test.game_save('Old World','Old Exterior'),'cccccccc-cccc-cccc-cccc-cccccccccccc');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',true);
+do $$
+begin
+  if (select count(*) from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111') <> 1 then
+    raise exception 'RLS must expose only user A private slot';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub','cccccccc-cccc-cccc-cccc-cccccccccccc',true);
+do $$
+begin
+  if (select count(*) from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111') <> 1 then
+    raise exception 'RLS must expose only user C private slot';
+  end if;
+end $$;
+reset role;
+rollback;

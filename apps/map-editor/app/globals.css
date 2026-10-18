@@ -149,7 +149,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .vandrith-console-intro h1{margin:0;font-size:clamp(38px,5.4vw,72px);line-height:.98;letter-spacing:-.035em;font-weight:700;text-shadow:0 14px 40px rgba(0,0,0,.35)}
 .vandrith-console-intro h1 em{font-style:normal;color:#b9c8c1}
 .vandrith-console-intro>p:last-child{max-width:650px;margin:18px 0 0;color:#8f9e9a;font-size:14px;line-height:1.7}
-.vandrith-console-section-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:52px 0 13px;padding-bottom:10px;border-bottom:1px solid rgba(142,164,161,.15)}
+.vandrith-console-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:52px 0 13px;padding-bottom:10px;border-bottom:1px solid rgba(142,164,161,.15)}
 .vandrith-console-section-heading span{color:#c7b66f;font-size:10px;font-weight:700;letter-spacing:.18em}
 .vandrith-console-section-heading small{color:#6f7e7b;font-size:10px}
 .vandrith-engine-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}

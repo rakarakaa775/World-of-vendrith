@@ -68,6 +68,43 @@ describe("map asset loader", () => {
     })).toBeNull();
   });
 
+  it("fails closed when a license is unverified or does not allow all required rights", () => {
+    const base = {
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Licensed Tree",
+      category: "decoration",
+      role: "tree",
+      asset_path: "tree.png",
+      preview_path: null,
+      status: "approved",
+    };
+    const verifiedLicense = {
+      verification_status: "verified",
+      usage_status: "allowed",
+      commercial_use_allowed: true,
+      modification_allowed: true,
+      redistribution_allowed: true,
+    };
+
+    expect(registryRowToMapAsset({
+      ...base,
+      asset_license_registry: { ...verifiedLicense, verification_status: "pending" },
+    })).toBeNull();
+    expect(registryRowToMapAsset({
+      ...base,
+      asset_license_registry: { ...verifiedLicense, commercial_use_allowed: false },
+    })).toBeNull();
+    expect(registryRowToMapAsset({
+      ...base,
+      asset_license_registry: { ...verifiedLicense, modification_allowed: false },
+    })).toBeNull();
+    expect(registryRowToMapAsset({
+      ...base,
+      asset_license_registry: { ...verifiedLicense, redistribution_allowed: false },
+    })).toBeNull();
+    expect(registryRowToMapAsset({ ...base, asset_license_registry: null })).toBeNull();
+  });
+
   it("summarizes runtime physical assets by map level", () => {
     const catalog = [
       registryRowToMapAsset({

@@ -156,8 +156,8 @@ Layer operation mempertahankan identity, serialization, dan undo/redo.
 ### Tujuan
 Memulai object authoring setelah terrain stabil.
 
-- [~] Asset browser → canvas — temporary semantic palette is wired; approved registry-backed browser and previews remain
-- [ ] Drag/drop
+- [~] Asset browser → canvas — EditorShell now consumes the read-only approved/license-verified registry catalog when available, with a temporary semantic fallback; palette thumbnails and Pixi preview URL propagation are implemented; authenticated browser drag/drop verification remains
+- [~] Drag/drop — native drag/drop from the temporary palette to canvas is implemented; browser verification and approved registry integration remain
 - [~] Stamp placement — click-to-place via Building tool; drag stamping remains
 - [~] Object selection — existing canvas selection is connected to inspector; browser interaction verification pending
 - [~] Object move — Alt-drag path exists; browser interaction verification pending

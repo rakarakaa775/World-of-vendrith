@@ -159,9 +159,12 @@ describe('level-aware palette asset placement', () => {
       registryId: '11111111-1111-4111-8111-111111111111',
       label: 'Approved Tree',
       family: 'playable-nature',
+      previewUrl: 'https://assets.example.test/tree.png',
     });
     expect(next.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.assetId)
       .toBe('11111111-1111-4111-8111-111111111111');
+    expect(next.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.assetUrl)
+      .toBe('https://assets.example.test/tree.png');
     expect(next.layers.find(layer => layer.id === 'objects')?.objects.at(-1)?.assetName)
       .toBe('Approved Tree');
   });

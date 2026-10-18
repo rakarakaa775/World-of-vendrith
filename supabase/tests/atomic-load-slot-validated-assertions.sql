@@ -30,7 +30,8 @@ end
 $null_exterior_load$;
 rollback;
 
--- A version owned by another user cannot satisfy this owner's canonical version reference.
+-- A canonical World version may have been committed by another authorized user.
+-- The shared World history is not private; the Save Slot row and snapshot remain owner-scoped.
 begin;
 select atomic_save_slot_test.seed_case();
 insert into auth.users(id) values('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
@@ -40,7 +41,7 @@ do $$
 declare r jsonb;
 begin
   r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
-  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='SLOT_VERSION_REFERENCE_INVALID','foreign-owner canonical version reference rejected');
+  perform atomic_save_slot_test.assert_true(r->>'ok'='true' and r->'snapshot'=atomic_save_slot_test.game_save('Old World','Old Exterior'),'shared canonical version must remain valid independent of version author: '||r::text);
 end $$;
 rollback;
 

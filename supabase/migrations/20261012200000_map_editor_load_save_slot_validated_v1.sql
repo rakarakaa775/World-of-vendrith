@@ -32,7 +32,9 @@ begin
 
   select m.* into v_world
   from public.maps m
-  where m.id = p_map_id and m.created_by = v_uid and m.map_type = 'world'
+  where m.id = p_map_id
+    and m.map_type = 'world'
+    and public.map_editor_can_access_v1(m.id)
   for share;
   if not found then
     return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED');
@@ -58,7 +60,6 @@ begin
   where mv.id = v_slot.version_id
     and mv.map_id = p_map_id
     and mv.version_number = v_slot.version_number
-    and mv.created_by = v_uid
   for share;
 
   if not found then
