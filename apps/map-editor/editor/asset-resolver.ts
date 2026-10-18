@@ -225,7 +225,10 @@ export class PixiTextureCache {
     const pending = this.pending.get(url); if (pending) return pending;
     const request = (async () => {
       try {
-        const texture = await Assets.load({ src: url, parser: "texture" });
+        // Let Pixi v8 select the registered parser from the URL/asset extension.
+        // Forcing the parser name here can bypass the normal texture parser path
+        // in production builds and leave terrain cells on their color fallback.
+        const texture = await Assets.load(url);
         this.textures.set(url, texture);
         return texture;
       } catch (error) {
