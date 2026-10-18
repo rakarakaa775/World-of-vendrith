@@ -52,6 +52,7 @@ export const STARTER_TILES: TileOption[] = TERRAIN_ASSETS.map(({ terrain, name, 
   label,
   terrain,
   assetName: name,
+  previewUrl: name.startsWith("lpc_terrain__") ? `/assets/terrain/${name}` : undefined,
 }));
 
 function normalizeRegistryTile(
@@ -65,6 +66,7 @@ function normalizeRegistryTile(
     assetName: row.name,
     assetPath: row.asset_path || undefined,
     previewPath: row.preview_path || undefined,
+    previewUrl: definition.name.startsWith("lpc_terrain__") ? `/assets/terrain/${definition.name}` : undefined,
   };
 }
 
@@ -94,6 +96,7 @@ export async function loadTerrainTiles(): Promise<TileOption[]> {
           label: definition.label,
           terrain: definition.terrain,
           assetName: definition.name,
+          previewUrl: definition.name.startsWith("lpc_terrain__") ? `/assets/terrain/${definition.name}` : undefined,
         };
   });
 }
