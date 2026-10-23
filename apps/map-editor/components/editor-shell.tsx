@@ -84,6 +84,9 @@ export function EditorShell({
   const [paintDiagnostic, setPaintDiagnostic] = useState("Paint diagnostic: waiting for input");
   const [history, setHistory] = useState<MapEditorStateHistory>(() => createMapEditorStateHistory(initialEditorState ?? parseMapEditorState(serializeMapDocument(initialDocument))));
   const document = history.present.document;
+  const groundCells = document.layers.find(layer => layer.kind === "ground")?.cells ?? [];
+  const grassTileIds = useMemo(() => new Set(tileOptions.filter(tile => ["grass", "grassalt", "tallgrass"].includes(tile.terrain)).map(tile => tile.id)), [tileOptions]);
+  const grassCellCount = groundCells.reduce((count, cell) => count + (cell.tileId && grassTileIds.has(cell.tileId) ? 1 : 0), 0);
   // Keep the latest editor-owned document available to toolbar handlers even while
   // the parent mirror is catching up. Save/Load must operate on EditorShell state.
   const documentRef = useRef<MapDocument>(document);
@@ -447,6 +450,9 @@ export function EditorShell({
             {MAP_SIZES.map(size => <option key={size} value={String(size)}>{size} × {size}</option>)}
           </select>
         </label>
+        <span aria-label="Map terrain statistics" title="Counts cells using Grass, Grass Alt, or Tall Grass terrain IDs" style={{ fontSize: 12, opacity: 0.85, whiteSpace: "nowrap" }}>
+          {document.width} × {document.height} · Grass: {grassCellCount} / {document.width * document.height}
+        </span>
         {availableTools.map(tool => (
           <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
             style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: activeTool === tool ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
