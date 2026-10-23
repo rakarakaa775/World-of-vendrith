@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { createMap } from "./map-document";
-import { applyWaterDepthGradient, neighborMask, terrainCornerMask, TERRAIN_CORNER_BITS, TERRAIN_MASK_BITS } from "./terrain-engine";
+import { applyWaterDepthGradient, neighborMask, terrainCornerMask, terrainFromTileId, TERRAIN_CORNER_BITS, TERRAIN_MASK_BITS } from "./terrain-engine";
+
+
+describe("terrain tile ID semantics", () => {
+  it("normalizes legacy grass tile IDs for semantic consumers", () => {
+    expect(terrainFromTileId("starter-tile")).toBe("grass");
+    expect(terrainFromTileId("grass")).toBe("grass");
+    expect(terrainFromTileId("grassalt")).toBe("grassalt");
+    expect(terrainFromTileId("tallgrass")).toBe("tallgrass");
+    expect(terrainFromTileId(null)).toBeNull();
+    expect(terrainFromTileId("unrecognized-tile")).toBeNull();
+  });
+});
 
 describe("water depth gradient", () => {
   it("collapses leftover shoreline bands to deepwater when a WORLD map has no land", () => {

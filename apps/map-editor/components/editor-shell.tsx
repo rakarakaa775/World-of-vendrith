@@ -5,6 +5,7 @@ import { PixiMapCanvas } from "./pixi-map-canvas";
 import { createMap, MAP_SIZES, resizeMapDocument, type MapDocument } from "../editor/map-document";
 import { loadTerrainTiles, STARTER_TILES, isPaintableTerrainTile, type TileOption } from "../editor/tile-palette";
 import { applyTerrainPaint, eraseTerrainPaint } from "../editor/terrain-paint";
+import { terrainFromTileId } from "../editor/terrain-engine";
 import { commitMapEditorStateHistory, continueMapEditorStateGestureHistory, createMapEditorStateHistory, redoMapEditorStateHistory, resetMapEditorStateHistory, undoMapEditorStateHistory, type MapEditorStateHistory } from "../editor/map-editor-state-history-v2";
 import { parseMapEditorState, replaceMapEditorDocument, type MapEditorState } from "../editor/map-editor-state-v2";
 import { serializeMapDocument } from "../editor/map-serialization";
@@ -85,8 +86,12 @@ export function EditorShell({
   const [history, setHistory] = useState<MapEditorStateHistory>(() => createMapEditorStateHistory(initialEditorState ?? parseMapEditorState(serializeMapDocument(initialDocument))));
   const document = history.present.document;
   const groundCells = document.layers.find(layer => layer.kind === "ground")?.cells ?? [];
-  const grassTileIds = useMemo(() => new Set(tileOptions.filter(tile => ["grass", "grassalt", "tallgrass"].includes(tile.terrain)).map(tile => tile.id)), [tileOptions]);
-  const grassCellCount = groundCells.reduce((count, cell) => count + (cell.tileId && grassTileIds.has(cell.tileId) ? 1 : 0), 0);
+  // Count canonical terrain semantics, not only current palette IDs: saved legacy maps
+  // may still contain aliases such as "starter-tile" for grass.
+  const grassCellCount = groundCells.reduce((count, cell) => {
+    const terrain = terrainFromTileId(cell.tileId);
+    return count + (terrain === "grass" || terrain === "grassalt" || terrain === "tallgrass" ? 1 : 0);
+  }, 0);
   // Keep the latest editor-owned document available to toolbar handlers even while
   // the parent mirror is catching up. Save/Load must operate on EditorShell state.
   const documentRef = useRef<MapDocument>(document);
