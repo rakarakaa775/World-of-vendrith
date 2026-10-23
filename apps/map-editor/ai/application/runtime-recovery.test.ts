@@ -23,6 +23,54 @@ const base = (x: number): RuntimeWorldSnapshot => ({
 });
 
 describe("runtime recovery", () => {
+  it("preserves a spawned Life entity when replaying a durable runtime mutation", () => {
+    const checkpointSnapshot = base(10);
+    const lifeSnapshot: RuntimeWorldSnapshot = {
+      state: { ...checkpointSnapshot.state, stateVersion: "state:11" },
+      entities: [
+        ...checkpointSnapshot.entities,
+        {
+          id: "life:life-draft-aerin",
+          kind: "npc",
+          mapId: "map-1",
+          position: { x: 2, y: 1 },
+          state: {
+            name: "Aerin",
+            race: "elf",
+            lifeCatalogId: "life-aerin",
+            lifeId: "life-draft-aerin",
+            appearance: { face: "soft", hair: "braid", hairColor: "#d7d0bd", eyes: "#73bde5", skin: "#f4c7a1", faceShape: "heart", marking: "freckles" },
+            blocksMovement: true,
+            lifeSpawnActionId: "spawn-life-aerin",
+          },
+        },
+      ],
+    };
+    const checkpoint: RuntimeRecoveryCheckpoint = {
+      sequence: 10,
+      tick: 10,
+      stateVersion: checkpointSnapshot.state.stateVersion,
+      stateHash: runtimeStateHash(checkpointSnapshot),
+      state: checkpointSnapshot,
+    };
+    const mutation: RuntimeRecoveryMutation = {
+      sequence: 11,
+      mutation: { state: lifeSnapshot, action: { id: "spawn-life-aerin", type: "life.spawn" } },
+      stateVersion: lifeSnapshot.state.stateVersion,
+      stateHash: runtimeStateHash(lifeSnapshot),
+    };
+
+    const recovered = applyRuntimeRecoveryRecords(checkpoint, [mutation]);
+
+    expect(recovered.replayedSequences).toEqual([11]);
+    expect(recovered.snapshot.entities.find(entity => entity.id === "life:life-draft-aerin")).toMatchObject({
+      kind: "npc",
+      mapId: "map-1",
+      position: { x: 2, y: 1 },
+      state: { name: "Aerin", race: "elf", lifeSpawnActionId: "spawn-life-aerin" },
+    });
+  });
+
   it("replays a journal entry committed after the last checkpoint", () => {
     const checkpointSnapshot = base(10);
     const nextSnapshot = base(11);

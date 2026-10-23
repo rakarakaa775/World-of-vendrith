@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { createMap } from "../../editor/map-document";
+import { serializeMapDocumentV2 } from "../../editor/map-snapshot-v2";
+import { TERRAIN_SEMANTICS_SCHEMA, TERRAIN_SEMANTICS_VERSION } from "../../editor/terrain-semantics";
 import { createSupabaseRuntimeWorldAdapter } from "./supabase-runtime-world-adapter";
 
-function makeClient() {
+function makeClient(terrainSnapshot?: unknown, terrainEnvelopeOverride?: unknown, contractOverrides: unknown[] = []) {
   const rows: Record<string, unknown[]> = {
     world_environment_clocks: [],
     world_environment_states: [],
@@ -27,9 +30,10 @@ function makeClient() {
       seed_key: "NPC-1", name: "Aldren", race: "human",
       occupation_name: "guard", settlement_name: "Village",
       location_name: "Gate", active: true,
-      metadata: { npcRuntimeContract: { version: 1, decisionProfile: { archetype: "military", role: "guard", capabilities: { behaviors: ["idle", "investigate"], goals: ["go-to-location"] }, personality: { traits: ["disciplined"] } }, environmentPolicy: { npc_movement: { cost_multiplier: 1.5 } } } },
+      metadata: { npcRuntimeContract: { version: 1, decisionProfile: { archetype: "military", role: "guard", capabilities: { behaviors: ["idle", "investigate"], goals: ["go-to-location"] }, personality: { traits: ["disciplined"] } }, environmentPolicy: { npc_movement: { cost_multiplier: 1.5 } }, traversalCapabilities: { canSwim: true, hasWaterTransport: false } } },
     }],
     npc_seed_entries: [{ seed_key: "NPC-1", location_id: "loc-1" }],
+    npc_creator_runtime_contract_overrides: contractOverrides,
     vandrith_unified_object_placement: [{
       map_id: "map-1", entity_type: "npc", entity_id: "entity-1",
       x: 2, y: 1, properties: { seed_key: "NPC-1" },
@@ -40,6 +44,16 @@ function makeClient() {
     rpc(name: string) {
       if (name === "read_latest_world_runtime_checkpoint_v1") return Promise.resolve({ data: [], error: null });
       if (name === "read_world_runtime_mutations_v1") return Promise.resolve({ data: [], error: null });
+      if (name === "map_editor_get_runtime_snapshot_v1") {
+        return Promise.resolve({
+          data: terrainEnvelopeOverride !== undefined
+            ? terrainEnvelopeOverride
+            : terrainSnapshot === undefined
+              ? { ok: true, found: false }
+              : { ok: true, found: true, snapshot: terrainSnapshot },
+          error: null,
+        });
+      }
       throw new Error(`unexpected rpc: ${name}`);
     },
     from(table: string) {
@@ -80,13 +94,85 @@ describe("supabase runtime world adapter", () => {
       kind: "npc",
       mapId: "map-1",
       position: { x: 2, y: 1 },
-      state: { decisionProfile: { archetype: "military", role: "guard", capabilities: { behaviors: ["idle", "investigate"], goals: ["go-to-location"] } }, environmentPolicy: { npc_movement: { cost_multiplier: 1.5 } } },
+      state: { decisionProfile: { archetype: "military", role: "guard", capabilities: { behaviors: ["idle", "investigate"], goals: ["go-to-location"] } }, environmentPolicy: { npc_movement: { cost_multiplier: 1.5 } }, canSwim: true, hasWaterTransport: false },
     });
     expect(result?.grid).toEqual({
       width: 3,
       height: 2,
       blocked: [false, true, false, false, false, false],
     });
+  });
+
+  it("prefers the authenticated creator's persisted contract override over shared catalog metadata", async () => {
+    const result = await createSupabaseRuntimeWorldAdapter(makeClient(undefined, undefined, [{
+      seed_key: "NPC-1",
+      runtime_contract: {
+        version: 1,
+        decisionProfile: { archetype: "civilian", role: "citizen", capabilities: { behaviors: ["idle"], goals: ["work"] } },
+        environmentPolicy: { npc_movement: { cost_multiplier: 2 } },
+        traversalCapabilities: { canSwim: false, hasWaterTransport: true },
+      },
+    }]) as never).load("map-1");
+
+    expect(result?.snapshot.entities[0].state).toMatchObject({
+      decisionProfile: { archetype: "civilian", role: "citizen" },
+      environmentPolicy: { npc_movement: { cost_multiplier: 2 } },
+      canSwim: false,
+      hasWaterTransport: true,
+    });
+  });
+
+  it("projects validated authored V2 water semantics into the runtime navigation grid", async () => {
+    const document = { ...createMap("world", null, "exterior", null, 3, 2), id: "map-1" };
+    const snapshot = JSON.parse(serializeMapDocumentV2({
+      document,
+      terrainSemantics: {
+        schema: TERRAIN_SEMANTICS_SCHEMA,
+        version: TERRAIN_SEMANTICS_VERSION,
+        cells: [
+          { x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" },
+          { x: 0, y: 1, surface: "water", feature: "river", depth: "medium", current: "calm" },
+        ],
+      },
+    }));
+
+    const result = await createSupabaseRuntimeWorldAdapter(makeClient(snapshot) as never).load("map-1");
+    expect(result?.grid.waterCells).toEqual([
+      { x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" },
+      { x: 0, y: 1, surface: "water", feature: "river", depth: "medium", current: "calm" },
+    ]);
+  });
+
+  it("fails closed when a persisted V2 terrain snapshot is invalid", async () => {
+    const document = { ...createMap("world", null, "exterior", null, 3, 2), id: "map-1" };
+    const snapshot = JSON.parse(serializeMapDocumentV2({
+      document,
+      terrainSemantics: {
+        schema: TERRAIN_SEMANTICS_SCHEMA,
+        version: TERRAIN_SEMANTICS_VERSION,
+        cells: [],
+      },
+    }));
+    snapshot.terrainSemantics.cells = [
+      { x: 1, y: 0, surface: "water" },
+      { x: 1, y: 0, surface: "land" },
+    ];
+
+    const result = await createSupabaseRuntimeWorldAdapter(makeClient(snapshot) as never).load("map-1");
+    expect(result).toBeUndefined();
+  });
+
+  it("fails closed when the terrain snapshot RPC returns a malformed envelope", async () => {
+    for (const envelope of [
+      null,
+      { ok: false, found: false },
+      { ok: true, found: "false" },
+      { ok: true, found: true },
+      { ok: true, found: false, snapshot: { unexpected: true } },
+    ]) {
+      const result = await createSupabaseRuntimeWorldAdapter(makeClient(undefined, envelope) as never).load("map-1");
+      expect(result).toBeUndefined();
+    }
   });
 
   it("fails closed when the map does not exist", async () => {

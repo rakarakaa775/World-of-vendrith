@@ -12,6 +12,8 @@ import { terrainFromTileId, waterDepthBand } from "../editor/terrain-engine";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { getTerrainAssetBinding } from "../editor/terrain-asset-binding";
 import { resolveTerrainRenderCell } from "../editor/terrain-resolver";
+import { collectTerrainBindingAssetIds } from "../editor/terrain-texture-requests";
+import { isTerrainAssetRegionWithinBounds } from "../editor/terrain-asset-region";
 import { deriveWaterProjection } from "../editor/water-projection";
 import { terrainVariationIndex } from "../editor/terrain-variation";
 import { resolveAssetRecords, resolveAssetUrl, mapEditorTextureCache } from "../editor/asset-resolver";
@@ -55,9 +57,9 @@ type Props = {
 };
 
 const DEEP_WATER_ASSET_ID = "5587526c-093a-4e3a-8813-aeaa348060eb";
-// Local base-terrain fallback. These 16×16 cells were selected from the bundled
-// LPC sheets only where the source cell is fully opaque; do not reuse one guessed
-// atlas coordinate for every terrain family because the sheets have different layouts.
+// Local base-terrain fallback. These 16×16 cells use per-sheet LPC atlas
+// coordinates. Sand and tallgrass include partially transparent edge pixels;
+// retain the deterministic terrain-color pass underneath those pixels.
 const LOCAL_TERRAIN_CELLS: Record<string, { x: number; y: number }> = {
   grass: { x: 48, y: 0 },
   grassalt: { x: 32, y: 16 },
@@ -116,8 +118,8 @@ const colorForTile = (id: string | null, worldSeed = "", x = 0, y = 0) => {
 };
 const pointKey = (p: GridPoint) => `${p.x}:${p.y}`;
 const terrainRegionTextureCache = new Map<string, Texture>();
-const textureForTerrainBinding = (texture: Texture, assetId: string, region: NonNullable<ReturnType<typeof getTerrainAssetBinding>>["region"]) => {
-  if (!region) return texture;
+const textureForTerrainBinding = (texture: Texture, assetId: string, region: NonNullable<ReturnType<typeof getTerrainAssetBinding>>["region"]): Texture | null => {
+  if (!region || !isTerrainAssetRegionWithinBounds(region, texture.source.width, texture.source.height)) return null;
   const key = `${assetId}:${region.x}:${region.y}:${region.width}:${region.height}`;
   const cached = terrainRegionTextureCache.get(key);
   if (cached) return cached;
@@ -397,16 +399,14 @@ export function PixiMapCanvas(props: Props) {
         const binding = getTerrainAssetBinding(terrainBindings, terrain, 255);
         if (binding) textureRequests.add(binding.assetId);
       }
-      const activeLayer = renderDocument.layers.find(layer => layer.id === activeLayerId);
-      if (activeLayer && activeLayer.kind !== "objects") {
-        for (let i = 0; i < document.width * document.height; i++) {
-          const id = activeLayer.cells[i]?.tileId;
-          const terrain = terrainFromTileId(id ?? null);
-          if (!terrain) continue;
-          const resolved = resolveTerrainRenderCell(renderDocument, activeLayerId, { x: i % document.width, y: Math.floor(i / document.width) }, terrainBindings);
-          const binding = resolved?.assetId ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask) : null;
-          if (binding) textureRequests.add(binding.assetId);
-        }
+      // Rendering traverses every visible terrain layer, not only the active
+      // editing layer. Request mask-specific bindings for that same render set.
+      for (const assetId of collectTerrainBindingAssetIds(
+        renderDocument,
+        terrainBindings,
+        layer => layer.visible && groupVisible(layer) && layerVisible(layer.id),
+      )) {
+        textureRequests.add(assetId);
       }
 
       // Asset metadata is intentionally outside the paint/render critical path.
@@ -470,14 +470,23 @@ export function PixiMapCanvas(props: Props) {
               layer.cells.length === document.width * document.height &&
               layer.cells.every(cell => cell.tileId === "deepwater");
             if (isSolidDeepwaterWorld) {
+              // Prefer the dedicated world-water asset, but keep a bundled
+              // local texture fallback so a missing remote registry entry
+              // cannot leave the entire World as flat-color tiles.
               const texture = loadedTextures.get(DEEP_WATER_ASSET_ID);
-              if (texture) {
-                const tileTexture = textureForTerrainBinding(texture, DEEP_WATER_ASSET_ID, {
-                  x: 0,
-                  y: 0,
-                  width: 16,
-                  height: 16,
-                });
+              const localAsset = LOCAL_TERRAIN_ASSETS.deepwater;
+              const localTexture = localAsset ? loadedTextures.get(localAsset.assetId) : null;
+              const tileTexture = (texture
+                ? textureForTerrainBinding(texture, DEEP_WATER_ASSET_ID, {
+                    x: 0,
+                    y: 0,
+                    width: 16,
+                    height: 16,
+                  })
+                : null) ?? (localTexture && localAsset
+                ? textureForTerrainBinding(localTexture, localAsset.assetId, localAsset.region)
+                : null);
+              if (tileTexture) {
                 const tiled = new TilingSprite({ texture: tileTexture, width, height });
                 scene.addChild(tiled);
               }
@@ -494,11 +503,17 @@ export function PixiMapCanvas(props: Props) {
                 const approvedBinding = resolved?.assetId
                   ? getTerrainAssetBinding(terrainBindings, terrain, resolved.mask)
                   : null;
+                const approvedTexture = approvedBinding ? loadedTextures.get(approvedBinding.assetId) : null;
+                const approvedRenderTexture = approvedBinding && approvedTexture
+                  ? textureForTerrainBinding(approvedTexture, approvedBinding.assetId, approvedBinding.region)
+                  : null;
                 const localAsset = LOCAL_TERRAIN_ASSETS[terrain];
-                const binding = approvedBinding ?? (localAsset ? { assetId: localAsset.assetId, region: localAsset.region } : null);
-                const texture = binding ? loadedTextures.get(binding.assetId) : null;
-                if (!texture || !binding) continue;
-                const renderTexture = textureForTerrainBinding(texture, binding.assetId, binding.region);
+                const localTexture = localAsset ? loadedTextures.get(localAsset.assetId) : null;
+                const localRenderTexture = localAsset && localTexture
+                  ? textureForTerrainBinding(localTexture, localAsset.assetId, localAsset.region)
+                  : null;
+                const renderTexture = approvedRenderTexture ?? localRenderTexture;
+                if (!renderTexture) continue;
                 const sprite = new Sprite(renderTexture);
                 sprite.x = x * document.tileSize;
                 sprite.y = y * document.tileSize;

@@ -11,6 +11,7 @@ describe("Terrain asset approval contract", () => {
     asset_status: "approved",
     autotile_capable: false,
     license_registry_id: "license-1",
+    tile_region: { x: 0, y: 0, width: 16, height: 16 },
   };
 
   it("accepts a fully approved base terrain", () => {
@@ -49,6 +50,22 @@ describe("Terrain asset approval contract", () => {
     ]);
     expect(result.accepted).toHaveLength(0);
     expect(result.rejected).toBe(1);
+  });
+
+  it("rejects an approved binding without a concrete sprite region", () => {
+    const result = loadTerrainAssetBindings([{ ...baseRow, tile_region: null }]);
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected).toBe(1);
+  });
+
+  it("rejects a malformed sprite region", () => {
+    const result = loadTerrainAssetBindings([
+      { ...baseRow, tile_region: { x: -1, y: 0, width: 16, height: 16 } },
+      { ...baseRow, tile_region: { x: 0, y: 0, width: 0, height: 16 } },
+      { ...baseRow, tile_region: { x: 0, y: 0, width: 16.5, height: 16 } },
+    ]);
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected).toBe(3);
   });
 
   it("rejects legacy verified and active asset statuses", () => {

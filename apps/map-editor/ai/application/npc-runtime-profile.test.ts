@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { creatorNpcDecisionProfile, proposeCreatorNpcPackage } from "./npc-creator-package";
+import { creatorNpcDecisionProfile, creatorNpcRuntimeMetadata, proposeCreatorNpcPackage } from "./npc-creator-package";
 import { decisionProfileFromMetadata, validatedNpcDecisionProfile } from "./npc-runtime-profile";
 import { createMap } from "../../editor/map-document";
 import { previewCreatorNpcPackage } from "./npc-creator-package";
+import { validatedNpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
 
 describe("NPC runtime profile propagation", () => {
   it("builds the runtime profile from a validated Creator NPC package", () => {
@@ -17,6 +18,28 @@ describe("NPC runtime profile propagation", () => {
     };
     expect(proposeCreatorNpcPackage(npc).validation.ok).toBe(true);
     expect(creatorNpcDecisionProfile(npc)).toMatchObject({ archetype: "civilian", role: "citizen" });
+  });
+
+  it("serializes a validated Creator runtime contract into metadata and rehydrates it after JSON persistence", () => {
+    const npc = {
+      id: "npc-water-traveler",
+      archetype: "civilian" as const,
+      role: "citizen" as const,
+      capabilities: { behaviors: ["idle" as const], goals: ["work" as const] },
+      environmentPolicy: { npc_movement: { cost_multiplier: 1.25 } },
+      traversalCapabilities: { canSwim: true, hasWaterTransport: false },
+    };
+    const metadata = creatorNpcRuntimeMetadata(npc, { source: "npc-creator", keepMe: true });
+    expect(metadata).toMatchObject({ source: "npc-creator", keepMe: true });
+    const persistedAndReadBack = JSON.parse(JSON.stringify(metadata)) as Record<string, unknown>;
+    const contract = validatedNpcRuntimeSpawnContract(persistedAndReadBack.npcRuntimeContract);
+    expect(contract?.traversalCapabilities).toEqual({ canSwim: true, hasWaterTransport: false });
+    expect(contract?.environmentPolicy).toEqual({ npc_movement: { cost_multiplier: 1.25 } });
+  });
+
+  it("refuses to build a metadata write payload for invalid Creator input or malformed existing metadata", () => {
+    expect(creatorNpcRuntimeMetadata({ id: "bad", environmentPolicy: { unexpected: true } } as never)).toBeUndefined();
+    expect(creatorNpcRuntimeMetadata({ id: "ok", environmentPolicy: {} }, null)).toBeUndefined();
   });
 
   it("previews a validated Creator package without persistence", async () => {

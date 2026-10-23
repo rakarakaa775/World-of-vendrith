@@ -63,6 +63,7 @@ describe("PreviewRuntimeSimulation", () => {
     const contract = buildNpcRuntimeSpawnContract(
       { archetype: "civilian", capabilities: { behaviors: ["idle", "follow-player"] } },
       { npc_sensing: { hearing_radius: 3, smell_radius: 2, detection_modifier: 1.5 }, npc_movement: { cost_multiplier: 2.5 } },
+      { canSwim: true, hasWaterTransport: true },
     );
     const simulation = new PreviewRuntimeSimulation(document, [{
       seedKey: "contract-npc", name: "Contract NPC", runtimeContract: contract,
@@ -71,6 +72,7 @@ describe("PreviewRuntimeSimulation", () => {
     expect(before?.validation.ok).toBe(true);
     expect(before?.decisionProfile?.archetype).toBe("civilian");
     expect(before?.environmentPolicy?.npc_movement).toEqual({ cost_multiplier: 2.5 });
+    expect(simulation.snapshot().entities.find(entity => entity.id === "npc:contract-npc")?.state).toMatchObject({ canSwim: true, hasWaterTransport: true });
 
     const result = await simulation.tick();
     const after = simulation.diagnostics("npc:contract-npc");

@@ -1,20 +1,22 @@
 import type { MapDocument } from "./map-document";
-import { parseMapDocument, serializeMapDocument } from "./map-serialization";
 import {
-  TERRAIN_SEMANTICS_SCHEMA,
-  TERRAIN_SEMANTICS_VERSION,
-  validateTerrainSemantics,
-  type TerrainSemanticsSection,
-} from "./terrain-semantics";
-
-export const MAP_DOCUMENT_V2_SCHEMA = "vandrith.map-document";
-export const MAP_DOCUMENT_V2_VERSION = 2 as const;
+  MAP_DOCUMENT_V2_SCHEMA as CANONICAL_MAP_DOCUMENT_V2_SCHEMA,
+  MAP_DOCUMENT_V2_VERSION,
+  parseMapSnapshot,
+  serializeMapDocumentV2 as serializeCanonicalMapDocumentV2,
+} from "./map-snapshot-v2";
+import type { TerrainSemanticsSection } from "./terrain-semantics";
 
 /**
- * Version 2 envelope keeps MapDocument v1 intact and stores authored terrain
- * semantics in a separate, validated section. Legacy v1 parsing remains
- * delegated to the existing parser and never fabricates terrain semantics.
+ * Compatibility facade for the earlier V2 serialization API. All writes use
+ * the canonical map-snapshot-v2 envelope; the earlier alternate schema name
+ * is accepted only on reads so it cannot create a second persisted format.
  */
+export const MAP_DOCUMENT_V2_SCHEMA = CANONICAL_MAP_DOCUMENT_V2_SCHEMA;
+export { MAP_DOCUMENT_V2_VERSION };
+
+const LEGACY_ALTERNATE_V2_SCHEMA = "vandrith.map-document";
+
 export type SerializedMapDocumentV2 = Readonly<{
   schema: typeof MAP_DOCUMENT_V2_SCHEMA;
   version: typeof MAP_DOCUMENT_V2_VERSION;
@@ -27,71 +29,42 @@ export type ParsedMapDocumentV2 = Readonly<{
   terrainSemantics: TerrainSemanticsSection;
 }>;
 
+function normalizeV2Envelope(value: string | unknown): unknown {
+  const payload: unknown = typeof value === "string" ? JSON.parse(value) : value;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
+  const candidate = payload as Record<string, unknown>;
+  if (candidate.schema === LEGACY_ALTERNATE_V2_SCHEMA && candidate.version === MAP_DOCUMENT_V2_VERSION) {
+    return { ...candidate, schema: CANONICAL_MAP_DOCUMENT_V2_SCHEMA };
+  }
+  return payload;
+}
+
 export function serializeMapDocumentV2(
   document: MapDocument,
   terrainSemantics: TerrainSemanticsSection,
 ): string {
-  const validated = validateTerrainSemantics(document.width, document.height, terrainSemantics);
-  return JSON.stringify({
-    schema: MAP_DOCUMENT_V2_SCHEMA,
-    version: MAP_DOCUMENT_V2_VERSION,
-    document: JSON.parse(serializeMapDocument(document)).document,
-    terrainSemantics: validated,
-  } satisfies SerializedMapDocumentV2, null, 2);
+  return serializeCanonicalMapDocumentV2({ document, terrainSemantics });
 }
 
 export function parseMapDocumentV2(
   value: string | unknown,
   requestedMapId?: string,
 ): ParsedMapDocumentV2 {
-  const payload: unknown = typeof value === "string" ? JSON.parse(value) : value;
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("Invalid map document v2 payload");
-  }
-  const candidate = payload as Record<string, unknown>;
-  if (candidate.schema !== MAP_DOCUMENT_V2_SCHEMA) {
-    throw new Error("Unsupported map document schema");
-  }
-  if (candidate.version !== MAP_DOCUMENT_V2_VERSION) {
-    throw new Error("Unsupported map document version");
-  }
-  if (!candidate.document || typeof candidate.document !== "object") {
-    throw new Error("Missing map document");
-  }
-  const document = parseMapDocument({
-    schema: "vandrith.map-document",
-    version: 1,
-    document: candidate.document,
-  } as never, requestedMapId);
-  const terrainSemantics = validateTerrainSemantics(
-    document.width,
-    document.height,
-    candidate.terrainSemantics,
-  );
-  return { document, terrainSemantics };
+  const parsed = parseMapSnapshot(normalizeV2Envelope(value), requestedMapId);
+  if (parsed.format !== "v2") throw new Error("Expected a V2 map document envelope");
+  return parsed.state;
 }
 
-/** Parse either supported envelope without upgrading legacy data implicitly. */
+/** Parse the canonical V2 format and legacy V1 documents without inventing semantics. */
 export function parseMapDocumentEnvelope(
   value: string | unknown,
   requestedMapId?: string,
 ): ParsedMapDocumentV2 | { document: MapDocument; terrainSemantics: null } {
-  const payload: unknown = typeof value === "string" ? JSON.parse(value) : value;
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("Invalid map document payload");
-  }
-  const candidate = payload as Record<string, unknown>;
-  if (candidate.version === MAP_DOCUMENT_V2_VERSION) {
-    return parseMapDocumentV2(candidate, requestedMapId);
-  }
-  if (candidate.version === 1) {
-    return {
-      document: parseMapDocument(candidate as never, requestedMapId),
-      terrainSemantics: null,
-    };
-  }
-  throw new Error("Unsupported map document version");
+  const parsed = parseMapSnapshot(normalizeV2Envelope(value), requestedMapId);
+  return parsed.format === "v2"
+    ? parsed.state
+    : { document: parsed.document, terrainSemantics: null };
 }
 
-export const TERRAIN_SEMANTICS_V2_SCHEMA = TERRAIN_SEMANTICS_SCHEMA;
-export const TERRAIN_SEMANTICS_V2_VERSION = TERRAIN_SEMANTICS_VERSION;
+export const TERRAIN_SEMANTICS_V2_SCHEMA = "vandrith.terrain-semantics" as const;
+export const TERRAIN_SEMANTICS_V2_VERSION = 1 as const;

@@ -32,6 +32,50 @@ describe("NPC movement controller", () => {
     expect(result.state.position).toEqual(state.position);
   });
 
+  it("revalidates authored water traversal at execution time", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3,
+      height: 1,
+      blocked: [false, false, false],
+      waterCells: [{ x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" }],
+    };
+    const waterAction: RuntimeAction = {
+      ...action,
+      payload: {
+        path: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }],
+        targetLocation: { mapId: "region-1", x: 2, y: 0 },
+      },
+    };
+
+    const denied = executeNpcMovementStep(waterAction, state, waterGrid, "v1");
+    expect(denied.ok).toBe(false);
+    expect(denied.reason).toBe("blocked");
+    expect(denied.state.position).toEqual(state.position);
+
+    const transported = executeNpcMovementStep(waterAction, { ...state, hasWaterTransport: true }, waterGrid, "v1");
+    expect(transported.ok).toBe(true);
+    expect(transported.state.position).toEqual({ x: 1, y: 0 });
+  });
+
+  it("does not allow swimming to bypass deep-sea transport requirements", () => {
+    const waterGrid: NavigationGrid = {
+      width: 3,
+      height: 1,
+      blocked: [false, false, false],
+      waterCells: [{ x: 1, y: 0, surface: "water", feature: "ocean_sea", depth: "deep" }],
+    };
+    const waterAction: RuntimeAction = {
+      ...action,
+      payload: {
+        path: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }],
+        targetLocation: { mapId: "region-1", x: 2, y: 0 },
+      },
+    };
+    const result = executeNpcMovementStep(waterAction, { ...state, canSwim: true }, waterGrid, "v1");
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("blocked");
+  });
+
   it("rejects stale state", () => {
     const result = executeNpcMovementStep(action, state, grid, "v2");
     expect(result.ok).toBe(false);

@@ -3,6 +3,7 @@ import { createMap } from "../editor/map-document";
 import { parseMapDocument, serializeMapDocument } from "../editor/map-serialization";
 import { resizeMapDocumentV2 } from "../editor/map-document-v2";
 import {
+  MAP_DOCUMENT_V2_SCHEMA,
   parseMapDocumentEnvelope,
   parseMapDocumentV2,
   serializeMapDocumentV2,
@@ -23,10 +24,22 @@ const semantics = {
 };
 
 describe("MapDocument v2 envelope", () => {
-  it("round-trips the document and authored terrain semantics", () => {
-    const parsed = parseMapDocumentV2(serializeMapDocumentV2(document, semantics));
+  it("round-trips the document and authored terrain semantics using the canonical V2 schema", () => {
+    const serialized = serializeMapDocumentV2(document, semantics);
+    expect(JSON.parse(serialized).schema).toBe(MAP_DOCUMENT_V2_SCHEMA);
+    const parsed = parseMapDocumentV2(serialized);
     expect(parsed.document).toEqual(document);
     expect(parsed.terrainSemantics).toEqual(semantics);
+  });
+
+  it("reads the earlier alternate V2 schema without emitting it again", () => {
+    const canonical = JSON.parse(serializeMapDocumentV2(document, semantics));
+    const legacyAlternate = { ...canonical, schema: "vandrith.map-document" };
+    const parsed = parseMapDocumentV2(legacyAlternate);
+    expect(parsed.document).toEqual(document);
+    expect(parsed.terrainSemantics).toEqual(semantics);
+    expect(JSON.parse(serializeMapDocumentV2(parsed.document, parsed.terrainSemantics)).schema)
+      .toBe(MAP_DOCUMENT_V2_SCHEMA);
   });
 
   it("produces deterministic v2 serialization after parse and re-serialize", () => {

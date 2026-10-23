@@ -5,6 +5,9 @@ export interface RuntimeMovementState {
   mapId: string;
   position: NavigationPoint;
   stateVersion: string;
+  /** Authenticated actor capabilities are authoritative for execution-time traversal checks. */
+  canSwim?: boolean;
+  hasWaterTransport?: boolean;
 }
 
 export interface MovementStep {

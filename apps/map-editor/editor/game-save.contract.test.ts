@@ -141,26 +141,48 @@ describe('game save contract', () => {
     })).toBeNull();
   });
 
-  it('refuses Terrain v2 Save Slot payloads rather than silently dropping semantics', () => {
-    const world = map('world-1');
-    const terrainV2 = {
-      schema: 'vandrith.game-save',
-      version: 2,
-      world: {
-        schema: 'vandrith.map-editor-state',
-        version: 2,
-        document: world,
-        terrainSemantics: {
-          schema: 'vandrith.terrain-semantics',
-          version: 1,
-          cells: [{ x: 1, y: 1, surface: 'water', depth: 'deep' }],
-        },
+  it('round-trips initialized Terrain V2 metadata in the compatible atomic Save Slot envelope', () => {
+    const world = map('world-terrain-v2');
+    const exterior = map('exterior-terrain-v2', 'playable');
+    const worldState = {
+      kind: 'initialized' as const,
+      document: world,
+      terrainSemantics: {
+        schema: 'vandrith.terrain-semantics' as const,
+        version: 1 as const,
+        cells: [{ x: 1, y: 1, surface: 'water' as const, depth: 'deep' as const }],
       },
-      exterior: null,
+    };
+    const exteriorState = {
+      kind: 'initialized' as const,
+      document: exterior,
+      terrainSemantics: {
+        schema: 'vandrith.terrain-semantics' as const,
+        version: 1 as const,
+        cells: [{ x: 2, y: 2, surface: 'land' as const }],
+      },
     };
 
-    expect(() => parseGameSaveSlotSnapshot(terrainV2, world.id))
-      .toThrow('Unsupported Game Save snapshot version');
+    const snapshot = serializeGameSaveSnapshot(world, exterior, worldState, exteriorState);
+    expect(snapshot.version).toBe(1); // Existing atomic RPC remains compatible.
+    expect(snapshot.terrainSemantics?.world?.cells).toEqual([{ x: 1, y: 1, surface: 'water', depth: 'deep' }]);
+    const loaded = parseGameSaveSlotSnapshot(snapshot, world.id);
+    expect(loaded.worldState).toEqual(worldState);
+    expect(loaded.exteriorState).toEqual(exteriorState);
+    expect(serializeGameSaveSnapshot(loaded.world, loaded.exterior, loaded.worldState, loaded.exteriorState))
+      .toEqual(snapshot);
+  });
+
+  it('rejects invalid Terrain V2 metadata instead of dropping it', () => {
+    const world = map('world-invalid-terrain-v2');
+    const invalid = {
+      schema: 'vandrith.game-save', version: 1, world, exterior: null,
+      terrainSemantics: {
+        world: { schema: 'vandrith.terrain-semantics', version: 1, cells: [{ x: -1, y: 0, surface: 'water' }] },
+        exterior: null,
+      },
+    };
+    expect(() => parseGameSaveSlotSnapshot(invalid, world.id)).toThrow(/outside map bounds/i);
   });
 });
 

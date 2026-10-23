@@ -6,6 +6,7 @@ import type { RuntimeActionPort, RuntimeObservationSource, RuntimeVerificationPo
 import { executeNpcMovementStep } from "./npc-movement";
 import { verifiedEvidence } from "./evidence";
 import { effectiveNpcEnvironmentConditionsForEntity, npcActivityRecoveryStrategyFromConditions } from "./npc-environment-policy-runtime";
+import { validateLifeSpawnReference } from "../../editor/life-spawn-reference";
 
 export interface RuntimeWorldSnapshot {
   state: RuntimeObservation["state"];
@@ -16,6 +17,7 @@ export interface RuntimeWorldStore {
   snapshot(): RuntimeWorldSnapshot;
   grid(mapId: string): NavigationGrid | undefined;
   updateEntity(entity: RuntimeEntity): void;
+  addEntity?(entity: RuntimeEntity): boolean;
 }
 
 function visibilityRadius(snapshot: RuntimeWorldSnapshot): number {
@@ -136,6 +138,59 @@ export function createRuntimeWorldObservationSource(store: RuntimeWorldStore): R
 export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeActionPort {
   return {
     async execute(action) {
+      if (action.type === "life.spawn" && action.intelligence === "life" && action.risk === "game-rule") {
+        const snapshot = store.snapshot();
+        const reference = action.payload.lifeReference;
+        const validation = validateLifeSpawnReference(reference);
+        if (!validation.ok || !reference || typeof reference !== "object" || Array.isArray(reference)) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Life spawn reference is invalid." };
+        }
+        const life = reference as Record<string, unknown>;
+        const target = life.target as Record<string, unknown>;
+        const mapId = action.payload.mapId;
+        if (typeof mapId !== "string" || !mapId || target.worldId !== snapshot.state.worldId) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Life spawn target does not match the authoritative world." };
+        }
+        if (!Number.isInteger(target.x) || !Number.isInteger(target.y)) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Life spawn coordinates must be integer tile coordinates." };
+        }
+        const grid = store.grid(mapId);
+        const x = target.x as number;
+        const y = target.y as number;
+        if (!grid || x < 0 || y < 0 || x >= grid.width || y >= grid.height) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Life spawn position is outside the target map." };
+        }
+        if (grid.blocked[y * grid.width + x] === true) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Life spawn position is blocked by map collision." };
+        }
+        if (snapshot.entities.some(entity => entity.mapId === mapId && entity.position.x === x && entity.position.y === y && entity.state?.blocksMovement === true)) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Life spawn position is occupied by a blocking entity." };
+        }
+        if (!store.addEntity) {
+          return { ok: false, actionId: action.id, stateVersion: snapshot.state.stateVersion, detail: "Runtime store does not support authoritative entity creation." };
+        }
+        const entityId = "life:" + String(life.lifeId);
+        const added = store.addEntity({
+          id: entityId,
+          kind: "npc",
+          mapId,
+          position: { x, y },
+          state: {
+            name: life.displayName,
+            race: life.race,
+            lifeCatalogId: life.lifeCatalogId,
+            lifeId: life.lifeId,
+            appearance: life.appearance,
+            blocksMovement: true,
+            lifeSpawnActionId: action.id,
+          },
+        });
+        if (!added) {
+          return { ok: false, actionId: action.id, stateVersion: store.snapshot().state.stateVersion, detail: "Life entity already exists; duplicate spawn rejected." };
+        }
+        return { ok: true, actionId: action.id, stateVersion: store.snapshot().state.stateVersion, detail: "Life entity spawned in the authoritative runtime snapshot." };
+      }
+
       if (action.type === "npc.activity" && action.intelligence === "npc" && action.risk === "game-rule") {
         const snapshot = store.snapshot();
         const entityId = String(action.payload.entityId ?? "");
@@ -234,6 +289,8 @@ export function createRuntimeWorldActionPort(store: RuntimeWorldStore): RuntimeA
         mapId: entity.mapId,
         position: entity.position,
         stateVersion: snapshot.state.stateVersion,
+        canSwim: entity.state?.canSwim === true,
+        hasWaterTransport: entity.state?.hasWaterTransport === true,
       };
       const result = executeNpcMovementStep(action, movementState, grid, snapshot.state.stateVersion);
       if (!result.ok) {
@@ -254,6 +311,21 @@ export function createRuntimeWorldVerificationPort(store: RuntimeWorldStore): Ru
         { name: "execution", ok: result.ok },
         { name: "state-version-returned", ok: typeof result.stateVersion === "string" && result.stateVersion.length > 0 },
       ];
+
+      if (action.type === "life.spawn" && action.intelligence === "life") {
+        const life = action.payload.lifeReference;
+        const lifeId = life && typeof life === "object" && !Array.isArray(life)
+          ? String((life as Record<string, unknown>).lifeId ?? "")
+          : "";
+        const entity = store.snapshot().entities.find(candidate => candidate.id === "life:" + lifeId);
+        checks.push({ name: "life-entity-created", ok: Boolean(entity && entity.state?.lifeSpawnActionId === action.id) });
+        checks.push({ name: "life-position-matches-target", ok: Boolean(
+          entity && life && typeof life === "object" && !Array.isArray(life) &&
+          (life as Record<string, unknown>).target && typeof (life as Record<string, unknown>).target === "object" &&
+          entity.position.x === ((life as Record<string, unknown>).target as Record<string, unknown>).x &&
+          entity.position.y === ((life as Record<string, unknown>).target as Record<string, unknown>).y
+        ) });
+      }
 
       if (action.type === "npc.navigate" && action.intelligence === "npc") {
         const entity = store.snapshot().entities.find(candidate => candidate.id === String(action.payload.entityId ?? ""));

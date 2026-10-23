@@ -1,21 +1,44 @@
 import type { MapDocument } from './map-document';
 import { parseMapDocument } from './map-serialization';
+import { validateTerrainSemantics, type TerrainSemanticsSection } from './terrain-semantics';
+import type { MapEditorState } from './map-editor-state-v2';
 
 export type GameSaveSnapshot = {
   schema: 'vandrith.game-save';
   version: 1;
   world: MapDocument;
   exterior: MapDocument | null;
+  /** Optional validated editor metadata; null means an explicitly legacy/uninitialized map. */
+  terrainSemantics?: { world: TerrainSemanticsSection | null; exterior: TerrainSemanticsSection | null };
 };
 
-export function serializeGameSaveSnapshot(world: MapDocument, exterior: MapDocument | null): GameSaveSnapshot {
-  return { schema: 'vandrith.game-save', version: 1, world, exterior };
+export function serializeGameSaveSnapshot(
+  world: MapDocument,
+  exterior: MapDocument | null,
+  worldState?: MapEditorState | null,
+  exteriorState?: MapEditorState | null,
+): GameSaveSnapshot {
+  const worldSemantics = worldState?.kind === 'initialized' && worldState.document.id === world.id
+    ? validateTerrainSemantics(world.width, world.height, worldState.terrainSemantics)
+    : null;
+  const exteriorSemantics = exterior && exteriorState?.kind === 'initialized' && exteriorState.document.id === exterior.id
+    ? validateTerrainSemantics(exterior.width, exterior.height, exteriorState.terrainSemantics)
+    : null;
+  return {
+    schema: 'vandrith.game-save', version: 1, world, exterior,
+    ...(worldSemantics || exteriorSemantics
+      ? { terrainSemantics: { world: worldSemantics, exterior: exteriorSemantics } }
+      : {}),
+  };
 }
 
 export type ParsedGameSaveSlotSnapshot = {
   format: 'game-save-v1' | 'legacy-map-document-v1';
   world: MapDocument;
   exterior: MapDocument | null;
+  worldState?: MapEditorState;
+  exteriorState?: MapEditorState | null;
+  terrainSemantics?: GameSaveSnapshot['terrainSemantics'];
 };
 
 /**
@@ -45,13 +68,11 @@ export function parseGameSaveSlotSnapshot(
     if (candidate.version !== 1) throw new Error('Unsupported Game Save snapshot version');
     if (!Object.prototype.hasOwnProperty.call(candidate, 'world')
         || !Object.prototype.hasOwnProperty.call(candidate, 'exterior')
-        || (candidate.exterior !== null && typeof candidate.exterior !== 'object')) {
-      throw new Error('Game Save snapshot is incomplete');
+        || (candidate.exterior !== null && (typeof candidate.exterior !== 'object' || Array.isArray(candidate.exterior)))) {
+      throw new Error('Game Save snapshot is invalid or incomplete');
     }
-    const parsed = parseGameSaveSnapshot(candidate);
-    if (!parsed) throw new Error('Game Save snapshot is invalid');
-    world = parsed.world;
-    exterior = parsed.exterior;
+    world = parseMapDocument(candidate.world as MapDocument);
+    if (candidate.exterior !== null) exterior = parseMapDocument(candidate.exterior as MapDocument);
     format = 'game-save-v1';
   } else if (candidate.schema === 'vandrith.map-document' && candidate.version === 1) {
     world = parseMapDocument(value as Parameters<typeof parseMapDocument>[0], expectedWorldId);
@@ -72,23 +93,67 @@ export function parseGameSaveSlotSnapshot(
     throw new Error('LOAD_SLOT_IDENTITY_MISMATCH: Exterior snapshot is not an exterior playable map');
   }
 
+  if (candidate.terrainSemantics !== undefined) {
+    const metadata = candidate.terrainSemantics;
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      throw new Error('Game Save terrain semantics envelope is invalid');
+    }
+    const sections = metadata as Record<string, unknown>;
+    if (Object.keys(sections).some((key) => key !== 'world' && key !== 'exterior')
+        || !Object.prototype.hasOwnProperty.call(sections, 'world')
+        || !Object.prototype.hasOwnProperty.call(sections, 'exterior')) {
+      throw new Error('Game Save terrain semantics envelope is incomplete');
+    }
+    const worldSemantics = sections.world === null ? null : validateTerrainSemantics(world.width, world.height, sections.world);
+    const exteriorSemantics = sections.exterior === null
+      ? null
+      : exterior ? validateTerrainSemantics(exterior.width, exterior.height, sections.exterior)
+        : (() => { throw new Error('Game Save has Exterior semantics without an Exterior map'); })();
+    const worldState: MapEditorState = worldSemantics
+      ? { kind: 'initialized', document: world, terrainSemantics: worldSemantics }
+      : { kind: 'legacy', document: world, terrainSemantics: null };
+    const exteriorState: MapEditorState | null = exterior
+      ? exteriorSemantics
+        ? { kind: 'initialized', document: exterior, terrainSemantics: exteriorSemantics }
+        : { kind: 'legacy', document: exterior, terrainSemantics: null }
+      : null;
+    return { format, world, exterior, worldState, exteriorState, terrainSemantics: { world: worldSemantics, exterior: exteriorSemantics } };
+  }
+
   return { format, world, exterior };
 }
 
 export function parseGameSaveSnapshot(snapshot: unknown): GameSaveSnapshot | null {
   try {
     const value = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
-    if (!value || typeof value !== 'object') return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     const candidate = value as Record<string, unknown>;
-    if (candidate.schema !== 'vandrith.game-save' || candidate.version !== 1) return null;
+    if (candidate.schema !== 'vandrith.game-save' || candidate.version !== 1
+        || !Object.prototype.hasOwnProperty.call(candidate, 'world')
+        || !Object.prototype.hasOwnProperty.call(candidate, 'exterior')
+        || (candidate.exterior !== null && (typeof candidate.exterior !== 'object' || Array.isArray(candidate.exterior)))) return null;
 
     const world = parseMapDocument(candidate.world as MapDocument);
-    let exterior: MapDocument | null = null;
-    if (candidate.exterior !== null && candidate.exterior !== undefined) {
-      exterior = parseMapDocument(candidate.exterior as MapDocument);
+    const exterior = candidate.exterior === null ? null : parseMapDocument(candidate.exterior as MapDocument);
+    let terrainSemantics: GameSaveSnapshot['terrainSemantics'];
+    if (candidate.terrainSemantics !== undefined) {
+      const metadata = candidate.terrainSemantics;
+      if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+      const sections = metadata as Record<string, unknown>;
+      if (Object.keys(sections).some((key) => key !== 'world' && key !== 'exterior')
+          || !Object.prototype.hasOwnProperty.call(sections, 'world')
+          || !Object.prototype.hasOwnProperty.call(sections, 'exterior')) return null;
+      const worldSemantics = sections.world === null ? null : validateTerrainSemantics(world.width, world.height, sections.world);
+      const exteriorSemantics = sections.exterior === null
+        ? null
+        : exterior ? validateTerrainSemantics(exterior.width, exterior.height, sections.exterior) : null;
+      if (sections.exterior !== null && !exterior) return null;
+      terrainSemantics = { world: worldSemantics, exterior: exteriorSemantics };
     }
-
-    return { schema: 'vandrith.game-save', version: 1, world, exterior };
+    return {
+      schema: 'vandrith.game-save', version: 1, world, exterior,
+      ...(terrainSemantics !== undefined ? { terrainSemantics } : {}),
+    };
   } catch {
     return null;
   }

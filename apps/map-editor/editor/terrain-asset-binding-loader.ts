@@ -104,7 +104,10 @@ export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoad
     const baseTerrain = common && row.neighbor_mask === 255;
     const fullAutotile = common && row.autotile_capable === true;
 
-    if (!baseTerrain && !fullAutotile) {
+    const region = parseTerrainAssetRegion(row.tile_region);
+    // Runtime bindings must identify a concrete sprite region. Without it,
+    // Pixi would use the entire spritesheet as a single terrain tile.
+    if ((!baseTerrain && !fullAutotile) || !region) {
       rejected += 1;
       continue;
     }
@@ -114,7 +117,7 @@ export function loadTerrainAssetBindings(rows: unknown): TerrainAssetBindingLoad
       mask: row.neighbor_mask as TerrainMask,
       assetId: row.asset_id!.trim(),
       sourceRuleKey: null,
-      region: parseTerrainAssetRegion(row.tile_region),
+      region,
     });
   }
 

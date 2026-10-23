@@ -10,7 +10,7 @@ import { buildProjectSchemaKnowledgeGraph } from "./schema-knowledge-graph";
 import { NPC_ENVIRONMENT_POLICY_SCHEMA, validateNpcEnvironmentPolicy } from "./npc-environment-policy-schema";
 import { NPC_ARCHETYPE_SCHEMA, validateNpcArchetype, type NpcArchetype } from "./npc-archetype-schema";
 import { NPC_ARCHETYPE_CAPABILITY_SCHEMA, npcArchetypeCapabilities, validateNpcCapabilities } from "./npc-archetype-capabilities";
-import { proposeCreatorNpcPackage } from "./npc-creator-package";
+import { creatorNpcRuntimeMetadata, creatorNpcRuntimeSpawnContract, proposeCreatorNpcPackage } from "./npc-creator-package";
 import { NPC_ROLE_SCHEMA, npcRoleArchetypes, validateNpcRole, type NpcRole } from "./npc-role-schema";
 import { NPC_PERSONALITY_SCHEMA, validateNpcPersonality, type NpcPersonalityRequest } from "./npc-personality-schema";
 import { NPC_PERSONALITY_POLICY_SCHEMA, validateNpcPersonalityPolicy, type NpcPersonalityPolicy } from "./npc-personality-policy-schema";
@@ -193,7 +193,7 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
     },
     {
       name: "npc.creator_package.propose", description: "Build a Creator AI NPC package containing identity, optional descriptive archetype/role, capabilities, and validated environment policy. This remains read-only and does not mutate the project.", capability: "read",
-      parameters: { type: "object", properties: { npc: { type: "object", properties: { id: { type: "string" }, name: { type: "string" }, archetype: { type: "string" }, role: { type: "string" }, personality: { type: "object" }, personalityPolicy: { type: "object" }, relationshipPolicy: { type: "object" }, capabilities: { type: "object" }, environmentPolicy: { type: "object" } } } }, required: ["npc"] },
+      parameters: { type: "object", properties: { npc: { type: "object", properties: { id: { type: "string" }, name: { type: "string" }, archetype: { type: "string" }, role: { type: "string" }, personality: { type: "object" }, personalityPolicy: { type: "object" }, relationshipPolicy: { type: "object" }, capabilities: { type: "object" }, traversalCapabilities: { type: "object", properties: { canSwim: { type: "boolean" }, hasWaterTransport: { type: "boolean" } }, required: ["canSwim", "hasWaterTransport"] }, environmentPolicy: { type: "object" } } } }, required: ["npc"] },
       validate: (args): args is { npc: { id: string; name?: string; archetype?: string; role?: string; personality?: Record<string, unknown>; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } } => {
         if (typeof args !== "object" || args === null || typeof (args as { npc?: unknown }).npc !== "object" || (args as { npc?: unknown }).npc === null) return false;
         const npc = (args as { npc: Record<string, unknown> }).npc;
@@ -204,9 +204,23 @@ export function createProjectTools(dependencies: ProjectTools): ToolDefinition[]
           (npc.personalityPolicy === undefined || (typeof npc.personalityPolicy === "object" && npc.personalityPolicy !== null && !Array.isArray(npc.personalityPolicy))) &&
           (npc.relationshipPolicy === undefined || (typeof npc.relationshipPolicy === "object" && npc.relationshipPolicy !== null && !Array.isArray(npc.relationshipPolicy))) &&
           (npc.capabilities === undefined || (typeof npc.capabilities === "object" && npc.capabilities !== null && !Array.isArray(npc.capabilities))) &&
+          (npc.traversalCapabilities === undefined || (typeof npc.traversalCapabilities === "object" && npc.traversalCapabilities !== null && !Array.isArray(npc.traversalCapabilities) && typeof (npc.traversalCapabilities as Record<string, unknown>).canSwim === "boolean" && typeof (npc.traversalCapabilities as Record<string, unknown>).hasWaterTransport === "boolean")) &&
           typeof npc.environmentPolicy === "object" && npc.environmentPolicy !== null && !Array.isArray(npc.environmentPolicy);
       },
-      async execute(args) { return proposeCreatorNpcPackage((args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; relationshipPolicy?: NpcRelationshipPolicy; capabilities?: Record<string, unknown>; environmentPolicy: Record<string, unknown> } }).npc); },
+      async execute(args) {
+        const npc = (args as { npc: { id: string; name?: string; archetype?: NpcArchetype; role?: NpcRole; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; relationshipPolicy?: NpcRelationshipPolicy; capabilities?: Record<string, unknown>; traversalCapabilities?: { canSwim: boolean; hasWaterTransport: boolean }; environmentPolicy: Record<string, unknown> } }).npc;
+        const proposal = proposeCreatorNpcPackage(npc);
+        if (!proposal.validation.ok) return proposal;
+        return {
+          ...proposal,
+          runtimeContract: creatorNpcRuntimeSpawnContract(npc),
+          persistence: {
+            status: "not_persisted" as const,
+            metadataPatch: creatorNpcRuntimeMetadata(npc),
+            reason: "This proposal tool is read-only. Persist the validated runtimeContract through the authenticated /api/npc-runtime-contract endpoint to save a per-user override.",
+          },
+        };
+      },
     },
     {
       name: "npc.environment_policy.validate", description: "Validate a proposed NPC environment policy against the verified runtime contract.", capability: "read",

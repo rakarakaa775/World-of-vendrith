@@ -9,7 +9,8 @@ import { loadMapDocumentSnapshot } from "../editor/map-persistence";
 import { saveWithConflictDetection } from "../editor/map-conflict-save-controller";
 import { createSupabaseMapMergePersistence, serializeResolvedMapSnapshot } from "../editor/map-merge-persistence-supabase";
 import { normalizeMergeCommitResponse } from "../editor/map-merge-persistence";
-import { parseMapDocument } from "../editor/map-serialization";
+import { parseMapDocument, serializeMapDocument } from "../editor/map-serialization";
+import { parseMapEditorState, replaceMapEditorDocument, type MapEditorState } from "../editor/map-editor-state-v2";
 import { loadTerrainAssetBindings, type TerrainAssetBindingLoadResult } from "../editor/terrain-asset-binding-loader";
 import type { TerrainAssetBindingMap } from "../editor/terrain-asset-binding";
 import { loadMapAssetCatalog } from "../editor/map-asset-loader";
@@ -39,6 +40,7 @@ export type WorldBuilderStartMode = "load" | "create";
 export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: WorldBuilderStartMode }) {
   const seed = useMemo(() => createMap("world"), []);
   const [maps, setMaps] = useState<MapDocument[]>([seed]);
+  const [editorStates, setEditorStates] = useState<Record<string, MapEditorState>>({});
   const [activeMapId, setActiveMapId] = useState(seed.id);
   const [connectedMapId, setConnectedMapId] = useState<string | null>(null);
   const [baseDocument, setBaseDocument] = useState<MapDocument | null>(null);
@@ -77,6 +79,10 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
 
     // Keep legacy snapshots canonical on load. Water depth is now derived at render time.
     return normalized;
+  }, []);
+
+  const updateEditorState = useCallback((state: MapEditorState) => {
+    setEditorStates(cur => cur[state.document.id] === state ? cur : { ...cur, [state.document.id]: state });
   }, []);
 
   const update = useCallback((next: MapDocument) => {
@@ -385,7 +391,16 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         expectedExteriorVersion = remoteExterior.version;
       }
 
-      const slotSnapshot = serializeGameSaveSnapshot(worldDocument, exteriorDocument);
+      const stateFor = (document: MapDocument | null): MapEditorState | null => {
+        if (!document) return null;
+        const state = editorStates[document.id];
+        if (!state || state.document.id !== document.id
+            || JSON.stringify(serializeMapDocument(state.document)) !== JSON.stringify(serializeMapDocument(document))) return null;
+        return state;
+      };
+      const slotSnapshot = serializeGameSaveSnapshot(
+        worldDocument, exteriorDocument, stateFor(worldDocument), stateFor(exteriorDocument),
+      );
       atomicRpcStarted = true;
       const result = await saveGameSlotAtomically(client, {
         worldMapId: AUTHORITATIVE_WORLD_MAP_ID,
@@ -443,7 +458,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     } finally {
       setBusy(false);
     }
-  }, [active, baseDocument, maps, refreshSlots]);
+  }, [active, baseDocument, editorStates, maps, refreshSlots]);
 
   const loadLatest = useCallback(async () => {
     const client = createMapEditorSupabaseClient(); if (!client) { setStatus("Load failed: Supabase unavailable"); return; }
@@ -507,10 +522,16 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
 
       // Finish every fallible read before replacing the editor document.
       await refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID);
-      setMaps([normalizeWorldCanvas(document)]);
-      setActiveMapId(normalizeWorldCanvas(document).id);
+      const normalizedDocument = normalizeWorldCanvas(document);
+      setEditorStates(cur => {
+        const next = { ...cur };
+        delete next[normalizedDocument.id]; // Load Latest is v1 unless durable storage explicitly returns a v2 envelope.
+        return next;
+      });
+      setMaps([normalizedDocument]);
+      setActiveMapId(normalizedDocument.id);
       setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
-      setBaseDocument(normalizeWorldCanvas(document));
+      setBaseDocument(normalizedDocument);
       setVersion(loadedVersion);
       setLoadRevision(v => v + 1);
       setStatus(
@@ -542,6 +563,12 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           return {
             worldDocument,
             exteriorDocument: parsed.exterior,
+            worldEditorState: parsed.worldState
+              ? replaceMapEditorDocument(parsed.worldState, worldDocument)
+              : parseMapEditorState(serializeMapDocument(worldDocument)),
+            exteriorEditorState: parsed.exterior
+              ? parsed.exteriorState ?? parseMapEditorState(serializeMapDocument(parsed.exterior))
+              : null,
             label: result.label || `Save Slot ${slot}`,
             loadedVersion: result.version_number,
           };
@@ -549,7 +576,17 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         // Slot metadata refresh is part of the pre-commit gate. A failure here
         // must not replace the user's currently edited World or Exterior.
         () => refreshSlots(client, AUTHORITATIVE_WORLD_MAP_ID),
-        ({ worldDocument, exteriorDocument, label, loadedVersion }) => {
+        ({ worldDocument, exteriorDocument, worldEditorState, exteriorEditorState, label, loadedVersion }) => {
+          setEditorStates(cur => {
+            const next = { ...cur, [worldDocument.id]: worldEditorState };
+            if (exteriorDocument && exteriorEditorState) next[exteriorDocument.id] = exteriorEditorState;
+            else {
+              for (const [id, state] of Object.entries(next)) {
+                if (state.document.mapType === "playable" && (state.document.playableSpace ?? "exterior") === "exterior") delete next[id];
+              }
+            }
+            return next;
+          });
           setMaps(cur => reconcileGameSaveSlotMaps(cur, worldDocument, exteriorDocument));
           setActiveMapId(worldDocument.id);
           setConnectedMapId(AUTHORITATIVE_WORLD_MAP_ID);
@@ -602,6 +639,8 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           busy={busy}
           initialDocument={active}
           initialDocumentRevision={loadRevision}
+          initialEditorState={editorStates[active.id]}
+          onEditorStateChange={updateEditorState}
           terrainBindings={terrainBindings}
           assetCatalog={assetCatalog}
           terrainStatus={terrainStatus}

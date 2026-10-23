@@ -1,0 +1,216 @@
+-- Follow-up candidate migration: enforce Terrain V2 validation on Load Slot as well as Save Slot.
+-- Apply only in disposable/non-production test environments until rollout is explicitly approved.
+
+-- Candidate server-side Load Slot integrity contract v1.
+-- Intentionally not applied to hosted Supabase. CI applies this only to disposable PostgreSQL.
+create or replace function public.map_editor_load_save_slot_validated_v1(
+  p_map_id uuid,
+  p_slot_number smallint
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_uid uuid := auth.uid();
+  v_slot public.map_editor_save_slots%rowtype;
+  v_version public.map_versions%rowtype;
+  v_world public.maps%rowtype;
+  v_exterior_identity public.editor_map_identity%rowtype;
+  v_exterior_parent public.editor_map_identity%rowtype;
+  v_exterior_version public.editor_map_versions%rowtype;
+  v_canonical_document jsonb;
+  v_slot_world jsonb;
+  v_terrain_semantics jsonb;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok',false,'code','AUTH_REQUIRED');
+  end if;
+  if p_map_id is null then
+    return jsonb_build_object('ok',false,'code','INVALID_MAP');
+  end if;
+  if p_slot_number is null or p_slot_number < 1 or p_slot_number > 12 then
+    return jsonb_build_object('ok',false,'code','INVALID_SLOT');
+  end if;
+
+  select m.* into v_world
+  from public.maps m
+  where m.id = p_map_id
+    and m.map_type = 'world'
+    and public.map_editor_can_access_v1(m.id)
+  for share;
+  if not found then
+    return jsonb_build_object('ok',false,'code','MAP_ACCESS_DENIED');
+  end if;
+
+  select s.* into v_slot
+  from public.map_editor_save_slots s
+  where s.map_id = p_map_id
+    and s.slot_number = p_slot_number
+    and s.created_by = v_uid
+  for update;
+
+  if not found then
+    return jsonb_build_object('ok',false,'code','SLOT_EMPTY','slot_number',p_slot_number);
+  end if;
+
+  if v_slot.version_id is null or v_slot.version_number is null or v_slot.version_number < 1 then
+    return jsonb_build_object('ok',false,'code','SLOT_VERSION_REFERENCE_INVALID');
+  end if;
+
+  select mv.* into v_version
+  from public.map_versions mv
+  where mv.id = v_slot.version_id
+    and mv.map_id = p_map_id
+    and mv.version_number = v_slot.version_number
+  for share;
+
+  if not found then
+    return jsonb_build_object('ok',false,'code','SLOT_VERSION_REFERENCE_INVALID');
+  end if;
+
+  if jsonb_typeof(v_version.snapshot) is distinct from 'object'
+     or v_version.snapshot->>'schema' is distinct from 'vandrith.map-document'
+     or v_version.snapshot->>'version' is distinct from '1'
+     or jsonb_typeof(v_version.snapshot->'document') is distinct from 'object' then
+    return jsonb_build_object('ok',false,'code','CANONICAL_VERSION_INVALID');
+  end if;
+
+  v_canonical_document := v_version.snapshot->'document';
+  if v_canonical_document->>'id' is distinct from p_map_id::text
+     or v_canonical_document->>'mapType' is distinct from 'world' then
+    return jsonb_build_object('ok',false,'code','CANONICAL_VERSION_IDENTITY_MISMATCH');
+  end if;
+
+  if jsonb_typeof(v_slot.snapshot) is distinct from 'object' then
+    return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_INVALID');
+  end if;
+
+  if v_slot.snapshot->>'schema' = 'vandrith.game-save'
+     and v_slot.snapshot->>'version' = '1' then
+    v_slot_world := v_slot.snapshot->'world';
+    if jsonb_typeof(v_slot_world) is distinct from 'object' then
+      return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_INVALID');
+    end if;
+    if v_slot_world->>'id' is distinct from p_map_id::text
+       or v_slot_world->>'mapType' is distinct from 'world' then
+      return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_IDENTITY_MISMATCH');
+    end if;
+    if v_slot_world is distinct from v_canonical_document then
+      return jsonb_build_object('ok',false,'code','SLOT_VERSION_SNAPSHOT_MISMATCH');
+    end if;
+    -- Validate optional Terrain V2 metadata again at the Load boundary. This
+    -- protects against malformed legacy/manual rows, not just new RPC writes.
+    if v_slot.snapshot ? 'terrainSemantics' then
+      v_terrain_semantics := v_slot.snapshot->'terrainSemantics';
+      if jsonb_typeof(v_terrain_semantics) is distinct from 'object'
+         or not (v_terrain_semantics ? 'world')
+         or not (v_terrain_semantics ? 'exterior')
+         or (v_terrain_semantics - 'world'::text - 'exterior'::text) <> '{}'::jsonb then
+        return jsonb_build_object('ok',false,'code','TERRAIN_SEMANTICS_INVALID');
+      end if;
+
+      if v_terrain_semantics->'world' <> 'null'::jsonb
+         and not public.map_editor_validate_terrain_semantics_v1(v_terrain_semantics->'world', v_slot_world) then
+        return jsonb_build_object('ok',false,'code','TERRAIN_SEMANTICS_INVALID');
+      end if;
+
+      if v_slot.snapshot->'exterior' = 'null'::jsonb then
+        if v_terrain_semantics->'exterior' <> 'null'::jsonb then
+          return jsonb_build_object('ok',false,'code','TERRAIN_SEMANTICS_INVALID');
+        end if;
+      elsif v_terrain_semantics->'exterior' <> 'null'::jsonb
+         and not public.map_editor_validate_terrain_semantics_v1(
+           v_terrain_semantics->'exterior', v_slot.snapshot->'exterior'
+         ) then
+        return jsonb_build_object('ok',false,'code','TERRAIN_SEMANTICS_INVALID');
+      end if;
+    end if;
+
+    if not (v_slot.snapshot ? 'exterior')
+       or (v_slot.snapshot->'exterior' <> 'null'::jsonb
+           and (
+             jsonb_typeof(v_slot.snapshot->'exterior') is distinct from 'object'
+             or v_slot.snapshot->'exterior'->>'id' is null
+             or v_slot.snapshot->'exterior'->>'id' = p_map_id::text
+             or v_slot.snapshot->'exterior'->>'mapType' is distinct from 'playable'
+             or (v_slot.snapshot->'exterior' ? 'playableSpace'
+               and v_slot.snapshot->'exterior'->>'playableSpace' is distinct from 'exterior')
+           )) then
+      return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_INVALID');
+    end if;
+
+    -- A structurally plausible Exterior is not trusted until its persisted identity
+    -- is verified as an owner-scoped Playable in this World, beneath a valid Region.
+    if v_slot.snapshot->'exterior' <> 'null'::jsonb then
+      select e.* into v_exterior_identity
+      from public.editor_map_identity e
+      where e.editor_map_id::text = v_slot.snapshot->'exterior'->>'id'
+        and e.created_by = v_uid
+        and e.map_type = 'playable'
+        and e.world_id = v_world.world_id
+      for share;
+      if not found or v_exterior_identity.parent_editor_map_id is null then
+        return jsonb_build_object('ok',false,'code','EXTERIOR_IDENTITY_NOT_ACCESSIBLE');
+      end if;
+
+      select p.* into v_exterior_parent
+      from public.editor_map_identity p
+      where p.editor_map_id = v_exterior_identity.parent_editor_map_id
+        and p.created_by = v_uid
+        and p.map_type = 'region'
+        and p.world_id = v_world.world_id
+      for share;
+      if not found then
+        return jsonb_build_object('ok',false,'code','EXTERIOR_PARENT_INVALID');
+      end if;
+
+      -- The slot's Exterior payload must also correspond to a persisted version
+      -- of this exact identity; valid IDs alone do not make arbitrary content trusted.
+      select ev.* into v_exterior_version
+      from public.editor_map_versions ev
+      where ev.editor_map_id = v_exterior_identity.editor_map_id
+        and ev.created_by = v_uid
+        and jsonb_typeof(ev.snapshot) = 'object'
+        and ev.snapshot->>'schema' = 'vandrith.map-document'
+        and ev.snapshot->>'version' = '1'
+        and ev.snapshot->'document' = v_slot.snapshot->'exterior'
+      order by ev.version_number desc
+      limit 1
+      for share;
+      if not found then
+        return jsonb_build_object('ok',false,'code','EXTERIOR_VERSION_SNAPSHOT_MISMATCH');
+      end if;
+    end if;
+  elsif v_slot.snapshot->>'schema' = 'vandrith.map-document'
+        and v_slot.snapshot->>'version' = '1' then
+    if v_slot.snapshot->'document'->>'id' is distinct from p_map_id::text
+       or v_slot.snapshot->'document'->>'mapType' is distinct from 'world' then
+      return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_IDENTITY_MISMATCH');
+    end if;
+    if v_slot.snapshot is distinct from v_version.snapshot then
+      return jsonb_build_object('ok',false,'code','SLOT_VERSION_SNAPSHOT_MISMATCH');
+    end if;
+  else
+    return jsonb_build_object('ok',false,'code','SLOT_SNAPSHOT_INVALID');
+  end if;
+
+  return jsonb_build_object(
+    'ok',true,
+    'map_id',v_slot.map_id,
+    'slot_number',v_slot.slot_number,
+    'label',v_slot.label,
+    'version_id',v_slot.version_id,
+    'version_number',v_slot.version_number,
+    'snapshot',v_slot.snapshot,
+    'updated_at',v_slot.updated_at
+  );
+end;
+$function$;
+
+revoke all on function public.map_editor_load_save_slot_validated_v1(uuid,smallint) from public, anon;
+grant execute on function public.map_editor_load_save_slot_validated_v1(uuid,smallint) to authenticated;
+
+comment on function public.map_editor_load_save_slot_validated_v1(uuid,smallint) is
+'Owner-scoped Load Slot gateway used by the editor. Validates the slot version reference, canonical World identity, and slot/canonical snapshot agreement before returning a snapshot.';

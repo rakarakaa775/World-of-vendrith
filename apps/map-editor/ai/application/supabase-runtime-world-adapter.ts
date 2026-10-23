@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RuntimeEntity } from "../domain/runtime";
 import type { RuntimeScheduledEvent } from "../domain/runtime-clock";
-import type { NavigationGrid } from "../domain/runtime-navigation";
+import { validateNavigationWaterCells, type NavigationGrid, type NavigationWaterCell } from "../domain/runtime-navigation";
 import type { RuntimeWorldSnapshot } from "./runtime-world-adapter";
 import { decisionProfileFromMetadata } from "./npc-runtime-profile";
 import { validatedNpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
 import { recoverWorldFromSupabase } from "./runtime-recovery";
+import { parseMapSnapshot } from "../../editor/map-snapshot-v2";
 
 type RuntimeSupabaseClient = SupabaseClient;
 
@@ -83,6 +84,11 @@ interface SeedEntryRow {
   location_id: string | null;
 }
 
+interface NpcRuntimeContractOverrideRow {
+  seed_key: string;
+  runtime_contract: unknown;
+}
+
 interface PlacementRow {
   map_id: string;
   entity_type: string | null;
@@ -124,7 +130,12 @@ function entityFromPlacement(
       blocksMovement: true,
       ...(() => {
         const contract = validatedNpcRuntimeSpawnContract(seed.metadata?.npcRuntimeContract);
-        if (contract) return { decisionProfile: contract.decisionProfile, environmentPolicy: contract.environmentPolicy };
+        if (contract) return {
+          decisionProfile: contract.decisionProfile,
+          environmentPolicy: contract.environmentPolicy,
+          canSwim: contract.traversalCapabilities?.canSwim === true,
+          hasWaterTransport: contract.traversalCapabilities?.hasWaterTransport === true,
+        };
         const decisionProfile = decisionProfileFromMetadata(seed.metadata);
         return decisionProfile ? { decisionProfile } : {};
       })(),
@@ -242,6 +253,42 @@ export function createSupabaseRuntimeWorldAdapter(
         blocked[cell.y * map.width + cell.x] = cell.collision || !cell.walkable;
       }
 
+      // The editor's authenticated snapshot RPC is the only source of authored
+      // terrain semantics here. V1 snapshots deliberately contribute no water
+      // semantics; V2 snapshots must validate completely before projection.
+      const terrainSnapshotResult = await client.rpc("map_editor_get_runtime_snapshot_v1", { p_map_id: mapId });
+      if (terrainSnapshotResult.error) return undefined;
+      const terrainSnapshotEnvelope = Array.isArray(terrainSnapshotResult.data)
+        ? terrainSnapshotResult.data[0]
+        : terrainSnapshotResult.data;
+      let waterCells: NavigationWaterCell[] | undefined;
+      if (!terrainSnapshotEnvelope || typeof terrainSnapshotEnvelope !== "object" || Array.isArray(terrainSnapshotEnvelope)) {
+        return undefined;
+      }
+      const snapshotResult = terrainSnapshotEnvelope as Record<string, unknown>;
+      if (snapshotResult.ok !== true || typeof snapshotResult.found !== "boolean") return undefined;
+      if (snapshotResult.found === false) {
+        // A valid not-found response means this map has no authored terrain snapshot yet.
+        if (snapshotResult.snapshot !== undefined && snapshotResult.snapshot !== null) return undefined;
+      } else {
+        if (snapshotResult.snapshot === undefined || snapshotResult.snapshot === null) return undefined;
+        try {
+          const parsed = parseMapSnapshot(snapshotResult.snapshot, mapId);
+          if (parsed.format === "v2") {
+            const validation = validateNavigationWaterCells(
+              map.width,
+              map.height,
+              parsed.state.terrainSemantics.cells,
+            );
+            if (!validation.valid) return undefined;
+            waterCells = validation.cells;
+          }
+        } catch {
+          // Do not silently discard malformed or identity-mismatched persisted data.
+          return undefined;
+        }
+      }
+
       const seedsResult = await client
         .from("npc_seed_catalog")
         .select("seed_key,name,race,occupation_name,settlement_name,location_name,metadata")
@@ -249,16 +296,31 @@ export function createSupabaseRuntimeWorldAdapter(
       const entriesResult = await client
         .from("npc_seed_entries")
         .select("seed_key,location_id");
+      const contractOverridesResult = await client
+        .from("npc_creator_runtime_contract_overrides")
+        .select("seed_key,runtime_contract");
       const placementsResult = await client
         .from("vandrith_unified_object_placement")
         .select("map_id,entity_type,entity_id,x,y,properties")
         .eq("map_id", mapId);
 
-      if (seedsResult.error || entriesResult.error || placementsResult.error) return undefined;
+      if (seedsResult.error || entriesResult.error || contractOverridesResult.error || placementsResult.error) return undefined;
 
       const seedByKey = new Map(
         ((seedsResult.data ?? []) as SeedRow[]).map(seed => [seed.seed_key, seed]),
       );
+      for (const override of (contractOverridesResult.data ?? []) as NpcRuntimeContractOverrideRow[]) {
+        const contract = validatedNpcRuntimeSpawnContract(override.runtime_contract);
+        const seed = seedByKey.get(override.seed_key);
+        // An invalid owner-scoped override is treated as corrupt durable state,
+        // not silently ignored in favor of an older shared catalog contract.
+        if (!seed) continue; // Ignore saved overrides for inactive/non-runtime seeds.
+        if (!contract) return undefined;
+        seedByKey.set(override.seed_key, {
+          ...seed,
+          metadata: { ...(seed.metadata ?? {}), npcRuntimeContract: contract },
+        });
+      }
       const locationBySeed = new Map(
         ((entriesResult.data ?? []) as SeedEntryRow[]).map(entry => [entry.seed_key, entry.location_id]),
       );
@@ -303,7 +365,7 @@ export function createSupabaseRuntimeWorldAdapter(
 
       return {
         snapshot: recoveredSnapshot,
-        grid: { width: map.width, height: map.height, blocked },
+        grid: { width: map.width, height: map.height, blocked, ...(waterCells ? { waterCells } : {}) },
         scheduledEvents,
       };
     },

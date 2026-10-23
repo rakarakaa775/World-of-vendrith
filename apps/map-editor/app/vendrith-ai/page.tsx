@@ -5,7 +5,7 @@ import { createMapEditorSupabaseClient } from "../../editor/supabase-client";
 type Message = { role: "user" | "assistant"; text: string; evidence?: Array<{ source: string; fact: string; confidence: string }>; model?: string };
 const initialMessages: Message[] = [{ role: "assistant", text: "Halo. Saya Vendrith AI. Saya bisa mempertahankan konteks percakapan, membaca evidence project melalui tools, dan tetap read/analyze tanpa mengubah project." }];
 export default function VendrithAiPage() {
-  const router = useRouter(); const [messages,setMessages]=useState<Message[]>(initialMessages); const [prompt,setPrompt]=useState(""); const [loading,setLoading]=useState(false); const [error,setError]=useState("");
+  const router = useRouter(); const [messages,setMessages]=useState<Message[]>(initialMessages); const [prompt,setPrompt]=useState(""); const [loading,setLoading]=useState(false); const [error,setError]=useState(""); const [npcSeedKey,setNpcSeedKey]=useState(""); const [npcContractJson,setNpcContractJson]=useState('{"version":1,"decisionProfile":{},"environmentPolicy":{},"traversalCapabilities":{"canSwim":false,"hasWaterTransport":false}}'); const [npcSaveStatus,setNpcSaveStatus]=useState(""); const [npcSaving,setNpcSaving]=useState(false);
   const send = async (value=prompt) => {
     const trimmed=value.trim(); if(!trimmed||loading)return; setPrompt(""); setError("");
     const history=messages.map(({role,text})=>({role,content:text})).slice(-12); setMessages(current=>[...current,{role:"user",text:trimmed}]); setLoading(true);
@@ -18,6 +18,20 @@ export default function VendrithAiPage() {
       if(!response.ok)throw new Error(result.error??"AI request failed.");
       setMessages(current=>[...current,{role:"assistant",text:result.response??"Model tidak mengembalikan jawaban.",evidence:result.evidence??[],model:result.model}]);
     } catch(caught){setError(caught instanceof Error?caught.message:"Vendrith AI request failed.");} finally{setLoading(false);}
+  };
+  const saveNpcContract = async () => {
+    setNpcSaveStatus(""); setNpcSaving(true);
+    try {
+      const client=createMapEditorSupabaseClient(); if(!client) throw new Error("Supabase Auth belum dikonfigurasi.");
+      const { data: sessionData } = await client.auth.getSession(); const accessToken=sessionData.session?.access_token;
+      if(!accessToken) throw new Error("Silakan login terlebih dahulu.");
+      let runtimeContract: unknown;
+      try { runtimeContract=JSON.parse(npcContractJson); } catch { throw new Error("JSON runtime contract tidak valid."); }
+      const { persistNpcRuntimeContract } = await import("../../editor/npc-runtime-contract-client");
+      const result=await persistNpcRuntimeContract(accessToken,npcSeedKey,runtimeContract);
+      setNpcSaveStatus(`Tersimpan untuk ${result.seedKey} · ${new Date(result.updatedAt).toLocaleString()}`);
+    } catch(caught) { setNpcSaveStatus(caught instanceof Error?caught.message:"Kontrak NPC gagal disimpan."); }
+    finally { setNpcSaving(false); }
   };
   return <main style={{minHeight:"100vh",background:"var(--map-editor-bg)",color:"var(--map-editor-text)",display:"grid",gridTemplateRows:"auto 1fr"}}>
     <header style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:"1px solid var(--map-editor-line)",background:"var(--map-editor-panel)"}}>
@@ -36,7 +50,7 @@ export default function VendrithAiPage() {
           <div style={{padding:12,borderTop:"1px solid var(--map-editor-line)",display:"flex",gap:8}}><textarea value={prompt} onChange={event=>setPrompt(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();void send();}}} placeholder="Tanyakan apa saja tentang Vendrith..." rows={2} style={{flex:1,resize:"none",padding:10,borderRadius:8,border:"1px solid var(--map-editor-border)",background:"var(--map-editor-button)",color:"#fff"}}/><button type="button" onClick={()=>void send()} disabled={!prompt.trim()||loading} style={{alignSelf:"stretch",padding:"0 16px"}}>{loading?"…":"Kirim"}</button></div>
           {error&&<div style={{margin:"0 12px 12px",padding:9,borderRadius:7,border:"1px solid #7f1d1d",color:"#fca5a5",fontSize:11}}>{error}</div>}
         </div>
-        <aside style={{border:"1px solid var(--map-editor-border)",borderRadius:12,background:"var(--map-editor-panel)",padding:14,height:"fit-content"}}><div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>WEB AGENT CAPABILITIES</div><div style={{display:"grid",gap:7,fontSize:11,lineHeight:1.45,color:"#cbd5e1"}}><div>✓ Repository & code evidence</div><div>✓ Documentation & rules</div><div>✓ Asset/license evidence</div><div>✓ World/Region/Playable inspection</div><div>✓ NPC schema & runtime validation</div><div>✓ Multi-turn conversation context</div></div><div style={{marginTop:14,paddingTop:12,borderTop:"1px solid var(--map-editor-line)",fontSize:10,lineHeight:1.5,color:"#64748b"}}>Guardrail: Web Agent hanya read/analyze. Mutation dan high-risk tools tetap tidak diekspos endpoint ini.</div></aside>
+        <aside style={{border:"1px solid var(--map-editor-border)",borderRadius:12,background:"var(--map-editor-panel)",padding:14,height:"fit-content",maxHeight:"78vh",overflowY:"auto"}}><div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>WEB AGENT CAPABILITIES</div><div style={{display:"grid",gap:7,fontSize:11,lineHeight:1.45,color:"#cbd5e1"}}><div>✓ Repository & code evidence</div><div>✓ Documentation & rules</div><div>✓ Asset/license evidence</div><div>✓ World/Region/Playable inspection</div><div>✓ NPC schema & runtime validation</div><div>✓ Multi-turn conversation context</div></div><div style={{marginTop:14,paddingTop:12,borderTop:"1px solid var(--map-editor-line)",fontSize:10,lineHeight:1.5,color:"#64748b"}}>Guardrail: Web Agent hanya read/analyze. Penyimpanan NPC harus diminta secara eksplisit.</div><div style={{marginTop:14,paddingTop:12,borderTop:"1px solid var(--map-editor-line)"}}><strong style={{fontSize:12}}>Simpan Kontrak Runtime NPC</strong><p style={{fontSize:10,lineHeight:1.45,color:"#94a3b8"}}>Untuk NPC yang sudah memiliki seed key di katalog. Tempel objek <code>runtimeContract</code> hasil Creator AI, lalu simpan. Ini tidak membuat identitas NPC katalog baru.</p><label style={{display:"block",fontSize:10,marginBottom:5}}>NPC seed key</label><input value={npcSeedKey} onChange={event=>setNpcSeedKey(event.target.value)} placeholder="contoh: npc-guard-01" style={{boxSizing:"border-box",width:"100%",padding:8,marginBottom:9,borderRadius:6,border:"1px solid var(--map-editor-border)",background:"var(--map-editor-button)",color:"#fff"}}/><label style={{display:"block",fontSize:10,marginBottom:5}}>Runtime contract (JSON)</label><textarea value={npcContractJson} onChange={event=>setNpcContractJson(event.target.value)} rows={9} spellCheck={false} style={{boxSizing:"border-box",width:"100%",resize:"vertical",padding:8,borderRadius:6,border:"1px solid var(--map-editor-border)",background:"var(--map-editor-button)",color:"#fff",fontSize:10,fontFamily:"monospace"}}/><button type="button" onClick={()=>void saveNpcContract()} disabled={npcSaving||!npcSeedKey.trim()} style={{width:"100%",marginTop:8,padding:9}}>{npcSaving?"Menyimpan…":"Simpan kontrak NPC"}</button>{npcSaveStatus&&<div role="status" style={{marginTop:8,fontSize:10,lineHeight:1.4,color:npcSaveStatus.startsWith("Tersimpan")?"#86efac":"#fca5a5"}}>{npcSaveStatus}</div>}</div></aside>
       </div>
       <div style={{padding:"10px 12px",border:"1px solid #166534",borderRadius:8,background:"rgba(20,100,50,.10)",fontSize:11,color:"#cbd5e1"}}><strong>Runtime:</strong> Browser → /api/vendrith-ai → Supabase Auth → Agent Orchestrator → ModelProvider + tools → evidence → response.</div>
     </section>

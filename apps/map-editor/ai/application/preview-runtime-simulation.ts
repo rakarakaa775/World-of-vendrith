@@ -97,6 +97,8 @@ export class PreviewRuntimeSimulation {
         ...(validatedNpcRuntimeSpawnContract(seed.runtimeContract) ? {
           decisionProfile: validatedNpcRuntimeSpawnContract(seed.runtimeContract)?.decisionProfile,
           environmentPolicy: validatedNpcRuntimeSpawnContract(seed.runtimeContract)?.environmentPolicy,
+          canSwim: validatedNpcRuntimeSpawnContract(seed.runtimeContract)?.traversalCapabilities?.canSwim === true,
+          hasWaterTransport: validatedNpcRuntimeSpawnContract(seed.runtimeContract)?.traversalCapabilities?.hasWaterTransport === true,
         } : {}),
         name: seed.name,
         race: seed.race ?? undefined,

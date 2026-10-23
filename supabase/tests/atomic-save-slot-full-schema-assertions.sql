@@ -154,6 +154,57 @@ begin
 end $interior_full_schema$;
 rollback;
 
+-- Terrain V2 metadata is validated by the RPC itself, not trusted from clients.
+select set_config('test.fail_at','',false);
+begin; select atomic_save_slot_test.seed_case();
+do $terrain_valid$
+declare r jsonb; v_slot jsonb;
+begin
+  v_slot := jsonb_set(
+    atomic_save_slot_test.game_save('Terrain World','Terrain Exterior'), '{terrainSemantics}',
+    '{"world":{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":0,"y":0,"surface":"water","depth":"deep"}]},"exterior":{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":0,"y":0,"surface":"land"}]}}'::jsonb, true
+  );
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Terrain World'),
+    '22222222-2222-2222-2222-222222222222',1,atomic_save_slot_test.exterior_envelope('Terrain Exterior'),
+    2::smallint,'Valid Terrain V2',v_slot
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='true','valid Terrain V2 should be accepted: '||r::text);
+  perform atomic_save_slot_test.assert_true((select snapshot->'terrainSemantics'=v_slot->'terrainSemantics' from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=2),'valid Terrain V2 must persist unchanged');
+end $terrain_valid$;
+rollback;
+
+begin; select atomic_save_slot_test.seed_case();
+do $terrain_invalid$
+declare r jsonb; v_slot jsonb;
+begin
+  v_slot := jsonb_set(
+    atomic_save_slot_test.game_save('Invalid Terrain World','Invalid Terrain Exterior'), '{terrainSemantics}',
+    '{"world":{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":1,"y":0,"surface":"water"}]},"exterior":null}'::jsonb, true
+  );
+  r := public.map_editor_save_game_slot_atomic_v1(
+    '11111111-1111-1111-1111-111111111111',1,atomic_save_slot_test.world_envelope('Invalid Terrain World'),
+    '22222222-2222-2222-2222-222222222222',1,atomic_save_slot_test.exterior_envelope('Invalid Terrain Exterior'),
+    2::smallint,'Invalid Terrain V2',v_slot
+  );
+  perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='INVALID_TERRAIN_SEMANTICS','out-of-bounds Terrain V2 must be rejected: '||r::text);
+  perform atomic_save_slot_test.assert_true(not public.map_editor_validate_terrain_semantics_v1(
+    '{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":0,"y":0,"surface":"land"},{"x":0,"y":0,"surface":"water"}]}'::jsonb,
+    atomic_save_slot_test.world_doc('Duplicate coordinates')
+  ),'duplicate terrain coordinates must fail database validation');
+  perform atomic_save_slot_test.assert_true(not public.map_editor_validate_terrain_semantics_v1(
+    '{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":0,"y":0,"surface":"lava"}]}'::jsonb,
+    atomic_save_slot_test.world_doc('Invalid surface')
+  ),'unknown terrain surfaces must fail database validation');
+  perform atomic_save_slot_test.assert_true(not public.map_editor_validate_terrain_semantics_v1(
+    '{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":0,"y":0,"surface":"land","untrusted":"field"}]}'::jsonb,
+    atomic_save_slot_test.world_doc('Unknown field')
+  ),'unknown terrain record fields must fail database validation');
+  perform atomic_save_slot_test.assert_true((select count(*)=1 from public.map_versions where map_id='11111111-1111-1111-1111-111111111111'),'invalid terrain must not write a World version');
+  perform atomic_save_slot_test.assert_true(not exists(select 1 from public.map_editor_save_slots where map_id='11111111-1111-1111-1111-111111111111' and slot_number=2),'invalid terrain must not create a slot');
+end $terrain_invalid$;
+rollback;
+
 select 'atomic Save Slot full-schema assertions passed' as result;
 
 -- Reject unauthenticated requests before touching any persisted state.
@@ -342,6 +393,30 @@ begin
   perform atomic_save_slot_test.assert_true(r->>'ok'='false' and r->>'code'='EXTERIOR_PARENT_INVALID','Exterior parent from another World must be rejected');
 end
 $exterior_parent_world_mismatch$;
+rollback;
+
+-- Load Slot must revalidate optional Terrain V2 metadata, even if a malformed row
+-- bypassed the atomic Save RPC (e.g. a legacy/manual repair path).
+begin;
+select atomic_save_slot_test.seed_case();
+update public.map_editor_save_slots
+set snapshot=jsonb_set(
+  snapshot,
+  '{terrainSemantics}',
+  '{"world":{"schema":"vandrith.terrain-semantics","version":1,"cells":[{"x":999,"y":0,"surface":"land"}]},"exterior":null}'::jsonb,
+  true
+)
+where map_id='11111111-1111-1111-1111-111111111111' and slot_number=1;
+do $terrain_load_invalid$
+declare r jsonb;
+begin
+  r := public.map_editor_load_save_slot_validated_v1('11111111-1111-1111-1111-111111111111',1::smallint);
+  perform atomic_save_slot_test.assert_true(
+    r->>'ok'='false' and r->>'code'='TERRAIN_SEMANTICS_INVALID',
+    'Load Slot must reject malformed Terrain V2 metadata before returning a snapshot: '||r::text
+  );
+end
+$terrain_load_invalid$;
 rollback;
 
 -- Verify Load Slot is callable only by authenticated sessions, not anon/public.

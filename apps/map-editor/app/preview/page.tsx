@@ -11,6 +11,7 @@ import type { TerrainAssetBindingMap } from "../../editor/terrain-asset-binding"
 import { PixiMapCanvas } from "../../components/pixi-map-canvas";
 import type { RuntimeEntity } from "../../ai/domain/runtime";
 import { PreviewRuntimeSimulation, type PreviewNpcSeed } from "../../ai/application/preview-runtime-simulation";
+import { validatedNpcRuntimeSpawnContract } from "../../ai/application/npc-runtime-spawn-contract";
 import { resolvePreviewNpcSpawnAnchors } from "../../ai/application/preview-npc-spawn-anchor-resolver";
 
 const previewLayers = ["World Terrain", "Region Boundaries", "Playable", "Life", "Events"];
@@ -61,16 +62,27 @@ export default function PreviewPage() {
       const terrain: TerrainAssetBindingLoadResult = loadTerrainAssetBindings(binding.data || []);
       const npcResult = await client
         .from("npc_seed_catalog")
-        .select("seed_key,name,race,occupation_name,settlement_name,location_name")
+        .select("seed_key,name,race,occupation_name,settlement_name,location_name,metadata")
         .eq("active", true)
         .order("seed_key")
         .limit(8);
       if (npcResult.error) throw npcResult.error;
+      const npcSeedKeys = (npcResult.data ?? []).map((row) => row.seed_key);
       const npcLocationResult = await client
         .from("npc_seed_entries")
         .select("seed_key,location_id")
-        .in("seed_key", (npcResult.data ?? []).map((row) => row.seed_key));
+        .in("seed_key", npcSeedKeys);
       if (npcLocationResult.error) throw npcLocationResult.error;
+      const contractOverridesResult = npcSeedKeys.length
+        ? await client.from("npc_creator_runtime_contract_overrides").select("seed_key,runtime_contract").in("seed_key", npcSeedKeys)
+        : { data: [], error: null };
+      if (contractOverridesResult.error) throw contractOverridesResult.error;
+      const runtimeContractBySeedKey = new Map(
+        (contractOverridesResult.data ?? []).map((row) => [row.seed_key, validatedNpcRuntimeSpawnContract(row.runtime_contract)]),
+      );
+      if ([...runtimeContractBySeedKey.values()].some((contract) => !contract)) {
+        throw new Error("An NPC runtime contract override is invalid; preview stopped instead of using stale metadata.");
+      }
       const locationBySeedKey = new Map(
         (npcLocationResult.data ?? []).map((row) => [row.seed_key, row.location_id]),
       );
@@ -82,6 +94,11 @@ export default function PreviewPage() {
         settlementName: row.settlement_name,
         locationName: row.location_name,
         locationId: locationBySeedKey.get(row.seed_key) ?? null,
+        runtimeContract: runtimeContractBySeedKey.get(row.seed_key) ?? validatedNpcRuntimeSpawnContract(
+          row.metadata && typeof row.metadata === "object"
+            ? (row.metadata as Record<string, unknown>).npcRuntimeContract
+            : undefined,
+        ) ?? undefined,
       }));
       const locationIds = [...new Set(seeds.map((seed) => seed.locationId).filter((id): id is string => Boolean(id)))];
       const mapResult = locationIds.length

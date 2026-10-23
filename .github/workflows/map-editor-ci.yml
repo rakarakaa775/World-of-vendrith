@@ -123,10 +123,18 @@ jobs:
         run: |
           set -o pipefail
           sed '/CREATE EXTENSION IF NOT EXISTS "supabase_vault"/d' supabase/migrations/20261003170000_remote_schema_baseline_reconstructed.sql | psql -v ON_ERROR_STOP=1
+      - name: Apply candidate private Save Slot schema to disposable full-schema database
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261010190000_map_editor_private_save_slots_v1.sql
       - name: Apply candidate Save Slot RPC to disposable full-schema database
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011220000_map_editor_atomic_game_save_slot_v1.sql
       - name: Apply candidate validated Load Slot RPC to disposable full-schema database
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261012200000_map_editor_load_save_slot_validated_v1.sql
+      - name: Apply candidate Load Slot Terrain V2 validation to disposable full-schema database
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261022150000_map_editor_load_slot_terrain_semantics_v1.sql
+      - name: Apply authenticated NPC Creator runtime contract persistence to disposable full-schema database
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261022170000_npc_creator_runtime_contract_overrides_v1.sql
+      - name: Assert NPC Creator runtime contract ownership and RLS
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/npc-creator-runtime-contract-overrides-assertions.sql
       - name: Create isolated test helpers and failure injection triggers
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-full-schema-support.sql
       - name: Assert validated Load Slot integrity contract

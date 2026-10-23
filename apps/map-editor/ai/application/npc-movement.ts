@@ -1,6 +1,8 @@
 import type { RuntimeAction } from "../domain/runtime";
 import type { NavigationGrid, NavigationPoint } from "../domain/runtime-navigation";
 import type { RuntimeMovementActionPayload, RuntimeMovementResult, RuntimeMovementState } from "../domain/runtime-movement";
+import { resolveWaterTraversal } from "../../editor/water-traversal-policy";
+import type { NavigationWaterCell } from "../domain/runtime-navigation";
 
 function samePoint(a: NavigationPoint, b: NavigationPoint): boolean {
   return a.x === b.x && a.y === b.y;
@@ -12,6 +14,10 @@ function inBounds(grid: NavigationGrid, point: NavigationPoint): boolean {
 
 function isAdjacent(a: NavigationPoint, b: NavigationPoint): boolean {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+}
+
+function waterCellAt(grid: NavigationGrid, point: NavigationPoint): NavigationWaterCell | undefined {
+  return grid.waterCells?.find(cell => cell.x === point.x && cell.y === point.y);
 }
 
 export function executeNpcMovementStep(
@@ -43,6 +49,17 @@ export function executeNpcMovementStep(
 
   const next = payload.path[currentIndex + 1];
   if (!inBounds(grid, next) || grid.blocked[next.y * grid.width + next.x] || !isAdjacent(current.position, next)) {
+    return { ok: false, reason: "blocked", state: current, actionId: action.id };
+  }
+
+  // Revalidate traversal at execution time; a stale or forged planned path must
+  // not bypass water rules or collision. Missing authored semantics are never
+  // inferred from visual terrain IDs here.
+  const waterCell = waterCellAt(grid, next);
+  if (waterCell && waterCell.surface === "water" && resolveWaterTraversal(waterCell, {
+    canSwim: current.canSwim === true,
+    hasWaterTransport: current.hasWaterTransport === true,
+  }) === "blocked") {
     return { ok: false, reason: "blocked", state: current, actionId: action.id };
   }
 

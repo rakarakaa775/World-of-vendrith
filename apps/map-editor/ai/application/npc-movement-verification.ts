@@ -71,7 +71,10 @@ export function replanNpcNavigation(
     };
   }
 
-  const path = findNavigationPath(grid, state.position, { x: target.x, y: target.y });
+  const path = findNavigationPath(grid, state.position, { x: target.x, y: target.y }, {
+    canSwim: state.canSwim === true,
+    hasWaterTransport: state.hasWaterTransport === true,
+  });
   if (!path) {
     return {
       status: "replan-required",
@@ -95,7 +98,13 @@ export function replanNpcNavigation(
       stateVersion: state.stateVersion,
     },
     perception: {
-      self: { id: state.entityId, kind: "npc" as const, mapId: state.mapId, position: state.position },
+      self: {
+        id: state.entityId,
+        kind: "npc" as const,
+        mapId: state.mapId,
+        position: state.position,
+        state: { canSwim: state.canSwim === true, hasWaterTransport: state.hasWaterTransport === true },
+      },
       nearbyEntities: [],
       detections: [],
       visibleMapIds: [state.mapId],

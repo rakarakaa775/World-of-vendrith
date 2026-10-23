@@ -131,3 +131,19 @@ Reuse the existing asset registry, asset resolver, asset proxy and terrain-bindi
 Do not create a second independent asset database solely for the World Builder.
 
 The next implementation phase can build on this locked library snapshot without changing the canonical asset foundation.
+
+## Life Creator art intake — audit gate (2026-10-22)
+
+Life Creator must reuse the canonical asset registry and its provenance; it must not create a parallel binary store. The first `apps/map-editor/public` inventory contained terrain PNGs and a forest SVG, but a deeper repository-wide audit found character and hair sprite-sheet candidates in the canonical staging library under `assets/playable/playable/01_CHARACTERS/`. They are not yet an approved portrait pack: most are sprite sheets, and their exact asset-level provenance, geometry and suitability must be reconciled before UI integration. See `assets/_documentation/LIFE_CREATOR_CHARACTER_ASSET_AUDIT_2026-10-22.md`. The procedural portrait remains the current UI fallback, not licensed production portrait art.
+
+The typed metadata boundary is `apps/map-editor/editor/life-asset-catalog.ts`. Each future portrait-part reference requires a canonical `assetId`, part (`face`, `eyes`, `hair`, `marking`, or `race-overlay`), variant/race, source package and URL, source path, repository path, SHA-256, license, attribution slot, and explicit license-verification state. It stores references and metadata only, never image bytes. The runtime picker must fail closed: only `approved` entries with complete provenance, a valid SHA-256, and `licenseVerified: true` are eligible. Pending/rejected/unverified records must remain unavailable for production selection.
+
+### Intake order
+
+1. Discover a candidate pack and verify its actual license/attribution from the upstream source (do not infer from filename or mirrors).
+2. Record source/version/path and attribution obligations; compute SHA-256 from the exact candidate binary.
+3. Review race/part coverage, sprite dimensions, transparent margins, palette/style consistency, and redistribution permission.
+4. Add it through the existing asset registry intake/audit flow; do not copy files into a new Life-only catalog.
+5. Only then map canonical IDs to Life Creator choices and test compositing/export/runtime serialization.
+
+No production portrait pack is approved by this audit. Do not use the existing terrain manifest as a portrait catalog, and do not claim that the placeholder SVGs satisfy the asset-license gate.

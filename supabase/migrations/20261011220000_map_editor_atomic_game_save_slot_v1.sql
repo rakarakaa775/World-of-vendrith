@@ -1,3 +1,64 @@
+-- Validate Terrain V2 at the database boundary as well as in the client.
+-- This helper is not an application RPC; execute is revoked below.
+create or replace function public.map_editor_validate_terrain_semantics_v1(
+  p_section jsonb, p_document jsonb
+) returns boolean
+language plpgsql immutable
+set search_path = public, pg_temp
+as $terrain_validator$
+declare
+  v_width integer;
+  v_height integer;
+  v_cell jsonb;
+  v_x integer;
+  v_y integer;
+  v_key text;
+  v_seen text[] := array[]::text[];
+  v_field text;
+  v_allowed text[] := array['x','y','surface','feature','depth','current','shallowWalkable','bridge','crossingPoint'];
+begin
+  if p_section is null or jsonb_typeof(p_section) is distinct from 'object'
+     or p_section->>'schema' is distinct from 'vandrith.terrain-semantics'
+     or p_section->>'version' is distinct from '1'
+     or jsonb_typeof(p_section->'cells') is distinct from 'array'
+     or jsonb_typeof(p_document) is distinct from 'object'
+     or jsonb_typeof(p_document->'width') is distinct from 'number'
+     or jsonb_typeof(p_document->'height') is distinct from 'number'
+     or (p_document->>'width') !~ '^[1-9][0-9]*$'
+     or (p_document->>'height') !~ '^[1-9][0-9]*$' then
+    return false;
+  end if;
+  v_width := (p_document->>'width')::integer;
+  v_height := (p_document->>'height')::integer;
+  for v_cell in select value from jsonb_array_elements(p_section->'cells') loop
+    if jsonb_typeof(v_cell) is distinct from 'object'
+       or jsonb_typeof(v_cell->'x') is distinct from 'number' or jsonb_typeof(v_cell->'y') is distinct from 'number'
+       or (v_cell->>'x') !~ '^(0|[1-9][0-9]*)$' or (v_cell->>'y') !~ '^(0|[1-9][0-9]*)$'
+       or jsonb_typeof(v_cell->'surface') is distinct from 'string'
+       or v_cell->>'surface' not in ('land','water') then return false; end if;
+    v_x := (v_cell->>'x')::integer;
+    v_y := (v_cell->>'y')::integer;
+    if v_x >= v_width or v_y >= v_height then return false; end if;
+    v_key := v_x::text || ',' || v_y::text;
+    if v_key = any(v_seen) then return false; end if;
+    v_seen := array_append(v_seen, v_key);
+    for v_field in select jsonb_object_keys(v_cell) loop
+      if not (v_field = any(v_allowed)) then return false; end if;
+    end loop;
+    if v_cell ? 'feature' and (jsonb_typeof(v_cell->'feature') is distinct from 'string' or v_cell->>'feature' not in ('shoreline','river','lake','waterfall','ocean_sea','none')) then return false; end if;
+    if v_cell ? 'depth' and (jsonb_typeof(v_cell->'depth') is distinct from 'string' or v_cell->>'depth' not in ('shallow','medium','deep','unknown')) then return false; end if;
+    if v_cell ? 'current' and (jsonb_typeof(v_cell->'current') is distinct from 'string' or v_cell->>'current' not in ('calm','moderate','strong','unknown')) then return false; end if;
+    if (v_cell ? 'shallowWalkable' and jsonb_typeof(v_cell->'shallowWalkable') is distinct from 'boolean')
+       or (v_cell ? 'bridge' and jsonb_typeof(v_cell->'bridge') is distinct from 'boolean')
+       or (v_cell ? 'crossingPoint' and jsonb_typeof(v_cell->'crossingPoint') is distinct from 'boolean') then return false; end if;
+  end loop;
+  return true;
+exception when others then
+  return false;
+end;
+$terrain_validator$;
+revoke all on function public.map_editor_validate_terrain_semantics_v1(jsonb, jsonb) from public, anon, authenticated;
+
 -- Atomic Game Save Slot v1.
 -- This migration is intentionally not applied to any hosted database by this workflow.
 -- All authoritative version writes and the slot upsert run in this function's transaction.
@@ -58,6 +119,33 @@ begin
      or p_slot_snapshot->'world' is distinct from p_world_snapshot->'document'
      or not (p_slot_snapshot ? 'exterior') then
     return jsonb_build_object('ok', false, 'code', 'INVALID_SLOT_SNAPSHOT');
+  end if;
+
+  -- Optional Terrain V2 metadata is accepted only as a complete, validated pair.
+  -- Legacy v1 slots without this property remain supported unchanged.
+  if p_slot_snapshot ? 'terrainSemantics' then
+    if jsonb_typeof(p_slot_snapshot->'terrainSemantics') <> 'object'
+       or ((p_slot_snapshot->'terrainSemantics') - 'world'::text - 'exterior'::text) <> '{}'::jsonb
+       or not (p_slot_snapshot->'terrainSemantics' ? 'world')
+       or not (p_slot_snapshot->'terrainSemantics' ? 'exterior') then
+      return jsonb_build_object('ok', false, 'code', 'INVALID_TERRAIN_SEMANTICS');
+    end if;
+    if p_slot_snapshot->'terrainSemantics'->'world' <> 'null'::jsonb
+       and not public.map_editor_validate_terrain_semantics_v1(
+         p_slot_snapshot->'terrainSemantics'->'world', p_world_snapshot->'document'
+       ) then
+      return jsonb_build_object('ok', false, 'code', 'INVALID_TERRAIN_SEMANTICS');
+    end if;
+    if p_exterior_map_id is null then
+      if p_slot_snapshot->'terrainSemantics'->'exterior' <> 'null'::jsonb then
+        return jsonb_build_object('ok', false, 'code', 'INVALID_TERRAIN_SEMANTICS');
+      end if;
+    elsif p_slot_snapshot->'terrainSemantics'->'exterior' <> 'null'::jsonb
+       and not public.map_editor_validate_terrain_semantics_v1(
+         p_slot_snapshot->'terrainSemantics'->'exterior', p_exterior_snapshot->'document'
+       ) then
+      return jsonb_build_object('ok', false, 'code', 'INVALID_TERRAIN_SEMANTICS');
+    end if;
   end if;
   if p_world_snapshot->'document'->>'id' is distinct from p_world_map_id::text
      or p_world_snapshot->'document'->>'mapType' is distinct from 'world' then

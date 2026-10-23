@@ -7,7 +7,7 @@ import { validateNpcPersonalityPolicy, type NpcPersonalityPolicy, type NpcPerson
 import { validateNpcDecisionProfile, type NpcDecisionProfile } from "./npc-decision-profile-schema";
 import { validateNpcRelationships, type NpcRelationship, type NpcRelationshipValidation } from "./npc-relationship-schema";
 import { validateNpcRelationshipPolicy, type NpcRelationshipPolicy, type NpcRelationshipPolicyValidation } from "./npc-relationship-policy-schema";
-import { buildNpcRuntimeSpawnContract, type NpcRuntimeSpawnContract } from "./npc-runtime-spawn-contract";
+import { buildNpcRuntimeSpawnContract, type NpcRuntimeSpawnContract, type NpcTraversalCapabilities } from "./npc-runtime-spawn-contract";
 import type { MapDocument } from "../../editor/map-document";
 import { PreviewRuntimeSimulation, type PreviewNpcDiagnostics } from "./preview-runtime-simulation";
 
@@ -22,7 +22,7 @@ export interface CreatorNpcEnvironmentPackage {
 }
 
 export interface CreatorNpcPackage {
-  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; relationships?: readonly NpcRelationship[]; relationshipPolicy?: NpcRelationshipPolicy };
+  npc: CreatorNpcEnvironmentPackage["npc"] & { role?: NpcRole; capabilities?: NpcCapabilityRequest; traversalCapabilities?: NpcTraversalCapabilities; personality?: NpcPersonalityRequest; personalityPolicy?: NpcPersonalityPolicy; relationships?: readonly NpcRelationship[]; relationshipPolicy?: NpcRelationshipPolicy };
   validation: NpcEnvironmentPolicyValidation & NpcArchetypeValidation & NpcCapabilityValidation & NpcRoleValidation & NpcPersonalityValidation & NpcPersonalityPolicyValidation & NpcRelationshipValidation & NpcRelationshipPolicyValidation;
 }
 
@@ -50,7 +50,26 @@ export function creatorNpcDecisionProfile(npc: CreatorNpcPackage["npc"]): NpcDec
 }
 
 export function creatorNpcRuntimeSpawnContract(npc: CreatorNpcPackage["npc"]): NpcRuntimeSpawnContract {
-  return buildNpcRuntimeSpawnContract(creatorNpcDecisionProfile(npc), npc.environmentPolicy);
+  return buildNpcRuntimeSpawnContract(creatorNpcDecisionProfile(npc), npc.environmentPolicy, npc.traversalCapabilities);
+}
+
+/** Build the metadata object that a trusted NPC persistence boundary can store.
+ * Existing metadata is preserved; invalid Creator packages never produce a write payload.
+ * This helper deliberately performs no database I/O.
+ */
+export function creatorNpcRuntimeMetadata(
+  npc: CreatorNpcPackage["npc"],
+  existingMetadata: unknown = {},
+): Record<string, unknown> | undefined {
+  const proposal = proposeCreatorNpcPackage(npc);
+  if (!proposal.validation.ok) return undefined;
+  if (typeof existingMetadata !== "object" || existingMetadata === null || Array.isArray(existingMetadata)) {
+    return undefined;
+  }
+  return {
+    ...(existingMetadata as Record<string, unknown>),
+    npcRuntimeContract: creatorNpcRuntimeSpawnContract(npc),
+  };
 }
 
 export interface CreatorNpcPreviewResult {

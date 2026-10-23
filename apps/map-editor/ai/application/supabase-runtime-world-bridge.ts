@@ -32,6 +32,15 @@ function createBridgeStore(initial: { snapshot: RuntimeWorldSnapshot; grid: Navi
     snapshot: () => snapshot,
     grid: (mapId) => grids.get(mapId),
     __replaceState: replaceState,
+    addEntity(entity: RuntimeEntity) {
+      if (snapshot.entities.some(candidate => candidate.id === entity.id)) return false;
+      const nextTick = snapshot.state.clock.tick;
+      snapshot = {
+        state: { ...snapshot.state, stateVersion: `${engineStateVersion}:runtime:${nextTick}` },
+        entities: [...snapshot.entities, { ...entity, position: { ...entity.position }, state: entity.state ? { ...entity.state } : undefined }],
+      };
+      return true;
+    },
     updateEntity(entity: RuntimeEntity) {
       const index = snapshot.entities.findIndex(candidate => candidate.id === entity.id);
       if (index < 0) return;

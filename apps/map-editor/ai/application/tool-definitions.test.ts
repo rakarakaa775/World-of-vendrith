@@ -105,9 +105,11 @@ describe("project tool definitions", () => {
     expect(packageTool).toBeDefined();
     await expect(packageTool!.execute({
       npc: { id: "npc-1", name: "Scout", archetype: "military", role: "scout", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
-    }, { mode: "explain", requestId: "req-1" })).resolves.toEqual({
+    }, { mode: "explain", requestId: "req-1" })).resolves.toMatchObject({
       npc: { id: "npc-1", name: "Scout", archetype: "military", role: "scout", capabilities: { behaviors: ["investigate"], goals: ["go-to-location"] }, environmentPolicy: policy },
       validation: { ok: true, errors: [] },
+      runtimeContract: { version: 1, decisionProfile: { archetype: "military", role: "scout" }, environmentPolicy: policy },
+      persistence: { status: "not_persisted", metadataPatch: { npcRuntimeContract: { version: 1 } } },
     });
 
     await expect(packageTool!.execute({
@@ -157,6 +159,7 @@ describe("project tool definitions", () => {
     expect(npcProperties.personalityPolicy).toBeDefined();
     expect(npcProperties.relationshipPolicy).toBeDefined();
     expect(npcProperties.environmentPolicy).toBeDefined();
+    expect(npcProperties.traversalCapabilities).toBeDefined();
   });
 
 });

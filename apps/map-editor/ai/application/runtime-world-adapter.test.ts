@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeEntity, RuntimeObservation } from "../domain/runtime";
 import type { NavigationGrid } from "../domain/runtime-navigation";
+import { createLifeDraft } from "../../editor/life-creator-draft";
+import { addLifeToCatalog } from "../../editor/life-catalog";
+import { buildLifeSpawnReference } from "../../editor/life-spawn-reference";
 import { createRuntimeObservationPort } from "./runtime-observation";
 import { createRuntimeOrchestrator } from "./runtime-orchestrator";
 import {
@@ -28,16 +31,78 @@ function makeStore(): RuntimeWorldStore {
   return {
     snapshot: () => snapshot,
     grid: () => grid,
-    updateEntity(entity: RuntimeEntity) {      snapshot = {
+    updateEntity(entity: RuntimeEntity) {
+      snapshot = {
         ...snapshot,
         entities: snapshot.entities.map(candidate => candidate.id === entity.id ? entity : candidate),
         state: { ...snapshot.state, stateVersion: "state-2" },
       };
     },
+    addEntity(entity: RuntimeEntity) {
+      if (snapshot.entities.some(candidate => candidate.id === entity.id)) return false;
+      snapshot = {
+        ...snapshot,
+        entities: [...snapshot.entities, entity],
+        state: { ...snapshot.state, stateVersion: "state-2" },
+      };
+      return true;
+    },
   };
 }
 
 describe("runtime world adapter", () => {
+  it("spawns a validated Life into the runtime snapshot and verifies the entity", async () => {
+    const store = makeStore();
+    const saved = addLifeToCatalog([], createLifeDraft({
+      name: "Aerin", race: "elf", face: "soft", hair: "braid", hairColor: "#D7D0BD",
+      eyes: "#73BDE5", skin: "#F4C7A1", faceShape: "heart", marking: "freckles",
+    }, "life-draft-aerin"), new Date("2026-10-22T10:00:00.000Z"), "life-aerin")[0];
+    const lifeReference = buildLifeSpawnReference(saved, { worldId: "world-1", x: 3, y: 3 });
+    const action = {
+      id: "spawn-life-aerin",
+      intelligence: "life" as const,
+      type: "life.spawn",
+      payload: { lifeReference, mapId: "region-1" },
+      risk: "game-rule" as const,
+      reason: "Spawn saved Life at an authored world position.",
+    };
+
+    const result = await createRuntimeWorldActionPort(store).execute(action, {} as RuntimeObservation);
+    const verification = await createRuntimeWorldVerificationPort(store).verify(action, result);
+
+    expect(result.ok).toBe(true);
+    expect(verification.ok).toBe(true);
+    expect(store.snapshot().entities.find(entity => entity.id === "life:life-draft-aerin")).toMatchObject({
+      kind: "npc", mapId: "region-1", position: { x: 3, y: 3 },
+      state: { name: "Aerin", race: "elf", lifeId: "life-draft-aerin", blocksMovement: true },
+    });
+  });
+
+  it("rejects Life spawn on blocked or occupied tiles and across worlds", async () => {
+    const saved = addLifeToCatalog([], createLifeDraft({
+      name: "Aerin", race: "elf", face: "soft", hair: "braid", hairColor: "#D7D0BD",
+      eyes: "#73BDE5", skin: "#F4C7A1", faceShape: "heart", marking: "freckles",
+    }, "life-draft-aerin"), new Date("2026-10-22T10:00:00.000Z"), "life-aerin")[0];
+    const blockedStore = makeStore();
+    const blockedGrid = blockedStore.grid("region-1")!;
+    blockedGrid.blocked[3 * blockedGrid.width + 3] = true;
+    const blockedAction = {
+      id: "spawn-life-blocked", intelligence: "life" as const, type: "life.spawn",
+      payload: { lifeReference: buildLifeSpawnReference(saved, { worldId: "world-1", x: 3, y: 3 }), mapId: "region-1" },
+      risk: "game-rule" as const, reason: "Test blocked tile.",
+    };
+    expect((await createRuntimeWorldActionPort(blockedStore).execute(blockedAction, {} as RuntimeObservation)).ok).toBe(false);
+
+    const occupiedStore = makeStore();
+    const occupiedNpc = occupiedStore.snapshot().entities.find(entity => entity.id === "npc-1")!;
+    occupiedStore.updateEntity({ ...occupiedNpc, state: { blocksMovement: true } });
+    const occupiedAction = { ...blockedAction, id: "spawn-life-occupied", payload: { lifeReference: buildLifeSpawnReference(saved, { worldId: "world-1", x: 0, y: 0 }), mapId: "region-1" } };
+    expect((await createRuntimeWorldActionPort(occupiedStore).execute(occupiedAction, {} as RuntimeObservation)).ok).toBe(false);
+
+    const wrongWorldAction = { ...blockedAction, id: "spawn-life-wrong-world", payload: { lifeReference: buildLifeSpawnReference(saved, { worldId: "other-world", x: 3, y: 3 }), mapId: "region-1" } };
+    expect((await createRuntimeWorldActionPort(makeStore()).execute(wrongWorldAction, {} as RuntimeObservation)).ok).toBe(false);
+  });
+
   it("detects an explicitly visible entity within visibility radius", async () => {
     const base = makeStore();
     const store: RuntimeWorldStore = {
