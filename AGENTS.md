@@ -22,3 +22,7 @@ Prefer Tool -> Command -> State -> Renderer.
 
 ## Verification
 Use the smallest appropriate pipeline: typecheck, lint, tests, build, browser/runtime verification, final diff review.
+
+
+## AI Company Workflow
+The six-role, supervised, sequential workflow is documented in [`.ai/company/README.md`](.ai/company/README.md). Read the relevant company handbook documents for planning, repository safety, handoffs, QA, and verification. These documents supplement this file; if instructions conflict, follow the more specific safety constraint and stop to ask the project owner when authority is unclear. This handbook describes the intended process and does not imply that six independent agents or automation have been provisioned.
