@@ -18,6 +18,10 @@ This folder contains the operating charter and governance documents for the init
 - Required branch: `feat/vendrith-ecc-v1`.
 - Production database changes, paid services, main merges, and production releases: explicit owner approval required.
 
+## Agent skills
+
+The role-specific skill instructions live in [`.ai/skills/README.md`](../skills/README.md). Each of the six sequential roles has a dedicated `SKILL.md`; technical/domain skills remain separate and should be loaded only when relevant. Role skills define responsibilities and handoffs, not separate execution identities.
+
 ## Important distinction
 
 These documents define the intended operating process. They do not automatically provision six separate agents, grant permissions, create external services, or prove that any task has been executed. Configure and test automation separately before treating it as operational.

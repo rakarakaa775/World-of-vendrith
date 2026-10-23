@@ -1,5 +1,8 @@
 # Standard Operating Procedure — Sequential AI Workflow
 
+## Skill loading
+Before each role starts, read its matching skill under `.ai/skills/company-roles/` and the applicable technical/domain skills from `.ai/skills/README.md`. The skill registry explains role-vs-domain responsibilities.
+
 ## Workflow states
 `PLANNED → AUDITED → IMPLEMENTED → QA_CHECKED → INTEGRATION_REVIEWED → VERIFIED`
 
