@@ -132,12 +132,29 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
       }
       return;
     }
-    const next = resolveMapNavigationPersistence(nextMapId, { connectedMapId, baseDocument, version });
+    // World navigation must use the same authoritative identity loader as Region
+    // and Playable. Previously this branch only switched local state and could
+    // leave editorReady false forever when returning from a child map.
+    const client = createMapEditorSupabaseClient();
+    if (!client) { setStatus("Open World failed: Supabase unavailable"); return; }
     setActiveMapId(nextMapId);
-    setConnectedMapId(next.connectedMapId);
-    setBaseDocument(next.baseDocument);
-    setVersion(next.version);
-  }, [baseDocument, connectedMapId, maps, version]);
+    setStatus("Loading authoritative World…");
+    try {
+      const loaded = await loadIdentityMapDocument(client, nextMapId);
+      if (loaded.document && loaded.document.id !== nextMapId) throw new Error("OPEN_IDENTITY_MISMATCH: authoritative World ID differs from requested ID");
+      const authoritative = normalizeWorldCanvas(loaded.document ?? nextDocument);
+      setMaps(cur => cur.some(m => m.id === authoritative.id) ? cur.map(m => m.id === authoritative.id ? authoritative : m) : [...cur, authoritative]);
+      setConnectedMapId(nextMapId);
+      setBaseDocument(authoritative);
+      setVersion(loaded.version);
+      setLoadRevision(v => v + 1);
+      setStatus(loaded.document ? `Loaded World identity · version ${loaded.version}` : "World identity has no snapshot · save required");
+    } catch (e) {
+      setConnectedMapId(null);
+      setBaseDocument(null);
+      setStatus(`Open World failed: ${msg(e)}`);
+    }
+  }, [baseDocument, connectedMapId, maps, version, normalizeWorldCanvas]);
 
   const refreshSlots = useCallback(async (client: any, mapId: string) => {
     const { data, error } = await client.from("map_editor_save_slots").select("slot_number,label,version_number,updated_at,snapshot").eq("map_id", mapId).order("slot_number");
