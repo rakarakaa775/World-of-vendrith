@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { EditorShell } from "./editor-shell";
 import { WorldBrowser } from "./world-browser";
 import { SaveSlotsPanel, type SaveSlot } from "./save-slots-panel";
@@ -38,6 +39,8 @@ function fromRow(row: any): MapDocument {
 export type WorldBuilderStartMode = "load" | "create";
 
 export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: WorldBuilderStartMode }) {
+  const searchParams = useSearchParams();
+  const workspace = searchParams.get("workspace") || "world";
   const seed = useMemo(() => createMap("world"), []);
   const [maps, setMaps] = useState<MapDocument[]>([seed]);
   const [editorStates, setEditorStates] = useState<Record<string, MapEditorState>>({});
@@ -648,7 +651,7 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
     : "Validation unavailable";
 
   return <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
-    <WorldBrowser maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
+    <WorldBrowser workspace={workspace} maps={maps} activeMapId={active.id} onMapsChange={setMaps} onOpen={openMap} client={browserClient as any} onStatus={setStatus} />
     <div style={{ position: "relative", minHeight: 0 }}>
       <div style={{position:"absolute",top:8,left:8,right:8,zIndex:20,display:"flex",justifyContent:"space-between",gap:8,pointerEvents:"none"}}>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",pointerEvents:"auto"}}>

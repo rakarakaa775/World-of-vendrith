@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 type Props = { activeWorkspace: string; children: ReactNode };
@@ -14,6 +14,8 @@ const groups = [
 
 export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedWorkspace = searchParams.get("workspace") || activeWorkspace;
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [surface, setSurface] = useState<"overview" | "hierarchy" | "settings" | "assets" | null>(null);
   const navigate = (workspace: string) =>
@@ -44,7 +46,7 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
 
       <nav className="world-builder-workspace-tabs" aria-label="World, Region, Playable, Interior">
         {groups.map(group => group.items.map(([id, label]) => (
-          <button type="button" key={id} className={activeWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={activeWorkspace === id ? "page" : undefined}>
+          <button type="button" key={id} className={selectedWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={selectedWorkspace === id ? "page" : undefined}>
             <span aria-hidden="true">{iconFor(id)}</span>{label}
           </button>
         )))}
@@ -85,10 +87,10 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
           <div className="world-builder-breadcrumb">
             <button type="button" onClick={() => navigate("world")}>World of Vendrith</button>
             <span>›</span>
-            <strong>{labelFor(activeWorkspace)}</strong>
+            <strong>{labelFor(selectedWorkspace)}</strong>
           </div>
           <div className="world-builder-toolbar">
-            <span className="world-toolbar-context">{labelFor(activeWorkspace)}</span>
+            <span className="world-toolbar-context">{labelFor(selectedWorkspace)}</span>
           </div>
           <div className="world-builder-content">{children}</div>
         </section>
