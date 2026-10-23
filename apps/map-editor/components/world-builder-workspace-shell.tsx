@@ -42,6 +42,14 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
         </div>
       </header>
 
+      <nav className="world-builder-workspace-tabs" aria-label="World, Region, Playable, Interior">
+        {groups.map(group => group.items.map(([id, label]) => (
+          <button type="button" key={id} className={activeWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={activeWorkspace === id ? "page" : undefined}>
+            <span aria-hidden="true">{iconFor(id)}</span>{label}
+          </button>
+        )))}
+      </nav>
+
       <div className={`world-builder-layout${navCollapsed ? " nav-collapsed" : ""}`}>
         <aside className="world-builder-nav" aria-label="World Builder navigation">
           <div className="world-builder-nav-title">
@@ -64,17 +72,13 @@ export function WorldBuilderWorkspaceShell({ activeWorkspace, children }: Props)
               {navCollapsed ? "›" : "‹"}
             </button>
           </div>
-          {groups.map(group => (
-            <section key={group.title}>
-              <h2>{group.title}</h2>
-              {group.items.map(([id, label]) => (
-                <button type="button" key={id} className={activeWorkspace === id ? "active" : ""} onClick={() => navigate(id)} aria-current={activeWorkspace === id ? "page" : undefined}>
-                  <span>{iconFor(id)}</span>
-                  <span className="world-builder-nav-label">{label}</span>
-                </button>
-              ))}
-            </section>
-          ))}
+          <section>
+            <h2>Workspace tools</h2>
+            <button type="button" onClick={() => setSurface("overview")}><span>◈</span><span className="world-builder-nav-label">Overview</span></button>
+            <button type="button" onClick={() => setSurface("hierarchy")}><span>◇</span><span className="world-builder-nav-label">Hierarchy</span></button>
+            <button type="button" onClick={() => setSurface("settings")}><span>⚙</span><span className="world-builder-nav-label">Settings</span></button>
+            <button type="button" onClick={() => setSurface("assets")}><span>▧</span><span className="world-builder-nav-label">Assets</span></button>
+          </section>
         </aside>
 
         <section className="world-builder-main">
