@@ -1,4 +1,4 @@
-import type { MapDocument, MapParentBounds } from './map-document';
+import { createMap, type MapDocument, type MapParentBounds, type MapLayer } from './map-document';
 
 export type ChildMapSeed = {
   id: string;
@@ -7,14 +7,16 @@ export type ChildMapSeed = {
   parentMapId: string;
   seedKey: string;
   parentBounds: MapParentBounds;
+  width: number;
+  height: number;
 };
 export type RegionSeedGroup = { region: ChildMapSeed; playables: ChildMapSeed[] };
 export type WorldExpansionPlan = { worldId: string; regions: RegionSeedGroup[] };
 
 /**
  * Builds a deterministic, non-mutating 1 World -> 4 Region -> 16 Playable plan.
- * This describes proposed children only; persistence and actual creation are
- * intentionally left to the caller so planning cannot silently overwrite maps.
+ * Each child covers a source quadrant; its grid is scaled 2x per dimension.
+ * This describes proposed children only; persistence remains the caller's responsibility.
  */
 export function planWorldExpansion(world: MapDocument): WorldExpansionPlan {
   if (world.mapType !== 'world') throw new Error('WORLD_EXPANSION_REQUIRES_WORLD');
@@ -35,21 +37,23 @@ export function planWorldExpansion(world: MapDocument): WorldExpansionPlan {
       const sx = split(world.width, rx);
       const sy = split(world.height, ry);
       const regionId = `${world.id}:region:${rx}-${ry}`;
+      const regionBounds = { x: sx.start, y: sy.start, width: sx.length, height: sy.length };
       const region: ChildMapSeed = {
-        id: regionId, name: `Region ${rx + 1}-${ry + 1}`, mapType: 'region',
+        id: regionId, name: `Region ${String.fromCharCode(65 + ry * 2 + rx)}`, mapType: 'region',
         parentMapId: world.id, seedKey: `${world.id}/region/${rx}-${ry}`,
-        parentBounds: { x: sx.start, y: sy.start, width: sx.length, height: sy.length },
+        parentBounds: regionBounds, width: sx.length * 2, height: sy.length * 2,
       };
       const playables: ChildMapSeed[] = [];
       for (let py = 0; py < 2; py += 1) {
         for (let px = 0; px < 2; px += 1) {
-          const psx = split(sx.length, px);
-          const psy = split(sy.length, py);
+          const psx = split(region.width, px);
+          const psy = split(region.height, py);
           playables.push({
             id: `${regionId}:playable:${px}-${py}`,
             name: `Playable ${px + 1}-${py + 1}`, mapType: 'playable',
             parentMapId: regionId, seedKey: `${region.seedKey}/playable/${px}-${py}`,
             parentBounds: { x: psx.start, y: psy.start, width: psx.length, height: psy.length },
+            width: psx.length * 2, height: psy.length * 2,
           });
         }
       }
@@ -57,4 +61,49 @@ export function planWorldExpansion(world: MapDocument): WorldExpansionPlan {
     }
   }
   return { worldId: world.id, regions };
+}
+
+
+/** Materialize a planned child document and expand its source terrain cells 2x2. */
+export function materializeChildMap(parent: MapDocument, seed: ChildMapSeed): MapDocument {
+  if (seed.parentMapId !== parent.id) throw new Error('WORLD_EXPANSION_PARENT_MISMATCH');
+  if (!Number.isInteger(seed.width) || !Number.isInteger(seed.height) || seed.width < 1 || seed.height < 1) {
+    throw new Error('WORLD_EXPANSION_INVALID_CHILD_SIZE');
+  }
+  const b = seed.parentBounds;
+  if (b.x < 0 || b.y < 0 || b.width < 1 || b.height < 1 || b.x + b.width > parent.width || b.y + b.height > parent.height) {
+    throw new Error('WORLD_EXPANSION_BOUNDS_OUTSIDE_PARENT');
+  }
+  const child = createMap(seed.mapType, parent.id, 'exterior', null, seed.width, seed.height);
+  const sourceGround = parent.layers.find(layer => layer.kind === 'ground');
+  const layers: MapLayer[] = child.layers.map(layer => {
+    if (layer.kind !== 'ground' || !sourceGround) return layer;
+    const cells = Array.from({ length: seed.width * seed.height }, (_, index) => {
+      const x = Math.floor(index % seed.width / 2) + b.x;
+      const y = Math.floor(index / seed.width / 2) + b.y;
+      return { tileId: sourceGround.cells[y * parent.width + x]?.tileId ?? null };
+    });
+    return { ...layer, cells };
+  });
+  return {
+    ...child,
+    id: seed.id,
+    name: seed.name,
+    parentMapId: parent.id,
+    parentBounds: { ...b },
+    tileSize: parent.tileSize,
+    layers,
+  };
+}
+
+/** Build the complete 21-map World/Region/Playable tree locally without persistence side effects. */
+export function materializeWorldExpansion(world: MapDocument): MapDocument[] {
+  const plan = planWorldExpansion(world);
+  const maps: MapDocument[] = [];
+  for (const group of plan.regions) {
+    const region = materializeChildMap(world, group.region);
+    maps.push(region);
+    for (const seed of group.playables) maps.push(materializeChildMap(region, seed));
+  }
+  return maps;
 }

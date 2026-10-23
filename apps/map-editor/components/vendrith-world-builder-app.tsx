@@ -272,7 +272,14 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
         }
       } catch (e) { if (!cancelled) setStatus(`Connection failed: ${msg(e)}`); }
       finally { if (!cancelled) setBusy(false); }
-    })();
+    })().catch(e => {
+      // Errors before the inner connection try (missing client/session) must not
+      // leave the editor permanently in its loading state.
+      if (!cancelled) {
+        setStatus(`Connection failed: ${msg(e)}`);
+        setBusy(false);
+      }
+    });
     return () => { cancelled = true; };
   }, [seed, startMode]);
 
@@ -655,8 +662,14 @@ export function VendrithWorldBuilderApp({ startMode = "load" }: { startMode?: Wo
           onQuickSave={async (document) => { await save(document); }}
           onLoadLatest={async () => { await loadLatest(); }}
         />
+      ) : status.startsWith("Connection failed:") ? (
+        <div role="alert" style={{ height: "100%", display: "grid", placeContent: "center", justifyItems: "center", gap: 12, padding: 24, color: "#cbd5e1", background: "var(--map-editor-bg)", textAlign: "center" }}>
+          <strong>World Builder could not connect</strong>
+          <span>{status}</span>
+          <button type="button" onClick={() => window.location.reload()}>Retry connection</button>
+        </div>
       ) : (
-        <div style={{ height: "100%", display: "grid", placeItems: "center", color: "#94a3b8", background: "var(--map-editor-bg)" }}>
+        <div role="status" style={{ height: "100%", display: "grid", placeItems: "center", color: "#94a3b8", background: "var(--map-editor-bg)" }}>
           Loading authoritative map…
         </div>
       )}

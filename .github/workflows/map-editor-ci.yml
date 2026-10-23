@@ -144,6 +144,45 @@ jobs:
       - name: Assert full-schema concurrent save serialization
         run: bash supabase/tests/atomic-save-slot-full-schema-concurrency.sh
 
+  world-hierarchy-persistence-sql:
+    name: World hierarchy PostgreSQL persistence integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vendrith_hierarchy_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vendrith_hierarchy_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5434
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: vendrith_hierarchy_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Prepare isolated Supabase auth compatibility
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/atomic-save-slot-full-schema-bootstrap.sql
+      - name: Apply reconstructed schema to disposable PostgreSQL only
+        shell: bash
+        run: |
+          set -o pipefail
+          sed '/CREATE EXTENSION IF NOT EXISTS "supabase_vault"/d' supabase/migrations/20261003170000_remote_schema_baseline_reconstructed.sql | psql -v ON_ERROR_STOP=1
+      - name: Apply world hierarchy materialization RPC
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261023120000_map_editor_materialize_world_hierarchy_v1.sql
+      - name: Assert atomic 4 Region + 16 Playable persistence, snapshot read-back contract, and retry protection
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/world-hierarchy-persistence.sql
+
   runtime-persistence-sql:
     name: AI Runtime Persistence PostgreSQL contract tests
     runs-on: ubuntu-latest

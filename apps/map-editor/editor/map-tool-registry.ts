@@ -107,7 +107,6 @@ export function getMapEditorPalette(
   if (level === "region") {
     return [
       COMMON,
-      { id: "terrain", label: "Region Terrain", tools: ["terrain", "stamp"] },
       { id: "region", label: "Settlements & Infrastructure", tools: ["settlement", "infrastructure"] },
       { id: "nature", label: "Nature Landmarks", tools: ["nature"] },
     ];

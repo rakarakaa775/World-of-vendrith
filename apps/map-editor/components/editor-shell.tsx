@@ -16,7 +16,7 @@ import type { GridPoint } from "../editor/grid";
 import type { EnvironmentRuntimeValidation } from "../editor/environment-runtime-validation";
 import { DEFAULT_DEBUG_VIEW_STATE, toggleDebugView } from "../editor/debug-views";
 import { deleteObject, duplicateObjects, placePaletteAsset, scatterPaletteAssets, updateObjectTransform, updateObjectsTransform, type PaletteAssetPlacement } from "../editor/object-state";
-import type { MapAssetDefinition } from "../editor/map-tool-registry";
+import { getMapAssetsForLevel, MAP_ASSET_CATALOG, type MapAssetDefinition } from "../editor/map-tool-registry";
 
 type Props = {
   initialDocument?: MapDocument;
@@ -98,14 +98,21 @@ export function EditorShell({
   // Paint/Erase request because of that persisted active flag.
   const terrainLayer = document.layers.find(layer => layer.kind === "ground")?.id ?? "ground";
   const objectPalette = useMemo<PaletteAssetPlacement[]>(() => {
-    const level = document.mapType === "playable" && (document.playableSpace ?? "exterior") === "interior"
-      ? "interior"
-      : document.mapType;
-    const physical = assetCatalog
-      .filter(asset => asset.levels.includes(level) && asset.family !== "macro-terrain")
+    const catalog = assetCatalog.length ? assetCatalog : MAP_ASSET_CATALOG;
+    return getMapAssetsForLevel(document, catalog)
+      .filter(asset => asset.family !== "macro-terrain")
       .map(asset => ({ id: asset.id, label: asset.label, family: asset.family, registryId: asset.registryId, previewUrl: asset.previewUrl }));
-    return physical.length ? physical : OBJECT_PALETTE;
   }, [assetCatalog, document.mapType, document.playableSpace]);
+  const isWorldMap = document.mapType === "world";
+  const isRegionMap = document.mapType === "region";
+  const availableTools = isWorldMap
+    ? TOOLS.filter(tool => tool !== "Building")
+    : isRegionMap
+      ? (["Select", "Building"] as const)
+      : TOOLS;
+  useEffect(() => {
+    if (!availableTools.includes(activeTool as never)) setActiveTool(availableTools[0]);
+  }, [activeTool, availableTools]);
 
   useEffect(() => {
     if (objectPalette.length && !objectPalette.some(asset => asset.id === selectedObjectAssetId)) {
@@ -440,7 +447,7 @@ export function EditorShell({
             {MAP_SIZES.map(size => <option key={size} value={String(size)}>{size} × {size}</option>)}
           </select>
         </label>
-        {TOOLS.map(tool => (
+        {availableTools.map(tool => (
           <button key={tool} type="button" onClick={() => selectTool(tool)} aria-pressed={activeTool === tool}
             style={{ padding: "6px 9px", borderRadius: 6, border: "1px solid var(--map-editor-border)", background: activeTool === tool ? "var(--map-editor-selected)" : "var(--map-editor-button)", color: "#fff" }}>
             {tool}
@@ -474,7 +481,8 @@ export function EditorShell({
 
       <div className="map-editor-body" style={{ minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 0 }}>
         <aside className="map-editor-palette" style={{ overflow: "auto", borderRight: "1px solid var(--map-editor-line)", background: "var(--map-editor-panel)", padding: 10 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>PAINT / TERRAIN · {tileOptions.filter(isPaintableTerrainTile).length} BASIC</div>
+          {!isRegionMap && <>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{isWorldMap ? "WORLD TERRAIN PAINT" : "PLAYABLE TERRAIN / GROUND"} · {tileOptions.filter(isPaintableTerrainTile).length} BASIC</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{terrainStatus}</div>
           <div role="status" aria-live="polite" style={{ fontSize: 11, lineHeight: 1.35, color: "#fbbf24", marginBottom: 10, overflowWrap: "anywhere" }}>{paintDiagnostic}</div>
           {hasDebugOverlay && <div role="note" aria-label="Diagnostic legend" style={{ marginBottom: 10, padding: 8, border: "1px solid var(--map-editor-border)", borderRadius: 7, fontSize: 10, lineHeight: 1.45, color: "#cbd5e1" }}>
@@ -488,6 +496,8 @@ export function EditorShell({
             {debugViews.readOnly && <div>Read-only · map input disabled</div>}
           </div>}
 
+          </>}
+          {isRegionMap && <div role="note" style={{ padding: 8, marginBottom: 12, border: "1px solid var(--map-editor-border)", borderRadius: 6, fontSize: 11, color: "#cbd5e1" }}>REGION MODE · place region symbols and landmarks. Terrain painting belongs to World; detailed construction belongs to Playable.</div>}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYERS</div>
             <div role="tree" aria-label="Map layers" style={{ display: "grid", gap: 5 }}>
@@ -529,8 +539,8 @@ export function EditorShell({
             </div>
           </div>
 
-          <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--map-editor-line)" }}>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>OBJECT / ASSET PLACEMENT</div>
+          {!isWorldMap && <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--map-editor-line)" }}>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{isRegionMap ? "REGION SYMBOLS / LANDMARKS" : "PLAYABLE OBJECT / ASSET PLACEMENT"}</div>
             <label style={{ display: "grid", gap: 4, fontSize: 11, marginBottom: 6 }}>
               Asset
               <select value={selectedObjectAssetId} onChange={event => setSelectedObjectAssetId(event.target.value)} aria-label="Object asset">
@@ -572,9 +582,9 @@ export function EditorShell({
             <button type="button" onClick={handleScatterObjects} disabled={!activeObjectLayer || activeObjectLayer.locked || !activeObjectLayer.visible} style={{ width: "100%" }}>
               Scatter selected asset
             </button>
-          </div>
+          </div>}
 
-          <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--map-editor-line)" }}>
+          {!isWorldMap && <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--map-editor-line)" }}>
             <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>OBJECT INSPECTOR</div>
             {!selectedObject ? <div style={{ fontSize: 11, color: "#64748b" }}>Select an object on the map to edit its transform.</div> : <>
               <div style={{ fontSize: 11, overflowWrap: "anywhere", marginBottom: 6 }}>{selectedObject.assetName ?? selectedObject.category} · {selectedObject.id}</div>
@@ -592,7 +602,7 @@ export function EditorShell({
               </div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 5 }}>Rotation: {selectedObject.rotation}° · Collision: {selectedObject.collision ? "on" : "off"}</div>
             </>}
-          </div>
+          </div>}
 
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>LAYER TEMPLATES</div>

@@ -20,7 +20,7 @@ describe("map editor tool registry", () => {
   it("gives Region settlement, infrastructure, and nature landmark tools", () => {
     const region = createMap("region", "world-1", "exterior", null, 32, 32);
     expect(mapEditorLevelKey(region)).toBe("region");
-    expect(isMapEditorToolAllowed(region, "terrain")).toBe(true);
+    expect(isMapEditorToolAllowed(region, "terrain")).toBe(false);
     expect(isMapEditorToolAllowed(region, "settlement")).toBe(true);
     expect(isMapEditorToolAllowed(region, "infrastructure")).toBe(true);
     expect(isMapEditorToolAllowed(region, "nature")).toBe(true);
@@ -53,7 +53,6 @@ describe("map editor tool registry", () => {
     const region = createMap("region", "world-1", "exterior", null, 16, 16);
     expect(getMapEditorPalette(region).map(section => section.label)).toEqual([
       "Navigation",
-      "Region Terrain",
       "Settlements & Infrastructure",
       "Nature Landmarks",
     ]);
