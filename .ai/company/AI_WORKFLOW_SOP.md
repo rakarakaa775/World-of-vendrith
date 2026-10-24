@@ -1,7 +1,7 @@
 # Standard Operating Procedure — Sequential AI Workflow
 
-## Skill loading
-Before each role starts, read its matching skill under `.ai/skills/company-roles/` and the applicable technical/domain skills from `.ai/skills/README.md`. The skill registry explains role-vs-domain responsibilities.
+## Intake and skill loading
+For each non-trivial request, first use `.ai/skills/company-roles/ai-task-coordinator/SKILL.md` and follow `AI_TASK_ROUTING_POLICY.md` to classify and route the task. The coordinator is a function, not a seventh execution role. Before each execution role starts, read its matching skill under `.ai/skills/company-roles/` and only the applicable technical/domain skills from `.ai/skills/README.md`. Existing `.ai/agents/` files are specialist prompts; do not imply they are separate running agents.
 
 ## Workflow states
 `PLANNED → AUDITED → IMPLEMENTED → QA_CHECKED → INTEGRATION_REVIEWED → VERIFIED`
@@ -9,6 +9,7 @@ Before each role starts, read its matching skill under `.ai/skills/company-roles
 Any state may transition to `BLOCKED`, `FAILED`, or `NEEDS_REVIEW`. Do not advance past a failed mandatory gate without documenting the exception and obtaining approval where needed.
 
 ## Stage 1 — Plan (Roadmap Agent)
+The coordinator creates the initial task envelope and selects the proportionate workflow. The Roadmap Director remains accountable for scope, priority, and acceptance criteria.
 - State the user outcome in plain language.
 - Define in-scope and out-of-scope work.
 - List acceptance criteria, dependencies, risk, and expected tests.

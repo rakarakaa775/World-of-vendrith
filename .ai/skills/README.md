@@ -1,6 +1,6 @@
 # Vendrith AI Skills Registry
 
-This registry connects reusable skills to the supervised six-role workflow defined in [`../company/AI_WORKFLOW_SOP.md`](../company/AI_WORKFLOW_SOP.md).
+This registry connects the task-coordination function and reusable skills to the supervised six-role workflow defined in [`../company/AI_WORKFLOW_SOP.md`](../company/AI_WORKFLOW_SOP.md) and [`../company/AI_TASK_ROUTING_POLICY.md`](../company/AI_TASK_ROUTING_POLICY.md).
 
 ## Operating rules
 
@@ -9,6 +9,10 @@ This registry connects reusable skills to the supervised six-role workflow defin
 - At every handoff include task ID, status, evidence, files/modules, checks, risks, unresolved items, and the next role's requested action.
 - The repository instructions and `.ai/company/` policies govern all skills. Stop if a skill conflicts with owner direction or repository safety policy.
 - Use only relevant skills; do not load every technical skill for every task.
+
+## Intake and coordination
+
+Before a non-trivial task is routed, use [`ai-task-coordinator`](./company-roles/ai-task-coordinator/SKILL.md). It classifies the request, chooses relevant roles and domain skills, tracks dependencies, and validates handoffs. It is a coordination function—not a seventh execution role or a claim that a separate autonomous agent exists.
 
 ## Six company-role skills
 
