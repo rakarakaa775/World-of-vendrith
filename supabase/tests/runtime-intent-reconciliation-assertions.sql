@@ -63,4 +63,21 @@ begin
     raise exception 'RECONCILE_PENDING_AUDIT_MISSING';
   end if;
 end $$;
+-- Repeated enqueue for one approved proposal must return the same durable intent ID.
+insert into public.vendrith_creator_action_proposals(id,user_id,context_type,context_id,action,status)
+values ('88888888-8888-4888-8888-888888888883',:'user','world',:'map','{"runtimeAction":{"id":"action-idempotent"}}'::jsonb,'approved');
+do $$
+declare first_result jsonb; second_result jsonb; first_id uuid; second_id uuid;
+begin
+  first_result := public.enqueue_vendrith_runtime_intent_v1('88888888-8888-4888-8888-888888888883');
+  second_result := public.enqueue_vendrith_runtime_intent_v1('88888888-8888-4888-8888-888888888883');
+  first_id := nullif(first_result->>'intent_id','')::uuid;
+  second_id := nullif(second_result->>'intent_id','')::uuid;
+  if first_result->>'ok' <> 'true' or second_result->>'ok' <> 'true' or first_id is null or second_id is null or first_id <> second_id then
+    raise exception 'ENQUEUE_IDEMPOTENCY_ASSERTION_FAILED: first %, second %', first_result, second_result;
+  end if;
+  if (select count(*) from public.vendrith_runtime_intents where proposal_id='88888888-8888-4888-8888-888888888883') <> 1 then
+    raise exception 'ENQUEUE_DUPLICATE_INTENT_CREATED';
+  end if;
+end $$;
 select 'runtime intent reconciliation assertions passed' as result;

@@ -284,6 +284,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/runtime-intent-reconciliation-fixture.sql
       - name: Apply runtime intent queue migration to disposable database
         run: psql -v ON_ERROR_STOP=1 -f database/migrations/20261009013000_vendrith_runtime_intents_v1.sql
+      - name: Apply runtime intent enqueue idempotency fix to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f database/migrations/20261024010000_vendrith_runtime_intent_enqueue_idempotency_v1.sql
       - name: Apply runtime intent consumer migration to disposable database
         run: psql -v ON_ERROR_STOP=1 -f database/migrations/20261009014000_vendrith_runtime_intent_consumer_v1.sql
       - name: Apply prior mutation lookup migration
